@@ -882,12 +882,14 @@ body {
    monochrome : un état actif signalé par la seule teinte y disparaît. Le glyphe se REMPLIT
    donc — l'axe `FILL` de la police est une forme, pas une couleur, et il survit au
    basculement. Le fond et la teinte s'y ajoutent le jour, ils ne le remplacent pas. */
-.bascule[aria-pressed='true'] {
+.bascule[aria-pressed='true'],
+.cible-action[aria-pressed='true'] {
   background: var(--fond-accent);
   color: var(--accent);
 }
 
-.bascule[aria-pressed='true'] > .icone {
+.bascule[aria-pressed='true'] > .icone,
+.cible-action[aria-pressed='true'] > .icone {
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
@@ -2113,16 +2115,27 @@ button:disabled {
   color: var(--accent);
 }
 
-.score-detail {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--pas-3);
-  margin: var(--pas-1) 0;
-  font-size: var(--texte-micro);
-  letter-spacing: var(--suivi-micro);
+/* Le nom de l'étape mène à sa fiche. Il reste un titre : il prend la typographie de la ligne
+   et rend celle du bouton générique, dont les capitales en micro-corps feraient d'un nom
+   propre une commande. Le soulignement dit le détour, puisque la couleur ne le peut pas. */
+.etape-lien {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--texte);
+  font-family: var(--police-titre);
+  font-size: var(--texte-corps);
+  font-weight: 600;
+  letter-spacing: var(--suivi-etape);
   text-transform: uppercase;
-  color: var(--attenue);
-  font-variant-numeric: tabular-nums;
+  text-align: left;
+  text-decoration: underline;
+}
+
+.etape-lien:not(:disabled):hover,
+.etape-lien:focus-visible {
+  background: transparent;
+  color: var(--accent);
 }
 
 .plan-export {
@@ -2465,7 +2478,10 @@ button:disabled {
 
 /* Une commande par ligne, deux cents fois : elle se réduit à son glyphe. Le libellé vit
    dans `aria-label`, où il reste annoncé sans peser sur la colonne. */
-.cible-voir {
+/* Un bouton d'action posé sur une cible — la viser, l'ajouter au plan. La classe nomme la
+   PLACE, pas le geste : les deux se tiennent côte à côte sur la ligne de liste comme dans
+   l'en-tête de fiche, et deux dessins différents s'y liraient comme deux registres. */
+.cible-action {
   flex: 0 0 auto;
   align-self: center;
   min-width: var(--cible-clic);

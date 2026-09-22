@@ -30,7 +30,6 @@ export type CauseEcart =
   | 'FENETRE'
   | 'HORS_PORTEE'
   | 'CONFLIT_CRENEAU'
-  | 'BUDGET'
   | 'SUIVI'
 
 export interface CibleEcartee {

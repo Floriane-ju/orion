@@ -95,6 +95,9 @@ vi.mock('react', async (importeReel) => {
     useRef: harnais.useRef,
     // Le report est hors sujet ici : ce test porte sur ce qui DÉCLENCHE le calcul lourd.
     useDeferredValue: <T,>(valeur: T): T => valeur,
+    // La sélection de cibles (§8.3) est un magasin externe : hors d'un rendu React, seule sa
+    // LECTURE compte ici. L'abonnement n'a personne à réveiller, la frappe ne la touche pas.
+    useSyncExternalStore: <T,>(_abonne: unknown, lit: () => T): T => lit(),
   }
 })
 

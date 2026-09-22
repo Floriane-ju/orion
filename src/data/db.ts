@@ -210,6 +210,31 @@ export async function ecritPaquet(paquet: PaquetStocke): Promise<void> {
   await (await db()).put('paquets', paquet)
 }
 
+/**
+ * §12.3 — les cibles que l'utilisateur a choisies pour sa nuit (§8.3), rangées par désignation.
+ *
+ * Dans `reglages` plutôt que dans un magasin à part : c'est un réglage de séance, pas une
+ * entité — une liste de clés du catalogue, qui ne se retélécharge pas mais ne vaut rien sans
+ * lui. Aucune montée de `VERSION_BASE` n'est donc nécessaire.
+ */
+const CLE_CIBLES_CHOISIES = 'cibles-choisies'
+
+/**
+ * Ce que la base rend est VALIDÉ, jamais cru sur parole : un export retouché, une version
+ * antérieure ou la console du navigateur peuvent y avoir laissé autre chose qu'une liste de
+ * chaînes. Une valeur non conforme rend une sélection vide — l'écran redemande le geste, il
+ * ne tombe pas.
+ */
+export async function litCiblesChoisies(): Promise<readonly string[]> {
+  const brut = await (await db()).get('reglages', CLE_CIBLES_CHOISIES)
+  if (!Array.isArray(brut)) return []
+  return brut.filter((d): d is string => typeof d === 'string')
+}
+
+export async function ecritCiblesChoisies(designations: readonly string[]): Promise<void> {
+  await (await db()).put('reglages', [...designations], CLE_CIBLES_CHOISIES)
+}
+
 export async function litImage(designation: string): Promise<ImageStockee | null> {
   return (await (await db()).get('images', designation)) ?? null
 }

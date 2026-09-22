@@ -39,6 +39,8 @@ import {
   type SaisiePoids,
 } from './app-saisie.ts'
 import { departLieu, departMateriel } from './saisie-persistee.ts'
+import { litCiblesChoisies } from '../data/db.ts'
+import { poseCiblesChoisies } from './cibles-choisies.ts'
 
 export interface Catalogues {
   readonly etat: EtatDemarrage | null
@@ -135,11 +137,20 @@ export function useSaisieRestauree(): SaisieRestauree | null {
     if (typeof indexedDB === 'undefined') return
     void (async () => {
       try {
-        const [site, profil] = await Promise.all([litSiteActif(), litProfilActif()])
+        const [site, profil, choisies] = await Promise.all([
+          litSiteActif(),
+          litProfilActif(),
+          litCiblesChoisies(),
+        ])
+        // §8.3 — la sélection va au magasin, pas à la saisie : elle ne se saisit pas, elle se
+        // coche. Posée AVANT le premier rendu, comme le lieu, sans quoi la première image
+        // afficherait un plan vide avant de le remplacer par celui de la veille.
+        poseCiblesChoisies(choisies)
         setRestauree({ lieu: departLieu(site), materiel: departMateriel(profil), erreur: null })
       } catch (erreur) {
         // Ce qu'on n'a pas su lire ne doit surtout pas être écrasé : la saisie repart des
-        // valeurs par défaut, mais plus rien ne s'enregistre tant que la cause est là.
+        // valeurs par défaut, mais plus rien ne s'enregistre tant que la cause est là — la
+        // sélection de cibles comprise, dont le magasin reste non hydraté, donc muet en base.
         setRestauree({
           lieu: null,
           materiel: null,

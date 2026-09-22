@@ -284,6 +284,21 @@ export interface EtatCible {
   readonly cause: string | null
 }
 
+/**
+ * §6.4, T-0127 — « photographiable » a UNE définition, et c'est la POSE qui la porte.
+ *
+ * Pas la note : une cible écartée en a une (zéro) et sa cause avec. Pas la hauteur à l'instant
+ * affiché : §6.4 l'interdit nommément, une cible basse maintenant qui culmine avant l'aube
+ * reste photographiable. Le critère était écrit deux fois dans l'interface, chaque fois avec un
+ * commentaire demandant de le garder d'accord avec l'autre — il l'est maintenant une seule.
+ *
+ * `undefined` n'est pas `false` par hasard : une cible que le moteur n'a pas évaluée n'est pas
+ * une cible impossible, et dans les deux cas il n'y a pas de pose à proposer.
+ */
+export function photographiable(etat: EtatCible | undefined): boolean {
+  return etat?.pose != null
+}
+
 /** Les trois dérivations qu'une évaluation demande, faites en un seul endroit. */
 export interface EntreeEvaluation {
   readonly fenetre: Intervalle

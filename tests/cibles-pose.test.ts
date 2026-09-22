@@ -225,7 +225,7 @@ describe('etatsCibles — la note de facilité', () => {
   it('note TOUTE cible refusée au pré-filtrage, et pas seulement les candidates', () => {
     // La borne d'écartées du pré-filtrage est celle du catalogue entier : nommer un refus ne
     // coûte qu'une chaîne, alors que retenir une candidate coûte une éphéméride.
-    const { candidates, ecartees } = preFiltre(CONTEXTE, CATALOGUE, CATALOGUE.length)
+    const { candidates, ecartees } = preFiltre(CONTEXTE, CATALOGUE, CATALOGUE.length, CATALOGUE.length)
     expect(ecartees.length).toBeGreaterThan(0)
 
     for (const ecartee of ecartees) {

@@ -79,7 +79,6 @@ describe('noteEcartee — 0 est réservé aux causes que le moteur nomme', () =>
       'FENETRE',
       'HORS_PORTEE',
       'CONFLIT_CRENEAU',
-      'BUDGET',
     ]
     for (const code of causes) expect(noteEcartee(code), code).toBe(0)
   })

@@ -26,6 +26,7 @@ import {
   ajouteCoordonnees,
   filtreLignes,
   lignesInvariantes,
+  photographiable,
   restreintParType,
   typesPresents,
   type EtatCible,
@@ -47,6 +48,7 @@ import { I } from '../registry/imagerie.ts'
 import { TYPES_OBJET, type ObjetCielProfond, type TypeObjet } from '../data/deepsky.ts'
 import { RECALCUL_EN_COURS } from './app-calcul.ts'
 import { BoutonVisee } from './BoutonVisee.tsx'
+import { BoutonChoixCible } from './BoutonChoixCible.tsx'
 import { Bulle } from './Bulle.tsx'
 import { Mention } from './Mention.tsx'
 import { Curseur } from './Curseur.tsx'
@@ -155,9 +157,9 @@ export function PanneauCibles(props: PanneauCiblesProps) {
   const retenues = useMemo(() => {
     const filtrees = filtreLignes(lignes, { types, magMax, recherche })
     if (!photographiablesSeules) return filtrees
-    // Une cible écartée porte une note et pas de pose : elle n'est pas photographiable, donc
-    // elle ne passe pas. C'est la POSE qui décide, pas la présence d'une note.
-    return filtrees.filter((l) => etats.get(l.objet.designation)?.pose != null)
+    // Le critère vit dans `cibles-liste.ts` : la liste, la scène et le bouton d'ajout au plan
+    // le lisent au même endroit, faute de quoi ils finiraient par désigner trois ensembles.
+    return filtrees.filter((l) => photographiable(etats.get(l.objet.designation)))
   }, [lignes, types, magMax, recherche, photographiablesSeules, etats])
 
   // §6.4 — le haut de la liste est demandé au réseau, une fois, après que la saisie s'est
@@ -381,6 +383,11 @@ function LigneListe({ ligne, etat }: { readonly ligne: LigneCible; readonly etat
         azimutDeg={ligne.azimutDeg}
         hauteurDeg={ligne.hauteurDeg}
       />
+      {/* §8.3 — ajouter au plan sans ouvrir la fiche : empiler trois cibles est un geste de
+          liste. Offert sous le même critère que la fiche — la pose que le moteur annonce. */}
+      {photographiable(etat ?? undefined) && (
+        <BoutonChoixCible designation={objet.designation} />
+      )}
     </li>
   )
 }

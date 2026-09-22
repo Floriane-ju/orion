@@ -104,7 +104,6 @@ export const LIBELLE_CAUSE_ECART: Readonly<Record<CauseEcart, string>> = Object.
   FENETRE: 'hors de la fenêtre nocturne',
   HORS_PORTEE: 'hors de portée de ce matériel',
   CONFLIT_CRENEAU: 'créneau déjà pris',
-  BUDGET: 'budget de la nuit épuisé',
   SUIVI: 'sans suivi, pas de ciel profond',
 })
 

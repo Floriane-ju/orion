@@ -763,18 +763,6 @@ const PLANIFICATION = {
     ordreDeGrandeur: false,
     sections: ['8.3'],
   }),
-  CIBLES_CANDIDATES_MAX: entree({
-    ref: 'C-20',
-    libelle: 'Nombre de candidates soumises au calcul de créneau',
-    valeur: 40,
-    unite: '—',
-    source:
-      '§8.3 — borne de calcul : les candidates les plus brillantes du pré-filtrage dur sont ' +
-      'seules soumises au calcul d’éphéméride, qui est le poste coûteux',
-    tolerance: 'convention produit',
-    ordreDeGrandeur: false,
-    sections: ['8.3'],
-  }),
   CIBLES_LISTEES_MAX: entree({
     ref: 'C-20',
     libelle: 'Nombre de lignes rendues par la liste du catalogue',

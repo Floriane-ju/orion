@@ -27,7 +27,7 @@ export function BoutonVisee({ designation, azimutDeg, hauteurDeg }: BoutonViseeP
     <Bulle texte={libelleVisee(designation, hauteurDeg)} place="gauche" nomme>
       <button
         type="button"
-        className="cible-voir"
+        className="cible-action"
         onClick={() => majVue({ azimutDeg, hauteurDeg })}
       >
         <Icone nom="my_location" />

@@ -12,9 +12,15 @@ import { describe, expect, it } from 'vitest'
 import { fenetreNocturne } from '../src/core/night.ts'
 import { fenetreUtile } from '../src/core/moon.ts'
 import { masquePlat } from '../src/core/site.ts'
-import { planSession, poidsParDefaut, type ContexteSession } from '../src/core/session.ts'
+import {
+  AUCUNE_CIBLE_CHOISIE,
+  planSession,
+  poidsParDefaut,
+  type ContexteSession,
+} from '../src/core/session.ts'
 import { planEnTexte } from '../src/core/plan-texte.ts'
 import { profilSuivi } from '../src/core/tracking.ts'
+import { etatsCibles, photographiable } from '../src/core/cibles-liste.ts'
 import { decodeObjets, type ObjetCielProfond } from '../src/data/deepsky.ts'
 import { K } from '../src/registry/constants.ts'
 import { LIBELLE_CAUSE_ECART, LIBELLE_LOT_CALIBRATION } from '../src/registry/libelles.ts'
@@ -189,6 +195,159 @@ describe('plan de session §8.3', () => {
     expect(plan.poids).toStrictEqual(poidsParDefaut())
     const somme = Object.values(plan.poids).reduce((a, b) => a + b, 0)
     expect(somme).toBeCloseTo(1, 6)
+  })
+})
+
+/**
+ * §8.3 — l'entrée du moteur est la SÉLECTION de l'utilisateur (§6.4), jamais le catalogue.
+ *
+ * Rien n'est recopié ici : ce que le plan retient se compare à ce que le moteur rend sur la
+ * même sélection, et ce qu'il écarte doit porter une cause venue du moteur.
+ */
+describe('le plan n’ordonne que les cibles choisies §8.3', () => {
+  const cibleDe = (designation: string): ObjetCielProfond =>
+    CATALOGUE.find((o) => o.designation === designation)!
+
+  it('dit le geste qui manque quand rien n’est choisi, sans accuser le ciel', () => {
+    const vide = planSession(contexte(), [])
+    expect(vide.etapes).toStrictEqual([])
+    expect(vide.message).toBe(AUCUNE_CIBLE_CHOISIE)
+    // Le grand champ répond à « aucune cible compatible », pas à « vous n'avez rien coché ».
+    expect(vide.alternative).toBeUndefined()
+    expect(vide.contrainteDominante).toBeUndefined()
+    expect(vide.ciblesEcartees).toStrictEqual([])
+  })
+
+  it('ne retient que les cibles reçues, et les rend dans l’ordre du temps', () => {
+    const choisies = [cibleDe('M31'), cibleDe('NGC7000')]
+    const plan = planSession(contexte(), choisies)
+
+    // La prémisse se calcule : un plan vide ferait passer les deux assertions suivantes.
+    expect(plan.etapes.length).toBeGreaterThan(0)
+    const designations = plan.etapes.map((e) => e.objet.designation)
+    expect(designations.every((d) => choisies.some((o) => o.designation === d))).toBe(true)
+
+    const debuts = plan.etapes.map((e) => e.creneauAlloue.debut.getTime())
+    expect(debuts).toStrictEqual([...debuts].sort((a, b) => a - b))
+  })
+
+  it('ignore une cible du catalogue qui n’a pas été choisie', () => {
+    const seule = planSession(contexte(), [cibleDe('M31')])
+    const complet = planSession(contexte(), CATALOGUE)
+    // La prémisse : le catalogue entier en planifie davantage, sinon rien n'est démontré.
+    expect(complet.etapes.length).toBeGreaterThan(seule.etapes.length)
+    expect(seule.etapes.map((e) => e.objet.designation)).toStrictEqual(['M31'])
+  })
+
+  it('nomme la cause d’une cible choisie que la nuit refuse', () => {
+    const refusee = cibleDe('IMMENSE')
+    const plan = planSession(contexte(), [refusee])
+    expect(plan.etapes).toStrictEqual([])
+    const ecartee = plan.ciblesEcartees.find((c) => c.designation === refusee.designation)
+    expect(ecartee, refusee.designation).toBeDefined()
+    expect(ecartee!.cause.length).toBeGreaterThan(20)
+  })
+
+  it('garde au plan TOUTE cible que la liste annonce photographiable', () => {
+    // Le défaut corrigé par T-0322 : la liste annonçait « photographiable, 2 nuits », le plan
+    // répondait « non retenue, la moins bien notée est retirée ». Deux verdicts pour une même
+    // cible. Le critère est celui de la liste — `photographiable`, sur l'état du moteur — et
+    // le plan n'a plus le droit d'en défaire aucune.
+    const etats = etatsCibles(contexte(), CATALOGUE)
+    const attendues = CATALOGUE.filter((o) => photographiable(etats.get(o.designation)))
+    expect(attendues.length).toBeGreaterThan(0)
+
+    const plan = planSession(contexte(), attendues)
+    const auPlan = new Set(plan.etapes.map((e) => e.objet.designation))
+    expect(attendues.filter((o) => !auPlan.has(o.designation)).map((o) => o.designation)).toStrictEqual(
+      [],
+    )
+  })
+
+  it('annonce le dépassement de la nuit au lieu de retirer une cible', () => {
+    // Le pointage seul — dix minutes par cible — fait déborder n'importe quelle nuit dès
+    // qu'on en choisit beaucoup. C'est la situation qui retirait des cibles une à une.
+    const etats = etatsCibles(contexte(), CATALOGUE)
+    const photographiables = CATALOGUE.filter((o) => photographiable(etats.get(o.designation)))
+    const beaucoup = Array.from({ length: 20 }, (_, i) =>
+      photographiables.map((o) => ({ ...o, designation: `${o.designation}-${i}` })),
+    ).flat()
+
+    const plan = planSession(contexte(), beaucoup)
+    // La prémisse : sans dépassement, ce test ne démontre rien. Dix minutes de pointage par
+    // cible suffisent à faire déborder n'importe quelle nuit.
+    expect(plan.budget.tient).toBe(false)
+    // Et pourtant aucune n'est retirée : le partage donne sa part à chacune, et le
+    // dépassement se lit sur le budget.
+    expect(plan.etapes).toHaveLength(beaucoup.length)
+    expect(plan.ciblesEcartees).toStrictEqual([])
+  })
+
+  it('ne laisse pas une cible de plusieurs nuits affamer une cible courte', () => {
+    // T-0322 — `alloueCreneau` borne à ce que la cible RÉCLAME, et une cible de plusieurs
+    // nuits en réclame plus que la nuit entière : servie en premier, elle prenait tout son
+    // créneau et sa voisine ressortait « non retenue ». Mêmes coordonnées ici, donc même
+    // créneau : sans la règle « ce qui se termine ce soir passe d'abord », l'une des deux
+    // n'a plus une minute.
+    const gourmande = objet({ designation: 'GOURMANDE', vMag: 3.8, decDeg: 46 })
+    const rapide = objet({
+      designation: 'RAPIDE',
+      vMag: 1.5,
+      decDeg: 15,
+      majAxArcmin: 110,
+      minAxArcmin: 90,
+    })
+
+    const etats = etatsCibles(contexte(), [gourmande, rapide])
+    // La prémisse : les deux sont photographiables, et l'une déborde de la nuit.
+    expect(photographiable(etats.get('GOURMANDE'))).toBe(true)
+    expect(photographiable(etats.get('RAPIDE'))).toBe(true)
+    expect(etats.get('GOURMANDE')!.pose!.nNuits).toBeGreaterThan(1)
+    expect(etats.get('RAPIDE')!.pose!.nNuits).toBe(1)
+
+    const plan = planSession(contexte(), [gourmande, rapide])
+    // Seconde prémisse : c'est bien la gourmande qui gagnerait l'arbitrage par score. Sans
+    // elle, le test passerait pour la mauvaise raison — la courte servie d'abord par hasard.
+    const score = (d: string) => plan.etapes.find((e) => e.objet.designation === d)!.score.value
+    expect(score('GOURMANDE')).toBeGreaterThan(score('RAPIDE'))
+    expect(plan.etapes.map((e) => e.objet.designation).sort()).toStrictEqual([
+      'GOURMANDE',
+      'RAPIDE',
+    ])
+    // Et la courte est SERVIE, pas juste présente : son intégration tient ce soir.
+    expect(plan.etapes.find((e) => e.objet.designation === 'RAPIDE')!.integrationComplete).toBe(
+      true,
+    )
+  })
+
+  it('annonce le même nombre de nuits que la liste, pour la même cible', () => {
+    const etats = etatsCibles(contexte(), CATALOGUE)
+    const plan = planSession(
+      contexte(),
+      CATALOGUE.filter((o) => photographiable(etats.get(o.designation))),
+    )
+    expect(plan.etapes.length).toBeGreaterThan(0)
+    for (const etape of plan.etapes) {
+      const pose = etats.get(etape.objet.designation)?.pose
+      expect(pose, etape.objet.designation).toBeDefined()
+      expect(etape.nNuits, etape.objet.designation).toBe(pose!.nNuits)
+    }
+  })
+
+  it('n’écarte aucune cible choisie en silence, si nombreuses soient-elles', () => {
+    // L'ancien plafond de candidates coupait la sélection par magnitude, sans cause. Une
+    // sélection plus large que lui doit se retrouver ENTIÈRE : au plan, ou dans les écartées.
+    const large = Array.from({ length: 45 }, (_, i) =>
+      objet({ designation: `CHOISIE-${i}`, adDeg: i * 8, decDeg: 20 + (i % 40) }),
+    )
+    const plan = planSession(contexte(), large)
+    const nommees = new Set([
+      ...plan.etapes.map((e) => e.objet.designation),
+      ...plan.ciblesEcartees.map((c) => c.designation),
+    ])
+    expect(large.filter((o) => !nommees.has(o.designation)).map((o) => o.designation)).toStrictEqual(
+      [],
+    )
   })
 })
 

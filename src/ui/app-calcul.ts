@@ -59,6 +59,7 @@ import { nombreSaisi, nombreSiRenseigne } from './saisie-bornee.ts'
 import type { MaterielFile } from './planetarium-materiel.ts'
 import { PRESET_SNR_DEFAUT } from '../registry/verdicts.ts'
 import type { ContexteFiche } from './fiche-cible-calcul.ts'
+import { useCiblesChoisies } from './cibles-choisies.ts'
 import type { PanneauFileProps } from './PanneauFile.tsx'
 
 /**
@@ -237,6 +238,11 @@ export function grandeursMateriel(materiel: SaisieMateriel): GrandeursMateriel {
 
 export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
   const { lieu, materiel, catalogue, index, tPoseFileS, poids } = entree
+
+  // §8.3 — lue ici plutôt que reçue en prop : la sélection n'a aucun ancêtre commun avec les
+  // deux boutons qui la composent, et la faire descendre depuis l'application n'ajouterait
+  // qu'un relais de plus entre le magasin et son seul consommateur.
+  const choisies = useCiblesChoisies()
 
   // T-0291 — les deux saisies bornées, recalculées à chaque rendu : ce sont les clés de tout
   // ce qui suit, et une clé mémoïsée sur elle-même n'en serait plus une.
@@ -441,10 +447,24 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
   const contexteDiffere = useDeferredValue(contexteSession)
   const recalculEnCours = contexteDiffere !== contexteSession
 
+  /**
+   * §8.3 — le plan n'ordonne QUE les cibles choisies (§6.4).
+   *
+   * Le garde porte sur le CATALOGUE, pas sur la sélection : « catalogues en cours de
+   * vérification » et « aucune cible choisie » sont deux états différents, et l'écran doit
+   * pouvoir les distinguer. Le premier rend `null`, le second un plan vide qui parle.
+   *
+   * La sélection ne passe pas par `useDeferredValue` : cocher une cible n'est pas la frappe
+   * lourde que T-0291 a déportée, et le plan d'une poignée de cibles se chiffre en quelques
+   * éphémérides.
+   */
   const plan = useMemo(() => {
     if (contexteDiffere === null || catalogue.length === 0) return null
-    return planSession(contexteDiffere, catalogue)
-  }, [contexteDiffere, catalogue])
+    return planSession(
+      contexteDiffere,
+      catalogue.filter((objet) => choisies.has(objet.designation)),
+    )
+  }, [contexteDiffere, catalogue, choisies])
 
   /**
    * §6.4 — même dépendances que le plan, et pour la même raison : un créneau est une propriété

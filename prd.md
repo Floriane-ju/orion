@@ -1745,6 +1745,22 @@ AMENER LA CIBLE AU CENTRE
   objets que l'utilisateur ne sait pas retrouver dans le champ — et §8.4 ne répond qu'à
   la question du pointage sur le terrain, pas à celle du repérage à l'écran.
 
+AJOUTER LA CIBLE AU PLAN DE LA NUIT
+  Un geste unique, réversible, porté par le MÊME contrôle sur la ligne de liste et dans
+  la fiche : deux dessins du même geste finiraient par annoncer deux choses. C'est lui
+  qui constitue l'entrée de §8.3 — sans lui, le plan se fabrique tout seul et l'utilisateur
+  subit un classement qu'il n'a pas demandé.
+  OFFERT SUR CE QUI EST PHOTOGRAPHIABLE, et là seulement : une cible dont la nuit
+  n'annonce aucune pose n'est pas ajoutable, parce que l'ajouter promettrait une étape
+  qui n'arriverait jamais. Le critère est celui du CRÉNEAU (§8.2), jamais la hauteur à
+  l'instant affiché — voir plus haut, c'est la même règle qui vaut pour la liste.
+  L'ÉTAT EST ANNONCÉ, pas seulement teinté : §11.1 confisque la couleur comme porteuse
+  d'information, donc la forme du contrôle dit s'il est enfoncé.
+  LA SÉLECTION SURVIT À LA SÉANCE. Elle se range comme le lieu et le matériel (§12.3) :
+  un plan composé la veille au chaud doit se retrouver sur le terrain. Ce qui en revient
+  est validé comme toute donnée relue, et une entrée illisible rend une sélection vide
+  plutôt qu'un écran cassé.
+
 UNE IMAGE DE L'OBJET, ET CE QU'ELLE COÛTE
   La liste et la recherche rendent la désignation atteignable, pas reconnaissable. Un
   débutant qui ne sait pas taper « NGC 7000 » ne sait pas davantage ce qu'il choisit
@@ -1885,6 +1901,17 @@ Alors aucune image n'est demandée une seconde fois
 Quand une liste de résultats s'affiche
 Alors aucune requête d'image n'est émise
 Et les lignes restent complètes, sans image et sans message d'erreur
+
+Étant donné une cible dont la nuit annonce une pose
+Quand j'ajoute cette cible au plan depuis sa fiche, puis une autre depuis la liste
+Alors les deux se retrouvent dans la chronologie de §8.3, et elles seules
+Et le même geste les en retire
+Et elles y sont encore après un rechargement de l'application
+
+Étant donné une cible dont la nuit n'annonce aucune pose            # cas limite
+Quand je consulte sa fiche
+Alors le geste d'ajout au plan n'est pas offert
+Et la fiche dit ce qui l'en empêche — cadrage, créneau ou portée
 
 Étant donné une cible Messier dont la page encyclopédique porte une image
 Quand j'ouvre sa fiche
@@ -2621,16 +2648,28 @@ Coordonnées : OpenNGC, Messier, Sharpless, Barnard. Transformations et instants
 
 ## 8.3 Feature — Plan de session ordonné
 
-**Feature** — Produit une liste de cibles ordonnée dans le temps, réalisable dans la nuit disponible avec le matériel déclaré, chaque cible portant son verdict et son plan de capture. Synthèse des §5, §6, §7.
+**Feature** — Ordonne dans le temps les cibles que l'utilisateur a choisies (§6.4), en ne gardant que ce qui est réalisable dans la nuit disponible avec le matériel déclaré, chaque cible portant son verdict et son plan de capture. Synthèse des §5, §6, §7.
 
 ### Règle métier
 
 ```
-1. PRÉ-FILTRAGE — élimination par contrainte dure, avec cause nommée
+0. SÉLECTION — l'entrée du moteur est CE QUE L'UTILISATEUR A CHOISI, jamais le catalogue
+   §6.4 lui donne de quoi choisir : le ciel propose, les moteurs qualifient, il décide.
+   Un plan qu'on n'a pas composé est un palmarès de plus, et un palmarès n'est pas
+   exécutable — c'est déjà ce que le point 3 refuse en sortie, ça vaut aussi en entrée.
+   Sélection vide → l'app le DIT et nomme le geste qui manque. Elle ne propose alors ni
+   contrainte dominante — aucune contrainte n'a joué — ni domaine de repli : le grand
+   champ répond à « aucune cible compatible », pas à « rien n'a été coché ».
+   AUCUN PLAFOND sur la sélection. C-20 borne le coût d'un balayage de catalogue (§6.4) ;
+   appliqué à un choix, il écarterait sans cause — ce que le point 1 interdit.
+
+1. PRÉ-FILTRAGE — ce qui empêche une cible CHOISIE de tenir, avec cause nommée
    cadrage       verdict_cadrage ∈ {SERRE, OPTIMAL, LARGE}          §6.2
    hauteur       alt_culmination > seuil, hors masque de relief      §8.2
    fenêtre       durée de créneau non nulle                          §8.2
    détectabilité verdict ≠ HORS_PORTEE                              §6.3
+   Une cible choisie qui ne passe pas est RENDUE à l'écran avec sa cause, jamais retirée
+   en silence : sans elle, le geste d'ajout se lit comme un bouton cassé.
 
 2. SCORING — pondération explicite, exposée et réglable (C-15)
    score = w_c·S_cadrage + w_h·S_hauteur + w_s·S_signal + w_f·S_fenetre + w_l·S_lune
@@ -2641,27 +2680,54 @@ Coordonnées : OpenNGC, Messier, Sharpless, Barnard. Transformations et instants
    S_fenetre = duree_creneau / duree_nuit_noire
    S_lune    = 1 − ΔSB_lune / 3,0, borné à [0 ; 1]  tolérance selon type d'objet
 
-3. ORDONNANCEMENT — pas un simple tri par score
-   Les créneaux se chevauchent : la nuit est une ressource à allouer.
-   Heuristique MVP : cibles triées par heure de culmination croissante, chacune se
-   voyant allouer min(T_requis, durée de son créneau). Conflit → arbitrage par score.
+3. ORDONNANCEMENT — LA NUIT SE PARTAGE, ELLE NE SE PREND PAS
+   Les créneaux se chevauchent : la nuit est une ressource à allouer. Partage équitable
+   max-min, deux règles qui se tiennent l'une l'autre :
+     a) ON SERT LA PLUS PETITE DEMANDE D'ABORD. La demande d'une cible est ce qu'elle
+        consommera vraiment ce soir : min(T_requis, durée de son créneau). Une cible qui
+        ne passe qu'une heure au-dessus du seuil demande une heure, même s'il lui en
+        faut seize.
+     b) PERSONNE NE PREND PLUS QUE SA PART tant que d'autres attendent. La part est le
+        temps encore libre DANS SON CRÉNEAU, divisé par le nombre de cibles restant à
+        servir qui se disputent ce même morceau de nuit. Des créneaux disjoints ne se
+        comptent pas l'un contre l'autre.
+   Servies par demande croissante, les cibles qui se contentent de peu libèrent leur
+   surplus : la part ne borne que celles qui en voulaient plus de toute façon. Aucune
+   minute perdue, aucune cible affamée. Sans ces deux règles, une cible de seize heures
+   prenait les cinq heures de la nuit et une cible de neuf minutes en ressortait.
+   LE SCORE DÉPARTAGE LES DEMANDES ÉGALES — deux cibles qui veulent exactement le même
+   morceau de nuit. C'est le seul moment où l'arbitrage a lieu d'être.
+   Créneau sans une minute libre → la cible est REPORTÉE, en le disant, jamais supprimée
+   en silence.
    → SORTIE : UNE CHRONOLOGIE, PAS UN PALMARÈS. Un palmarès n'est pas exécutable
      sur le terrain ; une chronologie l'est.
 
-4. BUDGET GLOBAL
+4. BUDGET GLOBAL — RÉSERVÉ D'ABORD, CONSTATÉ ENSUITE, JAMAIS RÉSOLU EN DÉFAISANT UN CHOIX
    temps_capture + temps_calibration (§7.4) + temps_mise_en_station (≈ 15 min)
    + temps_pointage × n_cibles (§8.4)  ≤  durée de nuit noire
-   Dépassement → retrait de la cible de plus faible score.
-   JAMAIS de troncature silencieuse d'une intégration.
+   LES FRAIS NE SE DÉCOUVRENT PAS À LA FIN. Mise en station, pointages et calibration se
+   retranchent de la nuit AVANT le partage : distribuer la nuit entière à la capture,
+   puis constater qu'il manque neuf minutes, c'est annoncer un dépassement qu'il
+   suffisait de ne pas créer. La calibration dépend du plan qu'elle chiffre : une
+   première passe la mesure, une seconde la réserve.
+   Dépassement résiduel → ANNONCÉ, avec le nombre de minutes en trop. Retirer « la cible
+   de plus faible score » supposait un plan produit par l'app ; la sélection vient de
+   l'utilisateur (point 0), et la retirer défaisait son geste sans le lui dire — pendant
+   que la liste, elle, continuait d'annoncer la même cible comme photographiable. Une
+   cible photographiable EST au plan : c'est à l'utilisateur d'en retirer une.
+   JAMAIS de troncature silencieuse d'une intégration : ce qui ne tient pas dans la nuit
+   annonce son nombre de nuits — LE MÊME que celui de la liste (§6.4), déduit du créneau
+   de la cible et non de ce que l'allocation lui laisse ce soir.
 ```
 
-**Ce que ça donne sur le setup et le site de référence, une nuit d'août** : 5 h 49 de nuit noire, fenêtre de cadrage 3,79°–5,69°, poses de 13 s. Le pré-filtrage écarte tout le domaine galactique par cadrage et tout ce qui est sous δ = −13,6° par hauteur. Restent les grands complexes du plan galactique nord. Avec des `T_requis` de 15 min à 1 h par cible, **la nuit permet trois à quatre cibles**. Les cibles nommées sont `[À CALCULER]` : le moteur les produit.
+**Ce que ça donne sur le setup et le site de référence, une nuit d'août** : 5 h 49 de nuit noire, fenêtre de cadrage 3,79°–5,69°, poses de 13 s. Le pré-filtrage écarte tout le domaine galactique par cadrage et tout ce qui est sous δ = −13,6° par hauteur. Restent les grands complexes du plan galactique nord. Avec des `T_requis` de 15 min à 1 h par cible, **la nuit permet trois à quatre cibles** — c'est l'ordre de grandeur de ce qu'il vaut la peine de choisir. Les cibles nommées sont `[À CALCULER]` : le moteur ordonne celles qu'on lui donne.
 
 ### Entrées / Sorties
 
 | Champ | Type | Unité | Plage valide | Note |
 |---|---|---|---|---|
 | `date`, `lieu`, `profil_materiel` | — | — | §4, §5 | |
+| `cibles_choisies` | array | — | entrée | désignations retenues par l'utilisateur, §6.4 ; vide = pas de plan |
 | `poids_scoring` | objet | — | somme = 1 | C-15, réglable, affiché |
 | `snr_cible` | float | — | §7.3 | |
 | `plan` | array | — | sortie | cibles ordonnées |
@@ -2677,14 +2743,26 @@ Coordonnées : OpenNGC, Messier, Sharpless, Barnard. Transformations et instants
 
 ```gherkin
 Étant donné le profil de référence, le site 46,391° N Bortle 4,5, la date du 14 août
-Quand je demande le plan de la nuit
-Alors l'app propose une chronologie de cibles ordonnée par culmination
+Et trois cibles ajoutées au plan depuis leur fiche ou depuis la liste (§6.4)
+Quand je consulte le plan de la nuit
+Alors l'app rend une chronologie de ces trois cibles, et d'aucune autre
 Et le budget total, calibration et pointage inclus, tient dans les 5 h 49 disponibles
 Et chaque cible affiche la décomposition de son score
 Et chaque étape porte sa consigne de terrain
 
-Étant donné une nuit où aucune cible ne franchit le pré-filtrage    # cas limite
-Quand je demande le plan
+Étant donné qu'aucune cible n'a encore été ajoutée au plan          # état de départ
+Quand je consulte le plan de la nuit
+Alors l'app annonce qu'aucune cible n'est choisie et nomme le geste qui manque
+Et n'invente AUCUNE chronologie
+Et ne nomme ni contrainte dominante ni domaine de repli : rien n'a été refusé
+
+Étant donné une cible que j'ai choisie et que la nuit ne permet pas  # cas limite
+Quand je consulte le plan
+Alors elle est absente de la chronologie
+Et l'app en nomme la cause, à part, sans remplir le plan de cibles écartées
+
+Étant donné une nuit où aucune cible choisie ne franchit le pré-filtrage
+Quand je consulte le plan
 Alors l'app annonce l'absence de cible compatible et nomme la contrainte dominante
 Et propose une alternative dans le domaine grand champ ou filé (§9)
 Et ne remplit PAS la liste avec des cibles écartées
@@ -2696,8 +2774,21 @@ Et l'app expose l'arbitrage plutôt que de les planifier simultanément
 
 Étant donné un budget dépassant la nuit de 40 min
 Quand le plan est finalisé
-Alors la cible de plus faible score est retirée entièrement
+Alors l'app annonce le dépassement et les minutes en trop
+Et aucune cible choisie n'est retirée : c'est à l'utilisateur d'arbitrer
 Et aucune intégration n'est tronquée sans mention explicite
+
+Étant donné une cible qui demande 16 h d'intégration et une cible qui en demande 9 min
+Et des créneaux qui se recouvrent, la première étant la mieux notée
+Quand le plan est construit
+Alors les deux sont au plan
+Et la seconde est servie d'abord, la première prenant ce qu'elle laisse
+Et aucune minute de nuit ne reste inutilisée de ce fait
+
+Étant donné une cible que la liste annonce photographiable en 2 nuits
+Quand je l'ajoute au plan
+Alors elle figure dans la chronologie
+Et le plan annonce 2 nuits, le même nombre que la liste
 ```
 
 ### Dépendances données

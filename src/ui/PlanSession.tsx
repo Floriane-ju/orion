@@ -6,23 +6,21 @@
  */
 
 import { useMemo, useState } from 'react'
-import { dureeLisible } from '../core/exposure.ts'
+import { faciliteCible } from '../core/facilite.ts'
 import { cartePointage, RAPPEL_MISE_EN_STATION } from '../core/pointage.ts'
 import { planEnTexte, type EnTetePlan } from '../core/plan-texte.ts'
-import type { EtapePlan, PlanSession as Plan } from '../core/session.ts'
+import type { CibleEcartee, EtapePlan, PlanSession as Plan } from '../core/session.ts'
 import type { Site } from '../core/ephem.ts'
 import type { FenetreUtile } from '../core/moon.ts'
 import type { Etoile } from '../data/catalog.ts'
 import { Icone } from './Icone.tsx'
+import { Pastilles } from './Pastilles.tsx'
 import { TracedValue } from './TracedValue.tsx'
 import { Etiquette } from './Terme.tsx'
 import { heure } from './horaire.ts'
 import { Mention } from './Mention.tsx'
-import {
-  LIBELLE_MODE_POINTAGE,
-  LIBELLE_VERDICT_CADRAGE,
-  LIBELLE_VERDICT_DETECTABILITE,
-} from '../registry/libelles.ts'
+import { ouvreCible } from './seance-etat.ts'
+import { LIBELLE_MODE_POINTAGE } from '../registry/libelles.ts'
 
 const DEG_PAR_HEURE = 15
 const POURCENT = 100
@@ -61,6 +59,17 @@ export function PlanSessionVue(props: PlanSessionProps) {
           <Mention ton="cause">{plan.contrainteDominante}</Mention>
         )}
         {plan.alternative !== undefined && <p className="etat">{plan.alternative}</p>}
+        {/* T-0322 — le budget ne retire plus de cible : il se CONSTATE. Sans cette phrase, un
+            plan qui déborde de la nuit se lirait comme un plan qui tient. Le détail du budget
+            reste hors de l'écran (T-0318) et dans l'export ; ce qui compte ici est le fait. */}
+        {!plan.budget.tient && plan.etapes.length > 0 && (
+          <Mention ton="cause">
+            Le total dépasse la nuit de{' '}
+            {(plan.budget.totalMin.value - plan.budget.disponibleMin).toFixed(0)} min, mise en
+            station, pointages et calibration compris. Rien n’est retiré : à vous de raccourcir
+            une cible ou d’en reporter une.
+          </Mention>
+        )}
         <Mention ton="cause">{plan.avertissementMeteo}</Mention>
         {plan.avertissementBatterie !== undefined && (
           <Mention ton="cause">{plan.avertissementBatterie}</Mention>
@@ -70,6 +79,8 @@ export function PlanSessionVue(props: PlanSessionProps) {
           <Etape key={etape.objet.designation} etape={etape} rang={index + 1} {...props} />
         ))}
       </section>
+
+      <Ecartees ecartees={plan.ciblesEcartees} />
 
       <section>
         <h2>Export imprimable</h2>
@@ -87,6 +98,36 @@ export function PlanSessionVue(props: PlanSessionProps) {
   )
 }
 
+/**
+ * §8.3 — ce qu'il advient d'une cible qu'on a demandée et qui n'a pas de place ce soir.
+ *
+ * T-0318 avait retiré la table des écartées, et c'était juste : elle listait des milliers de
+ * refus du catalogue que la fiche explique déjà, cible par cible. Le motif s'inverse depuis
+ * que l'entrée du plan est une SÉLECTION : ces lignes-là sont des cibles qu'on a explicitement
+ * cochées, elles sont une ou deux, et une disparition muette ferait lire le geste d'ajout
+ * comme un bouton cassé. §1.5 l'interdit par ailleurs — aucune cible écartée sans sa cause.
+ *
+ * T-0322 — la liste a beaucoup maigri, et c'est le but : le budget ne retire plus rien, et
+ * une cible de plusieurs nuits ne prend plus la place d'une cible courte. Ce qui reste est
+ * le seul cas où la nuit n'offre rien — un créneau intégralement occupé —, plus les cibles
+ * choisies qu'un changement de matériel a rendues impossibles depuis.
+ *
+ * La cause vient du moteur, jamais d'ici, et le code interne ne s'affiche pas.
+ */
+function Ecartees({ ecartees }: { readonly ecartees: readonly CibleEcartee[] }) {
+  if (ecartees.length === 0) return null
+  return (
+    <section>
+      <h2>Choisies, sans place cette nuit</h2>
+      {ecartees.map((ecartee) => (
+        <p key={ecartee.designation} className="etat">
+          {ecartee.designation} — {ecartee.cause}
+        </p>
+      ))}
+    </section>
+  )
+}
+
 interface EtapeProps extends PlanSessionProps {
   readonly etape: EtapePlan
   readonly rang: number
@@ -98,39 +139,31 @@ function Etape({ etape, rang, ...props }: EtapeProps) {
     etape.objet.nomsCommuns === ''
       ? etape.objet.designation
       : `${etape.objet.designation} — ${etape.objet.nomsCommuns.split('|')[0]}`
+  const facilite = faciliteCible(etape)
 
   return (
     <div className="etape">
       <p className="etape-titre">
-        <span>
+        {/* T-0323 — le nom ouvre la fiche, seul détour que le plan garde. Tout ce que l'étape
+            annonçait d'elle-même — pose, volume, verdicts, masse d'air, sous-scores — y est
+            déjà écrit, en contexte et avec sa trace. Le redire ici faisait d'une chronologie
+            à exécuter dans le noir un tableau de bord à déchiffrer. */}
+        <button type="button" className="etape-lien" onClick={() => ouvreCible(etape.objet)}>
           {rang}. {nom}
-        </span>
+        </button>
         <span className="etape-horaire">
           {heure(etape.creneauAlloue.debut)} → {heure(etape.creneauAlloue.fin)} ·{' '}
           {etape.dureeAlloueeMin.toFixed(0)} min
         </span>
       </p>
-      <p className="etat">
-        Pose {etape.tPoseS} s · {etape.nPoses} poses · {etape.volumeGo.toFixed(1)} Go ·{' '}
-        intégration requise {dureeLisible(etape.integration.tRequisS.value)}
-        {/* §7.6 — k est un ordre de grandeur : la durée porte sa fourchette, jamais une
-            valeur exacte. Sans elle, l'utilisateur lit une précision qui n'existe pas. */}
-        {etape.integration.tRequisS.range !== undefined &&
-          ` (${dureeLisible(etape.integration.tRequisS.range[0])} à ${dureeLisible(
-            etape.integration.tRequisS.range[1],
-          )} selon le ciel)`}
-      </p>
-      <p className="etat">
-        Verdict{' '}
-        {etape.verdict === null
-          ? 'donnée manquante'
-          : LIBELLE_VERDICT_DETECTABILITE[etape.verdict]}{' '}
-        · cadrage {LIBELLE_VERDICT_CADRAGE[etape.verdictCadrage]} · fond
-        de ciel {etape.sbCielEffectif.toFixed(2)} mag/as²
-      </p>
+      {/* §6.4 — la seule lecture qui reste : elle se compte d'un coup d'œil, à la frontale,
+          et c'est la même note que la ligne de liste, lue sur le même score. */}
+      {facilite !== null && <Pastilles note={facilite.note} libelle={facilite.libelle} />}
       {!etape.integrationComplete && (
         <Mention ton="cause">
-          Trop long pour une nuit : prévoir {etape.nNuits} nuits.
+          {etape.nNuits > 1
+            ? `Trop long pour une nuit : prévoir ${etape.nNuits} nuits, avec des darks à chaque nuit.`
+            : 'Créneau partagé avec une cible mieux notée : ce soir n’en couvre qu’une partie.'}
         </Mention>
       )}
       {etape.creneau.retournementMeridien && (
@@ -139,28 +172,6 @@ function Etape({ etape, rang, ...props }: EtapeProps) {
           relancer la séquence.
         </Mention>
       )}
-      {/* §7.6 — la masse d'air qui a dosé cette intégration : la MOYENNE du créneau, pas
-          celle de la culmination. La cible passe une partie de la nuit plus bas. */}
-      <TracedValue
-        terme="masse_air"
-        suffixe="moyenne du créneau"
-        trace={etape.extinction.masseAir}
-      />
-      <TracedValue
-        terme="extinction_atmospherique"
-        trace={etape.extinction.attenuation}
-        decimales={3}
-      />
-      <TracedValue terme="degradation_lunaire" trace={etape.deltaSbLuneMag} unite="mag/as²" />
-      <TracedValue terme="score_cible" trace={etape.score} decimales={3} unite="sur 1" />
-      <p className="score-detail">
-        <span>cadrage {(etape.detailScore.cadrage * POURCENT).toFixed(0)} %</span>
-        <span>hauteur {(etape.detailScore.hauteur * POURCENT).toFixed(0)} %</span>
-        <span>signal {(etape.detailScore.signal * POURCENT).toFixed(0)} %</span>
-        <span>fenêtre {(etape.detailScore.fenetre * POURCENT).toFixed(0)} %</span>
-        <span>Lune {(etape.detailScore.lune * POURCENT).toFixed(0)} %</span>
-      </p>
-      <p className="etat">{etape.consigne}</p>
 
       <button type="button" onClick={() => setPointageOuvert(!pointageOuvert)}>
         {pointageOuvert ? 'Masquer' : 'Afficher'} l’aide au pointage

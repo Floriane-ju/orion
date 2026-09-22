@@ -3,15 +3,19 @@
  *
  * Ce module tient les deux comptes du temps : quel morceau de créneau reste libre pour une
  * cible donnée, et ce que le plan coûte au total une fois la calibration, la mise en station
- * et le pointage ajoutés. Aucune intégration n'est tronquée ici : le dépassement retire une
- * cible entière.
+ * et le pointage ajoutés.
+ *
+ * T-0322 — il ne retire plus rien. Le dépassement se CONSTATE (`tient`), il ne se résout pas :
+ * la sélection vient de l'utilisateur, et supprimer sa cible la moins bien notée revenait à
+ * défaire son geste sans le lui dire. Ce que la nuit ne couvre pas se lit sur l'étape, qui
+ * porte son nombre de nuits.
  */
 
 import { K } from '../registry/constants.ts'
 import type { CreneauCible, Intervalle } from './creneaux.ts'
 import { trace } from './traced.ts'
 import type { PlanCalibration } from './calibration.ts'
-import type { BudgetNuit, CibleEcartee, ContexteSession, EtapePlan } from './session-types.ts'
+import type { BudgetNuit, ContexteSession, EtapePlan } from './session-types.ts'
 
 const MINUTES_PAR_HEURE = 60
 const MS_PAR_MINUTE = 60000
@@ -47,6 +51,26 @@ function intervallesLibres(
     libres = suivants
   }
   return libres
+}
+
+/** Les minutes du créneau d'une cible que rien n'occupe encore. */
+export function minutesLibres(
+  creneau: CreneauCible,
+  occupes: readonly Intervalle[],
+): number {
+  const libres = creneau.creneaux.flatMap((sous) => intervallesLibres(sous, occupes))
+  return libres.reduce((somme, libre) => somme + duree(libre), 0) / MS_PAR_MINUTE
+}
+
+/**
+ * Vrai quand deux cibles se disputent au moins une minute de la nuit.
+ *
+ * Sert à savoir avec COMBIEN de cibles une part de nuit se partage : deux cibles aux créneaux
+ * disjoints ne se gênent pas, et les compter l'une contre l'autre ferait réserver du temps
+ * que personne ne peut prendre.
+ */
+export function creneauxSeChevauchent(a: CreneauCible, b: CreneauCible): boolean {
+  return a.creneaux.some((sousA) => b.creneaux.some((sousB) => chevauche(sousA, sousB)))
 }
 
 /**
@@ -102,28 +126,3 @@ export function calculeBudget(
   }
 }
 
-/** Dépassement : la cible de plus faible score est retirée ENTIÈREMENT (§8.3). */
-export function retireJusquAuBudget(
-  etapes: readonly EtapePlan[],
-  budget: BudgetNuit,
-  contexte: ContexteSession,
-  ecartees: CibleEcartee[],
-  calibration: PlanCalibration | null,
-): readonly EtapePlan[] {
-  let courantes = etapes.slice()
-  let courantBudget = budget
-  while (!courantBudget.tient && courantes.length > 0) {
-    const plusFaible = courantes.reduce((min, e) => (e.score.value < min.score.value ? e : min))
-    courantes = courantes.filter((e) => e !== plusFaible)
-    ecartees.push({
-      designation: plusFaible.objet.designation,
-      code: 'BUDGET',
-      cause:
-        `Nuit trop courte de ` +
-        `${(courantBudget.totalMin.value - courantBudget.disponibleMin).toFixed(0)} min : cette ` +
-        'cible, la moins bien notée, est retirée.',
-    })
-    courantBudget = calculeBudget(contexte, courantes, calibration)
-  }
-  return courantes
-}

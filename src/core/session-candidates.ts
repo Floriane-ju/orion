@@ -308,9 +308,11 @@ export interface PreFiltrage {
  * brillantes — vont au calcul de créneau, qui est le poste coûteux.
  */
 /**
- * `plafond` est la borne de calcul de l'APPELANT, pas une propriété du pré-filtrage : le plan
- * de séance retient C-20 candidates (§8.3), la liste du catalogue en évalue davantage (§6.4).
- * Chacun paie ses éphémérides, aucun n'hérite du budget de l'autre.
+ * `plafond` est la borne de calcul de l'APPELANT, pas une propriété du pré-filtrage, et il n'a
+ * PAS de valeur par défaut : c'est ce qui force chaque appelant à dire ce qu'il paie. La liste
+ * du catalogue borne ses éphémérides (§6.4) ; le plan de séance ne borne plus rien, parce que
+ * son entrée n'est plus le catalogue mais la sélection de l'utilisateur (§8.3) — y couper
+ * serait écarter en silence une cible explicitement demandée.
  *
  * `plafondEcartees` est SÉPARÉ, et il le fallait : les deux bornes ne bornent pas le même
  * coût. Retenir plus de candidates coûte une éphéméride chacune ; nommer plus d'écartées ne
@@ -320,8 +322,8 @@ export interface PreFiltrage {
 export function preFiltre(
   contexte: ContexteSession,
   catalogue: readonly ObjetCielProfond[],
-  plafond = K('CIBLES_CANDIDATES_MAX'),
-  plafondEcartees = plafond,
+  plafond: number,
+  plafondEcartees: number,
 ): PreFiltrage {
   const seuil = contexte.seuilHauteurDeg ?? K('SEUIL_HAUTEUR_IMAGERIE_DEG')
   const { minArcmin: tailleMin, maxArcmin: tailleMax } = bornesTailleCadre(contexte.fovHDeg)

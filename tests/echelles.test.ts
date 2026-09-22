@@ -111,11 +111,14 @@ describe('T-0215 — l’échelle de suivi', () => {
  * C'est la grammaire de T-0113 : ce qui NOMME — l'étiquette d'un champ, l'en-tête d'une
  * colonne, l'onglet, le résumé d'un tiroir, le détail d'un score — se distingue de ce qui
  * VAUT par sa casse et son suivi, puisque §11.1 ne laisse pas assez de luminance pour
- * l'étager autrement. Le motif est écrit dix fois, et ses quatre valeurs sont déjà des
- * jetons : ce qui peut dériver n'est pas une valeur, c'est la onzième règle qui en oublierait
+ * l'étager autrement. Le motif est écrit neuf fois, et ses quatre valeurs sont déjà des
+ * jetons : ce qui peut dériver n'est pas une valeur, c'est la dixième règle qui en oublierait
  * un et produirait un libellé presque semblable.
  *
- * Les dix règles ne sont PAS regroupées en une seule. Les regrouper les déplacerait dans la
+ * T-0323 — elles étaient dix : le détail de score du plan de nuit portait la dixième, et le
+ * plan ne détaille plus son score.
+ *
+ * Les neuf règles ne sont PAS regroupées en une seule. Les regrouper les déplacerait dans la
  * cascade — un onglet actif, un tiroir ouvert et un survol reposent chacun sur l'ordre de la
  * feuille pour surcharger leur couleur. Vingt-sept lignes gagnées contre neuf réordonnance-
  * ments dans une feuille dont toute la discipline est que rien ne bouge en silence : la
@@ -133,8 +136,8 @@ describe('T-0215 — le micro-libellé', () => {
       )
   }
 
-  it('en compte dix, et sait lesquelles', () => {
-    expect(reglesMicro()).toHaveLength(10)
+  it('en compte neuf, et sait lesquelles', () => {
+    expect(reglesMicro()).toHaveLength(9)
   })
 
   it('n’en laisse aucune oublier le suivi ni la couleur qui vont avec', () => {

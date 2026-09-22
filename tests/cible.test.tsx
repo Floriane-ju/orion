@@ -13,7 +13,7 @@
  */
 
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it, vi } from 'vitest'
 import { App } from '../src/App.tsx'
 import { FicheCible, LIBELLE_TYPE_OBJET } from '../src/ui/FicheCible.tsx'
 import { lignesCatalogue } from '../src/core/cibles-liste.ts'
@@ -26,6 +26,11 @@ import {
   pointZeroSysteme,
 } from '../src/data/equipment.ts'
 import { etatScene, majVue, reinitialiseScene, vaA } from '../src/ui/scene-etat.ts'
+import { BoutonChoixCible } from '../src/ui/BoutonChoixCible.tsx'
+import {
+  basculeChoixCible,
+  reinitialiseCiblesChoisies,
+} from '../src/ui/cibles-choisies.ts'
 import { ouvreCible, reinitialiseSeance } from '../src/ui/seance-etat.ts'
 import type { Site } from '../src/core/ephem.ts'
 import type { CibleEcartee } from '../src/core/session-types.ts'
@@ -51,6 +56,25 @@ const CIBLE_REFERENCE = objetForge('CIBLE_REFERENCE', 85, {
 
 /** 12 janvier 2026, 1 h UTC : la Lune est sous l'horizon depuis le site de l'Annexe A. */
 const INSTANT_SANS_LUNE = Date.UTC(2026, 0, 12, 1)
+
+/**
+ * L'HORLOGE SYSTÈME EST FIGÉE, ET PAS SEULEMENT CELLE DE LA SCÈNE.
+ *
+ * `vaA` fixe l'instant AFFICHÉ ; la NUIT PLANIFIÉE, elle, part d'aujourd'hui
+ * (`nuitDeLInstant(new Date())`, `app-saisie.ts`). Or la fiche évalue la Lune au milieu du
+ * créneau de la cible sur cette nuit-là (T-0268), pas à l'instant affiché : sans horloge
+ * figée, la gêne lunaire — donc le contraste et la pose — changeait avec le jour où la suite
+ * tournait. Le test était vert le jour de son écriture et rouge trois semaines plus tard, sur
+ * un code intact.
+ *
+ * Seul `Date` est simulé : les minuteurs ne sont pas en cause, et les simuler ferait attendre
+ * des rendus qui n'arrivent jamais.
+ */
+vi.useFakeTimers({ toFake: ['Date'] })
+vi.setSystemTime(INSTANT_SANS_LUNE)
+afterAll(() => {
+  vi.useRealTimers()
+})
 
 // T-0182 — la fiche vit dans le panneau de droite, à la place de la liste. `ouvreCible` l'y
 // met : c'est elle que ce fichier interroge.
@@ -325,16 +349,63 @@ describe('T-0156 — sans cible désignée, il n’y a pas de fiche', () => {
 })
 
 describe('§8.3 — la fiche nomme un écart d’allocation que le calcul seul ne voit pas', () => {
-  it('affiche la cause quand le plan écarte la cible pour conflit de créneau ou budget', () => {
+  it('affiche la cause quand le plan reporte la cible faute de créneau libre', () => {
     const rendu = ficheDe(AU_DESSUS, {
       designation: AU_DESSUS.designation,
-      code: 'BUDGET',
-      cause: 'Nuit trop courte de 12 min : cette cible, la moins bien notée, est retirée.',
+      code: 'CONFLIT_CRENEAU',
+      cause: 'Son créneau est entièrement pris par des cibles mieux notées.',
     })
-    expect(rendu).toContain('Nuit trop courte de 12 min')
+    expect(rendu).toContain('entièrement pris par des cibles mieux notées')
   })
 
   it('ne montre rien quand la cible n’est pas écartée du plan', () => {
     expect(ficheDe(AU_DESSUS)).not.toContain('Cause d’exclusion')
+  })
+})
+
+/**
+ * §8.3 — le geste qui compose le plan de nuit, tel qu'il se lit.
+ *
+ * Deux choses seulement, et ce sont celles qui cassent en silence : l'état est porté par
+ * `aria-pressed` — donc annoncé, et rempli par la police plutôt que par la seule teinte
+ * (§11.1) — et le libellé dit ce que le clic FERA, pas où on en est.
+ */
+describe('ajouter une cible au plan de nuit §8.3', () => {
+  function bouton(designation: string): string {
+    return renderToStaticMarkup(<BoutonChoixCible designation={designation} />)
+  }
+
+  it('n’est pas enfoncé tant que la cible n’est pas au plan, et propose de l’y mettre', () => {
+    reinitialiseCiblesChoisies()
+    const rendu = bouton('M31')
+    expect(rendu).toContain('aria-pressed="false"')
+    expect(rendu).toContain('Photographier M31 cette nuit')
+  })
+
+  it('s’enfonce dès que la cible est choisie, et propose alors de l’enlever', () => {
+    reinitialiseCiblesChoisies()
+    basculeChoixCible('M31')
+    const rendu = bouton('M31')
+    expect(rendu).toContain('aria-pressed="true"')
+    expect(rendu).toContain('Retirer M31 du plan de nuit')
+    reinitialiseCiblesChoisies()
+  })
+
+  it('ne suit que sa propre cible', () => {
+    reinitialiseCiblesChoisies()
+    basculeChoixCible('M31')
+    expect(bouton('NGC7000')).toContain('aria-pressed="false"')
+    reinitialiseCiblesChoisies()
+  })
+
+  it('porte un glyphe de la police, jamais un caractère dessiné', () => {
+    reinitialiseCiblesChoisies()
+    expect(bouton('M31')).toContain('class="icone"')
+  })
+
+  it('n’est pas offert sur une cible dont la nuit n’annonce aucune pose', () => {
+    // L'écran par défaut n'a pas encore de catalogue vérifié : aucune cible n'y porte de
+    // pose, donc aucune n'est photographiable, donc le geste n'est proposé nulle part.
+    expect(ecran).not.toContain('aria-pressed="false"><span class="icone" aria-hidden="true">photo_camera')
   })
 })

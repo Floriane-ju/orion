@@ -17,7 +17,7 @@
 
 import { useRef, useEffect } from 'react'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
-import type { EtatCible } from '../core/cibles-liste.ts'
+import { photographiable, type EtatCible } from '../core/cibles-liste.ts'
 import type { Etoile } from '../data/catalog.ts'
 import { libelleZpSource } from '../data/equipment.ts'
 import { Carte } from './Carte.tsx'
@@ -29,6 +29,7 @@ import { FicheCible } from './FicheCible.tsx'
 import { Pastilles } from './Pastilles.tsx'
 import { Bulle } from './Bulle.tsx'
 import { ViseeCible } from './BoutonVisee.tsx'
+import { BoutonChoixCible } from './BoutonChoixCible.tsx'
 import { PlanSessionVue } from './PlanSession.tsx'
 import { RegionNuit } from './RegionNuit.tsx'
 import { modeObjectif } from './PanneauMateriel.tsx'
@@ -187,18 +188,19 @@ export function LateralSeance(props: RegionSeanceProps) {
       : chaine.etatsCibles.get(props.cibleDuCiel.designation) ?? null
 
   /**
-   * §8.3 — `CONFLIT_CRENEAU` et `BUDGET` ne naissent qu'à l'allocation de la nuit : la fiche
-   * ne peut pas les recalculer seule, contrairement au cadrage, à la détectabilité ou au
-   * créneau. C'est le plan lui-même — `chaine.plan.ciblesEcartees` — qui les porte.
+   * §8.3 — `CONFLIT_CRENEAU` ne naît qu'à l'allocation de la nuit : la fiche ne peut pas le
+   * recalculer seule, contrairement au cadrage, à la détectabilité ou au créneau. C'est le
+   * plan lui-même — `chaine.plan.ciblesEcartees` — qui le porte.
+   *
+   * T-0322 — c'est désormais le SEUL écart d'allocation. Le budget ne retire plus de cible :
+   * une nuit trop courte se lit sur l'étape, qui reste au plan avec son nombre de nuits.
    */
   const cible = props.cibleDuCiel
   const ecarteePlan =
     cible === null || chaine.plan === null
       ? null
       : (chaine.plan.ciblesEcartees.find(
-          (c) =>
-            c.designation === cible.designation &&
-            (c.code === 'CONFLIT_CRENEAU' || c.code === 'BUDGET'),
+          (c) => c.designation === cible.designation && c.code === 'CONFLIT_CRENEAU',
         ) ?? null)
 
   // T-0188 — le focus suit le contenu du panneau. La liste et la fiche ne coexistent jamais :
@@ -245,6 +247,11 @@ export function LateralSeance(props: RegionSeanceProps) {
                   {facilite !== null && <RappelFacilite etat={facilite} />}
                   {/* T-0221 — viser depuis la fiche, sans repasser par la ligne de liste. */}
                   <ViseeCible objet={props.cibleDuCiel} site={chaine.site} />
+                  {/* §8.3 — le geste qui compose le plan. Le même prédicat que la liste :
+                      ce que la nuit ne permet pas ne s'ajoute pas. */}
+                  {photographiable(facilite ?? undefined) && (
+                    <BoutonChoixCible designation={props.cibleDuCiel.designation} />
+                  )}
                 </span>
               ),
             }
