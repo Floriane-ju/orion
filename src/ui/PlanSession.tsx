@@ -173,7 +173,11 @@ function Etape({ etape, rang, ...props }: EtapeProps) {
         </Mention>
       )}
 
-      <button type="button" onClick={() => setPointageOuvert(!pointageOuvert)}>
+      <button
+        type="button"
+        className="etape-pointage"
+        onClick={() => setPointageOuvert(!pointageOuvert)}
+      >
         {pointageOuvert ? 'Masquer' : 'Afficher'} l’aide au pointage
       </button>
       {pointageOuvert && <Pointage etape={etape} rang={rang} {...props} />}

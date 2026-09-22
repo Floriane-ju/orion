@@ -2138,6 +2138,13 @@ button:disabled {
   color: var(--accent);
 }
 
+/* L'aide au pointage est une commande de l'étape, pas la suite de la ligne de pastilles :
+   un bouton en ligne se collait au dernier disque et faisait lire la note comme son icône. */
+.etape-pointage {
+  display: block;
+  margin-top: var(--pas-1);
+}
+
 .plan-export {
   width: 100%;
   min-height: 20rem;
