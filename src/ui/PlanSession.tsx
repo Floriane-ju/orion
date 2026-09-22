@@ -15,12 +15,10 @@ import type { FenetreUtile } from '../core/moon.ts'
 import type { Etoile } from '../data/catalog.ts'
 import { Icone } from './Icone.tsx'
 import { TracedValue } from './TracedValue.tsx'
-import { Etiquette, Terme } from './Terme.tsx'
+import { Etiquette } from './Terme.tsx'
 import { heure } from './horaire.ts'
 import { Mention } from './Mention.tsx'
-import type { CauseEcart } from '../core/session-types.ts'
 import {
-  LIBELLE_CAUSE_ECART,
   LIBELLE_MODE_POINTAGE,
   LIBELLE_VERDICT_CADRAGE,
   LIBELLE_VERDICT_DETECTABILITE,
@@ -57,31 +55,12 @@ export function PlanSessionVue(props: PlanSessionProps) {
   return (
     <>
       <section>
-        <h2>Fenêtre utile</h2>
-        <Terme
-          cle="fenetre_utile"
-          contexte={`${props.fenetreUtile.dureeH.toFixed(2)} h sans Lune sur ${props.fenetreUtile.dureeNuitH.toFixed(2)} h de nuit`}
-        />
-        <p className="etat">{props.fenetreUtile.note}</p>
-        {props.fenetreUtile.debut !== null && props.fenetreUtile.fin !== null && (
-          <p className="etat">
-            Fenêtre sans Lune : {heure(props.fenetreUtile.debut)} →{' '}
-            {heure(props.fenetreUtile.fin)}
-          </p>
-        )}
-      </section>
-
-      <section>
         <h2>Plan de session</h2>
-        <Terme cle="plan_session" contexte={`${plan.etapes.length} cibles`} />
         <p className="etat">{plan.message}</p>
         {plan.contrainteDominante !== undefined && (
           <Mention ton="cause">{plan.contrainteDominante}</Mention>
         )}
         {plan.alternative !== undefined && <p className="etat">{plan.alternative}</p>}
-        {plan.noteCouvertureCatalogue !== undefined && (
-          <Mention ton="cause">{plan.noteCouvertureCatalogue}</Mention>
-        )}
         <Mention ton="cause">{plan.avertissementMeteo}</Mention>
         {plan.avertissementBatterie !== undefined && (
           <Mention ton="cause">{plan.avertissementBatterie}</Mention>
@@ -91,74 +70,6 @@ export function PlanSessionVue(props: PlanSessionProps) {
           <Etape key={etape.objet.designation} etape={etape} rang={index + 1} {...props} />
         ))}
       </section>
-
-      <section>
-        <h2>Budget de nuit</h2>
-        <Terme cle="budget_nuit" contexte={`${plan.budget.totalMin.value.toFixed(0)} min`} />
-        <table>
-          <tbody>
-            <tr>
-              <th>Nuit exploitable</th>
-              <td>{plan.budget.disponibleMin.toFixed(0)} min</td>
-            </tr>
-            <tr>
-              <th>Capture</th>
-              <td>{plan.budget.captureMin.toFixed(0)} min</td>
-            </tr>
-            <tr>
-              <th>Calibration</th>
-              <td>{plan.budget.calibrationMin.toFixed(0)} min</td>
-            </tr>
-            <tr>
-              <th>Mise en station</th>
-              <td>{plan.budget.miseEnStationMin.toFixed(0)} min</td>
-            </tr>
-            <tr>
-              <th>Pointage</th>
-              <td>{plan.budget.pointageMin.toFixed(0)} min</td>
-            </tr>
-          </tbody>
-        </table>
-        <TracedValue terme="budget_nuit" trace={plan.budget.totalMin} decimales={0} unite="min" />
-        <Mention ton={plan.budget.tient ? 'etat' : 'cause'}>
-          {plan.budget.tient
-            ? 'Tout tient dans la nuit.'
-            : 'Trop long pour la nuit : une cible a été retirée.'}
-        </Mention>
-      </section>
-
-      {plan.ciblesEcartees.length > 0 && (
-        <section>
-          <h2>Cibles écartées — avec leur cause</h2>
-          <Terme cle="cause_exclusion" contexte={`${plan.ciblesEcartees.length} cibles`} />
-          <p className="etat">
-            Décompte complet par cause :{' '}
-            {Object.entries(plan.comptesEcartees)
-              // `Object.entries` élargit toujours la clé en `string` ; le cast est sûr depuis que
-        // `comptesEcartees` est typé par `CauseEcart` — c'est le type qui garantit la clé.
-        .map(([code, nombre]) => `${LIBELLE_CAUSE_ECART[code as CauseEcart]} ${nombre}`)
-              .join(' · ')}
-          </p>
-          <table>
-            <thead>
-              <tr>
-                <th>Cible</th>
-                <th>Cause</th>
-                <th>Motif</th>
-              </tr>
-            </thead>
-            <tbody>
-              {plan.ciblesEcartees.map((ecartee) => (
-                <tr key={`${ecartee.designation}-${ecartee.code}`}>
-                  <td>{ecartee.designation}</td>
-                  <td>{LIBELLE_CAUSE_ECART[ecartee.code]}</td>
-                  <td>{ecartee.cause}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      )}
 
       <section>
         <h2>Export imprimable</h2>

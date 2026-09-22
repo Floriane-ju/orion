@@ -19,13 +19,14 @@ import { SaisieRefuseeError } from '../registry/domains.ts'
 import { PRESET_SNR_DEFAUT } from '../registry/verdicts.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { Site } from '../core/ephem.ts'
-import type { ContexteSession } from '../core/session-types.ts'
+import type { CibleEcartee, ContexteSession } from '../core/session-types.ts'
 import { ChampsCible } from './ChampsCible.tsx'
 import { ImageCible } from './ImageCible.tsx'
 import { Verdicts } from './Verdicts.tsx'
 import { nuitFiche } from './fiche-cible-creneau.ts'
 import { conseilsCible, evalue, type ContexteFiche, type Resultat } from './fiche-cible-calcul.ts'
 import { Mention } from './Mention.tsx'
+import { Etiquette } from './Terme.tsx'
 
 export { LIBELLE_TYPE_OBJET, libelleObjet } from './libelles-objet.ts'
 
@@ -40,6 +41,18 @@ export interface FicheCibleProps extends ContexteFiche {
   readonly site: Site
   /** T-0222 — la nuit du plan de séance, `null` tant qu'elle n'est pas chiffrable. */
   readonly contexteSession: ContexteSession | null
+  /**
+   * §8.3 — cette cible dans `plan.ciblesEcartees`, code `CONFLIT_CRENEAU` ou `BUDGET`.
+   *
+   * Les autres causes d'écart (cadrage, hauteur, relief, fenêtre, hors de portée, donnée
+   * manquante) se recalculent déjà plus bas, indépendamment du plan — cadrage et détectabilité
+   * portent leur propre verdict, le créneau sa propre cause. Ces deux-là sont différentes :
+   * `evalueCandidate` ne les produit pas, elles ne naissent qu'à l'allocation de la nuit
+   * (`session.ts`), quand une cible par ailleurs viable perd sa place à une autre mieux notée
+   * ou au budget. Sans ce prop, rien dans la fiche ne dit qu'une cible évaluable n'est
+   * pourtant pas au plan ce soir.
+   */
+  readonly ecarteePlan?: CibleEcartee | null
 }
 
 export function FicheCible(props: FicheCibleProps) {
@@ -103,6 +116,11 @@ export function FicheCible(props: FicheCibleProps) {
           nue : un rectangle tracé contre un champ de repli mentirait sur l'échelle. */}
       <ImageCible objet={objet} cadre={cadre} />
       <ChampsCible objet={objet} />
+      {(props.ecarteePlan ?? null) !== null && (
+        <Mention ton="cause">
+          <Etiquette cle="cause_exclusion" /> : {props.ecarteePlan!.cause}
+        </Mention>
+      )}
       {!calcul.ok && <Mention ton="erreur">{calcul.erreur}</Mention>}
       {calcul.ok && (
         <Verdicts

@@ -186,6 +186,21 @@ export function LateralSeance(props: RegionSeanceProps) {
       ? null
       : chaine.etatsCibles.get(props.cibleDuCiel.designation) ?? null
 
+  /**
+   * §8.3 — `CONFLIT_CRENEAU` et `BUDGET` ne naissent qu'à l'allocation de la nuit : la fiche
+   * ne peut pas les recalculer seule, contrairement au cadrage, à la détectabilité ou au
+   * créneau. C'est le plan lui-même — `chaine.plan.ciblesEcartees` — qui les porte.
+   */
+  const cible = props.cibleDuCiel
+  const ecarteePlan =
+    cible === null || chaine.plan === null
+      ? null
+      : (chaine.plan.ciblesEcartees.find(
+          (c) =>
+            c.designation === cible.designation &&
+            (c.code === 'CONFLIT_CRENEAU' || c.code === 'BUDGET'),
+        ) ?? null)
+
   // T-0188 — le focus suit le contenu du panneau. La liste et la fiche ne coexistent jamais :
   // au moment où l'effet s'exécute, celle qui portait le focus est déjà démontée.
   const titreRef = useRef<HTMLHeadingElement | null>(null)
@@ -247,6 +262,7 @@ export function LateralSeance(props: RegionSeanceProps) {
             objet={props.cibleDuCiel}
             site={chaine.site}
             contexteSession={chaine.contexteSession}
+            ecarteePlan={ecarteePlan}
           />
         )
       ) : mode === 'PANORAMA' ? (

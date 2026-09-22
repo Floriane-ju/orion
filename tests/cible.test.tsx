@@ -28,6 +28,7 @@ import {
 import { etatScene, majVue, reinitialiseScene, vaA } from '../src/ui/scene-etat.ts'
 import { ouvreCible, reinitialiseSeance } from '../src/ui/seance-etat.ts'
 import type { Site } from '../src/core/ephem.ts'
+import type { CibleEcartee } from '../src/core/session-types.ts'
 import { TYPES_OBJET, type ObjetCielProfond } from '../src/data/deepsky.ts'
 import {
   LIBELLE_LOT_CALIBRATION,
@@ -137,7 +138,7 @@ function objetForge(
 
 const AU_DESSUS = objetForge('CIRCUMPOLAIRE', 85)
 
-function ficheDe(objet: ObjetCielProfond): string {
+function ficheDe(objet: ObjetCielProfond, ecarteePlan: CibleEcartee | null = null): string {
   return renderToStaticMarkup(
     <FicheCible
       objet={objet}
@@ -156,6 +157,7 @@ function ficheDe(objet: ObjetCielProfond): string {
       bortle={4}
       suiviActif={false}
       focaleMm={120}
+      ecarteePlan={ecarteePlan}
     />,
   )
 }
@@ -319,5 +321,20 @@ describe('T-0156 — sans cible désignée, il n’y a pas de fiche', () => {
     expect(sansCible).toContain('Ne montrer que les objets photographiables')
     expect(sansCible).not.toContain('Cadrage de la cible')
     ouvreCible(CIBLE_REFERENCE)
+  })
+})
+
+describe('§8.3 — la fiche nomme un écart d’allocation que le calcul seul ne voit pas', () => {
+  it('affiche la cause quand le plan écarte la cible pour conflit de créneau ou budget', () => {
+    const rendu = ficheDe(AU_DESSUS, {
+      designation: AU_DESSUS.designation,
+      code: 'BUDGET',
+      cause: 'Nuit trop courte de 12 min : cette cible, la moins bien notée, est retirée.',
+    })
+    expect(rendu).toContain('Nuit trop courte de 12 min')
+  })
+
+  it('ne montre rien quand la cible n’est pas écartée du plan', () => {
+    expect(ficheDe(AU_DESSUS)).not.toContain('Cause d’exclusion')
   })
 })

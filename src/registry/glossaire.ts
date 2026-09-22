@@ -685,24 +685,6 @@ export const GLOSSAIRE = Object.freeze({
   }),
 
   // §8.1 — fenêtre nocturne et Lune
-  nuit_astronomique: terme({
-    libelle: 'Nuit astronomique',
-    glose: 'nuit vraiment noire',
-    explication:
-      'Le Soleil est assez bas pour ne plus éclairer le ciel. En été, elle est très courte, ' +
-      'voire absente.',
-    consequence: 'Placez vos cibles dans cette fenêtre.',
-    sections: ['8.1'],
-  }),
-  fenetre_utile: terme({
-    libelle: 'Fenêtre utile',
-    glose: 'nuit noire sans Lune',
-    explication:
-      'C’est la partie de la nuit où la Lune est couchée. Une Lune levée éclaircit le ciel sans ' +
-      'rendre la nuit inutile.',
-    consequence: 'Réservez ce moment aux cibles les plus pâles.',
-    sections: ['8.1'],
-  }),
   degradation_lunaire: terme({
     libelle: 'Dégradation lunaire',
     glose: 'ciel éclairé par la Lune',
@@ -712,16 +694,6 @@ export const GLOSSAIRE = Object.freeze({
     consequence: 'Une nuit de Lune reste utilisable, avec des poses plus courtes.',
     sections: ['8.1'],
   }),
-  mode_degrade_nuit: terme({
-    libelle: 'Mode dégradé de nuit',
-    glose: 'pas de nuit noire',
-    explication:
-      'En été, loin de l’équateur, le ciel ne devient jamais complètement noir. La fenêtre la ' +
-      'plus sombre est retenue, avec un ciel plus clair.',
-    consequence: 'Visez les cibles les plus brillantes.',
-    sections: ['8.1'],
-  }),
-
   // §8.2 — créneau
   creneau: terme({
     libelle: 'Créneau d’observation',
@@ -743,15 +715,6 @@ export const GLOSSAIRE = Object.freeze({
   }),
 
   // §8.3 — plan de session
-  plan_session: terme({
-    libelle: 'Plan de session',
-    glose: 'déroulé de la nuit',
-    explication:
-      'Ce sont les cibles dans l’ordre de la nuit, avec horaire, pose et nombre de photos. Il se ' +
-      'lit de haut en bas.',
-    consequence: 'Suivez-le dans l’ordre.',
-    sections: ['8.3'],
-  }),
   score_cible: terme({
     libelle: 'Score de cible',
     glose: 'départage les cibles',
@@ -759,15 +722,6 @@ export const GLOSSAIRE = Object.freeze({
       'Il combine cadrage, hauteur, signal, durée disponible et Lune. Le poids de chaque critère ' +
       'se règle.',
     consequence: 'Quand deux cibles se chevauchent, la mieux notée passe.',
-    sections: ['8.3'],
-  }),
-  budget_nuit: terme({
-    libelle: 'Budget de nuit',
-    glose: 'temps total de la séance',
-    explication:
-      'Photos, calibration, mise en station et pointage doivent tenir dans la nuit. Sinon, une ' +
-      'cible entière est retirée.',
-    consequence: 'Trop chargé : retirez une cible plutôt que de raccourcir les poses.',
     sections: ['8.3'],
   }),
 

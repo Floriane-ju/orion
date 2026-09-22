@@ -11,7 +11,6 @@ import { nomDeLaNuit } from '../core/nuit-datee.ts'
 import type { FondDeCiel } from '../core/sky-background.ts'
 import type { Traced } from '../core/traced.ts'
 import { TracedValue } from './TracedValue.tsx'
-import { Terme } from './Terme.tsx'
 import { Mention } from './Mention.tsx'
 import { LIBELLE_ETAT_NUIT, LIBELLE_SOURCE_SB } from '../registry/libelles.ts'
 
@@ -67,10 +66,6 @@ function FenetreNocturneVue({
           le doute sur le soir désigné, et c'est à ce moment-là qu'on lit la carte. */}
       <p className="etat">{nomDeLaNuit(nuitIso)}</p>
       <p className="etat">état : {LIBELLE_ETAT_NUIT[nuit.etat]}</p>
-      <Terme
-        cle={nuit.modeDegrade ? 'mode_degrade_nuit' : 'nuit_astronomique'}
-        contexte={`${nuit.dureeReferenceH.toFixed(2)} h exploitables`}
-      />
       {nuit.cause !== undefined && <Mention ton="cause">{nuit.cause}</Mention>}
       {/* T-0264 — `instants` : chaque valeur est une date ET une heure, et elle tient sur une
           ligne. C'est l'intitulé qui se replie quand la carte se resserre. */}
