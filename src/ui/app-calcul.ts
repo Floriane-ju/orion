@@ -32,7 +32,7 @@ import {
 } from '../core/sky-background.ts'
 import { profilOptique, type ProfilOptique } from '../core/optics.ts'
 import { fluxCiel } from '../core/exposure.ts'
-import { construitIndex, type IndexCiel } from '../core/index-ciel.ts'
+import type { IndexCiel } from '../core/index-ciel.ts'
 import type { EntreeProfondeur } from '../core/galactique.ts'
 import { npf, profilSuivi, type ProfilSuivi } from '../core/tracking.ts'
 import { BortleHorsTableError } from '../registry/bortle.ts'
@@ -40,7 +40,6 @@ import { SaisieRefuseeError } from '../registry/domains.ts'
 import { HorsDomaineSeriesError, type Site } from '../core/ephem.ts'
 import type { ProfilCadre } from '../core/cadre.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
-import type { Etoile } from '../data/catalog.ts'
 import {
   capteurEffectif,
   isoRecommande,
@@ -165,7 +164,12 @@ export interface EntreeChaine {
   readonly lieu: SaisieLieu
   readonly materiel: SaisieMateriel
   readonly catalogue: readonly ObjetCielProfond[]
-  readonly etoiles: readonly Etoile[]
+  /**
+   * §3.3 — l'index spatial, reçu tout fait. T-0296 : le construire ici obligeait à le
+   * construire DANS un rendu, où rien ne peut rendre la main ; il se bâtit maintenant avec
+   * les catalogues (`app-donnees.ts`), par tranches.
+   */
+  readonly index: IndexCiel
   /** §9.2 — la pose unitaire du filé, réglée dans le panneau du même nom. */
   readonly tPoseFileS: number
   /** §8.3 — les poids C-15 tels qu'ils sont réglés ; le moteur les normalise. */
@@ -232,7 +236,7 @@ export function grandeursMateriel(materiel: SaisieMateriel): GrandeursMateriel {
 }
 
 export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
-  const { lieu, materiel, catalogue, etoiles, tPoseFileS, poids } = entree
+  const { lieu, materiel, catalogue, index, tPoseFileS, poids } = entree
 
   // T-0291 — les deux saisies bornées, recalculées à chaque rendu : ce sont les clés de tout
   // ce qui suit, et une clé mémoïsée sur elle-même n'en serait plus une.
@@ -326,8 +330,6 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
     () => (ciel.ok ? calculeFenetreUtile(site, ciel.nuit) : null),
     [ciel, site],
   )
-
-  const index = useMemo(() => construitIndex(etoiles), [etoiles])
 
   /** §3.5 — le cadre projeté sur la scène, tel que le matériel saisi le définit. */
   const profilsCadre = useMemo(

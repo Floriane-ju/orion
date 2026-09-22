@@ -9,8 +9,8 @@
 import { ecritPaquet, litPaquet } from './db.ts'
 import type { IntegritePaquet, ManifestePaquet } from './catalog.ts'
 import { verifieIntegrite } from './catalog.ts'
-import { decodeEtoiles, type Etoile } from './catalog.ts'
-import { decodeObjets, type ObjetCielProfond } from './deepsky.ts'
+import { decodeEtoilesPas, type Etoile } from './catalog.ts'
+import { decodeObjetsPas, type ObjetCielProfond } from './deepsky.ts'
 import {
   PAQUET_VIDE,
   decodeConstellations,
@@ -18,6 +18,8 @@ import {
 } from './constellations.ts'
 import { modeReseauCourant, type ModeReseau } from './degradation.ts'
 import { etatStockage, type EtatStockage } from './persistence.ts'
+import { parTranches } from '../core/tranches.ts'
+import { construitIndexPas, type IndexCiel } from '../core/index-ciel.ts'
 
 export const CHEMIN_MANIFESTE = '/data/manifest.json'
 
@@ -116,7 +118,7 @@ async function decodePaireDeObjets(
     litPaquet(nomChaines),
   ])
   if (enregistrements === null || chaines === null) return []
-  return decodeObjets({ enregistrements, chaines })
+  return parTranches(decodeObjetsPas({ enregistrements, chaines }))
 }
 
 /**
@@ -130,10 +132,13 @@ async function decodePaireDeObjets(
  * chevauchent pas — les doublons NGC/IC sont écartés à la source, pas ici (§6.1).
  */
 export async function chargeObjetsCielProfond(): Promise<readonly ObjetCielProfond[]> {
-  const [ngc, complement] = await Promise.all([
-    decodePaireDeObjets(PAQUET_OBJETS, PAQUET_NOMS_OBJETS),
-    decodePaireDeObjets(PAQUET_OBJETS_COMPLEMENT, PAQUET_NOMS_OBJETS_COMPLEMENT),
-  ])
+  // T-0296 — les deux lectures partent ensemble, mais les deux décodages se suivent : tranchés,
+  // ils s'entrelaceraient, et deux tranches concurrentes tiennent le fil deux fois plus long.
+  const ngc = await decodePaireDeObjets(PAQUET_OBJETS, PAQUET_NOMS_OBJETS)
+  const complement = await decodePaireDeObjets(
+    PAQUET_OBJETS_COMPLEMENT,
+    PAQUET_NOMS_OBJETS_COMPLEMENT,
+  )
   return [...ngc, ...complement]
 }
 
@@ -146,7 +151,7 @@ export const PAQUET_ETOILES = 'hyg'
  */
 export async function chargeEtoiles(): Promise<readonly Etoile[]> {
   const paquet = await litPaquet(PAQUET_ETOILES)
-  return paquet === null ? [] : decodeEtoiles(paquet)
+  return paquet === null ? [] : parTranches(decodeEtoilesPas(paquet))
 }
 
 export const PAQUET_CONSTELLATIONS = 'constellations'
@@ -158,6 +163,17 @@ export const PAQUET_CONSTELLATIONS = 'constellations'
 export async function chargeConstellations(): Promise<PaquetConstellations> {
   const paquet = await litPaquet(PAQUET_CONSTELLATIONS)
   return paquet === null ? PAQUET_VIDE : decodeConstellations(paquet)
+}
+
+/**
+ * T-0296 — l'index de §3.3, construit par tranches parce que c'est l'étage le plus cher du
+ * démarrage. Il est assemblé ici, avec les catalogues, et non dans la chaîne de calcul : un
+ * `useMemo` ne sait pas rendre la main, et l'index n'a aucune raison d'attendre un rendu.
+ */
+export async function construitIndexEtoiles(
+  etoiles: readonly Etoile[],
+): Promise<IndexCiel> {
+  return parTranches(construitIndexPas(etoiles))
 }
 
 /** §3.3 — le paquet Gaia est différé : sa présence conditionne le plancher de zoom. */

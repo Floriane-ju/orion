@@ -16,7 +16,8 @@
     "bench:file": "node scripts/bench-incrustation.ts",
     "bench:frappe": "node scripts/bench-frappe.ts",
     "bench:ciel": "node scripts/bench-ciel.ts",
-    "bench:catalogue": "node scripts/bench-catalogue.ts"
+    "bench:catalogue": "node scripts/bench-catalogue.ts",
+    "bench:demarrage": "node scripts/bench-demarrage.ts"
   },
   "dependencies": {
     "astronomy-engine": "^2.1.19",

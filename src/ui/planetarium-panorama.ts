@@ -14,7 +14,7 @@ import { useMemo, useRef, type RefObject } from 'react'
 import { K } from '../registry/constants.ts'
 import { semisGeneratif } from '../data/semis.ts'
 import { magnitudeLimitePrevisu } from '../core/galactique.ts'
-import { construitIndex, type IndexCiel } from '../core/index-ciel.ts'
+import { INDEX_VIDE, construitIndex, type IndexCiel } from '../core/index-ciel.ts'
 import type { Etoile } from '../data/catalog.ts'
 import {
   dureeApercuMin,
@@ -37,11 +37,18 @@ export interface EntreeParametresFile {
 /**
  * L'index des étoiles réellement catalographiées sous le seuil de §9.3 : au-delà, c'est le
  * semis génératif qui garnit le champ, et il n'est construit qu'à la première passe de filé.
+ *
+ * T-0296 — `actif` est faux hors Panorama, et l'index n'est alors pas construit. Il l'était
+ * au démarrage, dans un mode qui ne s'en sert pas : une seconde indexation du catalogue
+ * entier, payée sur le fil principal pour un aperçu que personne n'avait ouvert.
  */
-export function useIndexReel(etoiles: readonly Etoile[]): IndexCiel {
+export function useIndexReel(etoiles: readonly Etoile[], actif: boolean): IndexCiel {
   return useMemo(
-    () => construitIndex(etoiles.filter((e) => e.magV <= K('SEUIL_MAG_ETOILES_REELLES'))),
-    [etoiles],
+    () =>
+      actif
+        ? construitIndex(etoiles.filter((e) => e.magV <= K('SEUIL_MAG_ETOILES_REELLES')))
+        : INDEX_VIDE,
+    [etoiles, actif],
   )
 }
 
@@ -53,11 +60,12 @@ export function useParametresFile(
   entree: EntreeParametresFile,
 ): RefObject<ParametresFile | null> {
   const { file, materiel } = entree
-  const indexReel = useIndexReel(entree.etoiles)
+  const enPanorama = entree.mode === 'PANORAMA'
+  const indexReel = useIndexReel(entree.etoiles, enPanorama)
   const parametres = useRef<ParametresFile | null>(null)
   const indexSemis = useRef<IndexCiel | null>(null)
 
-  if (entree.mode !== 'PANORAMA' || materiel === undefined) {
+  if (!enPanorama || materiel === undefined) {
     parametres.current = null
     return parametres
   }

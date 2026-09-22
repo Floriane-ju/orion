@@ -52,6 +52,52 @@ export const BUDGETS = Object.freeze({
     source: 'classe de machine visée §11.2 — tablette, mesurée au bridage ×4 du navigateur',
     tolerance: 'sans objet — conversion entre machine de mesure et machine visée',
   }),
+
+  /**
+   * Le seuil au-delà duquel une tâche du fil principal est une tâche longue.
+   *
+   * Ce n'est pas une convention du projet : c'est la définition de l'API Long Tasks, celle
+   * que l'outil de mesure applique. Un travail qui tient le fil au-delà retarde la première
+   * image, la frappe et le geste, tous ensemble.
+   */
+  TACHE_LONGUE_MS: valeur({
+    valeur: 50,
+    unite: 'ms',
+    source: 'W3C Long Tasks API — seuil de signalement du navigateur',
+    tolerance: 'sans objet — seuil de l’outil de mesure, pas une grandeur mesurée',
+  }),
+
+  /**
+   * Ce qu'une tranche de décodage ou d'indexation a le droit de tenir le fil principal.
+   *
+   * Le budget se mesure en temps d'horloge sur la machine qui calcule : un bridage CPU ralentit
+   * le travail accompli dans la tranche, il n'allonge pas la tranche. C'est ce qui rend le
+   * découpage juste sur une tablette comme sur une station, sans facteur à régler.
+   *
+   * La valeur tient sous l'image de 20 ms que §3.2 demande à 50 Hz : le ciel continue de
+   * tourner pendant que les catalogues se décodent.
+   */
+  TRANCHE_MS: valeur({
+    valeur: 8,
+    unite: 'ms',
+    source: '§3.2 — sous l’image de 20 ms à 50 Hz, marge laissée au rendu',
+    tolerance: 'sans objet — budget d’interface, pas une grandeur mesurée',
+  }),
+
+  /**
+   * Le nombre d'éléments balayés entre deux points de coupe.
+   *
+   * C'est la granularité du découpage, donc le dépassement maximal d'une tranche : le budget
+   * n'est vérifié qu'à un point de coupe. Trop fin, le test coûte plus que le travail ; trop
+   * gros, la tranche déborde sur une machine lente. Quatre mille éléments, c'est un quart de
+   * milliseconde sur une station et quelques millisecondes sur un téléphone bridé.
+   */
+  PAS_TRANCHE: valeur({
+    valeur: 4096,
+    unite: 'éléments',
+    source: 'granularité de découpage — compromis entre coût du test et dépassement',
+    tolerance: 'sans objet — granularité, pas une grandeur mesurée',
+  }),
 } satisfies Record<string, ValeurBudget>)
 
 export type IdBudget = keyof typeof BUDGETS

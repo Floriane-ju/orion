@@ -28,6 +28,7 @@ import {
   useCatalogues,
   usePersistance,
   useSaisieRestauree,
+  type Catalogues,
   type SaisieRestauree,
 } from './ui/app-donnees.ts'
 import { profilAEnregistrer, siteAEnregistrer } from './ui/saisie-persistee.ts'
@@ -70,20 +71,29 @@ function useModeNuit(): [EtatModeNuit, (etat: EtatModeNuit) => void] {
  */
 export function App() {
   const restauree = useSaisieRestauree()
+  // T-0296 — les catalogues se chargent ICI, au-dessus de l'attente : leurs requêtes partent
+  // donc en même temps que la lecture de la saisie, pas après elle. Montés dans `AppPrete`,
+  // ils ne démarraient qu'une fois la base relue et la première image calculée.
+  const catalogues = useCatalogues()
   if (restauree === null)
     return (
       <p className="etat" role="status" aria-live="polite">
         Lecture des données enregistrées…
       </p>
     )
-  return <AppPrete restauree={restauree} />
+  return <AppPrete restauree={restauree} catalogues={catalogues} />
 }
 
-function AppPrete({ restauree }: { readonly restauree: SaisieRestauree }) {
+function AppPrete({
+  restauree,
+  catalogues,
+}: {
+  readonly restauree: SaisieRestauree
+  readonly catalogues: Catalogues
+}) {
   const lieu = useSaisieLieu(restauree.lieu)
   const materiel = useSaisieMateriel(restauree.materiel)
   const poids = useSaisiePoids()
-  const catalogues = useCatalogues()
   // §12.5 — l'état affiché suit les bascules, il n'est pas figé au démarrage.
   const modeReseau = useSyncExternalStore<ModeReseau>(abonneModeReseau, modeReseauCourant, () => 'EN_LIGNE')
 
@@ -99,7 +109,7 @@ function AppPrete({ restauree }: { readonly restauree: SaisieRestauree }) {
     lieu,
     materiel,
     catalogue: catalogues.objets,
-    etoiles: catalogues.etoiles,
+    index: catalogues.index,
     tPoseFileS: file.tPoseS,
     poids: poids.poids,
   })
@@ -165,7 +175,7 @@ function AppPrete({ restauree }: { readonly restauree: SaisieRestauree }) {
       site={chaine.site}
       masque={chaine.masque}
       etoiles={catalogues.etoiles}
-      index={chaine.index}
+      index={catalogues.index}
       objets={catalogues.objets}
       enAvant={enAvant}
       constellations={catalogues.constellations}

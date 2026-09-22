@@ -15,6 +15,8 @@
  * exact et le décodage sans branche.
  */
 
+import { dUnBloc, pointDeCoupe, type Decoupable } from '../core/tranches.ts'
+
 export const OCTETS_PAR_ETOILE = 12
 
 const OFFSET_AD = 0
@@ -69,11 +71,17 @@ export function nombreEtoiles(buffer: ArrayBuffer): number {
   return Math.floor(buffer.byteLength / OCTETS_PAR_ETOILE)
 }
 
-export function decodeEtoiles(buffer: ArrayBuffer): Etoile[] {
+/**
+ * T-0296 — le décodage nomme ses points de coupe : quatre-vingt mille étoiles décodées d'un
+ * bloc tiennent le fil principal le temps d'une tâche longue sur une tablette. `dUnBloc` le
+ * déroule sans interruption pour les bancs et les tests, `parTranches` par morceaux à l'écran.
+ */
+export function* decodeEtoilesPas(buffer: ArrayBuffer): Decoupable<Etoile[]> {
   const vue = new DataView(buffer)
   const n = nombreEtoiles(buffer)
   const etoiles: Etoile[] = new Array(n)
   for (let i = 0; i < n; i++) {
+    if (pointDeCoupe(i)) yield
     const base = i * OCTETS_PAR_ETOILE
     etoiles[i] = {
       adDeg: vue.getFloat32(base + OFFSET_AD, LITTLE_ENDIAN),
@@ -83,6 +91,10 @@ export function decodeEtoiles(buffer: ArrayBuffer): Etoile[] {
     }
   }
   return etoiles
+}
+
+export function decodeEtoiles(buffer: ArrayBuffer): Etoile[] {
+  return dUnBloc(decodeEtoilesPas(buffer))
 }
 
 export async function sha256Hex(buffer: ArrayBuffer): Promise<string> {

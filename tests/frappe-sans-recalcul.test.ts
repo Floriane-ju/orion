@@ -31,6 +31,7 @@ import { etatsCibles } from '../src/core/cibles-liste.ts'
 import { nuitDeLInstant } from '../src/core/nuit-datee.ts'
 import { decodeObjets, type ObjetCielProfond } from '../src/data/deepsky.ts'
 import { BASE_BOITIERS } from '../src/data/boitiers.ts'
+import { INDEX_VIDE } from '../src/core/index-ciel.ts'
 import { useChaineCalcul } from '../src/ui/app-calcul.ts'
 import { DEFAUT, type SaisieLieu, type SaisieMateriel } from '../src/ui/app-saisie.ts'
 
@@ -156,7 +157,7 @@ const SAISIE_BOITIER = Object.freeze({
   tailleRawMo: '',
 })
 const POIDS = poidsParDefaut()
-const ETOILES = Object.freeze([])
+const INDEX = INDEX_VIDE
 
 function lieu(champs: Partial<SaisieLieu> = {}): SaisieLieu {
   return {
@@ -215,7 +216,7 @@ function rendu([lieuSaisi, materielSaisi]: Saisie): void {
     lieu: lieuSaisi,
     materiel: materielSaisi,
     catalogue: CATALOGUE,
-    etoiles: ETOILES,
+    index: INDEX,
     tPoseFileS: 30,
     poids: POIDS,
   })

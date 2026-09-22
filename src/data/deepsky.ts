@@ -9,6 +9,8 @@
  * intégrée affiche [DONNÉE MANQUANTE], il ne reçoit pas une magnitude 0 (§6.3).
  */
 
+import { dUnBloc, pointDeCoupe, type Decoupable } from '../core/tranches.ts'
+
 export const OCTETS_PAR_OBJET = 28
 
 const OFFSET_AD = 0
@@ -148,7 +150,11 @@ export function encodeObjets(objets: readonly ObjetCielProfond[]): PaquetCielPro
   return { enregistrements: buffer, chaines: chaines.buffer }
 }
 
-export function decodeObjets(paquet: PaquetCielProfond): ObjetCielProfond[] {
+/**
+ * T-0296 — le décodage nomme ses points de coupe. Voir `decodeEtoilesPas` : même raison,
+ * même pilotage — `dUnBloc` hors navigateur, `parTranches` à l'écran.
+ */
+export function* decodeObjetsPas(paquet: PaquetCielProfond): Decoupable<ObjetCielProfond[]> {
   const vue = new DataView(paquet.enregistrements)
   const octetsChaines = new Uint8Array(paquet.chaines)
   const decodeur = new TextDecoder()
@@ -156,6 +162,7 @@ export function decodeObjets(paquet: PaquetCielProfond): ObjetCielProfond[] {
   const objets: ObjetCielProfond[] = new Array(n)
 
   for (let i = 0; i < n; i++) {
+    if (pointDeCoupe(i)) yield
     const base = i * OCTETS_PAR_OBJET
     const debut = vue.getUint32(base + OFFSET_NOM_POS, LITTLE_ENDIAN)
     const longueur = vue.getUint16(base + OFFSET_NOM_LEN, LITTLE_ENDIAN)
@@ -177,4 +184,8 @@ export function decodeObjets(paquet: PaquetCielProfond): ObjetCielProfond[] {
     }
   }
   return objets
+}
+
+export function decodeObjets(paquet: PaquetCielProfond): ObjetCielProfond[] {
+  return dUnBloc(decodeObjetsPas(paquet))
 }

@@ -11,12 +11,14 @@ import {
   chargeConstellations,
   chargeEtoiles,
   chargeObjetsCielProfond,
+  construitIndexEtoiles,
   demarre,
   type EtatDemarrage,
 } from '../data/bootstrap.ts'
 import { PAQUET_VIDE, type PaquetConstellations } from '../data/constellations.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { Etoile } from '../data/catalog.ts'
+import { INDEX_VIDE, type IndexCiel } from '../core/index-ciel.ts'
 import {
   demandePersistance,
   enregistreProfilActif,
@@ -42,27 +44,62 @@ export interface Catalogues {
   readonly etat: EtatDemarrage | null
   readonly objets: readonly ObjetCielProfond[]
   readonly etoiles: readonly Etoile[]
+  /** §3.3 — l'index spatial des étoiles, construit hors du rendu (T-0296). */
+  readonly index: IndexCiel
   readonly constellations: PaquetConstellations
+}
+
+/**
+ * T-0296 — L'ORDRE DE CHARGEMENT EST CE QUE L'UTILISATEUR VOIT.
+ *
+ * Le ciel profond passait en premier : son arrivée déclenche le plan de la nuit, les notes et
+ * les lignes de la liste, et cette tâche-là tenait le fil pendant que le ciel restait vide. Les
+ * étoiles arrivaient après, six à neuf dixièmes de seconde plus tard.
+ *
+ * Les étoiles passent donc devant, index compris, puis les constellations qui complètent la
+ * carte, et le catalogue d'objets en dernier — c'est lui qui alimente la liste, et la liste
+ * peut attendre que le ciel soit peint. Rien n'est parallélisé : deux décodages tranchés
+ * s'entrelaceraient sur le même fil, et la première image reculerait d'autant.
+ */
+export interface RecoitCatalogues {
+  readonly etat: (etat: EtatDemarrage) => void
+  readonly etoiles: (etoiles: readonly Etoile[]) => void
+  readonly index: (index: IndexCiel) => void
+  readonly constellations: (paquet: PaquetConstellations) => void
+  readonly objets: (objets: readonly ObjetCielProfond[]) => void
+}
+
+/**
+ * La séquence elle-même, hors de React : c'est l'ORDRE qui est le livrable de T-0296, et un
+ * ordre ne se vérifie qu'en l'observant. Un test le joue avec des réceptions qui enregistrent.
+ */
+export async function chargeCatalogues(recoit: RecoitCatalogues): Promise<void> {
+  recoit.etat(await demarre())
+  const lues = await chargeEtoiles()
+  recoit.etoiles(lues)
+  recoit.index(await construitIndexEtoiles(lues))
+  recoit.constellations(await chargeConstellations())
+  recoit.objets(await chargeObjetsCielProfond())
 }
 
 export function useCatalogues(): Catalogues {
   const [etat, setEtat] = useState<EtatDemarrage | null>(null)
   const [objets, setObjets] = useState<readonly ObjetCielProfond[]>([])
   const [etoiles, setEtoiles] = useState<readonly Etoile[]>([])
+  const [index, setIndex] = useState<IndexCiel>(INDEX_VIDE)
   const [constellations, setConstellations] = useState<PaquetConstellations>(PAQUET_VIDE)
 
   useEffect(() => {
-    void demarre()
-      .then(setEtat)
-      .then(chargeObjetsCielProfond)
-      .then(setObjets)
-      .then(chargeEtoiles)
-      .then(setEtoiles)
-      .then(chargeConstellations)
-      .then(setConstellations)
+    void chargeCatalogues({
+      etat: setEtat,
+      etoiles: setEtoiles,
+      index: setIndex,
+      constellations: setConstellations,
+      objets: setObjets,
+    })
   }, [])
 
-  return { etat, objets, etoiles, constellations }
+  return { etat, objets, etoiles, index, constellations }
 }
 
 /** Ce que la relecture du démarrage rend à la saisie. */

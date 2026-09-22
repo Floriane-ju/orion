@@ -20,6 +20,7 @@
 import { K } from '../registry/constants.ts'
 import type { Etoile } from '../data/catalog.ts'
 import { DEG, versVecteur, type Vec3 } from './mat3.ts'
+import { dUnBloc, pointDeCoupe, type Decoupable } from './tranches.ts'
 
 export interface CelluleCiel {
   readonly centre: Vec3
@@ -85,6 +86,26 @@ function rayonEnglobant(centre: Vec3, adMinDeg: number, adMaxDeg: number, decMin
  * gardent une largeur angulaire comparable jusqu'aux pôles.
  */
 export function construitIndex(etoiles: readonly Etoile[]): IndexCiel {
+  return dUnBloc(construitIndexPas(etoiles))
+}
+
+/**
+ * L'index d'un ciel sans étoile : ce que la scène dessine tant que le catalogue n'est pas
+ * décodé. `magnitudePourEffectif` y rend `+Infinity`, comme sur tout index dont l'effectif
+ * demandé dépasse le contenu — il n'y a rien à plafonner.
+ */
+export const INDEX_VIDE: IndexCiel = Object.freeze(construitIndex([]))
+
+/**
+ * T-0296 — la même construction, ses points de coupe nommés. C'est l'étage le plus cher du
+ * démarrage : quatre-vingt mille étoiles rangées, triées par cellule et projetées en
+ * directions unitaires, soit cent cinquante millisecondes de fil principal sur une tablette.
+ *
+ * Les coupes sont aux trois balayages qui pèsent : le rangement en paniers, le remplissage
+ * cellule par cellule — c'est lui qui porte les tris et la trigonométrie — et le comptage
+ * cumulé. Voir `core/tranches.ts` pour qui décide d'en profiter.
+ */
+export function* construitIndexPas(etoiles: readonly Etoile[]): Decoupable<IndexCiel> {
   const taille = K('CELLULE_INDEX_DEG')
   const bandes = Math.max(1, Math.round(180 / taille))
   const hauteurBande = 180 / bandes
@@ -109,6 +130,7 @@ export function construitIndex(etoiles: readonly Etoile[]): IndexCiel {
   let profondeur = -Infinity
 
   for (let i = 0; i < etoiles.length; i++) {
+    if (pointDeCoupe(i)) yield
     const e = etoiles[i]!
     if (e.magV > profondeur) profondeur = e.magV
     const b = Math.min(bandes - 1, Math.max(0, Math.floor((e.decDeg + 90) / hauteurBande)))
@@ -127,6 +149,7 @@ export function construitIndex(etoiles: readonly Etoile[]): IndexCiel {
     for (let c = 0; c < n; c++) {
       const panier = paniers[decalages[b]! + c]!
       if (panier.indices.length === 0) continue
+      yield
       // Rangement par magnitude croissante : c'est lui qui rend le parcours interruptible.
       panier.indices.sort((a, z) => etoiles[a]!.magV - etoiles[z]!.magV)
 
@@ -160,13 +183,21 @@ export function construitIndex(etoiles: readonly Etoile[]): IndexCiel {
   }
 
   let magMin = Infinity
-  for (const e of etoiles) if (e.magV < magMin) magMin = e.magV
+  for (let i = 0; i < etoiles.length; i++) {
+    if (pointDeCoupe(i)) yield
+    const magV = etoiles[i]!.magV
+    if (magV < magMin) magMin = magV
+  }
 
   return {
     cellules,
     nombreEtoiles: etoiles.length,
     profondeurMag: Number.isFinite(profondeur) ? profondeur : 0,
-    cumulMag: construitCumulMag(etoiles, magMin, Number.isFinite(profondeur) ? profondeur : 0),
+    cumulMag: yield* construitCumulMag(
+      etoiles,
+      magMin,
+      Number.isFinite(profondeur) ? profondeur : 0,
+    ),
     magMin: Number.isFinite(magMin) ? magMin : 0,
   }
 }
@@ -176,16 +207,17 @@ export function construitIndex(etoiles: readonly Etoile[]): IndexCiel {
  * plus qu'une lecture. Quelques centaines d'octets pour un catalogue de dizaines de milliers
  * d'étoiles — le tableau est indexé par magnitude, pas par étoile.
  */
-function construitCumulMag(
+function* construitCumulMag(
   etoiles: readonly Etoile[],
   magMin: number,
   profondeurMag: number,
-): Float32Array {
+): Decoupable<Float32Array> {
   const pas = K('PAS_COMPTAGE_CUMULE_MAG')
   const cases = Math.max(1, Math.ceil((profondeurMag - magMin) / pas) + 1)
   const cumul = new Float32Array(cases)
-  for (const e of etoiles) {
-    const i = Math.ceil((e.magV - magMin) / pas)
+  for (let j = 0; j < etoiles.length; j++) {
+    if (pointDeCoupe(j)) yield
+    const i = Math.ceil((etoiles[j]!.magV - magMin) / pas)
     cumul[Math.min(cases - 1, Math.max(0, i))]! += 1
   }
   for (let i = 1; i < cases; i++) cumul[i]! += cumul[i - 1]!
