@@ -198,6 +198,7 @@ function AppPrete({
     materiel,
     catalogue: catalogues.objets,
     etoiles: catalogues.etoiles,
+    constellations: catalogues.constellations,
     cibleDuCiel: cibleDuCiel ?? null,
     gaiaCharge: gaia,
     epoqueAnnee: anneeEpoque,

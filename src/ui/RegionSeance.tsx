@@ -19,6 +19,7 @@ import { useRef, useEffect } from 'react'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { photographiable, type EtatCible } from '../core/cibles-liste.ts'
 import type { Etoile } from '../data/catalog.ts'
+import type { PaquetConstellations } from '../data/constellations.ts'
 import { libelleZpSource } from '../data/equipment.ts'
 import { Carte } from './Carte.tsx'
 import { RailVue } from './RailVue.tsx'
@@ -46,6 +47,8 @@ export interface RegionSeanceProps {
   readonly materiel: SaisieMateriel
   readonly catalogue: readonly ObjetCielProfond[]
   readonly etoiles: readonly Etoile[]
+  /** §3.4 — figures, frontières et étoiles nommées ; §8.4 y prend le nom de ses ancrages. */
+  readonly constellations: PaquetConstellations
   /** §3.4 — la cible ouverte depuis le planétarium, `null` tant qu'aucune ne l'a été. */
   readonly cibleDuCiel: ObjetCielProfond | null
   readonly gaiaCharge: boolean
@@ -78,6 +81,7 @@ export function CartesSeance(props: RegionSeanceProps) {
         fovLDeg={calcul.optique.fovLDeg.value}
         mLimOeil={ciel.ciel.mLimOeil.value}
         etoiles={props.etoiles}
+        nommees={props.constellations.etoilesNommees}
         enTete={{
           nuitIso: lieu.nuitIso,
           lieu: `${lieu.latitude}° / ${lieu.longitude}° — Bortle ${lieu.bortle}`,

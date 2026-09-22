@@ -2158,13 +2158,19 @@ button:disabled {
 }
 
 /* §8.4 — schéma de pointage, orienté selon l'heure et le lieu */
+/* T-0287 — un DISQUE, et non le rectangle du cadre : la rotation du boîtier sur la monture
+   n'est pas déclarée, donc un rectangle dessiné droit annoncerait une orientation inventée.
+   Le schéma montre le champ tel que l'œil le verra, zénith en haut ; son rayon est la
+   demi-diagonale du cadre, calculée par `src/core/pointage.ts`, de sorte qu'un ancrage de
+   coin tombe exactement au bord. */
 .schema {
   position: relative;
   width: 100%;
   max-width: 22rem;
-  aspect-ratio: 3 / 2;
-  margin: var(--pas-2) 0;
+  aspect-ratio: 1;
+  margin: var(--pas-2) auto;
   border: var(--trait) solid var(--bordure);
+  border-radius: 50%;
   background: var(--fond);
 }
 
@@ -2180,6 +2186,10 @@ button:disabled {
 .schema-cible {
   color: var(--alerte);
   font-weight: 700;
+}
+/* Le zénith et le nord ne sont pas des astres : ils portent la couleur des repères. */
+.schema-repere {
+  color: var(--accent);
 }
 
 /* Les trois repères du schéma étaient des caractères Unicode (« ✛ », « ● », « ★ »)

@@ -7,12 +7,15 @@
 
 import { useMemo, useState } from 'react'
 import { faciliteCible } from '../core/facilite.ts'
-import { cartePointage, RAPPEL_MISE_EN_STATION } from '../core/pointage.ts'
+import { cartePointage, RAPPEL_MISE_EN_STATION, type Ancrage } from '../core/pointage.ts'
 import { planEnTexte, type EnTetePlan } from '../core/plan-texte.ts'
 import type { CibleEcartee, EtapePlan, PlanSession as Plan } from '../core/session.ts'
 import type { Site } from '../core/ephem.ts'
+import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { FenetreUtile } from '../core/moon.ts'
 import type { Etoile } from '../data/catalog.ts'
+import type { EtoileNommee } from '../data/constellations.ts'
+import { K } from '../registry/constants.ts'
 import { Icone } from './Icone.tsx'
 import { Pastilles } from './Pastilles.tsx'
 import { TracedValue } from './TracedValue.tsx'
@@ -25,6 +28,14 @@ import { LIBELLE_MODE_POINTAGE } from '../registry/libelles.ts'
 const DEG_PAR_HEURE = 15
 const POURCENT = 100
 
+/**
+ * T-0287 — cinq étoiles brillantes du ciel réel n'ont aucune désignation dans les paquets
+ * versionnés, et le cadre en contient de plus faibles que le paquet nommé ne couvre pas. La
+ * ligne le DIT plutôt que de laisser une cellule vide : une colonne blanche se lit comme un
+ * défaut d'affichage, pas comme une étoile anonyme.
+ */
+const SANS_NOM = 'sans nom'
+
 export interface PlanSessionProps {
   readonly plan: Plan
   readonly fenetreUtile: FenetreUtile
@@ -34,6 +45,8 @@ export interface PlanSessionProps {
   readonly mLimOeil: number | null
   readonly fovChercheurDeg?: number
   readonly etoiles: readonly Etoile[]
+  /** §3.4 — le paquet qui donne un nom aux étoiles repères de §8.4 (T-0287). */
+  readonly nommees: readonly EtoileNommee[]
   readonly enTete: EnTetePlan
 }
 
@@ -180,23 +193,102 @@ function Etape({ etape, rang, ...props }: EtapeProps) {
       >
         {pointageOuvert ? 'Masquer' : 'Afficher'} l’aide au pointage
       </button>
-      {pointageOuvert && <Pointage etape={etape} rang={rang} {...props} />}
+      {pointageOuvert && (
+        <Pointage
+          objet={etape.objet}
+          date={etape.creneauAlloue.debut}
+          site={props.site}
+          fovHDeg={props.fovHDeg}
+          fovLDeg={props.fovLDeg}
+          mLimOeil={props.mLimOeil}
+          {...(props.fovChercheurDeg === undefined
+            ? {}
+            : { fovChercheurDeg: props.fovChercheurDeg })}
+          etoiles={props.etoiles}
+          nommees={props.nommees}
+        />
+      )}
     </div>
   )
 }
 
-function Pointage({ etape, ...props }: EtapeProps) {
+/**
+ * §8.4 — une étoile repère par ligne, avec de quoi la reconnaître dans le ciel et de quoi
+ * régler des cercles gradués.
+ *
+ * T-0287 — le glyphe REND LA LIGNE AU SCHÉMA : sans lui, rien ne dit lequel des points de
+ * l'image est celui que la ligne décrit. Il porte seul le rang de l'ancrage depuis que le
+ * nom de l'étoile occupe la cellule, donc il porte aussi son `libelle` — deux icônes collées
+ * se ligaturaient d'ailleurs en travers (« circle » suivi de « star » donnait « circles » et
+ * le reste en toutes lettres).
+ */
+function TableAncrages({ ancrages }: { readonly ancrages: readonly Ancrage[] }) {
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>Étoile</th>
+          <th>Magnitude</th>
+          <th>Séparation</th>
+          <th>Δ ascension droite</th>
+          <th>Δ déclinaison</th>
+        </tr>
+      </thead>
+      <tbody>
+        {ancrages.map((ancrage) => (
+          <tr key={`${ancrage.adH}-${ancrage.decDeg}-l`}>
+            <td>
+              <Icone
+                nom={ancrage.principal ? 'star' : 'circle'}
+                libelle={ancrage.principal ? 'Ancrage principal' : 'Ancrage secondaire'}
+              />{' '}
+              {ancrage.nom === '' ? SANS_NOM : ancrage.nom}
+            </td>
+            <td>{ancrage.magV.toFixed(1)} mag</td>
+            <td>{ancrage.separationDeg.toFixed(2)} °</td>
+            <td>{ancrage.deltaAdH.toFixed(3)} h</td>
+            <td>{ancrage.deltaDecDeg.toFixed(2)} °</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
+/**
+ * §8.4 — l'aide au pointage d'une cible à un instant.
+ *
+ * T-0287 — elle ne prend PAS l'étape du plan : une cible et une heure lui suffisent, et le
+ * plan complet en entrée l'obligeait à exister dans une session entière pour être regardée.
+ */
+export interface PointageProps {
+  readonly objet: ObjetCielProfond
+  readonly date: Date
+  readonly site: Site
+  readonly fovHDeg: number
+  readonly fovLDeg: number
+  readonly mLimOeil: number | null
+  readonly fovChercheurDeg?: number | undefined
+  readonly etoiles: readonly Etoile[]
+  readonly nommees: readonly EtoileNommee[]
+}
+
+export function Pointage(props: PointageProps) {
   const carte = cartePointage({
     site: props.site,
-    date: etape.creneauAlloue.debut,
-    adCibleH: etape.objet.adDeg / DEG_PAR_HEURE,
-    decCibleDeg: etape.objet.decDeg,
+    date: props.date,
+    adCibleH: props.objet.adDeg / DEG_PAR_HEURE,
+    decCibleDeg: props.objet.decDeg,
     fovHDeg: props.fovHDeg,
     fovLDeg: props.fovLDeg,
     mLimOeil: props.mLimOeil,
     ...(props.fovChercheurDeg === undefined ? {} : { fovChercheurDeg: props.fovChercheurDeg }),
     etoiles: props.etoiles,
+    nommees: props.nommees,
   })
+  const deplies = K('ANCRAGES_DEPLIES_MAX')
+  const tete = carte.ancrages.slice(0, deplies)
+  const reste = carte.ancrages.slice(deplies)
 
   return (
     <>
@@ -221,57 +313,55 @@ function Pointage({ etape, ...props }: EtapeProps) {
         <>
           {/* T-0068 — sans rôle, l'`aria-label` d'une `div` n'est pas exposé : l'intention
                 était bonne, l'effet nul. Le schéma est une image composée en HTML. */}
-          <div className="schema" role="img" aria-label="Schéma du cadre, cible au centre">
+          <div
+            className="schema"
+            role="img"
+            aria-label="Schéma du champ autour de la cible, zénith en haut"
+          >
             <span className="schema-astre schema-cible" style={{ left: '50%', top: '50%' }}>
               <Icone nom="my_location" />
             </span>
-            {carte.ancrages.map((ancrage) => (
+            {/* T-0287 — le zénith est en haut par construction, le nord tourne avec l'heure.
+                Les deux sont nommés : un schéma orienté qui ne dit pas selon quoi se lit
+                comme un schéma quelconque. */}
+            <span className="schema-astre schema-repere" style={{ left: '50%', top: '0%' }}>
+              zénith
+            </span>
+            <span
+              className="schema-astre schema-repere"
+              style={{
+                left: `${(1 / 2 + carte.xNord) * POURCENT}%`,
+                top: `${(1 / 2 - carte.yNord) * POURCENT}%`,
+              }}
+            >
+              nord
+            </span>
+            {tete.map((ancrage) => (
               <span
                 key={`${ancrage.adH}-${ancrage.decDeg}`}
                 className="schema-astre"
                 style={{
-                  left: `${(1 / 2 - ancrage.xCadre) * POURCENT}%`,
-                  top: `${(1 / 2 - ancrage.yCadre) * POURCENT}%`,
+                  left: `${(1 / 2 + ancrage.xDisque) * POURCENT}%`,
+                  top: `${(1 / 2 - ancrage.yDisque) * POURCENT}%`,
                 }}
               >
-                <Icone nom="circle" />
-                {ancrage.principal && <Icone nom="star" />}
+                <Icone nom={ancrage.principal ? 'star' : 'circle'} />
               </span>
             ))}
           </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Ancrage</th>
-                <th>Magnitude</th>
-                <th>Séparation</th>
-                <th>Δ ascension droite</th>
-                <th>Δ déclinaison</th>
-              </tr>
-            </thead>
-            <tbody>
-              {carte.ancrages.map((ancrage) => (
-                <tr key={`${ancrage.adH}-${ancrage.decDeg}-l`}>
-                  {/* Le glyphe REND LA LIGNE AU SCHÉMA : sans lui, rien ne dit lequel des
-                      points de l'image est celui que la ligne décrit. Le mot porte le sens,
-                      l'icône reste donc `aria-hidden` — c'est le défaut d'`Icone`. */}
-                  <td>
-                    {ancrage.principal ? (
-                      <>
-                        principal <Icone nom="star" />
-                      </>
-                    ) : (
-                      'secondaire'
-                    )}
-                  </td>
-                  <td>{ancrage.magV.toFixed(1)} mag</td>
-                  <td>{ancrage.separationDeg.toFixed(2)} °</td>
-                  <td>{ancrage.deltaAdH.toFixed(3)} h</td>
-                  <td>{ancrage.deltaDecDeg.toFixed(2)} °</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <TableAncrages ancrages={tete} />
+          {/* T-0287 — un cadre de 17° contient une vingtaine d'étoiles sous la magnitude de
+              l'œil nu : dépliées, elles se lisent comme un semis, et l'ancrage principal s'y
+              perd. Les suivantes restent disponibles, repliées. */}
+          {reste.length > 0 && (
+            <details>
+              <summary>
+                {reste.length} autre{reste.length > 1 ? 's' : ''} étoile
+                {reste.length > 1 ? 's' : ''} repère{reste.length > 1 ? 's' : ''} dans le cadre
+              </summary>
+              <TableAncrages ancrages={reste} />
+            </details>
+          )}
         </>
       )}
 
@@ -280,6 +370,7 @@ function Pointage({ etape, ...props }: EtapeProps) {
           <thead>
             <tr>
               <th>Saut</th>
+              <th>Étoile</th>
               <th>Magnitude</th>
               <th>Distance au suivant</th>
             </tr>
@@ -288,6 +379,7 @@ function Pointage({ etape, ...props }: EtapeProps) {
             {carte.sauts.map((saut) => (
               <tr key={saut.ordre}>
                 <td>{saut.ordre}</td>
+                <td>{saut.nom === '' ? SANS_NOM : saut.nom}</td>
                 <td>{saut.magV.toFixed(1)} mag</td>
                 <td>{saut.distanceDeg.toFixed(2)} °</td>
               </tr>

@@ -17,7 +17,7 @@
  */
 
 import type { BoiteLabel } from '../core/labels.ts'
-import type { EtoileNommee } from '../data/constellations.ts'
+import { nomComplet } from '../data/constellations.ts'
 import type { CibleEcran } from './dessine-ciel.ts'
 
 /* T-0027 — noms des éléments trop petits à l'écran une fois le canevas 1920×1080 réduit à
@@ -32,17 +32,6 @@ export const RAYON_CORPS_PX = 5
  * dans les paquets versionnés. Elles n'ont pas de label ; elles n'ont que ce titre.
  */
 export const TITRE_ETOILE_SANS_DESIGNATION = 'Étoile sans nom'
-
-/**
- * Les deux formes d'une étoile nommée réunies — et la seule des deux qui existe quand
- * l'autre manque, sans tiret orphelin. Le paquet garantit qu'au moins une est non vide
- * (`scripts/build-catalogs.ts`).
- */
-function formeLongue(nommee: EtoileNommee): string {
-  if (nommee.nomPropre === '') return nommee.designation
-  if (nommee.designation === '') return nommee.nomPropre
-  return `${nommee.nomPropre} — ${nommee.designation}`
-}
 
 /**
  * Le texte à peindre pour cet élément, `null` s'il n'en porte aucun.
@@ -67,7 +56,7 @@ export function titreCible(cible: CibleEcran): string {
   }
   if (cible.type === 'CORPS') return cible.nom
   const nommee = cible.etoileNommee
-  return nommee === undefined ? TITRE_ETOILE_SANS_DESIGNATION : formeLongue(nommee)
+  return nommee === undefined ? TITRE_ETOILE_SANS_DESIGNATION : nomComplet(nommee)
 }
 
 /** L'ancre du label : il longe le marqueur que la scène a peint pour cet élément. */

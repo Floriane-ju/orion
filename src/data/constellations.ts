@@ -69,6 +69,21 @@ export interface EtoileNommee {
   readonly constellation: string
 }
 
+/**
+ * Les deux formes d'une étoile nommée réunies — et la seule des deux qui existe quand
+ * l'autre manque, sans tiret orphelin. Le paquet garantit qu'au moins une est non vide
+ * (`scripts/build-catalogs.ts`).
+ *
+ * T-0287 — le nom vit ici, avec le type qui le porte : la fiche du planétarium et la carte
+ * de pointage de §8.4 nomment la même étoile, et une seconde règle écrite ailleurs donnerait
+ * deux vocabulaires pour un seul astre — c'est la leçon de T-0109.
+ */
+export function nomComplet(nommee: EtoileNommee): string {
+  if (nommee.nomPropre === '') return nommee.designation
+  if (nommee.designation === '') return nommee.nomPropre
+  return `${nommee.nomPropre} — ${nommee.designation}`
+}
+
 export interface PaquetConstellations {
   readonly figures: readonly Figure[]
   readonly asterismes: readonly Asterisme[]

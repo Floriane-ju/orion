@@ -853,6 +853,30 @@ const POINTAGE = {
     ordreDeGrandeur: false,
     sections: ['8.4'],
   }),
+  ANCRAGES_DEPLIES_MAX: entree({
+    ref: 'C-21',
+    libelle: 'Nombre d’ancrages dépliés par défaut sur la carte directe',
+    valeur: 5,
+    unite: '—',
+    source:
+      '§8.4 — un ancrage principal et quelques confirmations suffisent à l’œil ; ' +
+      'la vingtaine que contient un cadre de 17° se lit comme un semis, pas comme un repère',
+    tolerance: null,
+    ordreDeGrandeur: false,
+    sections: ['8.4'],
+  }),
+  TOLERANCE_APPARIEMENT_ETOILE_DEG: entree({
+    ref: 'C-21',
+    libelle: 'Écart admis pour reconnaître une étoile du paquet nommé dans le catalogue',
+    valeur: 0.001,
+    unite: '°',
+    source:
+      '§12.2 — l’AD et la δ d’une étoile sont encodées en float32, soit ≈ 0,15″ de ' +
+      'précision ; 3,6″ laissent la marge sans jamais atteindre l’étoile nommée suivante',
+    tolerance: null,
+    ordreDeGrandeur: false,
+    sections: ['8.4', '12.2'],
+  }),
   SAUTS_MAX: entree({
     ref: 'C-21',
     libelle: 'Nombre maximal de sauts d’un cheminement',

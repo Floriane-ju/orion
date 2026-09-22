@@ -148,6 +148,34 @@ describe('T-0215 — une seule façon d’afficher une icône', () => {
     expect(reglePointIcone()).toContain('var(--police-icone)')
   })
 
+  /**
+   * T-0287 — DEUX GLYPHES NE SE TOUCHENT PAS.
+   *
+   * Le schéma de pointage posait `<Icone nom="circle" />` puis `<Icone nom="star" />` sans
+   * rien entre eux. Le navigateur façonne le texte à travers la frontière de deux `<span>`
+   * qui se suivent : la police y a lu « circles » — une ligature qui existe —, et les trois
+   * lettres restantes se sont affichées en toutes lettres. Le défaut n'était visible qu'à
+   * l'écran, avec la police réelle, donc invisible à toute la suite.
+   *
+   * Ce qui est interdit n'est pas ce couple-là : c'est l'adjacence, qui refait le même
+   * accident avec n'importe quel autre nom dont un préfixe est aussi une ligature. Deux
+   * icônes séparées par un texte, une espace ou un élément ne posent pas de problème.
+   */
+  it('ne colle jamais deux glyphes l’un contre l’autre', () => {
+    const racine = join(import.meta.dirname, '..', 'src', 'ui')
+    // Deux glyphes que rien ne sépare : collés, séparés d'un simple retour à la ligne, ou
+    // rendus par deux conditions qui se suivent. Une espace `{' '}`, un mot ou les deux
+    // branches d'un ternaire séparent bel et bien, et restent permis.
+    const ADJACENTES = /<Icone\b[^>]*\/>\s*\}?\s*(?:\{\s*[^{}'"`]*&&\s*)?<Icone\b/
+    for (const fichier of readdirSync(racine)) {
+      if (!fichier.endsWith('.tsx')) continue
+      const source = readFileSync(join(racine, fichier), 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/.*$/gm, '')
+      expect(ADJACENTES.exec(source)?.[0], fichier).toBeUndefined()
+    }
+  })
+
   it('ne laisse aucune phrase d’alerte se poser sans passer par `Mention`', () => {
     const racine = join(import.meta.dirname, '..', 'src')
     for (const dossier of ['', 'ui']) {

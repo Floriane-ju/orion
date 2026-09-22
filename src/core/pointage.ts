@@ -14,10 +14,22 @@
  *
  * LA MISE EN STATION RESTE À LA CHARGE DE L'UTILISATEUR. L'application aide à trouver les
  * objets ; elle ne prétend ni mesurer ni corriger l'installation.
+ *
+ * T-0287 — LE SCHÉMA EST RENDU ZÉNITH EN HAUT, PAS CADRE EN HAUT. Le message annonçait une
+ * rotation que personne n'appliquait. Restait à choisir laquelle des deux orientations est
+ * la bonne : celle du boîtier, ou celle de l'œil. C'est l'œil — la rotation du boîtier sur
+ * la monture n'est pas déclarée, donc un rectangle « le cadre » dessiné droit est une
+ * orientation inventée, alors que « le zénith est en haut » est vrai pour quiconque lève la
+ * tête. Le cadre ne sert donc qu'à CHOISIR les ancrages ; il n'est pas dessiné.
+ *
+ * Les positions rendues sortent d'ici, en fraction du diamètre d'un disque dont le rayon est
+ * la demi-diagonale du cadre : un ancrage de coin tombe exactement au bord. Le composant ne
+ * refait ni la rotation ni la mise à l'échelle — il pose des pourcentages.
  */
 
 import { K } from '../registry/constants.ts'
 import type { Etoile } from '../data/catalog.ts'
+import { nomComplet, type EtoileNommee } from '../data/constellations.ts'
 import type { Site } from './ephem.ts'
 import { tempsSideralLocal } from './ephem.ts'
 import type { Traced } from './traced.ts'
@@ -33,9 +45,17 @@ export interface Ancrage {
   readonly adH: number
   readonly decDeg: number
   readonly magV: number
+  /** Nom ou désignation quand le paquet §3.4 en porte un, chaîne vide sinon. */
+  readonly nom: string
   /** Position dans le cadre, en fraction de largeur et de hauteur, origine au centre. */
   readonly xCadre: number
   readonly yCadre: number
+  /**
+   * Position sur le schéma zénith en haut, en fraction du diamètre, origine au centre,
+   * `x` vers la droite et `y` vers le haut. C'est ce que le rendu pose tel quel.
+   */
+  readonly xDisque: number
+  readonly yDisque: number
   /** Décalages chiffrés vers la cible, pour cercles gradués ou flexibles (§8.4). */
   readonly deltaAdH: number
   readonly deltaDecDeg: number
@@ -49,6 +69,8 @@ export interface Saut {
   readonly adH: number
   readonly decDeg: number
   readonly magV: number
+  /** Nom ou désignation quand le paquet §3.4 en porte un, chaîne vide sinon. */
+  readonly nom: string
   readonly distanceDeg: number
 }
 
@@ -58,6 +80,12 @@ export interface CartePointage {
   readonly sauts: readonly Saut[]
   /** Angle de position du zénith : l'orientation réelle du schéma à cet instant. */
   readonly angleOrientationDeg: Traced<number>
+  /**
+   * Direction du nord céleste sur le schéma zénith en haut, au bord du disque, dans le même
+   * repère que `xDisque` / `yDisque`. Le zénith, lui, est en haut par construction.
+   */
+  readonly xNord: number
+  readonly yNord: number
   readonly deltaAdH: number
   readonly deltaDecDeg: number
   readonly message: string
@@ -79,6 +107,8 @@ export interface EntreePointage {
   /** Champ du chercheur, quand l'utilisateur en déclare un. */
   readonly fovChercheurDeg?: number
   readonly etoiles: readonly Etoile[]
+  /** Paquet §3.4 des étoiles nommées : il donne leur nom aux ancrages et aux sauts. */
+  readonly nommees: readonly EtoileNommee[]
 }
 
 // ---------------------------------------------------------------------------
@@ -132,11 +162,93 @@ export function angleOrientation(
   })
 }
 
+/**
+ * T-0287 — le nom que le paquet §3.4 donne à cette position, chaîne vide s'il n'en donne
+ * aucun. L'appariement se fait sur la position et non sur un identifiant : le catalogue
+ * binaire de §12.2 ne porte que douze octets par étoile, sans champ de nom. Les deux paquets
+ * sortent de la même ligne HYG, l'écart tient donc à l'encodage en float32.
+ *
+ * Balayage linéaire assumé : cinq cent quarante-six étoiles nommées contre quelques dizaines
+ * d'ancrages, un index coûterait plus à tenir qu'à éviter.
+ */
+function nomEtoile(
+  nommees: readonly EtoileNommee[],
+  adDeg: number,
+  decDeg: number,
+): string {
+  const tolerance = K('TOLERANCE_APPARIEMENT_ETOILE_DEG')
+  for (const nommee of nommees) {
+    if (Math.abs(nommee.decDeg - decDeg) > tolerance) continue
+    if (Math.abs(nommee.adDeg - adDeg) > tolerance) continue
+    return nomComplet(nommee)
+  }
+  return ''
+}
+
+/** Position sur le disque zénith en haut, en fraction du diamètre (§8.4, T-0287). */
+interface SurDisque {
+  readonly xDisque: number
+  readonly yDisque: number
+}
+
+/**
+ * Le passage du repère équatorial au repère de l'observateur.
+ *
+ * Avant rotation, le schéma est celui de toutes les cartes du ciel : nord en haut, est à
+ * GAUCHE — c'est la vue à l'œil nu, et non son miroir. Un point d'angle de position `p` s'y
+ * trouve donc en `(−sin p, cos p)`, `y` vers le haut.
+ *
+ * L'angle parallactique `q` est l'angle de position du zénith. Tourner l'ensemble de `q`
+ * dans le sens horaire amène ce zénith en haut, et emmène le nord à `(sin q, cos q)`.
+ */
+function surDisque(estDeg: number, nordDeg: number, rayonDeg: number, qDeg: number): SurDisque {
+  const q = qDeg * DEG
+  const x = -estDeg
+  const y = nordDeg
+  return {
+    xDisque: (x * Math.cos(q) + y * Math.sin(q)) / (2 * rayonDeg),
+    yDisque: (-x * Math.sin(q) + y * Math.cos(q)) / (2 * rayonDeg),
+  }
+}
+
+/** Le rayon du schéma : la demi-diagonale du cadre, pour qu'un ancrage de coin tombe au bord. */
+function rayonDisqueDeg(entree: EntreePointage): number {
+  return Math.hypot(entree.fovLDeg, entree.fovHDeg) / 2
+}
+
+/** Le nord céleste au bord du disque, une fois le zénith ramené en haut (T-0287). */
+function directionNord(qDeg: number): { readonly xNord: number; readonly yNord: number } {
+  const q = qDeg * DEG
+  return { xNord: Math.sin(q) / 2, yNord: Math.cos(q) / 2 }
+}
+
+/**
+ * Ce que le schéma montre, dit en toutes lettres — la phrase et le dessin ne peuvent plus
+ * diverger, puisque l'un et l'autre lisent le même angle.
+ */
+function phraseOrientation(qDeg: number): string {
+  return (
+    'Schéma orienté zénith en haut : le nord céleste, marqué dessus, fait ' +
+    `${Math.abs(qDeg).toFixed(0)}° avec la verticale.`
+  )
+}
+
+/** Une étoile se désigne par son nom quand le catalogue en donne un, par sa magnitude sinon. */
+function designe(etoile: { readonly nom: string; readonly magV: number }): string {
+  const magnitude = `magnitude ${etoile.magV.toFixed(1)}`
+  return etoile.nom === '' ? `une étoile sans nom, ${magnitude}` : `${etoile.nom}, ${magnitude}`
+}
+
 // ---------------------------------------------------------------------------
 // §8.4 — carte directe
 // ---------------------------------------------------------------------------
 
-function ancrage(entree: EntreePointage, etoile: Etoile, principal: boolean): Ancrage {
+function ancrage(
+  entree: EntreePointage,
+  etoile: Etoile,
+  principal: boolean,
+  qDeg: number,
+): Ancrage {
   const adH = etoile.adDeg / DEG_PAR_HEURE
   const dAd = adH - entree.adCibleH
   const dDec = etoile.decDeg - entree.decCibleDeg
@@ -147,8 +259,10 @@ function ancrage(entree: EntreePointage, etoile: Etoile, principal: boolean): An
     adH,
     decDeg: etoile.decDeg,
     magV: etoile.magV,
+    nom: nomEtoile(entree.nommees, etoile.adDeg, etoile.decDeg),
     xCadre: dx / entree.fovLDeg,
     yCadre: dDec / entree.fovHDeg,
+    ...surDisque(dx, dDec, rayonDisqueDeg(entree), qDeg),
     deltaAdH: entree.adCibleH - adH,
     deltaDecDeg: entree.decCibleDeg - etoile.decDeg,
     separationDeg: separationEtoilesDeg(
@@ -178,11 +292,12 @@ function carteDirecte(entree: EntreePointage): CartePointage {
     .sort((a, b) => a.magV - b.magV)
 
   const principale = visibles.find((e) => e.magV <= K('MAG_ANCRAGE_PRINCIPAL_MAX'))
-  const ancrages = visibles.map((e) => ancrage(entree, e, e === principale))
+  const ancrages = visibles.map((e) => ancrage(entree, e, e === principale, orientation.value))
   const commun = {
     mode: 'CARTE_DIRECTE' as const,
     sauts: [] as readonly Saut[],
     angleOrientationDeg: orientation,
+    ...directionNord(orientation.value),
     deltaAdH: 0,
     deltaDecDeg: 0,
   }
@@ -214,10 +329,9 @@ function carteDirecte(entree: EntreePointage): CartePointage {
       `${ancrages.length > 1 ? 's' : ''} dans le cadre` +
       (principale === undefined
         ? ', toutes assez faibles : repérage délicat sous un ciel voilé.'
-        : `, la plus brillante de magnitude ${premier.magV.toFixed(1)}.`) +
+        : `, la plus brillante : ${designe(premier)}.`) +
       ` Écart : ${premier.deltaAdH.toFixed(3)} h en ascension droite, ` +
-      `${premier.deltaDecDeg.toFixed(2)}° en déclinaison. Schéma tourné de ` +
-      `${orientation.value.toFixed(0)}°.`,
+      `${premier.deltaDecDeg.toFixed(2)}° en déclinaison. ${phraseOrientation(orientation.value)}`,
   }
 }
 
@@ -289,6 +403,7 @@ function cheminement(entree: EntreePointage): CartePointage {
     mode: 'CHEMINEMENT' as const,
     ancrages: [] as readonly Ancrage[],
     angleOrientationDeg: orientation,
+    ...directionNord(orientation.value),
   }
 
   if (arrivee === null) {
@@ -317,6 +432,7 @@ function cheminement(entree: EntreePointage): CartePointage {
     adH: n.etoile.adDeg / DEG_PAR_HEURE,
     decDeg: n.etoile.decDeg,
     magV: n.etoile.magV,
+    nom: nomEtoile(entree.nommees, n.etoile.adDeg, n.etoile.decDeg),
     distanceDeg: n.distanceDeg,
   }))
   const depart = sauts[0]!
@@ -327,11 +443,11 @@ function cheminement(entree: EntreePointage): CartePointage {
     deltaAdH: entree.adCibleH - depart.adH,
     deltaDecDeg: entree.decCibleDeg - depart.decDeg,
     message:
-      `${sauts.length} saut${sauts.length > 1 ? 's' : ''} d’étoile en étoile, depuis une ` +
-      `étoile de magnitude ${depart.magV.toFixed(1)}. Écart total : ` +
+      `${sauts.length} saut${sauts.length > 1 ? 's' : ''} d’étoile en étoile, depuis ` +
+      `${designe(depart)}. Écart total : ` +
       `${(entree.adCibleH - depart.adH).toFixed(3)} h en ascension droite, ` +
-      `${(entree.decCibleDeg - depart.decDeg).toFixed(2)}° en déclinaison. Schéma tourné de ` +
-      `${orientation.value.toFixed(0)}°.`,
+      `${(entree.decCibleDeg - depart.decDeg).toFixed(2)}° en déclinaison. ` +
+      phraseOrientation(orientation.value),
   }
 }
 
