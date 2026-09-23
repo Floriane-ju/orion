@@ -67,24 +67,22 @@ describe('T-0137 — le panneau du temps pilote le ciel', () => {
   it('encadre la LECTURE : les reculs à sa gauche, les avances à sa droite', () => {
     // L'ordre EST l'information : deux chevrons posés du même côté ne diraient plus dans quel
     // sens ils emmènent le ciel. T-0314 — c'est la lecture qui tient le milieu du transport,
-    // et non plus le cadran : l'heure a pris le bord gauche de la rangée.
+    // et non plus le cadran.
     const html = barre()
     const ou = (libelle: string) => place(html, libelle)
-    expect(ou('Heure')).toBeLessThan(ou('Reculer vite'))
     expect(ou('Reculer vite')).toBeLessThan(ou('Reculer'))
     expect(ou('Reculer')).toBeLessThan(ou('Mettre le temps en pause'))
     expect(ou('Mettre le temps en pause')).toBeLessThan(ou('Avancer'))
     expect(ou('Avancer')).toBeLessThan(ou('Avancer vite'))
   })
 
-  it('pose la date et le retour au présent au-dessus de l’heure', () => {
+  it('pose l’heure à droite de la date, et le retour au présent après le transport', () => {
     const html = barre()
-    expect(html.indexOf('panneau-temps-jour')).toBeLessThan(
-      html.indexOf('panneau-temps-maintenant'),
+    expect(html.indexOf('panneau-temps-jour')).toBeLessThan(html.indexOf('panneau-temps-heure'))
+    expect(html.indexOf('panneau-temps-heure')).toBeLessThan(
+      html.indexOf('panneau-temps-transport'),
     )
-    expect(html.indexOf('panneau-temps-maintenant')).toBeLessThan(
-      html.indexOf('panneau-temps-heure'),
-    )
+    expect(place(html, 'Avancer vite')).toBeLessThan(html.indexOf('panneau-temps-maintenant'))
   })
 
   it('offre un retour à l’instant présent, en un bouton', () => {
@@ -93,7 +91,7 @@ describe('T-0137 — le panneau du temps pilote le ciel', () => {
     // tout le reste du panneau.
     const html = barre()
     expect(html).toContain('panneau-temps-maintenant')
-    expect(html).toContain('Maintenant')
+    expect(html).toContain('Revenir à maintenant')
     expect(html).toContain('update')
   })
 

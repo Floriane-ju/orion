@@ -5,8 +5,8 @@
  * le sens, la vitesse et l'ordre de partir. Il fermait la barre basse, sur une ligne de la même
  * taille que la phrase de visée qui le précédait — l'une des deux entrées qui datent toute la
  * nuit se lisait comme une lecture de plus. Il devient un objet posé sur le ciel, avec le cadre
- * d'instrument du panneau de séance qu'il coiffe : la date et un retour à l'instant présent sur
- * la première rangée, l'heure et le transport sur la seconde.
+ * d'instrument du panneau de séance qu'il coiffe : la date et l'heure sur la première rangée —
+ * l'instant se lit d'une traite —, le transport sur la seconde, fermé par le retour au présent.
  *
  * Les quatre chevrons encadrent désormais le bouton de LECTURE et non le cadran : c'est lui qui
  * tient le milieu du transport, et l'ordre continue de dire dans quel sens chacun emmène le ciel.
@@ -150,13 +150,12 @@ export function PanneauTemps(props: PanneauTempsProps) {
         ) : (
           <>
             <Jour surNuitIso={props.surNuitIso} surSaisie={() => setEdition(true)} />
-            <BoutonMaintenant surNuitIso={props.surNuitIso} />
+            <Heure surNuitIso={props.surNuitIso} surSaisie={() => setEdition(true)} />
           </>
         )}
       </div>
 
       <div className="panneau-temps-transport">
-        {!edition && <Heure surNuitIso={props.surNuitIso} surSaisie={() => setEdition(true)} />}
         {CRANS.filter((c) => c.sens < 0).map(chevron)}
         <Bulle texte={libelleLecture(temps)} nomme>
           <button
@@ -171,6 +170,7 @@ export function PanneauTemps(props: PanneauTempsProps) {
           </button>
         </Bulle>
         {CRANS.filter((c) => c.sens > 0).map(chevron)}
+        <BoutonMaintenant surNuitIso={props.surNuitIso} />
       </div>
     </div>
   )
@@ -305,10 +305,11 @@ function BoutonMaintenant(props: PanneauTempsProps) {
   }
 
   return (
-    <button type="button" className="panneau-temps-maintenant" onClick={maintenant}>
-      <Icone nom="update" />
-      Maintenant
-    </button>
+    <Bulle texte="Revenir à maintenant" nomme>
+      <button type="button" className="panneau-temps-maintenant" onClick={maintenant}>
+        <Icone nom="update" />
+      </button>
+    </Bulle>
   )
 }
 

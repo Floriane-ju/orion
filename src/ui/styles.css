@@ -726,16 +726,17 @@ body {
   flex: none;
   display: flex;
   flex-direction: column;
-  gap: var(--pas-2);
+  gap: var(--pas-3);
   padding: var(--jour-carte);
   border: var(--trait) solid var(--bordure);
   background: var(--surface);
 }
 
-/* Première rangée : la date à gauche, le retour à l'instant présent à droite. */
+/* Première rangée : la date à gauche, l'heure au bord droit, au-dessus du retour au présent.
+   La ligne de base les aligne malgré leurs deux corps. */
 .panneau-temps-date {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: var(--pas-3);
 }
@@ -751,24 +752,14 @@ body {
   white-space: nowrap;
 }
 
-/* Le bouton porte un glyphe ET un mot : il garde la casse d'un bouton, prend la hauteur de
-   cible que la rangée peut lui donner, et serre son icône contre son libellé. */
-.panneau-temps-maintenant {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--pas-1);
-  min-height: calc(var(--cible-clic) - 0.5rem);
-  padding: var(--pas-1) var(--pas-2);
-  white-space: nowrap;
+/* Le retour au présent ferme le transport, décollé des chevrons : il n'est pas une vitesse de
+   plus, c'est une destination. Glyphe seul, cible gantée comme les chevrons. La marge vit sur
+   l'ancre de sa bulle : c'est elle, et non le bouton, qui est l'enfant de la rangée. */
+.bulle-ancre:has(> .panneau-temps-maintenant) {
+  margin-inline-start: auto;
 }
 
-/* Le glyphe accompagne un mot de micro-libellé : à 1,25 rem il pèserait deux fois son texte. */
-.panneau-temps-maintenant .icone {
-  font-size: var(--texte-appui);
-}
-
-/* Seconde rangée : l'heure prend le bord gauche, le transport ferme à droite. */
+/* Seconde rangée : le transport, puis le retour au présent au bord droit. */
 .panneau-temps-transport {
   display: flex;
   align-items: center;
@@ -779,8 +770,6 @@ body {
    confisque la luminance, il reste la taille. Les secondes retombent de deux rangs et prennent
    la couleur des lectures secondaires — on les surveille, on ne les lit pas. */
 .panneau-temps-heure {
-  margin-inline-end: auto;
-  padding-inline-end: var(--pas-2);
   font-size: var(--texte-titre);
   white-space: nowrap;
 }
@@ -793,7 +782,8 @@ body {
 /* Un chevron porte un glyphe, pas un mot : il perd le rembourrage et la casse d'un bouton
    de formulaire, mais garde la cible de clic gantée de §11.2. */
 .panneau-temps-cran,
-.panneau-temps-lecture {
+.panneau-temps-lecture,
+.panneau-temps-maintenant {
   min-height: calc(var(--cible-clic) - 0.5rem);
   min-width: calc(var(--cible-clic) - 0.5rem);
   padding: var(--pas-1) var(--pas-1);
@@ -1148,7 +1138,7 @@ body {
     border-top: var(--trait) solid var(--bordure);
   }
 
-  /* Le transport tient sur une rangée de cinq boutons et d'une horloge : sous le repli il
+  /* Le transport tient sur une rangée de six boutons : sous le repli il
      passe à la ligne plutôt que de pousser la page hors de l'écran. */
   .panneau-temps-transport {
     flex-wrap: wrap;
