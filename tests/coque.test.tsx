@@ -27,6 +27,7 @@ import {
 } from '../src/ui/scene-etat.ts'
 import { MenuReglages } from '../src/ui/MenuReglages.tsx'
 import { BarreHaut, type BarreHautProps } from '../src/ui/BarreHaut.tsx'
+import { DEFAUT } from '../src/ui/app-saisie.ts'
 import { LIBELLES_RECADRAGE } from '../src/ui/PanneauBoitier.tsx'
 import { ALERTE_VERIFICATION } from '../src/ui/Verification.tsx'
 import { SOURCES } from '../src/registry/sources.ts'
@@ -100,7 +101,7 @@ function ongletsPanneau(html: string): string {
 }
 
 describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
-  it('monte les sept régions : deux barres, la scène, le temps, le matériel, les cartes, le panneau', () => {
+  it('monte les six régions : la barre, la scène, le temps, le matériel, les cartes, le panneau', () => {
     const html = ecran()
     expect(html).toContain('coque-topbar')
     expect(html).toContain('coque-scene')
@@ -109,7 +110,9 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
     expect(html).toContain('cartes-materiel')
     expect(html).toContain('coque-cartes')
     expect(html).toContain('coque-lateral')
-    expect(html).toContain('coque-barrebas')
+    // La barre basse est démontée : son contenu est monté dans la barre haute et la carte Site.
+    expect(html).not.toContain('coque-barrebas')
+    expect(html).not.toContain('<footer')
     // La scène est bien le canevas du planétarium, pas une pile de sections.
     expect(html).toContain('class="planetarium"')
   })
@@ -167,7 +170,7 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
     const colonne = CSS_COQUE.slice(debut, CSS_COQUE.indexOf('}', debut))
     expect(colonne).toContain('right: var(--jour-carte)')
     expect(colonne).toContain('top: calc(var(--barre-haut) + var(--jour-carte))')
-    expect(colonne).toContain('bottom: calc(var(--barre-bas) + var(--jour-carte))')
+    expect(colonne).toContain('bottom: var(--jour-carte)')
     expect(colonne).toContain('width: var(--lateral)')
     expect(colonne).toContain('flex-direction: column')
 
@@ -201,6 +204,7 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
     expect(entete('optique')).toMatch(/<span class="carte-resume">[^<?]+ mm f\/[^<?]+<\/span>/)
 
     // Dépliée, la carte montre le détail dans ses champs : le résumé n'y répéterait qu'eux.
+    basculeCarte('SITE')
     basculeCarte('BOITIER')
     basculeCarte('OPTIQUE')
     expect(ecran()).not.toContain('carte-resume')
@@ -233,23 +237,39 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
   })
 
   it('garde le lieu lisible et réglable dans les deux modes', () => {
-    // Les six champs du site sont descendus dans la barre basse : ce qui devait survivre au
-    // déménagement n'est pas leur dépliement permanent, c'est leur accessibilité constante.
+    // Les champs du site vivent dans la carte Site : ce qui devait survivre au déménagement
+    // n'est pas leur dépliement permanent, c'est leur accessibilité constante.
+    ouvreCarte('SITE')
     for (const mode of ['CIEL_PROFOND', 'PANORAMA'] as const) {
       poseMode(mode)
       const html = ecran()
-      const barre = html.slice(html.indexOf('coque-barrebas'))
+      const barre = html.slice(html.indexOf('carte-site'))
       expect(barre, mode).toContain('Bortle')
       expect(barre, mode).toContain('horizon plat')
     }
   })
 
-  it('affiche les valeurs du site sans ouvrir le tiroir', () => {
-    // Une pastille qui n'afficherait rien rendrait le déménagement coûteux : il faudrait
-    // ouvrir un tiroir pour savoir sous quel ciel on calcule.
+  it('affiche les coordonnées du site, au dixième, sans déplier la carte', () => {
+    // Un en-tête qui n'afficherait rien rendrait le déménagement coûteux : il faudrait
+    // déplier une carte pour savoir sous quel ciel on calcule.
     const html = ecran()
-    const resume = html.slice(html.indexOf('barrebas-lieu'))
-    expect(resume.slice(0, resume.indexOf('</summary>'))).toMatch(/Bortle/)
+    const entete = html.slice(html.indexOf('carte-site"'))
+    const resume = entete.slice(0, entete.indexOf('</button>'))
+    const dixieme = (v: string) => `${Number(v).toFixed(1)}°`
+    expect(resume).toContain(
+      `<span class="carte-resume">${dixieme(DEFAUT.latitude)} / ${dixieme(DEFAUT.longitude)}</span>`,
+    )
+  })
+
+  it('pose la carte Site en haut à gauche, à droite du rail', () => {
+    const html = ecran()
+    // Tabulation : le rail d'abord, la carte ensuite — elle se pose à sa droite.
+    expect(html.indexOf('coque-rail')).toBeLessThan(html.indexOf('carte-site'))
+    const debut = CSS_COQUE.indexOf('.carte-site {')
+    expect(debut).toBeGreaterThan(-1)
+    const corps = CSS_COQUE.slice(debut, CSS_COQUE.indexOf('}', debut))
+    expect(corps).toContain('left: calc(var(--rail) + 2 * var(--jour-carte))')
+    expect(corps).toContain('top: calc(var(--barre-haut) + var(--jour-carte))')
   })
 
   it('porte le mode nuit et la vérification du socle dans la barre du haut', () => {
@@ -443,8 +463,8 @@ describe('T-0113 — les cartes posées sur la scène', () => {
 
   // T-0213 — la vue n'est plus une carte : ses bascules bordent la scène, et une commande
   // toujours visible n'a pas d'état de repli à tenir. T-0238 — le matériel en redevient deux.
-  it('connaît les cartes Boîtier, Optique et Plan', () => {
-    expect(Object.keys(etatCoque().cartes)).toEqual(['BOITIER', 'OPTIQUE', 'PLAN'])
+  it('connaît les cartes Site, Boîtier, Optique et Plan', () => {
+    expect(Object.keys(etatCoque().cartes)).toEqual(['SITE', 'BOITIER', 'OPTIQUE', 'PLAN'])
   })
 
   // T-0238 — une carte reste à sa place : son en-tête replie, il ne se traîne plus.
@@ -634,36 +654,30 @@ describe('T-0183 — le plan de nuit est une carte, et il reste imprimable', () 
 })
 
 /**
- * T-0153 — il ne reste qu'une lecture, et elle est au centre de la barre basse.
+ * T-0153 — il ne reste qu'une lecture, et elle se lit dans la barre.
  *
  * Le tiroir d'information de T-0038 mêlait la phrase qui date l'image et quatre lectures
  * d'atelier — magnitude limite, époque, cadrage, diagnostic de rendu. Notre persona ne mesure
  * pas le rendu. Ce qui se vérifie ici est donc double : la phrase est visible sans un clic, et
- * le tiroir n'existe plus.
+ * le tiroir n'existe plus. La barre basse démontée, la phrase est montée dans la barre haute.
  */
-describe('T-0153 — la barre basse porte la phrase qui date l’image', () => {
-  /** La barre basse : ce qui suit la dernière région, en fin de document. */
-  function barreBasse(html: string): string {
-    return html.slice(html.indexOf('coque-barrebas'))
-  }
-
-  it('pose la phrase dans la barre basse, après le lieu', () => {
-    const bas = barreBasse(ecran()).replaceAll('<!-- -->', '')
-    expect(bas).toMatch(/visée[\s\S]*AD[\s\S]*azimut[\s\S]*hauteur[\s\S]*champ/)
-    expect(bas).toContain('barrebas-visee')
-    // Le lieu la précède. T-0314 — le transport ne la suit plus : il a quitté la barre pour
-    // le panneau du temps, et la barre ne porte plus que les deux repères du lieu.
-    expect(bas.indexOf('barrebas-lieu')).toBeLessThan(bas.indexOf('barrebas-visee'))
-    expect(bas).not.toContain('panneau-temps')
+describe('T-0153 — la barre porte la phrase qui date l’image', () => {
+  it('pose la phrase dans la barre haute, après la marque et la légende', () => {
+    const haut = barreHaute(ecran()).replaceAll('<!-- -->', '')
+    expect(haut).toMatch(/visée[\s\S]*AD[\s\S]*azimut[\s\S]*hauteur[\s\S]*champ/)
+    expect(haut).toContain('barrehaut-visee')
+    expect(haut.indexOf('<h1')).toBeLessThan(haut.indexOf('tiroir-legende'))
+    expect(haut.indexOf('tiroir-legende')).toBeLessThan(haut.indexOf('barrehaut-visee'))
+    expect(haut).not.toContain('panneau-temps')
   })
 
-  it('la centre en lui laissant ce que le lieu ne prend pas', () => {
-    const debut = CSS_COQUE.indexOf('.coque-barrebas > .barrebas-visee {')
+  it('lui laisse ce que la marque et les commandes ne prennent pas', () => {
+    const debut = CSS_COQUE.indexOf('.coque-topbar > .barrehaut-visee {')
     expect(debut).toBeGreaterThan(-1)
     const corps = CSS_COQUE.slice(debut, CSS_COQUE.indexOf('}', debut))
     expect(corps).toContain('flex: 1')
     expect(corps).toContain('text-align: center')
-    // Elle est la seule à se rogner : un contrôle amputé ne se rattrape pas.
+    // Elle se rogne : un contrôle amputé ne se rattrape pas.
     expect(corps).toContain('text-overflow: ellipsis')
   })
 
@@ -850,6 +864,12 @@ describe('T-0184 — un seul tiroir pour la vérification et les réglages', () 
       poids: POIDS_INERTES,
       profondeurMag: 12,
       sbCiel: null,
+      site: {
+        latitudeDeg: Number(DEFAUT.latitude),
+        longitudeDeg: Number(DEFAUT.longitude),
+        altitudeM: Number(DEFAUT.altitude),
+      },
+      gaiaCharge: false,
     }
     return renderToStaticMarkup(<BarreHaut {...props} />)
   }

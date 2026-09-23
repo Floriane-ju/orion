@@ -13,6 +13,9 @@
  * T-0228 — la source de la table de Bortle, et la limite de validité qu'elle énonce, sont
  * parties dans le tiroir « info ». Elles ne varient pas avec la saisie : les poser sous un
  * champ qu'on règle une fois par sortie revenait à les faire relire à chaque ouverture.
+ *
+ * La barre basse est démontée : les champs vivent dans la carte « Site » posée sur la scène,
+ * sans `<section>` ni `h2` — la carte porte déjà le cadre et le nom.
  */
 
 import type { MasqueHorizon, PointMasque, SeuilsSite } from '../core/site.ts'
@@ -48,8 +51,7 @@ export interface ChampsSiteProps {
 
 export function ChampsSite(props: ChampsSiteProps) {
   return (
-    <section>
-      <h2>Site</h2>
+    <>
       <div className="champs">
         <ChampDomaine
           domaine="latitude_deg"
@@ -126,7 +128,6 @@ export function ChampsSite(props: ChampsSiteProps) {
           />
         </>
       )}
-
-    </section>
+    </>
   )
 }

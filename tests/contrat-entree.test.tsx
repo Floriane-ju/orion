@@ -16,8 +16,9 @@ import { LIBELLE_ZP_SOURCE } from '../src/registry/libelles.ts'
 import { libelleFlag } from '../src/registry/libelles.ts'
 import { ouvreCarte } from '../src/ui/coque-etat.ts'
 
-// Les cartes du matériel démarrent repliées : le contrat d'entrée porte sur ce qu'elles
+// Les cartes du site et du matériel démarrent repliées : le contrat d'entrée porte sur ce qu'elles
 // affichent, pas sur leur repli — on les déplie avant de lire l'écran.
+ouvreCarte('SITE')
 ouvreCarte('BOITIER')
 ouvreCarte('OPTIQUE')
 

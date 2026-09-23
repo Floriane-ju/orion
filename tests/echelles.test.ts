@@ -46,7 +46,7 @@ describe('T-0194 — l’échelle d’espacement', () => {
   it('garde les gabarits hors de l’échelle : ils mesurent des objets, pas de l’air', () => {
     // Un pas d'espacement qui dimensionnerait une barre ou une carte ferait dépendre la
     // hauteur de la coque du grain des marges — deux réglages qui n'ont rien à voir.
-    for (const jeton of ['barre-haut', 'barre-bas', 'lateral', 'carte-large', 'bulle-large']) {
+    for (const jeton of ['barre-haut', 'lateral', 'carte-large', 'bulle-large']) {
       const valeur = new RegExp(`--${jeton}: ([^;]+);`).exec(CSS)?.[1]
       expect(valeur, jeton).toMatch(/^[\d.]+rem$/)
     }
@@ -136,8 +136,8 @@ describe('T-0215 — le micro-libellé', () => {
       )
   }
 
-  it('en compte neuf, et sait lesquelles', () => {
-    expect(reglesMicro()).toHaveLength(9)
+  it('en compte huit, et sait lesquelles', () => {
+    expect(reglesMicro()).toHaveLength(8)
   })
 
   it('n’en laisse aucune oublier le suivi ni la couleur qui vont avec', () => {

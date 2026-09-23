@@ -22,6 +22,7 @@ import type { Etoile } from '../data/catalog.ts'
 import type { PaquetConstellations } from '../data/constellations.ts'
 import { libelleZpSource } from '../data/equipment.ts'
 import { Carte } from './Carte.tsx'
+import { ChampsSite } from './ChampsSite.tsx'
 import { RailVue } from './RailVue.tsx'
 import { PanneauLateral } from './PanneauLateral.tsx'
 import { PanneauCibles } from './PanneauCibles.tsx'
@@ -54,6 +55,18 @@ export interface RegionSeanceProps {
   readonly gaiaCharge: boolean
   readonly epoqueAnnee: number
   readonly modeNuitActif: boolean
+}
+
+/**
+ * Latitude et longitude à une décimale pour l'en-tête replié. Une saisie en cours de frappe
+ * (vide, « - ») n'est pas un nombre : elle se marque « ? » plutôt que « NaN ».
+ */
+function resumeSite(latitude: string, longitude: string): string {
+  const arrondi = (v: string) => {
+    const n = Number(v)
+    return v.trim() === '' || !Number.isFinite(n) ? '?' : `${n.toFixed(1)}°`
+  }
+  return `${arrondi(latitude)} / ${arrondi(longitude)}`
 }
 
 /**
@@ -104,6 +117,28 @@ export function CartesSeance(props: RegionSeanceProps) {
         epoqueAnnee={props.epoqueAnnee}
         masque={chaine.masque}
       />
+
+      {/* Le lieu se LIT sur l'en-tête replié et se RÈGLE déplié. Au dixième de degré : un
+          résumé dit où l'on est, pas la saisie au chiffre près — celle-ci est dans les champs. */}
+      <Carte cle="SITE" titre="Site" resume={resumeSite(lieu.latitude, lieu.longitude)}>
+        <ChampsSite
+          latitude={lieu.latitude}
+          surLatitude={lieu.surLatitude}
+          longitude={lieu.longitude}
+          surLongitude={lieu.surLongitude}
+          altitude={lieu.altitude}
+          surAltitude={lieu.surAltitude}
+          bortle={lieu.bortle}
+          surBortle={lieu.surBortle}
+          sqm={lieu.sqm}
+          surSqm={lieu.surSqm}
+          masque={chaine.masque}
+          pointsMasque={lieu.pointsMasque}
+          surPointsMasque={lieu.surPointsMasque}
+          cielRefus={chaine.cielRefus}
+          {...(ciel.ok ? { seuils: ciel.seuils } : {})}
+        />
+      </Carte>
 
       {/* T-0183 — le plan se consulte pendant qu'on regarde le ciel : vérifier l'heure du
           prochain créneau, la pose retenue, ce qui a été écarté. C'est ce qui en fait une

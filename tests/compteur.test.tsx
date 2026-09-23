@@ -181,11 +181,11 @@ describe('T-0163 — la visée se règle par sa réciproque', () => {
     expect(phrase.endsWith(assemblee)).toBe(true)
   })
 
-  it('laisse l’instant au transport : la barre basse ne le date plus deux fois', () => {
+  it('laisse l’instant au transport : la barre ne le date plus deux fois', () => {
     // Deux horloges côte à côte se contredisent à la seconde près, et celle de gauche n'était
     // pas réglable. La phrase commence donc à la visée.
     const bas = ecran()
-    const debut = bas.indexOf('>', bas.indexOf('barrebas-visee')) + 1
+    const debut = bas.indexOf('>', bas.indexOf('barrehaut-visee')) + 1
     const texte = bas
       .slice(debut, bas.indexOf('</p>', debut))
       .replaceAll('<!-- -->', '')

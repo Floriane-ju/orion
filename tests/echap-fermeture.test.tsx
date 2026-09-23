@@ -60,7 +60,7 @@ describe('T-0189 — la bulle reste survolable et persistante', () => {
 
 describe('T-0189 — les trois tiroirs sont couverts par la même règle', () => {
   it('aucun tiroir ne garde sa propre écoute d’Échap', () => {
-    for (const fichier of ['BarreHaut.tsx', 'BarreBas.tsx', 'MenuReglages.tsx', 'Verification.tsx']) {
+    for (const fichier of ['BarreHaut.tsx', 'MenuReglages.tsx', 'Verification.tsx']) {
       const source = readFileSync(join(RACINE, 'ui', fichier), 'utf8')
       expect(source, fichier).not.toContain("'Escape'")
     }

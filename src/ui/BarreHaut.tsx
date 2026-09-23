@@ -30,12 +30,19 @@
  * La profondeur affichée rejoint ici les autres lectures d'atelier : elle se lisait dans la
  * carte Vue, qu'il fallait déplier pour la voir. Le survol suffit à la comprendre (glossaire),
  * donc pas de `<details>` ici — la carte Vue reste repliable sans rien lui retirer.
+ *
+ * La barre basse est démontée : la légende des couleurs et la phrase de visée montent ici,
+ * entre la marque et la profondeur. La phrase prend la place que les commandes laissent et
+ * se rogne la première ; le lieu, lui, est devenu la carte « Site » posée sur la scène.
  */
 
 import type { EtatDemarrage } from '../data/bootstrap.ts'
+import type { Site } from '../core/ephem.ts'
 import { etatProfondeur } from '../core/projection.ts'
 import { GLOSSAIRE } from '../registry/glossaire.ts'
 import { Bulle } from './Bulle.tsx'
+import { LegendeCouleurs } from './LegendeCouleurs.tsx'
+import { Visee } from './Visee.tsx'
 import { MenuReglages } from './MenuReglages.tsx'
 import type { SaisiePoids } from './app-saisie.ts'
 import { ALERTE_VERIFICATION, Verification } from './Verification.tsx'
@@ -59,6 +66,10 @@ export interface BarreHautProps {
   readonly profondeurMag: number
   /** §2.2 — fond de ciel du site : c'est lui qui plafonne la profondeur en vue réaliste. */
   readonly sbCiel: number | null
+  /** §3.3 — le site oriente le ciel : sans lui, la visée n'a pas de coordonnées J2000. */
+  readonly site: Site
+  /** §3.3 — le paquet Gaia décide jusqu'où le champ peut se refermer sans vider le ciel. */
+  readonly gaiaCharge: boolean
 }
 
 /** Sélecteurs définis au niveau du module — `useTrancheScene` exige une identité stable. */
@@ -85,6 +96,10 @@ export function BarreHaut(props: BarreHautProps) {
   return (
     <>
       <h1>Orion</h1>
+      {/* La légende dit ce que les couleurs des marqueurs signifient : une convention de
+          lecture, pas une commande de vue — elle voisine la marque, loin des bascules. */}
+      <LegendeCouleurs modeNuit={props.modeNuit.actif} />
+      <Visee site={props.site} gaiaCharge={props.gaiaCharge} />
       {/* T-0145 / T-0153 — seule lecture de la barre : c'est elle qui cale le bloc de
           commandes à droite, et la bande se soude à partir d'elle. */}
       <p className="etat barrehaut-lectures-fin">

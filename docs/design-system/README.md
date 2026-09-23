@@ -196,7 +196,7 @@ vérifie qu'aucune famille nommée n'est sans fichier.
 
 ### Gabarits — hors échelle, délibérément
 
-`--barre-haut` 2,75rem · `--barre-bas` 3rem · `--lateral` 22rem ·
+`--barre-haut` 2,75rem · `--lateral` 22rem ·
 `--rail` · `--carte-large` 19rem · `--carte-plan` 29rem · `--bulle-large` 18rem ·
 `--cible-clic` 44px (usage ganté sur écran tactile, §11.2)
 
@@ -270,12 +270,12 @@ appartient à la phrase, pas au composant.
 |---|---|---|
 | `Icone` | 12 | **toute icône**, sans exception |
 | `Tiroir` | 3 | un tiroir de barre — `<details>` sans JavaScript |
-| `Carte` | 2 | une carte repliable posée sur la scène, à place fixe |
+| `Carte` | 3 | une carte repliable posée sur la scène, à place fixe |
 | `Pastilles` | 2 | une note sur une échelle, comptée d'un coup d'œil |
 
 ```tsx
-<Tiroir modificateur="site" resume={<span className="barrebas-lieu">…</span>}>
-  <ChampsSite {...site} />
+<Tiroir modificateur="info" resume={<><Icone nom="info" />info</>}>
+  <Sources />
 </Tiroir>
 ```
 

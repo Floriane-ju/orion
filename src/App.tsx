@@ -20,7 +20,6 @@ import { PanneauMateriel, modeObjectif } from './ui/PanneauMateriel.tsx'
 import { useTrancheScene, type EtatScene } from './ui/scene-etat.ts'
 import { ouvreCible, useSeance } from './ui/seance-etat.ts'
 import { BarreHaut } from './ui/BarreHaut.tsx'
-import { BarreBas } from './ui/BarreBas.tsx'
 import { PanneauTemps } from './ui/PanneauTemps.tsx'
 import { CartesSeance, LateralSeance } from './ui/RegionSeance.tsx'
 import { useSaisieLieu, useSaisieMateriel, useSaisiePoids } from './ui/app-saisie.ts'
@@ -142,6 +141,8 @@ function AppPrete({
       poids={poids}
       profondeurMag={chaine.index.profondeurMag}
       sbCiel={ciel.ok ? ciel.ciel.sbCiel.value : null}
+      site={chaine.site}
+      gaiaCharge={gaia}
     />
   )
 
@@ -205,29 +206,6 @@ function AppPrete({
     modeNuitActif: modeNuit.actif,
   }
 
-  const barrebas = (
-    <BarreBas
-      latitude={lieu.latitude}
-      surLatitude={lieu.surLatitude}
-      longitude={lieu.longitude}
-      surLongitude={lieu.surLongitude}
-      altitude={lieu.altitude}
-      surAltitude={lieu.surAltitude}
-      bortle={lieu.bortle}
-      surBortle={lieu.surBortle}
-      sqm={lieu.sqm}
-      surSqm={lieu.surSqm}
-      site={chaine.site}
-      gaiaCharge={gaia}
-      modeNuit={modeNuit.actif}
-      masque={chaine.masque}
-      pointsMasque={lieu.pointsMasque}
-      surPointsMasque={lieu.surPointsMasque}
-      cielRefus={chaine.cielRefus}
-      {...(ciel.ok ? { seuils: ciel.seuils } : {})}
-    />
-  )
-
   return (
     <Coque
       topbar={topbar}
@@ -236,7 +214,6 @@ function AppPrete({
       materiel={panneauMateriel}
       cartes={<CartesSeance {...regions} />}
       lateral={<LateralSeance {...regions} />}
-      barrebas={barrebas}
     />
   )
 }

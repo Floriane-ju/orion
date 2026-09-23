@@ -1,37 +1,20 @@
 /**
- * T-0113 — la barre basse : le lieu, l'instant.
+ * T-0153 — la phrase qui dit où pointe la scène : la visée, le cap, le champ.
  *
- * Deux entrées commandent tout ce que l'application calcule — où l'on est, et quand. Elles
- * tenaient jusqu'ici trois places distinctes : le groupe « Séance » en tête du panneau droit,
- * un champ de date au milieu de la barre, et la section « Temps » d'un onglet parmi quatre.
- * Rien ne justifiait de les séparer sinon l'ordre dans lequel les panneaux avaient été écrits.
- *
- * T-0137 — le temps n'est plus un tiroir de réglages mais un transport, et la date a rejoint
- * l'heure : une seule date à l'écran, donc plus de nuit planifiée qui diffère du ciel regardé.
- * T-0314 — ce transport a quitté la barre pour un panneau posé en haut à droite
- * (`PanneauTemps`) : il ne reste ici que le lieu et ce que la scène vise.
- *
- * T-0153 — la phrase qui dit où pointe la scène occupe le centre. Elle était rangée dans le
- * tiroir des lectures, avec le diagnostic de rendu ; c'est la seule qu'on consulte en visant,
- * et elle complète le repère de gauche : le lieu.
+ * Elle tenait le centre d'une barre basse qui portait aussi le lieu et la légende. La barre
+ * est démontée : la phrase et la légende montent dans la barre haute, le lieu devient la carte
+ * « Site » posée sur la scène. La phrase se lit toujours sans un clic.
  *
  * T-0163 — elle ne date plus l'image : le panneau du temps porte le même instant, réglable.
  * La phrase ne garde que ce qui lui appartient — la visée, le cap, le champ — et ses cinq
  * nombres se tirent à l'horizontale.
- *
- * Le lieu, lui, affiche ses VALEURS en clair et range ses CHAMPS dans un tiroir : il se lit
- * sans un clic, se règle en un. Un `<details>` natif porte l'état ouvert/fermé, le clavier et
- * l'annonce — aucun état React n'est nécessaire pour un tiroir.
  */
 
 import { Fragment, useMemo } from 'react'
 import type { Site } from '../core/ephem.ts'
 import { cielInstantane } from '../core/horloges.ts'
 import { bornesZoom } from '../core/projection.ts'
-import { ChampsSite, type ChampsSiteProps } from './ChampsSite.tsx'
 import { Compteur } from './Compteur.tsx'
-import { LegendeCouleurs } from './LegendeCouleurs.tsx'
-import { Tiroir } from './Tiroir.tsx'
 import { HAUTEUR_MAX_DEG, HAUTEUR_MIN_DEG, tourBorne } from './planetarium-gestes.ts'
 import { majVue, useScene } from './scene-etat.ts'
 import {
@@ -40,15 +23,6 @@ import {
   type ChampVisee,
   type SegmentVisee,
 } from './scene-lecture.ts'
-
-export interface BarreBasProps extends ChampsSiteProps {
-  /** §3.3 — le site oriente le ciel : sans lui, la visée n'a pas de coordonnées J2000. */
-  readonly site: Site
-  /** §3.3 — le paquet Gaia décide jusqu'où le champ peut se refermer sans vider le ciel. */
-  readonly gaiaCharge: boolean
-  /** §11.1 — les pastilles de la légende suivent les marqueurs qu'elles nomment. */
-  readonly modeNuit: boolean
-}
 
 /**
  * T-0163 — ce qu'un cran de glisser ajoute à chaque lecture. C'est le pas du GESTE, pas celui
@@ -66,11 +40,10 @@ const PAS_VISEE: Readonly<Record<ChampVisee, number>> = Object.freeze({
 
 /**
  * T-0153 — un composant à part, et non une ligne de plus dans la barre : le magasin de scène
- * republie son instant deux fois par seconde, et s'y abonner depuis `BarreBas` ferait rendre
- * le tiroir du lieu et le transport au même rythme (T-0056). Ici l'abonnement ne coûte que
- * cette phrase.
+ * republie son instant deux fois par seconde, et s'y abonner depuis `BarreHaut` ferait rendre
+ * ses tiroirs au même rythme (T-0056). Ici l'abonnement ne coûte que cette phrase.
  */
-function Visee(props: { readonly site: Site; readonly gaiaCharge: boolean }) {
+export function Visee(props: { readonly site: Site; readonly gaiaCharge: boolean }) {
   const { vue, msAffiche } = useScene()
   const date = useMemo(() => new Date(msAffiche), [msAffiche])
   const ciel = useMemo(() => cielInstantane(props.site, date), [props.site, date])
@@ -119,33 +92,5 @@ function Visee(props: { readonly site: Site; readonly gaiaCharge: boolean }) {
 
   // T-0163 — la phrase ne date plus l'image : le panneau du temps porte le même instant, et
   // deux horloges à l'écran se contredisent à la seconde près.
-  return <p className="etat barrebas-visee">{segments.map(compteur)}</p>
-}
-
-export function BarreBas(props: BarreBasProps) {
-  // `gaiaCharge` sort du lot : il borne le champ de la visée, il n'est pas un champ du lieu.
-  const { site: siteCalcul, gaiaCharge, modeNuit, ...site } = props
-
-  return (
-    <>
-      {/* Le lieu se LIT sur la pastille et se RÈGLE dans le tiroir : ce qui comptait n'était
-          pas que les six champs soient dépliés, c'était que leurs valeurs soient visibles. */}
-      <Tiroir
-        modificateur="site"
-        resume={
-          <span className="barrebas-lieu">
-            {site.latitude}° / {site.longitude}° · Bortle {site.bortle}
-          </span>
-        }
-      >
-        <ChampsSite {...site} />
-      </Tiroir>
-
-      {/* La légende dit ce que les couleurs des marqueurs signifient. Elle voisine le lieu
-          plutôt que la scène : c'est une convention de lecture, pas une commande de vue. */}
-      <LegendeCouleurs modeNuit={modeNuit} />
-
-      <Visee site={siteCalcul} gaiaCharge={gaiaCharge} />
-    </>
-  )
+  return <p className="etat barrehaut-visee">{segments.map(compteur)}</p>
 }

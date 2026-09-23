@@ -139,9 +139,9 @@ describe('T-0187 — la ligne de visée n’est pas vive', () => {
    * canevas. La rendre vive, ce serait un flux continu d'annonces. La règle : est vif ce qui
    * répond à une action, pas ce qui suit l'horloge.
    */
-  it('la barre basse ne porte aucune région vive', () => {
+  it('la phrase de visée ne porte aucune région vive', () => {
     const racine = join(import.meta.dirname, '..', 'src', 'ui')
-    for (const fichier of ['BarreBas.tsx', 'scene-lecture.ts']) {
+    for (const fichier of ['Visee.tsx', 'scene-lecture.ts']) {
       const source = readFileSync(join(racine, fichier), 'utf8')
       expect(source, fichier).not.toContain('aria-live')
       expect(source, fichier).not.toContain('role="status"')

@@ -214,11 +214,10 @@ body {
   /* Écart entre un nombre réglable et le trait qui l'annonce. Cité deux fois : par le
      compteur, et par la phrase qui le contient et doit réserver la place du trait. */
   --jour-trait: 0.2em;
-  /* Les gabarits de la coque. Les deux barres et le panneau sont posés en absolu sur la
-     scène : leur encombrement doit être connu d'ailleurs — le panneau part sous la barre
-     haute, les cartes s'ancrent entre les deux. Un seul endroit le déclare. */
+  /* Les gabarits de la coque. La barre et le panneau sont posés en absolu sur la scène :
+     leur encombrement doit être connu d'ailleurs — le panneau et les cartes partent sous la
+     barre. Un seul endroit le déclare. */
   --barre-haut: 2.75rem;
-  --barre-bas: 3rem;
   --lateral: 22rem;
   /* Le rail des bascules de vue : une cible de clic de large, filet compris. Il est cité
      deux fois — par le rail lui-même et par les cartes qui se posent à sa droite. */
@@ -407,8 +406,7 @@ body {
 /* L'empilement, du fond vers la surface : la scène, les cartes, le panneau, les barres. Les
    barres sont au-dessus de tout parce qu'elles portent les tiroirs — une fenêtre de tiroir
    qui passerait sous le panneau latéral serait ouverte et invisible. */
-.coque-topbar,
-.coque-barrebas {
+.coque-topbar {
   position: absolute;
   left: 0;
   right: 0;
@@ -426,13 +424,6 @@ body {
   height: var(--barre-haut);
   border-bottom: var(--trait) solid var(--bordure);
   background: linear-gradient(var(--surface-haute), var(--surface));
-}
-
-.coque-barrebas {
-  bottom: 0;
-  height: var(--barre-bas);
-  border-top: var(--trait) solid var(--bordure);
-  background: linear-gradient(var(--surface), var(--surface-haute));
 }
 
 /* La marque et la lecture du matériel tiennent ensemble le bord gauche ; les commandes
@@ -466,12 +457,13 @@ body {
   margin-left: calc(-1 * (var(--jour-barre) + var(--trait)));
 }
 
-/* La phrase qui dit où pointe la scène tient le centre de la barre basse : elle prend ce que
-   le lieu laisse, et s'y centre. Elle est la SEULE chose qui se rogne ici — une phrase
-   tronquée se relit en élargissant la fenêtre, un contrôle amputé ne se rattrape pas. */
+/* La phrase qui dit où pointe la scène prend ce que la marque, la légende et les commandes
+   laissent, et s'y centre. Elle se rogne avec la profondeur (`.coque-topbar > .etat`) —
+   une phrase tronquée se relit en élargissant la fenêtre, un contrôle amputé ne se rattrape
+   pas. */
 /* Le rognage est horizontal par intention, mais `overflow: hidden` rogne aussi en bas : sans
    cette réserve, le soulignement des compteurs de la phrase serait coupé. */
-.coque-barrebas > .barrebas-visee {
+.coque-topbar > .barrehaut-visee {
   flex: 1;
   min-width: 0;
   padding: calc(var(--jour-trait) + var(--trait)) 0;
@@ -511,31 +503,9 @@ body {
   border-bottom-color: var(--avertissement);
 }
 
-.barrebas-lieu {
-  font-size: var(--texte-micro);
-  letter-spacing: var(--suivi-micro);
-  text-transform: uppercase;
-  color: var(--attenue);
-}
-
-/* Le tiroir du lieu ouvre vers le HAUT : ancré à la barre basse, il descendrait hors écran. */
-.coque-barrebas .tiroir {
-  margin-left: 0;
-  flex: none;
-}
-
-.coque-barrebas .tiroir[open] > .tiroir-contenu {
-  top: auto;
-  bottom: calc(var(--barre-bas) + var(--pas-1));
-  left: var(--pas-3);
-  right: auto;
-  width: min(32rem, calc(100vw - var(--jour-ecran)));
-  max-height: calc(100dvh - var(--barre-bas) - 1rem);
-}
-
-/* La légende n'a que six lignes courtes : elle prend la largeur de son texte au lieu
-   des 32 rem du tiroir du lieu, qui laisseraient une fenêtre vide aux trois quarts. */
-.coque-barrebas .tiroir-legende[open] > .tiroir-contenu {
+/* La légende n'a que six lignes courtes : elle prend la largeur de son texte, pas celle
+   d'une fenêtre de réglages. */
+.coque-topbar .tiroir-legende[open] > .tiroir-contenu {
   width: max-content;
   max-width: calc(100vw - var(--jour-ecran));
 }
@@ -673,7 +643,14 @@ body {
 .carte-plan {
   width: var(--carte-plan);
   right: calc(var(--lateral) + 2 * var(--jour-carte));
-  bottom: calc(var(--barre-bas) + var(--jour-carte));
+  bottom: var(--jour-carte);
+}
+
+/* Le site s'ancre en haut à gauche, à droite du rail : le lieu se relit à côté des bascules
+   de la vue, sans couvrir ni le matériel ni le plan. */
+.carte-site {
+  left: calc(var(--rail) + 2 * var(--jour-carte));
+  top: calc(var(--barre-haut) + var(--jour-carte));
 }
 
 /* LES CARTES DU MATÉRIEL : Boîtier au-dessus d'Optique, en haut à droite, contre la colonne
@@ -693,7 +670,7 @@ body {
   z-index: 2;
   right: calc(var(--lateral) + 2 * var(--jour-carte));
   top: calc(var(--barre-haut) + var(--jour-carte));
-  bottom: calc(var(--barre-bas) + var(--jour-carte));
+  bottom: var(--jour-carte);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -820,7 +797,7 @@ body {
   position: absolute;
   left: var(--jour-carte);
   top: calc(var(--barre-haut) + var(--jour-carte));
-  bottom: calc(var(--barre-bas) + var(--jour-carte));
+  bottom: var(--jour-carte);
   z-index: 3;
   width: var(--rail);
   display: flex;
@@ -967,14 +944,14 @@ body {
 /* Une carte ne pousse jamais la coque : son corps défile chez lui. La borne est la place
    laissée par les deux barres — une carte seule sur son flanc peut la prendre entière. */
 .carte-corps {
-  max-height: calc(100dvh - var(--barre-haut) - var(--barre-bas) - 4 * var(--jour-carte));
+  max-height: calc(100dvh - var(--barre-haut) - 3 * var(--jour-carte));
   overflow-y: auto;
   padding: var(--pas-1) var(--pas-2) var(--pas-3);
 }
 
 /* Le plan est seul sur son flanc : il prend toute la hauteur laissée par les deux barres. */
 .carte-plan .carte-corps {
-  max-height: calc(100dvh - var(--barre-haut) - var(--barre-bas) - 6 * var(--jour-carte));
+  max-height: calc(100dvh - var(--barre-haut) - 4 * var(--jour-carte));
 }
 
 /* Le premier titre d'une carte suit son en-tête : il n'a pas à s'en détacher d'une marge
@@ -996,7 +973,7 @@ body {
   position: absolute;
   right: var(--jour-carte);
   top: calc(var(--barre-haut) + var(--jour-carte));
-  bottom: calc(var(--barre-bas) + var(--jour-carte));
+  bottom: var(--jour-carte);
   z-index: 3;
   width: var(--lateral);
   max-width: calc(100% - 2 * var(--jour-carte));
@@ -1082,7 +1059,6 @@ body {
   }
 
   .coque-topbar,
-  .coque-barrebas,
   .coque-scene,
   .carte,
   .panneau-temps,
@@ -1112,20 +1088,20 @@ body {
     display: none;
   }
 
-  .coque-topbar,
-  .coque-barrebas {
+  .coque-topbar {
     min-height: var(--cible-clic);
     padding: var(--pas-2) var(--pas-3);
   }
 
-  /* Sous le repli, le lieu et la légende remplissent déjà la rangée : la phrase
-     y serait réduite à ses points de suspension. Elle prend donc sa propre ligne.
+  /* Sous le repli, la marque et les commandes remplissent déjà la rangée : la phrase y
+     serait réduite à ses points de suspension. Elle prend donc sa propre ligne.
 
      T-0264 — et elle s'y replie plutôt que de se rogner : à 390 px, une ligne unique en
      laissait 263 px dehors, soit deux compteurs sur six. La barre n'a plus de hauteur fixe
      ici — elle est dans le flux —, donc rien n'interdit la seconde ligne. `.compteur` garde
      la sienne insécable : une lecture coupée en deux ne se relit pas mieux que tronquée. */
-  .coque-barrebas > .barrebas-visee {
+  .coque-topbar > .barrehaut-visee {
+    order: 1;
     flex-basis: 100%;
     text-align: left;
     white-space: normal;
@@ -2229,7 +2205,6 @@ button:disabled {
   }
 
   .coque-topbar,
-  .coque-barrebas,
   .coque-scene,
   .cartes-materiel,
   .panneau-temps,

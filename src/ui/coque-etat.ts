@@ -14,7 +14,7 @@
 import { useSyncExternalStore } from 'react'
 
 /** Les cartes posées sur la scène. Chacune est nommée d'après ce qu'elle montre. */
-export type CleCarte = 'BOITIER' | 'OPTIQUE' | 'PLAN'
+export type CleCarte = 'SITE' | 'BOITIER' | 'OPTIQUE' | 'PLAN'
 
 export interface EtatCarte {
   readonly ouverte: boolean
@@ -39,9 +39,14 @@ export interface EtatCoque {
  * démarrent repliées : le matériel se règle une fois puis ne bouge plus, et leur résumé
  * (recadrage, « 24 mm f/2.8 ») suffit à le relire sans déplier. Ce que la carte rend, c'est la
  * scène — dépliées au démarrage, elles retiraient 19 rem au ciel avant qu'on ait rien demandé.
+ *
+ * La carte Site remplace le tiroir du lieu de la barre basse, démontée. Même raison que le
+ * matériel : le lieu se règle une fois par sortie, et ses coordonnées résumées suffisent à le
+ * relire.
  */
 const ETAT_INITIAL: EtatCoque = Object.freeze({
   cartes: Object.freeze({
+    SITE: { ouverte: false },
     BOITIER: { ouverte: false },
     OPTIQUE: { ouverte: false },
     PLAN: { ouverte: false },

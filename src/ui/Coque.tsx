@@ -6,8 +6,9 @@
  * panneaux de 20 et 24 rem prenaient 700 px, et un cadre de 0,8° se jugeait dans ce qui
  * restait. La scène prend maintenant toute la surface, et ce qui la commande vient dessus :
  *
- *   - la barre HAUTE nomme l'application, dit où pointe la vue et ouvre les panneaux ;
- *   - la barre BASSE porte le lieu et ce que la scène vise ;
+ *   - la barre HAUTE nomme l'application, dit où pointe la vue et ouvre les panneaux — la
+ *     barre basse, démontée, lui a laissé la légende et la phrase de visée ;
+ *   - la carte SITE se pose en haut à gauche, à droite du rail : le lieu, résumé replié ;
  *   - le RAIL borde la scène à gauche et porte les bascules de la vue (T-0213) ;
  *   - les cartes du MATÉRIEL, Boîtier et Optique, se posent en haut à droite (T-0245) : c'est la
  *     saisie qu'on relit le plus, dépliée au démarrage, mais repliable quand elle est réglée ;
@@ -15,7 +16,7 @@
  *   - la COLONNE DE DROITE porte le panneau du temps (T-0314) puis le panneau de séance : la
  *     date et l'heure coiffent ce qui se lit en longueur — le catalogue, le filé.
  *
- * La coque ne connaît aucun contenu : elle reçoit sept régions et les place. C'est ce qui
+ * La coque ne connaît aucun contenu : elle reçoit six régions et les place. C'est ce qui
  * permet de remplir, vider et redécouper les panneaux sans toucher à la mise en page.
  *
  * Le temps et le panneau de séance partagent UN conteneur plutôt que deux ancrages absolus :
@@ -49,13 +50,11 @@ export interface CoqueProps {
   readonly cartes: ReactNode
   /** Panneau de séance, sous le temps dans la même colonne. */
   readonly lateral: ReactNode
-  /** Barre basse : le lieu et la visée. */
-  readonly barrebas: ReactNode
 }
 
 export function Coque(props: CoqueProps) {
   // T-0121 — les fenêtres de tiroir s'ouvrent sous leur bouton et se recalent sur l'écran.
-  // C'est de la mise en page, donc de la coque ; l'écoute est unique et couvre les deux barres.
+  // C'est de la mise en page, donc de la coque ; l'écoute est unique et couvre la barre.
   useEffect(ancreTiroirs, [])
 
   return (
@@ -68,7 +67,6 @@ export function Coque(props: CoqueProps) {
         {props.temps}
         {props.lateral}
       </div>
-      <footer className="coque-barrebas">{props.barrebas}</footer>
     </div>
   )
 }
