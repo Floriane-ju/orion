@@ -132,11 +132,12 @@ export function CartesSeance(props: RegionSeanceProps) {
 }
 
 /**
- * §6.4 — le rappel de facilité, et la glose qui dit de quoi on parle.
+ * §6.4 — le rappel de facilité : les pastilles seules, la glose au survol.
  *
- * « Facilité » seul est ambigu — facilité de quoi, à trouver, à cadrer, à traiter ? La bulle
- * le ferme en une phrase, et la cause d'écart s'y ajoute sur une note 0 : un zéro qui ne dit
- * pas ce qui bloque n'indique aucun levier à tirer.
+ * Le mot « Facilité » affiché poussait les commandes sur une seconde ligne de l'en-tête, pour
+ * un terme de toute façon ambigu — facilité de quoi, à trouver, à cadrer, à traiter ? C'est la
+ * bulle qui le nomme et le précise en une phrase, et la cause d'écart s'y ajoute sur une
+ * note 0 : un zéro qui ne dit pas ce qui bloque n'indique aucun levier à tirer.
  *
  * `Bulle` plutôt qu'un `title` : T-0147 — l'infobulle native est la seule surface que la
  * palette de §11.1 ne peut pas atteindre, donc une lampe blanche en pleine interface de nuit.
@@ -149,12 +150,6 @@ function RappelFacilite({ etat }: { readonly etat: EtatCible }) {
   return (
     <Bulle texte={glose} place="bas">
       <span className="carte-rappel-glose">
-        {/* §10.1 — le pointillé d'`Etiquette`, réemployé tel quel : c'est le signe que l'app
-            emploie partout pour dire « une glose attend ici ». Le redessiner ailleurs en ferait
-            une seconde convention, donc un mot souligné que l'utilisateur n'a plus à survoler. */}
-        <span className="terme">
-          <abbr>Facilité</abbr>
-        </span>
         <Pastilles note={etat.note} libelle={etat.libelle} />
       </span>
     </Bulle>
