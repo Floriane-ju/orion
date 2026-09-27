@@ -59,19 +59,19 @@ individuellement, avec une valeur calculée — une primitive n'aurait aucun con
 
 | Jeton | Jour | Rôle |
 |---|---|---|
-| `--fond` | `#050807` | fond de page et de scène |
-| `--surface` | `#0a0f0e` | barres, cartes |
-| `--surface-haute` | `#101817` | un contrôle sous le doigt |
-| `--texte` | `#eafff5` | texte principal |
-| `--attenue` | `#9db3a9` | texte secondaire, étiquettes |
-| `--accent` | `#a9ecc9` | commandes, valeurs actives |
+| `--fond` | `#000000` | fond de page et de scène |
+| `--surface` | `#070707` | barres, cartes |
+| `--surface-haute` | `#141414` | un contrôle sous le doigt |
+| `--texte` | `#ececec` | texte principal |
+| `--attenue` | `#a3a3a3` | texte secondaire, étiquettes |
+| `--accent` | `#8fd0ff` | commandes, valeurs actives |
 | `--avertissement` | `#f4c76a` | un rail sous la main |
-| `--bordure` | `#2b3a34` | filet de conteneur |
-| `--bordure-controle` | `#5a6964` | filet de contrôle — tenu à ≥ 3:1 (WCAG 1.4.11) |
-| `--bordure-faible` | `#18211d` | séparateur de ligne |
+| `--bordure` | `#c4c4c4` | filet de conteneur |
+| `--bordure-controle` | `#8c8c8c` | filet de contrôle — tenu à ≥ 3:1 (WCAG 1.4.11) |
+| `--bordure-faible` | `#1f1f1f` | séparateur de ligne |
 | `--alerte` | `#ff6f5e` | erreur, focus, « ceci se règle » |
 | `--fond-alerte` | `#1a0f0d` | aplat d'alerte |
-| `--fond-accent` | `#0f1a16` | aplat de survol, fond de saisie |
+| `--fond-accent` | `#0a121a` | aplat de survol, fond de saisie |
 
 > En mode nuit, chacun devient `rgb(calc(var(--luminance-nuit) * N) 0 0)`. Canaux vert et bleu
 > strictement nuls : c'est le critère d'acceptation de §11.1, et il est calculé par un test.
@@ -88,18 +88,19 @@ Trois écarts nommés s'appuient dessus : `--jour-carte`, `--jour-barre`, `--jou
 
 ### Une section ordinaire est une carte
 
-`<section>` sans classe porte un **cadre d'instrument** : filet complet en `--bordure`,
-équerres aux quatre angles en `--accent`, jour de `--jour-carte`. Le style est porté par le
+`<section>` sans classe porte un **cadre de fenêtre** : filet complet en `--bordure`, et son
+premier `h2` devient une **barre de titre pleine** — aplat `--texte`, titre en `--fond`, deux
+carrés de fenêtre au bout —, jour de `--jour-carte`. Le style est porté par le
 sélecteur d'élément, comme celui de `button` — il n'y a **pas de composant `Carte` à appeler**,
 et `Carte.tsx` reste la carte repliable de la scène. Poser une rubrique, c'est écrire
 `<section><h2>…</h2>…</section>`.
 
 La carte repliable de la scène (`.carte` — Boîtier, Optique, Plan de nuit), dépliée, porte **le même
-cadre** : filet et équerres. Son corps (`.carte-corps`) suit le même rythme vertical qu'une
+cadre** : filet et barre de titre (`.carte-entete`). Son corps (`.carte-corps`) suit le même rythme vertical qu'une
 section ordinaire, sans `h2` — l'en-tête de la carte la nomme déjà.
 
 Le panneau latéral (`.coque-lateral`) se pose sur la scène **comme une carte dépliée** —
-décollé des bords d'un `--jour-carte`, filet, en-tête teinté, équerres — mais ne se replie
+décollé des bords d'un `--jour-carte`, filet, barre de titre pleine sur la fiche — mais ne se replie
 jamais. Il reste hors de `Carte` : son en-tête porte les onglets de mode (`.onglets`), et sur
 la fiche un retour et des commandes — ce qu'un en-tête-bouton ne peut contenir.
 

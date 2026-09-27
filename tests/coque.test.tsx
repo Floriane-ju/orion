@@ -210,14 +210,19 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
     expect(ecran()).not.toContain('carte-resume')
   })
 
-  // T-0238 — un seul dessin pour tout ce qui se pose sur le ciel : filet et équerres. Les
-  // équerres ne viennent qu'à la carte dépliée.
-  // T-0243 — le panneau latéral, qui ne se replie pas, les porte toujours.
-  // T-0314 — le panneau du temps les prend en coiffant le panneau de séance.
-  it('donne aux cartes dépliées et aux panneaux le cadre d’instrument des rubriques', () => {
-    expect(CSS_COQUE).toMatch(
-      /section:not\(\[class\]\)::before,\n\.carte\[data-ouverte='true'\]::before,\n\.panneau-temps::before,\n\.coque-lateral::before \{/,
-    )
+  // T-0238 — un seul dessin pour tout ce qui se pose sur le ciel. La maquette filaire remplace
+  // les équerres par la fenêtre : filet complet, barre de titre pleine en --texte sous un titre
+  // en --fond — le couple que le mode nuit repeint sans jeton de plus.
+  it('donne aux cartes, aux rubriques et aux panneaux la même barre de titre', () => {
+    const regleDe = (selecteur: string) => {
+      const debut = CSS_COQUE.indexOf(`${selecteur} {`)
+      expect(debut, selecteur).toBeGreaterThan(-1)
+      return CSS_COQUE.slice(debut, CSS_COQUE.indexOf('}', debut))
+    }
+    for (const selecteur of ['.carte-entete', '.lateral-entete', 'section:not([class]) > h2:first-child']) {
+      expect(regleDe(selecteur), selecteur).toContain('background: var(--texte)')
+    }
+    expect(CSS_COQUE).not.toContain('.coque-lateral::before')
   })
 
   it('décolle le panneau des bords comme une carte, filet complet', () => {

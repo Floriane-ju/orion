@@ -45,7 +45,7 @@
   --attenue: #a3a3a3;
   --accent: #8fd0ff;
   --avertissement: #f4c76a;
-  --bordure: #6b6b6b;
+  --bordure: #c4c4c4;
   --bordure-controle: #8c8c8c;
   --bordure-faible: #1f1f1f;
   --alerte: #ff6f5e;
@@ -694,8 +694,8 @@ body {
 
 /* LE PANNEAU DU TEMPS (T-0314) : la date et l'heure, en tête de la colonne de droite.
 
-   Il porte le cadre d'instrument des autres objets posés sur le ciel — filet, fond de surface,
-   et les équerres déclarées avec celles des cartes plus bas dans la feuille.
+   Il porte le cadre des autres objets posés sur le ciel — filet complet, fond de surface. Il
+   n'a pas de barre de titre : la date qu'il affiche le nomme déjà.
 
    SA LARGEUR EST CELLE DE LA COLONNE, jamais celle de son contenu : il coiffe le panneau de
    séance, et deux boîtes empilées qui ne s'alignent pas au pixel près lisent comme un défaut de
@@ -993,12 +993,12 @@ body {
    Il ne se ferme plus : le mode décide de son contenu, jamais de sa présence. La largeur de sa
    colonne est donc toujours réservée, à la scène comme au bornage des cartes.
 
-   T-0243 — il se pose sur le ciel comme une carte dépliée — filet, en-tête teinté, équerres —
+   T-0243 — il se pose sur le ciel comme une carte dépliée — filet, barre de titre pleine —
    et non plus comme une colonne collée au bord : quatre objets posés sur la scène, un seul
    dessin. Il ne se replie pas, et c'est ce qui le garde hors de `Carte` : replié, le catalogue
    ne laisserait rien à lire, et son en-tête porte des commandes qu'un bouton ne peut contenir.
 
-   `position: relative` : ses équerres se posent par rapport à lui, et il n'est plus lui-même le
+   `position: relative` : ce qui s'y ancre se pose par rapport à lui, et il n'est plus lui-même le
    bloc englobant qu'un ancrage absolu lui donnait. */
 .coque-lateral {
   position: relative;
@@ -1103,13 +1103,6 @@ body {
     display: contents;
   }
 
-  /* Pleine largeur et bordées d'un seul filet haut, les cartes n'ont plus de cadre à
-     marquer : des équerres qui débordent sortiraient de l'écran. */
-  .carte::before,
-  .panneau-temps::before,
-  .coque-lateral::before {
-    display: none;
-  }
 
   .coque-topbar {
     min-height: var(--cible-clic);
@@ -1411,16 +1404,16 @@ h3 {
  * qui défile, on ne voit plus où l'une finit : le regard suit les lignes de valeurs, pas les
  * rubriques. Le cadre rend la rubrique à un OBJET, qu'on embrasse d'un coup d'œil.
  *
- * Le motif — filet complet, équerres aux quatre angles — est celui d'un cadran d'instrument,
- * et c'est la raison de le prendre plutôt qu'un fond ou une ombre : §11.1 confisque la
- * luminance, un aplat de surface ne se distinguerait pas du fond en mode nuit, tandis qu'un
- * trait se lit à n'importe quelle luminance. Les équerres portent l'accent, le filet la
- * bordure : deux rôles, deux jetons, et le mode nuit les repeint tous les deux.
+ * Le motif — filet complet, barre de titre pleine — est celui d'une fenêtre, et c'est la
+ * raison de le prendre plutôt qu'un fond ou une ombre : §11.1 confisque la luminance, un aplat
+ * de surface ne se distinguerait pas du fond en mode nuit, tandis qu'un trait se lit à
+ * n'importe quelle luminance. La barre est un aplat de TEXTE sous un titre couleur de FOND :
+ * le couple le plus contrasté de la palette, que le mode nuit repeint sans jeton de plus.
  *
  * Porté par le sélecteur d'élément, comme le style de `button` : la carte n'est pas une chose
  * qu'on applique à une rubrique, c'est ce QU'EST une rubrique. Les sections nommées —
  * `.scene`, `.cibles`, `.menu-reglages` — posent leur propre disposition et restent hors
- * sujet ; `.carte` pose la sienne mais reprend les équerres (voir plus bas). */
+ * sujet ; `.carte` pose la sienne mais reprend la barre de titre (`.carte-entete`). */
 section:not([class]) {
   position: relative;
   margin-block-start: var(--pas-4);
@@ -1428,42 +1421,36 @@ section:not([class]) {
   border: var(--trait) solid var(--bordure);
 }
 
-/* Le `h2` ouvre la carte. Sa marge haute séparait deux sections tant que rien n'arrêtait la
-   fusion des marges ; le filet l'arrête. Sans cette annulation elle deviendrait un second
-   rembourrage à l'intérieur du cadre, et le titre flotterait. */
+/* Le `h2` ouvre la carte : il en devient la BARRE DE TITRE. Ses marges négatives le collent
+   au filet sur trois côtés — le rembourrage de la section est celui du corps, pas du titre.
+   Il ne commande rien, donc il n'a pas la hauteur d'une cible de clic : c'est une ligne de
+   titre, pas un en-tête-bouton comme celui d'une carte repliable.
+
+   Les deux carrés au bout de la barre sont ceux d'une fenêtre : deux pseudo-éléments, filet
+   couleur de fond. Ils ne commandent rien et ne s'annoncent pas — `content` vide. */
 section:not([class]) > h2:first-child {
-  margin-block-start: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--pas-1);
+  margin: calc(-1 * var(--jour-carte)) calc(-1 * var(--jour-carte)) 0;
+  padding: var(--pas-1) var(--jour-carte);
+  border-bottom: 0;
+  background: var(--texte);
+  color: var(--fond);
 }
 
-/* Les équerres DÉBORDENT du filet — c'est ce qui les fait lire comme des repères de visée
-   posés sur le cadre, et non comme un second trait doublant le premier à un pixel près.
-   Huit dégradés plats, deux par angle : un bras horizontal, un bras vertical. Un dégradé ne
-   sait pas dessiner une équerre d'un seul tenant, et quatre pseudo-éléments n'existent pas.
-
-   T-0238 — la carte posée sur la scène porte le même cadre. Boîtier et Optique l'avaient en
-   rubriques de colonne ; devenues cartes, elles le gardent, et le plan de nuit le prend : trois
-   objets posés sur le ciel, un seul dessin. Son filet, elle l'a déjà. Repliée, elle n'est
-   plus qu'un titre : des équerres autour d'une ligne la désigneraient comme un objet ouvert.
-   T-0243 — le panneau latéral, qui ne se replie pas, les porte toujours. T-0314 — le panneau du
-   temps les prend en arrivant dans la même colonne : quatre objets sur le ciel, un seul dessin. */
-section:not([class])::before,
-.carte[data-ouverte='true']::before,
-.panneau-temps::before,
-.coque-lateral::before {
+section:not([class]) > h2:first-child::before,
+section:not([class]) > h2:first-child::after {
   content: '';
-  position: absolute;
-  inset: calc(-1 * var(--pas-1));
-  pointer-events: none;
-  background-image: linear-gradient(var(--accent) 0 0), linear-gradient(var(--accent) 0 0),
-    linear-gradient(var(--accent) 0 0), linear-gradient(var(--accent) 0 0),
-    linear-gradient(var(--accent) 0 0), linear-gradient(var(--accent) 0 0),
-    linear-gradient(var(--accent) 0 0), linear-gradient(var(--accent) 0 0);
-  background-repeat: no-repeat;
-  background-size: var(--pas-3) var(--trait), var(--trait) var(--pas-3),
-    var(--pas-3) var(--trait), var(--trait) var(--pas-3), var(--pas-3) var(--trait),
-    var(--trait) var(--pas-3), var(--pas-3) var(--trait), var(--trait) var(--pas-3);
-  background-position: left top, left top, right top, right top, left bottom, left bottom,
-    right bottom, right bottom;
+  order: 1;
+  flex: none;
+  inline-size: var(--pas-2);
+  block-size: var(--pas-2);
+  border: var(--trait) solid var(--fond);
+}
+
+section:not([class]) > h2:first-child::before {
+  margin-inline-start: auto;
 }
 
 /* LE RYTHME VERTICAL EST CELUI DE LA SECTION, PAS CELUI DE LA GRILLE.
@@ -2252,10 +2239,6 @@ button:disabled {
     padding: 0;
   }
 
-  /* Sans filet ni position, les équerres se poseraient sur la page entière. */
-  .carte-plan::before {
-    display: none;
-  }
 
   /* De la carte ne sort que le plan : son en-tête est une poignée, et la fenêtre nocturne se
      lit à l'écran — elle n'a jamais fait partie de la feuille de route imprimée. */
