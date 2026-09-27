@@ -202,11 +202,14 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
       `<span class="carte-resume">${LIBELLES_RECADRAGE.FULL_FRAME}</span>`,
     )
     expect(entete('optique')).toMatch(/<span class="carte-resume">[^<?]+ mm f\/[^<?]+<\/span>/)
+    // Le plan replié dit combien de cibles il ordonne — aucune au démarrage.
+    expect(entete('plan')).toContain('<span class="carte-resume">aucune cible choisie</span>')
 
     // Dépliée, la carte montre le détail dans ses champs : le résumé n'y répéterait qu'eux.
     basculeCarte('SITE')
     basculeCarte('BOITIER')
     basculeCarte('OPTIQUE')
+    basculeCarte('PLAN')
     expect(ecran()).not.toContain('carte-resume')
   })
 

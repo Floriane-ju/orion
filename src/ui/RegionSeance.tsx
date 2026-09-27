@@ -32,6 +32,7 @@ import { Pastilles } from './Pastilles.tsx'
 import { Bulle } from './Bulle.tsx'
 import { ViseeCible } from './BoutonVisee.tsx'
 import { BoutonChoixCible } from './BoutonChoixCible.tsx'
+import { useCiblesChoisies } from './cibles-choisies.ts'
 import { PlanSessionVue } from './PlanSession.tsx'
 import { RegionNuit } from './RegionNuit.tsx'
 import { modeObjectif } from './PanneauMateriel.tsx'
@@ -70,6 +71,15 @@ function resumeSite(latitude: string, longitude: string): string {
 }
 
 /**
+ * Le plan replié dit combien de cibles il ordonne : c'est ce qu'on vérifie d'un coup d'œil
+ * avant de le déplier — le plan n'ordonne que ce qui a été choisi (§8.3).
+ */
+function resumePlan(nombre: number): string {
+  if (nombre === 0) return 'aucune cible choisie'
+  return `${nombre} cible${nombre > 1 ? 's' : ''} choisie${nombre > 1 ? 's' : ''}`
+}
+
+/**
  * Les cartes de la scène.
  *
  * Le corps d'une carte repliée n'est PAS monté : replier le plan ne le cache pas, il cesse
@@ -82,6 +92,7 @@ function resumeSite(latitude: string, longitude: string): string {
 export function CartesSeance(props: RegionSeanceProps) {
   const { chaine, lieu, materiel } = props
   const { calcul, ciel } = chaine
+  const choisies = useCiblesChoisies()
 
   /* §11.2 — la seule région qui survit à l'impression : elle est nommée pour ça. */
   const planImprimable =
@@ -144,7 +155,7 @@ export function CartesSeance(props: RegionSeanceProps) {
           prochain créneau, la pose retenue, ce qui a été écarté. C'est ce qui en fait une
           carte, et non une colonne qu'on parcourt. Son corps reste monté replié — il est la
           seule région imprimable (§11.2). */}
-      <Carte cle="PLAN" titre="Plan de nuit">
+      <Carte cle="PLAN" titre="Plan de nuit" resume={resumePlan(choisies.size)}>
         {ciel.ok && (
           <RegionNuit
             nuit={ciel.nuit}

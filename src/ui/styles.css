@@ -899,8 +899,13 @@ body {
 /* L'en-tête n'a pas l'allure d'un bouton — c'est une barre de titre —, donc c'est le contrôle
    qu'il faut le plus désigner avant le clic. La barre passe à l'accent, comme le filet des
    autres commandes : c'est la seule teinte que l'interface réserve à ce qui se commande. */
-.carte-entete:hover {
+/* `:not(:disabled)` n'est pas là pour le désactivé : il porte la spécificité au-dessus de
+   `button:not(:disabled):hover`, qui repeindrait sinon toute la barre du fond sombre des
+   boutons — titre couleur de fond sur fond sombre, la barre disparaissait au survol. */
+.carte-entete:not(:disabled):hover {
+  border-color: transparent;
   background: linear-gradient(var(--accent) 0 0) top / 100% var(--barre-titre) no-repeat;
+  color: var(--fond);
 }
 
 /* Une barre de titre se lit comme celle d'une fenêtre : la famille du texte, en casse de
@@ -1074,8 +1079,10 @@ body {
   color: var(--fond);
 }
 
-.lateral-entete button:hover {
+.lateral-entete button:not(:disabled):hover {
+  border-color: var(--fond);
   background: var(--accent);
+  color: var(--fond);
 }
 
 /* Le retour n'existe que sur la fiche : il ouvre l'en-tête, à gauche du titre, et
