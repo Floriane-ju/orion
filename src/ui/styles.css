@@ -12,8 +12,8 @@
    glace pour ce qui se commande et ce qui se vise. Un instrument de terrain se lit à la lampe
    frontale, et une interface déjà sombre et déjà monochrome le jour rend le basculement au
    rouge continu au lieu d'être une rupture. Les cartes s'ouvrent sur une barre de titre
-   pleine, comme une fenêtre : c'est un aplat de TEXTE sur FOND, donc le mode nuit la repeint
-   en rouge sur noir sans jeton de plus. Les
+   pleine, comme une fenêtre : un aplat de TEXTE sous un titre couleur de FOND. La nuit, elle
+   s'éteint en bandeau noir cerné de rouge (voir les barres de titre). Les
    angles sont vifs, les traits font un pixel, les micro-libellés sont en capitales espacées :
    cette grammaire distingue une ÉTIQUETTE d'une VALEUR sans recourir à la luminance, qui est
    justement ce que §11.1 confisque. Les jetons de forme — familles, suivis, épaisseur de
@@ -68,7 +68,7 @@
 
    MODE JOUR — le pire couple de la palette est --alerte sur --surface-haute, à 6,7:1 ;
    --attenue plancher à 7,3:1, --texte à 15,6:1. La barre de titre inverse le couple : --fond
-   sur --texte, 17,8:1 le jour, 5,06:1 la nuit — le même ratio que le texte courant. La marge
+   sur --texte, 17,8:1. La nuit, elle ne s'inverse plus : --texte sur --fond. La marge
    vient de ce que les fonds sont noirs — la même raison qui rend le passage au rouge continu
    plutôt que brutal.
 
@@ -1446,8 +1446,8 @@ h3 {
  * Le motif — filet complet, barre de titre pleine — est celui d'une fenêtre, et c'est la
  * raison de le prendre plutôt qu'un fond ou une ombre : §11.1 confisque la luminance, un aplat
  * de surface ne se distinguerait pas du fond en mode nuit, tandis qu'un trait se lit à
- * n'importe quelle luminance. La barre est un aplat de TEXTE sous un titre couleur de FOND :
- * le couple le plus contrasté de la palette, que le mode nuit repeint sans jeton de plus.
+ * n'importe quelle luminance. La barre est un aplat de TEXTE sous un titre couleur de FOND le
+ * jour ; la nuit, un bandeau noir cerné de rouge (§11.1, plus bas).
  *
  * Porté par le sélecteur d'élément, comme le style de `button` : la carte n'est pas une chose
  * qu'on applique à une rubrique, c'est ce QU'EST une rubrique. Les sections nommées —
@@ -1495,6 +1495,54 @@ section:not([class]) > h2:first-child::after {
 
 section:not([class]) > h2:first-child::before {
   margin-inline-start: auto;
+}
+
+/* §11.1 — la nuit, la barre de titre ne s'allume plus. Un aplat de --texte est la plus grande
+   surface rouge pleine de l'écran : sur un œil adapté, c'est une lampe posée sur chaque carte.
+   Elle devient un bandeau NOIR tenu par un filet rouge, titre en rouge — la barre reste un
+   objet qu'on reconnaît à sa forme, et le flux émis tombe à celui d'un trait et d'un texte. */
+:root[data-mode-nuit='true'] section:not([class]) > h2:first-child,
+:root[data-mode-nuit='true'] .lateral-entete {
+  border-bottom: var(--trait) solid var(--texte);
+  background: var(--fond);
+  color: var(--texte);
+}
+
+:root[data-mode-nuit='true'] section:not([class]) > h2:first-child::before,
+:root[data-mode-nuit='true'] section:not([class]) > h2:first-child::after,
+:root[data-mode-nuit='true'] .lateral-entete::before,
+:root[data-mode-nuit='true'] .lateral-entete::after {
+  border-color: var(--texte);
+}
+
+:root[data-mode-nuit='true'] .lateral-entete h2,
+:root[data-mode-nuit='true'] .lateral-entete .facilite-pleine,
+:root[data-mode-nuit='true'] .lateral-entete .facilite-vide,
+:root[data-mode-nuit='true'] .lateral-entete button {
+  border-color: var(--texte);
+  color: var(--texte);
+}
+
+:root[data-mode-nuit='true'] .lateral-entete button:not(:disabled):hover {
+  background: var(--fond-accent);
+}
+
+/* La barre d'une carte n'est qu'une rangée de son bouton : son filet bas est un aplat d'un
+   trait posé à la hauteur de la barre, le filet de la carte fait les trois autres côtés. */
+:root[data-mode-nuit='true'] .carte-entete {
+  background: linear-gradient(var(--texte) 0 0) 0 var(--barre-titre) / 100% var(--trait) no-repeat;
+  color: var(--texte);
+}
+
+:root[data-mode-nuit='true'] .carte-entete:not(:disabled):hover {
+  background: linear-gradient(var(--fond-accent) 0 0) top / 100% var(--barre-titre) no-repeat,
+    linear-gradient(var(--accent) 0 0) 0 var(--barre-titre) / 100% var(--trait) no-repeat;
+  color: var(--accent);
+}
+
+:root[data-mode-nuit='true'] .carte-titre,
+:root[data-mode-nuit='true'] .carte-marque {
+  color: inherit;
 }
 
 /* LE RYTHME VERTICAL EST CELUI DE LA SECTION, PAS CELUI DE LA GRILLE.
