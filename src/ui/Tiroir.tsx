@@ -29,13 +29,19 @@ export interface TiroirProps {
    * seul (§11.1) : c'est au `resume` de la dire aussi en mots.
    */
   readonly alerte?: boolean | undefined
+  /**
+   * Le tiroir commande un état à deux positions (le mode nuit) : le résumé le montre allumé.
+   * Absent par défaut, pour la même raison que `alerte`.
+   */
+  readonly actif?: boolean | undefined
 }
 
-export function Tiroir({ modificateur, resume, children, alerte }: TiroirProps) {
+export function Tiroir({ modificateur, resume, children, alerte, actif }: TiroirProps) {
   return (
     <details
       className={`tiroir tiroir-${modificateur}`}
       {...(alerte === undefined ? {} : { 'data-alerte': alerte })}
+      {...(actif === undefined ? {} : { 'data-actif': actif })}
     >
       <summary>{resume}</summary>
       <div className="tiroir-contenu">{children}</div>

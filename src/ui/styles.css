@@ -223,6 +223,9 @@ body {
      leur encombrement doit être connu d'ailleurs — le panneau et les cartes partent sous la
      barre. Un seul endroit le déclare. */
   --barre-haut: 2.75rem;
+  /* Où commence ce qui flotte sous la barre : la barre flotte elle-même, décollée d'un jour de
+     carte, et ce qui la suit en garde un second. */
+  --sous-barre: calc(var(--barre-haut) + 2 * var(--jour-carte));
   /* La barre de titre d'une fenêtre : la hauteur d'une ligne de micro-libellé et son air. */
   --barre-titre: 1.375rem;
   --lateral: 22rem;
@@ -407,16 +410,13 @@ body {
   background: var(--fond);
 }
 
-/* La barre est une réglette, pas un bandeau : un seul trait la sépare de la scène
-   et son fond descend en dégradé, pour que le regard passe de l'interface au ciel sans
-   buter sur une arête franche. */
 /* L'empilement, du fond vers la surface : la scène, les cartes, le panneau, les barres. Les
    barres sont au-dessus de tout parce qu'elles portent les tiroirs — une fenêtre de tiroir
    qui passerait sous le panneau latéral serait ouverte et invisible. */
 .coque-topbar {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: var(--jour-carte);
+  right: calc(var(--lateral) + 2 * var(--jour-carte));
   z-index: 5;
   display: flex;
   flex-wrap: nowrap;
@@ -426,20 +426,13 @@ body {
   overflow: visible;
 }
 
+/* La barre flotte comme le reste de ce qui se pose sur le ciel : décollée des bords d'un jour
+   de carte, filet complet, fond de surface. Elle reste fixe en haut et s'arrête avant la colonne de droite, qui monte jusqu'en haut. */
 .coque-topbar {
-  top: 0;
+  top: var(--jour-carte);
   height: var(--barre-haut);
-  border-bottom: var(--trait) solid var(--bordure);
-  background: linear-gradient(var(--surface-haute), var(--surface));
-}
-
-/* La marque et la lecture du matériel tiennent ensemble le bord gauche ; les commandes
-   forment un bloc calé à droite. La poussée est portée par le premier élément qui suit la
-   visée (T-0325 — la profondeur, qui la portait, est partie dans la modale info) : ce qui vient après reste soudé, quelle que soit la largeur de la fenêtre. Le
-   sélecteur cite la barre : `.etat` repose ses marges plus bas dans la feuille, et une classe
-   seule perdrait l'arbitrage. */
-.coque-topbar > .barrehaut-visee + * {
-  margin-left: auto;
+  border: var(--trait) solid var(--bordure);
+  background: var(--surface);
 }
 
 /* Une lecture se rogne, une commande jamais. Sur une fenêtre étroite, c'est la phrase qui
@@ -451,17 +444,8 @@ body {
   text-overflow: ellipsis;
 }
 
-.coque-topbar > h1,
-.coque-topbar > .tiroir {
+.coque-topbar > h1 {
   flex: none;
-}
-
-/* Les commandes de la barre forment une bande continue : ni jour, ni double filet. La marge
-   négative absorbe le `gap` de la barre et superpose les deux traits voisins, si bien qu'une
-   pastille et sa suivante ne partagent qu'un trait. La règle démarre au DEUXIÈME élément qui
-   suit la visée — le premier garde son jour, sinon la bande collerait au texte. */
-.coque-topbar > .barrehaut-visee ~ * ~ * {
-  margin-left: calc(-1 * (var(--jour-barre) + var(--trait)));
 }
 
 /* La phrase qui dit où pointe la scène prend ce que la marque, la légende et les commandes
@@ -649,7 +633,7 @@ body {
    de la vue, sans couvrir ni le matériel ni le plan. */
 .carte-site {
   left: calc(var(--rail) + 2 * var(--jour-carte));
-  top: calc(var(--barre-haut) + var(--jour-carte));
+  top: var(--sous-barre);
 }
 
 /* LES CARTES DU MATÉRIEL : Boîtier au-dessus d'Optique, en haut à droite, contre la colonne
@@ -668,7 +652,7 @@ body {
   position: absolute;
   z-index: 2;
   right: calc(var(--lateral) + 2 * var(--jour-carte));
-  top: calc(var(--barre-haut) + var(--jour-carte));
+  top: var(--sous-barre);
   bottom: var(--jour-carte);
   display: flex;
   flex-direction: column;
@@ -795,7 +779,7 @@ body {
 .coque-rail {
   position: absolute;
   left: var(--jour-carte);
-  top: calc(var(--barre-haut) + var(--jour-carte));
+  top: var(--sous-barre);
   bottom: var(--jour-carte);
   z-index: 3;
   width: var(--rail);
@@ -848,10 +832,21 @@ body {
    monochrome : un état actif signalé par la seule teinte y disparaît. Le glyphe se REMPLIT
    donc — l'axe `FILL` de la police est une forme, pas une couleur, et il survit au
    basculement. Le fond et la teinte s'y ajoutent le jour, ils ne le remplacent pas. */
-.bascule[aria-pressed='true'],
 .cible-action[aria-pressed='true'] {
   background: var(--fond-accent);
   color: var(--accent);
+}
+
+/* Les bascules posées sur le ciel s'allument en APLAT : fond d'accent plein, glyphe au fond.
+   Un fond teinté se perdait sur le ciel ; un aplat se repère d'un coup d'œil, allumé ou non.
+   Le survol garde le glyphe au fond — au --texte, il disparaîtrait dans l'aplat. */
+.bascule[aria-pressed='true'],
+.bascule[aria-pressed='true']:not(:disabled):hover,
+.tiroir-nuit[data-actif='true'] > summary,
+.tiroir-nuit[data-actif='true'] > summary:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--fond);
 }
 
 .bascule[aria-pressed='true'] > .icone,
@@ -864,6 +859,12 @@ body {
    ce qui est éteint est l'effet, pas la commande. */
 .bascule.eteinte {
   color: var(--bordure-controle);
+}
+
+/* Allumée mais sans effet : l'aplat s'efface au fond teinté, pour ne pas promettre une couche
+   qu'on ne verra pas. */
+.bascule.eteinte[aria-pressed='true'] {
+  background: var(--fond-accent);
 }
 
 /* L'en-tête est l'interrupteur de la carte : `aria-expanded` l'annonce. T-0238 — il n'est
@@ -964,14 +965,14 @@ body {
 /* Une carte ne pousse jamais la coque : son corps défile chez lui. La borne est la place
    laissée par les deux barres — une carte seule sur son flanc peut la prendre entière. */
 .carte-corps {
-  max-height: calc(100dvh - var(--barre-haut) - 3 * var(--jour-carte));
+  max-height: calc(100dvh - var(--sous-barre) - 2 * var(--jour-carte));
   overflow-y: auto;
   padding: var(--pas-1) var(--pas-2) var(--pas-3);
 }
 
 /* Le plan est seul sur son flanc : il prend toute la hauteur laissée par les deux barres. */
 .carte-plan .carte-corps {
-  max-height: calc(100dvh - var(--barre-haut) - 4 * var(--jour-carte));
+  max-height: calc(100dvh - var(--sous-barre) - 3 * var(--jour-carte));
 }
 
 /* Le premier titre d'une carte suit son en-tête : il n'a pas à s'en détacher d'une marge
@@ -988,11 +989,11 @@ body {
    affiche, et deux cadres empilés s'alignent au pixel près plutôt que de lire comme un défaut de
    montage. La hauteur, elle, revient au panneau de séance — c'est lui qui défile.
 
-   Elle est décollée des bords d'un jour de carte (T-0243), comme tout ce qui flotte. */
+   Elle est décollée des bords d'un jour de carte (T-0243), comme tout ce qui flotte, et monte jusqu'en haut : la barre s'arrête avant elle. */
 .coque-droite {
   position: absolute;
   right: var(--jour-carte);
-  top: calc(var(--barre-haut) + var(--jour-carte));
+  top: var(--jour-carte);
   bottom: var(--jour-carte);
   z-index: 3;
   width: var(--lateral);
@@ -1107,6 +1108,7 @@ body {
   .carte,
   .panneau-temps,
   .coque-rail,
+  .coque-nuit,
   .coque-lateral {
     position: static;
     inset: auto;
@@ -1302,19 +1304,6 @@ body {
   color: var(--accent);
 }
 
-/* Dans la barre haute, une commande ne porte pas de filet : la barre est déjà son
-   cadre, et une rangée jointive de pastilles redessinait une grille de traits verticaux. Le
-   filet passe à `transparent` plutôt qu'à zéro — la géométrie ne bouge pas, donc rien ne se
-   décale entre l'état au repos, le survol et l'état actif, qui se signalent au fond et à la
-   teinte. Le trait reste ailleurs : la barre basse garde le sien. */
-.coque-topbar .bouton-info,
-.coque-topbar .bouton-info:hover,
-.coque-topbar .tiroir > summary,
-.coque-topbar .tiroir > summary:hover,
-.coque-topbar .tiroir[open] > summary {
-  border-color: transparent;
-}
-
 /* Un tiroir fermé cache ce qu'il contient. Le bouton change d'aspect quand il a
    quelque chose à dire ; le compte, lui, est écrit en toutes lettres dans le libellé — le
    rouge ne porte jamais seul une information (§11.1). */
@@ -1335,15 +1324,72 @@ body {
   position: fixed;
   right: var(--pas-3);
   left: auto;
-  top: calc(var(--barre-haut) + var(--pas-1));
+  top: calc(var(--barre-haut) + var(--jour-carte) + var(--pas-1));
   z-index: 5;
   width: min(52rem, calc(100vw - var(--jour-ecran)));
-  max-height: calc(100dvh - var(--barre-haut) - 1rem);
+  max-height: calc(100dvh - var(--barre-haut) - var(--jour-carte) - 1rem);
   overflow-y: auto;
   padding: 0 var(--pas-4) var(--pas-4);
   background: var(--surface);
   border: var(--trait) solid var(--accent);
   border-radius: 0;
+}
+
+/* LE MODE NUIT, PUIS L'INFO : deux boutons posés en bas à gauche de la scène, sous le rail de
+   la vue. Ils en prennent l'allure — glyphe seul, cible gantée, filet et fond translucide — et
+   le mode nuit allumé remplit son glyphe : la nuit, la teinte ne dit rien seule (§11.1). Le
+   tiroir s'ouvre VERS LE HAUT, au-dessus des deux boutons : l'horizontale reste calée par
+   `tiroir-ancrage.ts`. */
+.coque-nuit {
+  position: absolute;
+  left: var(--jour-carte);
+  bottom: var(--jour-carte);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pas-2);
+}
+
+/* L'alerte de persistance garde son rembourrage : elle porte du texte, pas un glyphe seul. */
+.coque-nuit .bouton-info:not([data-alerte='true']) {
+  justify-content: center;
+  min-width: var(--cible-clic);
+  padding: 0;
+}
+
+.coque-nuit .bouton-info:not([data-alerte='true']),
+.coque-nuit .bouton-info:not([data-alerte='true']):hover,
+.tiroir-nuit > summary,
+.tiroir-nuit > summary:hover {
+  justify-content: center;
+  min-width: var(--cible-clic);
+  padding: 0;
+  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+}
+
+/* Au repos le filet des bascules ; le survol garde celui des tiroirs, l'accent. */
+.coque-nuit .bouton-info:not([data-alerte='true']):not(:hover),
+.tiroir-nuit > summary {
+  border-color: var(--bordure);
+}
+
+.tiroir-nuit[open]:not([data-actif='true']) > summary {
+  background: var(--fond-accent);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.tiroir-nuit[data-actif='true'] > summary > .icone {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.tiroir-nuit[open] > .tiroir-contenu {
+  top: auto;
+  bottom: calc(var(--jour-carte) + 2 * (var(--cible-clic) + var(--pas-2)));
+  width: min(var(--carte-large), calc(100vw - var(--jour-ecran)));
+  max-height: calc(100dvh - var(--sous-barre) - 2 * (var(--cible-clic) + var(--pas-2)));
 }
 
 /* T-0325 — la page info est une MODALE large : elle laisse un jour d'écran tout autour, et
@@ -2051,6 +2097,11 @@ th {
 .bulle-ancre:hover > .bulle,
 .bulle-ancre:has(:focus-visible) > .bulle {
   visibility: visible;
+}
+
+/* Tiroir ouvert, la bulle se tait : elle répéterait le nom par-dessus le réglage. */
+.bulle-ancre:has(> .tiroir[open]) > .bulle {
+  visibility: hidden;
 }
 
 /* LA BULLE NE SORT PAS DE L'ÉCRAN.

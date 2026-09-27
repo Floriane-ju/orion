@@ -197,7 +197,7 @@ vérifie qu'aucune famille nommée n'est sans fichier.
 
 ### Gabarits — hors échelle, délibérément
 
-`--barre-haut` 2,75rem · `--lateral` 22rem ·
+`--barre-haut` 2,75rem · `--sous-barre` (barre + deux jours de carte, départ de ce qui flotte dessous) · `--lateral` 22rem ·
 `--rail` · `--carte-large` 19rem · `--carte-plan` 29rem · `--bulle-large` 18rem ·
 `--cible-clic` 44px (usage ganté sur écran tactile, §11.2)
 

@@ -19,8 +19,11 @@
 
 import { useEffect } from 'react'
 import { K } from '../registry/constants.ts'
+import { Bulle } from './Bulle.tsx'
 import { Curseur } from './Curseur.tsx'
+import { Icone } from './Icone.tsx'
 import { Interrupteur } from './Interrupteur.tsx'
+import { Tiroir } from './Tiroir.tsx'
 import { Etiquette } from './Terme.tsx'
 
 export interface EtatModeNuit {
@@ -129,5 +132,28 @@ export function ModeNuit({ etat, surChangement }: ModeNuitProps) {
       </label>
       <p className="etat">Sur un écran LCD, un peu de lumière passe toujours.</p>
     </section>
+  )
+}
+
+/**
+ * §11.1 — le mode nuit est un geste de terrain : il se pose en bas à gauche de la scène, sous le
+ * rail de la vue, et prend l'allure de ses bascules — une icône seule, que la bulle nomme. Au
+ * clic il ouvre le même tiroir qu'avant, vers le haut : la bascule et la luminance se règlent
+ * sans quitter le ciel des yeux.
+ *
+ * La bulle DÉCRIT : le nom accessible est porté par l'icône du résumé, seul contenu du
+ * `<summary>`.
+ */
+export function BoutonModeNuit({ etat, surChangement }: ModeNuitProps) {
+  return (
+    <Bulle texte="Mode nuit" place="droite">
+      <Tiroir
+        modificateur="nuit"
+        actif={etat.actif}
+        resume={<Icone nom={etat.actif ? 'dark_mode' : 'light_mode'} libelle="Mode nuit" />}
+      >
+        <ModeNuit etat={etat} surChangement={surChangement} />
+      </Tiroir>
+    </Bulle>
   )
 }

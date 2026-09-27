@@ -20,7 +20,7 @@ import { PanneauMateriel, modeObjectif } from './ui/PanneauMateriel.tsx'
 import { useTrancheScene, type EtatScene } from './ui/scene-etat.ts'
 import { ouvreCible, useSeance } from './ui/seance-etat.ts'
 import { BarreHaut } from './ui/BarreHaut.tsx'
-import { PageInfo } from './ui/PageInfo.tsx'
+import { BoutonInfo, PageInfo } from './ui/PageInfo.tsx'
 import { PanneauTemps } from './ui/PanneauTemps.tsx'
 import { CartesSeance, LateralSeance } from './ui/RegionSeance.tsx'
 import { useSaisieLieu, useSaisieMateriel, useSaisiePoids } from './ui/app-saisie.ts'
@@ -34,7 +34,12 @@ import {
 import { profilAEnregistrer, siteAEnregistrer } from './ui/saisie-persistee.ts'
 import { useChaineCalcul } from './ui/app-calcul.ts'
 import { useCiblesEnAvant } from './ui/cibles-en-avant.ts'
-import { appliqueModeNuit, litEtatPersiste, type EtatModeNuit } from './ui/ModeNuit.tsx'
+import {
+  appliqueModeNuit,
+  BoutonModeNuit,
+  litEtatPersiste,
+  type EtatModeNuit,
+} from './ui/ModeNuit.tsx'
 import { installeEchap } from './ui/gere-echap.ts'
 import { Mention } from './ui/Mention.tsx'
 
@@ -134,9 +139,6 @@ function AppPrete({
 
   const topbar = (
     <BarreHaut
-      modeNuit={modeNuit}
-      surModeNuit={setModeNuit}
-      persistance={persistance}
       site={chaine.site}
       gaiaCharge={gaia}
     />
@@ -208,7 +210,15 @@ function AppPrete({
       scene={scene}
       temps={<PanneauTemps surNuitIso={lieu.surNuitIso} />}
       materiel={panneauMateriel}
-      cartes={<CartesSeance {...regions} />}
+      cartes={
+        <>
+          <CartesSeance {...regions} />
+          <div className="coque-nuit">
+            <BoutonModeNuit etat={modeNuit} surChangement={setModeNuit} />
+            <BoutonInfo persistance={persistance} />
+          </div>
+        </>
+      }
       lateral={<LateralSeance {...regions} />}
       page={
         <PageInfo

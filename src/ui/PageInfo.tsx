@@ -24,11 +24,32 @@ import { Icone } from './Icone.tsx'
 import { LegendeCouleurs } from './LegendeCouleurs.tsx'
 import { MenuReglages } from './MenuReglages.tsx'
 import { Sources } from './Sources.tsx'
-import { Verification } from './Verification.tsx'
+import { ALERTE_VERIFICATION, Verification } from './Verification.tsx'
 import { useTrancheScene, type EtatScene } from './scene-etat.ts'
 
 /** L'ancre de la page : le bouton de la barre y mène, Échap et « fermer » en repartent. */
 export const ANCRE_INFO = 'info'
+
+/** T-0325 — le nom du bouton info, dit par sa bulle : le bouton ne porte que son icône. */
+const AIDE_INFO = 'Infos de l’app'
+
+/**
+ * T-0325 — le bouton qui mène à la page. Il se pose en bas à gauche de la scène, sous le mode
+ * nuit : les deux gestes qui sortent du ciel se trouvent au même endroit. T-0041 — l'alerte de
+ * persistance s'y signale en mots et nomme sa section : le rouge ne l'annonce jamais seul
+ * (§11.1). Au repos, l'icône seule : la bulle la nomme. En alerte, le texte revient — c'est lui
+ * qui dit l'échec, et il porte alors le nom du lien.
+ */
+export function BoutonInfo({ persistance }: { readonly persistance: Persistance }) {
+  return (
+    <Bulle texte={AIDE_INFO} place="droite" nomme={!persistance.echec}>
+      <a href={`#${ANCRE_INFO}`} className="bouton-info" data-alerte={persistance.echec}>
+        <Icone nom="info" />
+        {persistance.echec && ALERTE_VERIFICATION}
+      </a>
+    </Bulle>
+  )
+}
 
 export interface PageInfoProps {
   readonly etat: EtatDemarrage | null

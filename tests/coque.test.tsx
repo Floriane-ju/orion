@@ -26,7 +26,7 @@ import {
   resolutionRendu,
 } from '../src/ui/scene-etat.ts'
 import { MenuReglages } from '../src/ui/MenuReglages.tsx'
-import { BarreHaut, type BarreHautProps } from '../src/ui/BarreHaut.tsx'
+import { BoutonInfo } from '../src/ui/PageInfo.tsx'
 import { DEFAUT } from '../src/ui/app-saisie.ts'
 import { LIBELLES_RECADRAGE } from '../src/ui/PanneauBoitier.tsx'
 import { ALERTE_VERIFICATION } from '../src/ui/Verification.tsx'
@@ -174,7 +174,7 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
     expect(debut).toBeGreaterThan(-1)
     const colonne = CSS_COQUE.slice(debut, CSS_COQUE.indexOf('}', debut))
     expect(colonne).toContain('right: var(--jour-carte)')
-    expect(colonne).toContain('top: calc(var(--barre-haut) + var(--jour-carte))')
+    expect(colonne).toContain('top: var(--jour-carte)')
     expect(colonne).toContain('bottom: var(--jour-carte)')
     expect(colonne).toContain('width: var(--lateral)')
     expect(colonne).toContain('flex-direction: column')
@@ -282,13 +282,21 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
     expect(debut).toBeGreaterThan(-1)
     const corps = CSS_COQUE.slice(debut, CSS_COQUE.indexOf('}', debut))
     expect(corps).toContain('left: calc(var(--rail) + 2 * var(--jour-carte))')
-    expect(corps).toContain('top: calc(var(--barre-haut) + var(--jour-carte))')
+    expect(corps).toContain('top: var(--sous-barre)')
   })
 
-  it('porte le mode nuit dans la barre du haut, et la vérification sur la page info', () => {
+  it('pose le mode nuit en bas à gauche de la scène, et la vérification sur la page info', () => {
     const html = ecran()
-    expect(barreHaute(html)).toContain('Activer le mode nuit')
-    expect(barreHaute(html)).toContain('href="#info"')
+    expect(barreHaute(html)).not.toContain('Activer le mode nuit')
+    const nuit = html.slice(html.indexOf('class="coque-nuit"'))
+    expect(nuit).toContain('aria-label="Mode nuit"') // l'icône, seul contenu du résumé
+    expect(nuit).toContain('Activer le mode nuit')
+    const debut = CSS_COQUE.indexOf('.coque-nuit {')
+    const corps = CSS_COQUE.slice(debut, CSS_COQUE.indexOf('}', debut))
+    expect(corps).toContain('left: var(--jour-carte)')
+    expect(corps).toContain('bottom: var(--jour-carte)')
+    expect(barreHaute(html)).not.toContain('href="#info"')
+    expect(nuit).toContain('href="#info"')
     expect(pageInfo(html)).toContain('Vérification')
     expect(pageInfo(html)).toContain('Registre de constantes')
   })
@@ -802,11 +810,6 @@ describe('T-0047 — la roue crantée reloge le choix brut dans le catalogue', (
     expect(pageInfo(renderToStaticMarkup(<App />))).toContain('Réglages')
   })
 
-  it('T-0153 — ferme la barre : plus rien ne se monte après lui', () => {
-    const topbar = barreHaute(renderToStaticMarkup(<App />))
-    expect(topbar.slice(topbar.indexOf('bouton-info'))).not.toContain('<details')
-  })
-
   it('T-0128 — ne porte plus le catalogue : il a un écran à lui', () => {
     const rendu = renderToStaticMarkup(<MenuReglages {...REGLAGES_INERTES} />)
     expect(rendu).not.toContain('Chercher dans le catalogue')
@@ -835,7 +838,7 @@ describe('T-0047 — la roue crantée reloge le choix brut dans le catalogue', (
   })
 
   it('garde la cible de clic de §11.2 : le bouton info a l’allure d’un tiroir', () => {
-    expect(barreHaute(renderToStaticMarkup(<App />))).toMatch(/class="bouton-info"/)
+    expect(renderToStaticMarkup(<App />)).toMatch(/class="bouton-info"/)
     const styles = readFileSync(
       join(import.meta.dirname, '..', 'src', 'ui', 'styles.css'),
       'utf8',
@@ -859,25 +862,15 @@ describe('T-0047 — la roue crantée reloge le choix brut dans le catalogue', (
  * aux deux contenus, dont aucun ne doit avoir disparu en route.
  */
 describe('T-0184 — un seul tiroir pour la vérification et les réglages', () => {
-  /** La barre haute hors application : seul un échec de persistance fabriqué révèle l'alerte. */
+  /** Le bouton info hors application : seul un échec de persistance fabriqué révèle l'alerte. */
   function barreSeule(echec: boolean): string {
-    const props: BarreHautProps = {
-      modeNuit: { actif: false, luminance: 1 },
-      surModeNuit: () => undefined,
-      persistance: {
-        message: echec ? 'écriture perdue' : null,
-        echec,
-        surExport: () => undefined,
-        surImport: () => undefined,
-      },
-      site: {
-        latitudeDeg: Number(DEFAUT.latitude),
-        longitudeDeg: Number(DEFAUT.longitude),
-        altitudeM: Number(DEFAUT.altitude),
-      },
-      gaiaCharge: false,
+    const persistance = {
+      message: echec ? 'écriture perdue' : null,
+      echec,
+      surExport: () => undefined,
+      surImport: () => undefined,
     }
-    return renderToStaticMarkup(<BarreHaut {...props} />)
+    return renderToStaticMarkup(<BoutonInfo persistance={persistance} />)
   }
 
   it('T-0325 — plus aucun tiroir d’outils ni d’info : les deux contenus sont sur la page', () => {
@@ -889,7 +882,8 @@ describe('T-0184 — un seul tiroir pour la vérification et les réglages', () 
   })
 
   it('T-0325 — le bouton info n’a que son icône, et sa bulle le nomme', () => {
-    const topbar = barreHaute(ecran())
+    const html = ecran()
+    const topbar = html.slice(html.indexOf('class="coque-nuit"'))
     const bouton = topbar.slice(topbar.indexOf('<a href="#info"'))
     const lien = bouton.slice(0, bouton.indexOf('</a>'))
     expect(lien).toContain('aria-labelledby')
@@ -897,9 +891,11 @@ describe('T-0184 — un seul tiroir pour la vérification et les réglages', () 
     expect(topbar).toContain('Infos de l’app')
   })
 
-  it('le bouton info reste le dernier élément de la barre : le plus à droite', () => {
-    const topbar = barreHaute(ecran())
-    expect(topbar.slice(topbar.indexOf('bouton-info'))).not.toContain('<details')
+  it('le bouton info se pose juste sous le mode nuit', () => {
+    const html = ecran()
+    const nuit = html.slice(html.indexOf('class="coque-nuit"'))
+    expect(nuit.indexOf('tiroir-nuit')).toBeGreaterThan(-1)
+    expect(nuit.indexOf('bouton-info')).toBeGreaterThan(nuit.indexOf('tiroir-nuit'))
   })
 
   it('T-0041 — un échec de persistance se signale sur le tiroir fermé, et nomme sa section', () => {
