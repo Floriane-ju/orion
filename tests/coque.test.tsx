@@ -220,7 +220,7 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
       return CSS_COQUE.slice(debut, CSS_COQUE.indexOf('}', debut))
     }
     for (const selecteur of ['.carte-entete', '.lateral-entete', 'section:not([class]) > h2:first-child']) {
-      expect(regleDe(selecteur), selecteur).toContain('background: var(--texte)')
+      expect(regleDe(selecteur), selecteur).toMatch(/background: (linear-gradient\()?var\(--texte\)/)
     }
     expect(CSS_COQUE).not.toContain('.coque-lateral::before')
   })

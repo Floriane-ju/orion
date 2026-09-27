@@ -64,12 +64,12 @@ individuellement, avec une valeur calculée — une primitive n'aurait aucun con
 | `--surface-haute` | `#141414` | un contrôle sous le doigt |
 | `--texte` | `#ececec` | texte principal |
 | `--attenue` | `#a3a3a3` | texte secondaire, étiquettes |
-| `--accent` | `#8fd0ff` | commandes, valeurs actives |
+| `--accent` | `#8fd0ff` | commandes, valeurs actives, focus, « ceci se règle » |
 | `--avertissement` | `#f4c76a` | un rail sous la main |
 | `--bordure` | `#c4c4c4` | filet de conteneur |
 | `--bordure-controle` | `#8c8c8c` | filet de contrôle — tenu à ≥ 3:1 (WCAG 1.4.11) |
 | `--bordure-faible` | `#1f1f1f` | séparateur de ligne |
-| `--alerte` | `#ff6f5e` | erreur, focus, « ceci se règle » |
+| `--alerte` | `#ff6f5e` | erreur, cause d'écart |
 | `--fond-alerte` | `#1a0f0d` | aplat d'alerte |
 | `--fond-accent` | `#0a121a` | aplat de survol, fond de saisie |
 
