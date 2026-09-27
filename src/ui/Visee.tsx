@@ -10,7 +10,7 @@
  * nombres se tirent à l'horizontale.
  */
 
-import { Fragment, useMemo } from 'react'
+import { useMemo } from 'react'
 import type { Site } from '../core/ephem.ts'
 import { cielInstantane } from '../core/horloges.ts'
 import { bornesZoom } from '../core/projection.ts'
@@ -18,11 +18,15 @@ import { Compteur } from './Compteur.tsx'
 import { HAUTEUR_MAX_DEG, HAUTEUR_MIN_DEG, tourBorne } from './planetarium-gestes.ts'
 import { majVue, useScene } from './scene-etat.ts'
 import {
+  courtVisee,
   segmentsVisee,
   viseeVersVue,
   type ChampVisee,
   type SegmentVisee,
 } from './scene-lecture.ts'
+
+/** Un tour d'horizon : la course de l'AD, de l'azimut et de la rotation du cadre. */
+const TOUR_DEG = 360
 
 /**
  * T-0163 — ce qu'un cran de glisser ajoute à chaque lecture. C'est le pas du GESTE, pas celui
@@ -72,25 +76,37 @@ export function Visee(props: { readonly site: Site; readonly gaiaCharge: boolean
       return { min: HAUTEUR_MIN_DEG, max: HAUTEUR_MAX_DEG }
     }
     if (champ === 'FOV') return { min: bornes.fovMinDeg, max: bornes.fovMaxDeg }
-    if (champ === 'ROTATION') return { min: 0, max: 360 }
+    if (champ === 'ROTATION') return { min: 0, max: TOUR_DEG }
     return {}
   }
 
+  /**
+   * La largeur d'un champ est celle de sa valeur la plus longue, lue aux deux bouts de sa
+   * course : un champ qui change de taille sous le doigt décale ses voisins pendant qu'on les
+   * vise. L'AD et l'azimut n'ont pas de borne — ils font le tour —, leur course est le tour.
+   */
+  function largeur(champ: ChampVisee): number {
+    const { min = 0, max = TOUR_DEG } = encadrement(champ)
+    return Math.max(courtVisee(champ, min).length, courtVisee(champ, max).length)
+  }
+
+  // Six champs à préfixe plutôt qu'une phrase : chacun se tire ou se tape, et le préfixe dit
+  // ce qu'il règle. La phrase complète reste celle du canevas (`ligneVisee`), qui l'annonce.
   const compteur = (segment: SegmentVisee) => (
-    <Fragment key={segment.champ}>
-      {segment.avant}
-      <Compteur
-        libelle={segment.libelle}
-        valeur={segment.valeurDeg}
-        texte={segment.texte}
-        pas={PAS_VISEE[segment.champ]}
-        {...encadrement(segment.champ)}
-        sur={(valeur) => regle(segment.champ, valeur)}
-      />
-    </Fragment>
+    <Compteur
+      key={segment.champ}
+      libelle={segment.libelle}
+      prefixe={segment.prefixe}
+      valeur={segment.valeurDeg}
+      texte={segment.court}
+      largeur={largeur(segment.champ)}
+      pas={PAS_VISEE[segment.champ]}
+      {...encadrement(segment.champ)}
+      sur={(valeur) => regle(segment.champ, valeur)}
+    />
   )
 
-  // T-0163 — la phrase ne date plus l'image : le panneau du temps porte le même instant, et
+  // T-0163 — la barre ne date plus l'image : le panneau du temps porte le même instant, et
   // deux horloges à l'écran se contredisent à la seconde près.
-  return <p className="etat barrehaut-visee">{segments.map(compteur)}</p>
+  return <div className="barrehaut-visee">{segments.map(compteur)}</div>
 }

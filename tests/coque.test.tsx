@@ -695,7 +695,8 @@ describe('T-0183 — le plan de nuit est une carte, et il reste imprimable', () 
 describe('T-0153 — la barre porte la phrase qui date l’image', () => {
   it('pose la phrase dans la barre haute, après la marque et la légende', () => {
     const haut = barreHaute(ecran()).replaceAll('<!-- -->', '')
-    expect(haut).toMatch(/visée[\s\S]*AD[\s\S]*azimut[\s\S]*hauteur[\s\S]*champ/)
+    // Six champs à préfixe, dans l'ordre de la phrase qu'ils remplacent.
+    expect(haut).toMatch(/>AD<[\s\S]*>δ<[\s\S]*>AZ<[\s\S]*>H<[\s\S]*>CH<[\s\S]*>ROT</)
     expect(haut).toContain('barrehaut-visee')
     expect(haut.indexOf('<h1')).toBeLessThan(haut.indexOf('barrehaut-visee'))
     // T-0325 — la légende a quitté la barre pour la modale info.
@@ -708,9 +709,9 @@ describe('T-0153 — la barre porte la phrase qui date l’image', () => {
     expect(debut).toBeGreaterThan(-1)
     const corps = CSS_COQUE.slice(debut, CSS_COQUE.indexOf('}', debut))
     expect(corps).toContain('flex: 1')
-    expect(corps).toContain('text-align: center')
-    // Elle se rogne : un contrôle amputé ne se rattrape pas.
-    expect(corps).toContain('text-overflow: ellipsis')
+    expect(corps).toContain('justify-content: flex-end')
+    // Elle se rogne plutôt que de pousser la barre.
+    expect(corps).toContain('overflow: hidden')
   })
 
   it('ne monte plus aucun tiroir de lectures dans la barre haute', () => {

@@ -14,7 +14,6 @@ import { App } from '../src/App.tsx'
 import { facteurDefilement } from '../src/core/curseur-temps.ts'
 import { K } from '../src/registry/constants.ts'
 import { jourLocalIso } from '../src/core/nuit-datee.ts'
-import { pourChampDateHeure } from '../src/ui/horaire.ts'
 import { PanneauTemps, transportActif } from '../src/ui/PanneauTemps.tsx'
 import {
   etatScene,
@@ -179,19 +178,22 @@ describe('T-0137 — le panneau du temps pilote le ciel', () => {
     expect(barre()).not.toMatch(new RegExp(`×${K('FACTEUR_DEFILEMENT_NORMAL')}`))
   })
 
-  it('date l’instant à la seconde, jour de semaine compris', () => {
+  it('date l’instant à la seconde, sans jour de semaine', () => {
     // T-0162 — chaque champ est un compteur : c'est le texte rendu, balises retirées, qui
-    // porte encore la date et l'heure à la seconde. T-0314 — le jour de semaine et le mois
-    // abrégé ouvrent la date ; le format reste celui de la locale, il n'est pas réécrit ici.
+    // porte encore la date et l'heure à la seconde. T-0314 — le mois abrégé ; T-0327 — plus de
+    // jour de semaine. Le format reste celui de la locale, il n'est pas réécrit ici.
     const texte = barre().replaceAll('<!-- -->', '').replace(/<[^>]*>/g, '')
     const attendu = new Intl.DateTimeFormat('fr-FR', {
-      weekday: 'short',
       day: 'numeric',
       month: 'short',
       year: 'numeric',
     }).format(new Date(etatScene().msAffiche))
     expect(texte).toContain(attendu)
     expect(texte).toMatch(/\d{2}:\d{2}:\d{2}/)
+    const semaine = new Intl.DateTimeFormat('fr-FR', { weekday: 'short' }).format(
+      new Date(etatScene().msAffiche),
+    )
+    expect(texte).not.toContain(semaine)
   })
 
   it('remplace le tiroir de réglages et le champ de date de la barre', () => {
@@ -250,11 +252,6 @@ describe('T-0314 — le transport est un groupe exclusif', () => {
 })
 
 describe('T-0138 — la date-heure se choisit sans confondre les fuseaux', () => {
-  it('donne au champ natif une heure locale, seconde comprise', () => {
-    const instant = new Date(2026, 7, 21, 22, 41, 7)
-    expect(pourChampDateHeure(instant)).toBe('2026-08-21T22:41:07')
-  })
-
   it('donne le jour du calendrier LOCAL, pas la tranche UTC', () => {
     // Piège A1 — après minuit local en été, `toISOString()` désigne encore la veille à
     // l'ouest de Greenwich, le lendemain à l'est.

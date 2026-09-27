@@ -47,6 +47,9 @@
   --fond: #000000;
   --surface: color-mix(in srgb, var(--base-neutre) 3%, var(--fond));
   --surface-haute: color-mix(in srgb, var(--base-neutre) 8.5%, var(--fond));
+  /* Le survol d'une commande posée seule sur le ciel : elle n'a pas de panneau autour d'elle
+     pour la situer, son aplat doit se voir d'un coup d'œil. */
+  --surface-survol: color-mix(in srgb, var(--base-neutre) 18%, var(--fond));
   --texte: var(--base-neutre);
   --attenue: color-mix(in srgb, var(--base-neutre) 69%, var(--fond));
   /* L'accent ne peint plus que deux choses : la marque (`h1`) et le cadre du matériel — sur le
@@ -120,6 +123,7 @@
   --fond: #000000;
   --surface: rgb(calc(var(--luminance-nuit) * 8) 0 0);
   --surface-haute: rgb(calc(var(--luminance-nuit) * 18) 0 0);
+  --surface-survol: rgb(calc(var(--luminance-nuit) * 26) 0 0);
   --texte: rgb(calc(var(--luminance-nuit) * 250) 0 0);
   --attenue: rgb(calc(var(--luminance-nuit) * 242) 0 0);
   --accent: rgb(calc(var(--luminance-nuit) * 246) 0 0);
@@ -238,9 +242,6 @@ body {
      mouvement — rien ne se déplace, c'est le même fondu de luminance que le basculement de
      §11.1, et il tombe donc sous la même règle sous `prefers-reduced-motion`. */
   --fondu-etat: 150ms;
-  /* Écart entre un nombre réglable et le trait qui l'annonce. Cité deux fois : par le
-     compteur, et par la phrase qui le contient et doit réserver la place du trait. */
-  --jour-trait: 0.2em;
   /* Les gabarits de la coque. La barre et le panneau sont posés en absolu sur la scène :
      leur encombrement doit être connu d'ailleurs — le panneau et les cartes partent sous la
      barre. Un seul endroit le déclare. */
@@ -468,49 +469,90 @@ body {
   flex: none;
 }
 
-/* La phrase qui dit où pointe la scène prend ce que la marque, la légende et les commandes
-   laissent, et s'y centre. Elle se rogne avec la profondeur (`.coque-topbar > .etat`) —
-   une phrase tronquée se relit en élargissant la fenêtre, un contrôle amputé ne se rattrape
-   pas. */
-/* Le rognage est horizontal par intention, mais `overflow: hidden` rogne aussi en bas : sans
-   cette réserve, le soulignement des compteurs de la phrase serait coupé. */
+/* Les champs de la visée prennent ce que la marque et les commandes laissent, et se calent au
+   bord droit : la marque tient la gauche, la lecture la droite. Ils se rognent plutôt que de
+   pousser la barre — un champ tronqué se relit en élargissant la fenêtre. */
 .coque-topbar > .barrehaut-visee {
   flex: 1;
   min-width: 0;
-  padding: calc(var(--jour-trait) + var(--trait)) 0;
-  text-align: center;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--pas-2);
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
-/* Un compteur est un nombre qu'on tire à l'horizontale. Le curseur l'annonce avant
-   le clic : sans `ew-resize`, rien ne distingue une valeur réglable d'une lecture. La
-   sélection est coupée — un glisser sur du texte surligne au lieu de compter — et
-   `touch-action: none` retire le geste au défilement de la page, sans quoi le doigt ferait
-   glisser la page plutôt que la valeur. Le soulignement est peint en permanence, pas au
-   survol : un curseur ne se voit qu'une fois la souris arrivée, et il n'existe pas au doigt —
-   sans trait visible, rien n'annonce qu'un nombre se règle. */
+/* UN COMPTEUR EST UN CHAMP QU'ON TIRE (`Compteur.tsx`).
+
+   Il a l'allure d'une saisie — un aplat, et un préfixe atténué qui dit ce qu'il règle — parce
+   qu'il en est une : un clic sans glisser l'ouvre en frappe. Le curseur `ew-resize` annonce
+   l'autre geste avant le clic : sous la souris, on le tire à l'horizontale. La sélection est
+   coupée — un glisser sur du texte surligne au lieu de compter — et `touch-action: none` retire
+   le geste au défilement de la page, sans quoi le doigt ferait glisser la page plutôt que la
+   valeur. Le cadre est là au repos, pas seulement au survol : au doigt, il n'y a pas de survol,
+   et sans lui rien n'annonce qu'un nombre se règle.
+
+   T-0264 — la valeur et son unité tiennent ensemble : `nowrap`. */
 .compteur {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--pas-2);
+  padding: var(--pas-0) var(--pas-2);
+  background: var(--surface-haute);
+  border: var(--trait) solid var(--bordure-faible);
+  color: var(--texte);
   cursor: ew-resize;
   touch-action: none;
   user-select: none;
-  border-bottom: var(--trait) solid var(--bordure-controle);
-  padding-bottom: var(--jour-trait);
-  /* T-0264 — la valeur et son unité tiennent ensemble : là où la phrase se replie, « 221.09°
-     AD » se couperait au blanc, et le trait qui annonce le geste se retrouverait à cheval. */
   white-space: nowrap;
 }
 
-/* Le compteur et le curseur sont les deux contrôles qu'on TIRE, tous deux peints en
-   --bordure-controle au repos (voir `.curseur-rail`). Sous la main, ils montent au --texte : la même
-   famille, plus claire — « c'est la même chose, sous la main », sans teinte nouvelle qui
-   dirait « autre chose ». Le focus au clavier ouvre le même geste, il prend donc le même
-   retour. */
+/* Le compteur et le curseur sont les deux contrôles qu'on TIRE. Sous la main, le filet monte
+   au --texte : « c'est la même chose, sous la main », sans teinte nouvelle qui dirait « autre
+   chose ». Le focus au clavier ouvre le même geste, il prend donc le même retour ; en frappe,
+   le champ garde ce filet plein tant qu'on tape. */
 .compteur:hover,
 .compteur:active,
-.compteur:focus-visible {
-  border-bottom-color: var(--texte);
+.compteur:focus-visible,
+.compteur.en-saisie {
+  border-color: var(--texte);
+}
+
+.compteur.en-saisie {
+  cursor: text;
+}
+
+.compteur-prefixe {
+  color: var(--attenue);
+}
+
+/* La frappe se fait DANS le champ, à sa taille : le `<input>` perd tout ce que la règle
+   générale d'une saisie lui donne — cadre, aplat, hauteur gantée, corps —, et hérite du
+   compteur. Son anneau de focus passe au compteur, qui l'entoure entier. */
+.compteur .compteur-saisie {
+  all: unset;
+  cursor: text;
+}
+
+.compteur.en-saisie:focus-within {
+  outline: 2px solid var(--texte);
+  outline-offset: 2px;
+}
+
+/* LA VALEUR A SA LARGEUR, PAS CELLE DE CE QU'ELLE AFFICHE. `--compteur-largeur` est posée par
+   le composant : le nombre de caractères de la plus longue valeur possible. La police est à
+   chasse fixe, un `ch` vaut donc un caractère — à condition de ne pas espacer les lettres :
+   une date posée dans un micro-libellé hériterait de son suivi. Les chiffres se calent à
+   droite, comme dans une colonne. */
+.compteur-valeur,
+.compteur .compteur-saisie {
+  inline-size: calc(var(--compteur-largeur) * 1ch);
+  letter-spacing: normal;
+  text-align: end;
+}
+
+.compteur-valeur {
+  display: inline-block;
 }
 
 .legende-couleurs {
@@ -716,19 +758,18 @@ body {
    La ligne de base les aligne malgré leurs deux corps. */
 .panneau-temps-date {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: var(--pas-3);
 }
 
-/* La date est une VALEUR compacte, écrite comme le lieu de la barre basse : petite, en
-   capitales espacées. C'est la grammaire de §11.1 — la casse distingue ce qui se lit d'un coup
-   d'œil de ce qui se lit en phrase, là où la luminance ne le peut plus. */
-.panneau-temps-jour {
-  font-size: var(--texte-micro);
-  letter-spacing: var(--suivi-micro);
-  text-transform: uppercase;
-  color: var(--attenue);
+/* T-0327 — LA DATE ET L'HEURE SONT DES CHAMPS DU MÊME CORPS. Elles se règlent du même geste,
+   dans la même rangée : des champs de deux tailles s'y liraient comme deux sortes de
+   commandes, et leurs cadres ne s'aligneraient pas. Le corps est celui d'une saisie. */
+.panneau-temps-jour,
+.panneau-temps-heure {
+  font-size: var(--texte-appui);
+  color: var(--texte);
   white-space: nowrap;
 }
 
@@ -746,19 +787,6 @@ body {
   gap: var(--pas-0);
 }
 
-/* L'HEURE EST LA PLUS GROSSE CHOSE DU PANNEAU, et c'est tout ce qui la distingue : §11.1
-   confisque la luminance, il reste la taille. Les secondes retombent de deux rangs et prennent
-   la couleur des lectures secondaires — on les surveille, on ne les lit pas. */
-.panneau-temps-heure {
-  font-size: var(--texte-titre);
-  white-space: nowrap;
-}
-
-.panneau-temps-secondes {
-  font-size: var(--texte-legende);
-  color: var(--attenue);
-}
-
 /* Six boutons sur une rangée de 22 rem : le transport serre ses glyphes d'un pas. */
 .panneau-temps-transport .bouton-glyphe {
   min-height: calc(var(--cible-clic) - var(--pas-2));
@@ -767,13 +795,6 @@ body {
 
 /* En saisie, l'instant n'est plus une lecture : il prend la rangée entière et la couleur du
    texte actif. */
-.panneau-temps-saisie {
-  flex: 1;
-  min-width: 0;
-  font: var(--texte-appui)/1.4 var(--police-mono);
-  color: var(--texte);
-}
-
 
 /* LE RAIL DE LA VUE : les bascules de rendu, posées au flanc gauche de la scène.
 
@@ -863,19 +884,12 @@ body {
   border: var(--trait) solid var(--bordure);
 }
 
-.bouton-glyphe-flottant:not(:disabled):hover {
-  border-color: var(--texte);
-  color: var(--texte);
-}
-
 /* Enfoncé sur le ciel, il s'allume en APLAT : fond neutre plein, glyphe au fond.
    Un état SÉLECTIONNÉ est neutre : l'aplat reste à ce qui est pris, le filet à ce qu'on désigne.
    Un fond teinté se perdait sur le ciel ; un aplat se repère d'un coup d'œil, allumé ou non.
    Le survol garde le glyphe au fond — au --texte, il disparaîtrait dans l'aplat. */
 .bouton-glyphe-flottant[aria-pressed='true'],
-.bouton-glyphe-flottant[aria-pressed='true']:not(:disabled):hover,
-.tiroir-nuit[data-actif='true'] > summary,
-.tiroir-nuit[data-actif='true'] > summary:hover {
+.tiroir-nuit[data-actif='true'] > summary {
   background: var(--texte);
   border-color: var(--texte);
   color: var(--fond);
@@ -1138,8 +1152,8 @@ body {
   .coque-topbar > .barrehaut-visee {
     order: 1;
     flex-basis: 100%;
-    text-align: left;
-    white-space: normal;
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
 
   .carte,
@@ -1349,9 +1363,7 @@ body {
 
 /* L'alerte de persistance garde son rembourrage : elle porte du texte, pas un glyphe seul. */
 .coque-nuit .bouton-info:not([data-alerte='true']),
-.coque-nuit .bouton-info:not([data-alerte='true']):hover,
-.tiroir-nuit > summary,
-.tiroir-nuit > summary:hover {
+.tiroir-nuit > summary {
   justify-content: center;
   min-width: var(--cible-clic);
   padding: 0;
@@ -1369,6 +1381,25 @@ body {
   background: var(--surface-haute);
   border-color: var(--texte);
   color: var(--texte);
+}
+
+/* LE SURVOL SUR LE CIEL SE VOIT. Les commandes du flanc gauche — le rail, le mode nuit, l'info —
+   n'ont pas de panneau autour d'elles : un filet qui s'éclaircit ne suffisait pas à dire laquelle
+   est sous la main. Elles prennent un aplat franc, filet et glyphe au plein. Enfoncées, elles
+   sont déjà un aplat plein : il s'atténue sous la main, seul retour possible sur un aplat allumé. */
+.bouton-glyphe-flottant:not(:disabled):hover,
+.coque-nuit .bouton-info:not([data-alerte='true']):hover,
+.tiroir-nuit:not([data-actif='true']) > summary:hover {
+  background: var(--surface-survol);
+  border-color: var(--texte);
+  color: var(--texte);
+}
+
+.bouton-glyphe-flottant[aria-pressed='true']:not(:disabled):hover,
+.tiroir-nuit[data-actif='true'] > summary:hover {
+  background: var(--attenue);
+  border-color: var(--attenue);
+  color: var(--fond);
 }
 
 .tiroir-nuit[open] > .tiroir-contenu {
@@ -1713,11 +1744,11 @@ section:not([class]) > * + *,
 /* Un libellé est une ÉTIQUETTE : petit, en capitales, espacé. Ce qui le sépare de la valeur
    n'est pas sa luminance — §11.1 n'en laisse pas assez — mais sa casse et son suivi.
 
-   LE MICRO-LIBELLÉ est ce quadruplet, et il vaut pour six règles de la feuille :
+   LE MICRO-LIBELLÉ est ce quadruplet, et il vaut pour cinq règles de la feuille :
    `--attenue`, `--texte-micro`, `--suivi-micro`, `uppercase`. Il ne forme pas une règle
    groupée — un onglet actif, un tiroir ouvert et un survol reposent chacun sur l'ordre de la
    feuille pour surcharger leur couleur, et les rassembler les déplacerait. C'est
-   `echelles.test.ts` qui tient l'ensemble : une septième règle qui prendrait la taille et la
+   `echelles.test.ts` qui tient l'ensemble : une sixième règle qui prendrait la taille et la
    casse sans le suivi ni la couleur échoue au test. */
 label {
   display: flex;

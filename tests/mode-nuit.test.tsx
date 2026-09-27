@@ -307,7 +307,7 @@ describe('contraste du texte — WCAG 2.2 AA', () => {
 
   const JETONS_TEXTE = ['texte', 'attenue', 'alerte'] as const
   /** `--bordure` est un trait, pas un glyphe : il ne relève pas du seuil de texte. */
-  const JETONS_FOND = ['fond', 'surface', 'surface-haute', 'fond-alerte'] as const
+  const JETONS_FOND = ['fond', 'surface', 'surface-haute', 'surface-survol', 'fond-alerte'] as const
 
   for (const [mode, palette] of [
     ['normal', paletteParDefaut],
@@ -369,7 +369,7 @@ describe('contraste des bordures de controle - WCAG 2.2 1.4.11', () => {
   const CONTRASTE_BORDURE_MINIMAL = 3
 
   const JETONS_BORDURE_CONTROLE = ['bordure-controle'] as const
-  const JETONS_FOND = ['fond', 'surface', 'surface-haute', 'fond-alerte'] as const
+  const JETONS_FOND = ['fond', 'surface', 'surface-haute', 'surface-survol', 'fond-alerte'] as const
 
   for (const [mode, palette] of [
     ['normal', paletteParDefaut],
@@ -393,7 +393,7 @@ describe('contraste des bordures de controle - WCAG 2.2 1.4.11', () => {
     // qui doit rester >= 4,5:1 (AA) sur toute surface.
     const CONTRASTE_TEXTE_MINIMAL = 4.5
     const JETONS_TEXTE = ['texte', 'attenue', 'alerte'] as const
-    const JETONS_FOND = ['fond', 'surface', 'surface-haute', 'fond-alerte'] as const
+    const JETONS_FOND = ['fond', 'surface', 'surface-haute', 'surface-survol', 'fond-alerte'] as const
 
     for (const [mode, palette] of [
       ['normal', paletteParDefaut],

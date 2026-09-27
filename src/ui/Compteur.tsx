@@ -13,9 +13,15 @@
  * Le composant ne connaît ni la nature de la valeur ni son format : il reçoit ce qui s'écrit
  * (`texte`) et rend ce qui se règle (`valeur`). C'est ce qui lui permet de porter aussi bien
  * un mois en toutes lettres qu'un champ en degrés.
+ *
+ * UN CHAMP, PAS UN MOT. Le compteur a l'allure d'une saisie — un cadre, et un `prefixe` qui dit
+ * ce qu'il règle, comme le « H » d'un éditeur graphique. Sous la souris, il se tire ; un clic
+ * sans glisser, ou Entrée, l'ouvre en saisie : un `<input>` prend sa place, on tape le nombre,
+ * Entrée ou la sortie du champ l'applique, Échap l'abandonne. Le champ de saisie n'existe que
+ * le temps de la frappe : au repos, la valeur reste le texte qui s'affiche et s'annonce.
  */
 
-import { useRef, type KeyboardEvent, type PointerEvent } from 'react'
+import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react'
 import { cransGlisse } from './compteur-glisse.ts'
 
 export interface CompteurProps {
@@ -28,12 +34,17 @@ export interface CompteurProps {
   readonly pas: number
   readonly min?: number
   readonly max?: number
+  /** Ce que le champ règle, en une abréviation posée devant la valeur. */
+  readonly prefixe?: string
+  /**
+   * Largeur de la valeur, en caractères : celle de la plus longue qu'elle puisse prendre. Le
+   * champ ne change plus de taille quand la valeur change, et ses voisins ne bougent pas.
+   */
+  readonly largeur?: number
   readonly classe?: string
   readonly sur: (valeur: number) => void
-  /** Appelé au début du geste : le glisser est absolu, l'appelant peut geler sa référence. */
+  /** Appelé au début de tout réglage : le geste est absolu, l'appelant gèle sa référence. */
   readonly surDebut?: () => void
-  /** Un clic qui n'a pas glissé — la saisie exacte, quand elle existe. */
-  readonly surClic?: () => void
 }
 
 interface Depart {
@@ -43,11 +54,44 @@ interface Depart {
   bouge: boolean
 }
 
+/** Le nombre que la saisie propose : celui qu'on lit dans le texte, sinon la valeur brute. */
+export function nombreDuTexte(texte: string, valeur: number): string {
+  return /-?\d+(?:[.,]\d+)?/.exec(texte)?.[0] ?? String(valeur)
+}
+
+/** Ce qu'une frappe vaut : la virgule française vaut le point, le reste ne vaut rien. */
+export function lisSaisie(tape: string): number | null {
+  const nombre = Number(tape.trim().replace(',', '.'))
+  return tape.trim() === '' || !Number.isFinite(nombre) ? null : nombre
+}
+
 export function Compteur(props: CompteurProps) {
   const depart = useRef<Depart | null>(null)
+  /** Le texte en cours de frappe ; `null` hors saisie. */
+  const [saisie, setSaisie] = useState<string | null>(null)
+  const initiale = useRef('')
 
   function borne(valeur: number): number {
     return Math.min(props.max ?? Infinity, Math.max(props.min ?? -Infinity, valeur))
+  }
+
+  function regle(valeur: number): void {
+    props.surDebut?.()
+    props.sur(borne(valeur))
+  }
+
+  function ouvreSaisie(): void {
+    initiale.current = nombreDuTexte(props.texte, props.valeur)
+    setSaisie(initiale.current)
+  }
+
+  /** Une saisie inchangée ne règle rien : l'appliquer figerait le temps pour rien. */
+  function fermeSaisie(applique: boolean): void {
+    const tape = saisie
+    setSaisie(null)
+    if (!applique || tape === null || tape === initiale.current) return
+    const nombre = lisSaisie(tape)
+    if (nombre !== null) regle(nombre)
   }
 
   function surPointerDown(e: PointerEvent<HTMLSpanElement>): void {
@@ -75,7 +119,7 @@ export function Compteur(props: CompteurProps) {
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId)
     }
-    if (d !== null && !d.bouge) props.surClic?.()
+    if (d !== null && !d.bouge) ouvreSaisie()
   }
 
   function surClavier(e: KeyboardEvent<HTMLSpanElement>): void {
@@ -84,12 +128,52 @@ export function Compteur(props: CompteurProps) {
     if (sens + recule === 0) {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault()
-        props.surClic?.()
+        ouvreSaisie()
       }
       return
     }
     e.preventDefault()
-    props.sur(borne(props.valeur + (sens + recule) * props.pas))
+    regle(props.valeur + (sens + recule) * props.pas)
+  }
+
+  function surClavierSaisie(e: KeyboardEvent<HTMLInputElement>): void {
+    if (e.key === 'Enter') fermeSaisie(true)
+    if (e.key === 'Escape') fermeSaisie(false)
+  }
+
+  const classes = props.classe === undefined ? 'compteur' : `compteur ${props.classe}`
+  // Une propriété personnalisée et non un `width` en ligne : la feuille garde l'unité (`ch`) et
+  // peut la surcharger, un style en ligne gagnerait contre toute règle.
+  const gabarit = (
+    props.largeur === undefined ? {} : { '--compteur-largeur': props.largeur }
+  ) as CSSProperties
+  const prefixe =
+    props.prefixe === undefined ? null : (
+      <span className="compteur-prefixe" aria-hidden="true">
+        {props.prefixe}
+      </span>
+    )
+
+  if (saisie !== null) {
+    return (
+      <span className={`${classes} en-saisie`}>
+        {prefixe}
+        <input
+          className="compteur-saisie"
+          type="text"
+          inputMode="decimal"
+          autoFocus
+          aria-label={props.libelle}
+          size={Math.max(props.largeur ?? saisie.length, 1)}
+          style={gabarit}
+          value={saisie}
+          onFocus={(e) => e.currentTarget.select()}
+          onChange={(e) => setSaisie(e.currentTarget.value)}
+          onKeyDown={surClavierSaisie}
+          onBlur={() => fermeSaisie(true)}
+        />
+      </span>
+    )
   }
 
   return (
@@ -101,14 +185,19 @@ export function Compteur(props: CompteurProps) {
       aria-valuetext={props.texte}
       {...(props.min === undefined ? {} : { 'aria-valuemin': props.min })}
       {...(props.max === undefined ? {} : { 'aria-valuemax': props.max })}
-      className={props.classe === undefined ? 'compteur' : `compteur ${props.classe}`}
+      className={classes}
       onPointerDown={surPointerDown}
       onPointerMove={surPointerMove}
       onPointerUp={surPointerUp}
-      onPointerCancel={surPointerUp}
+      onPointerCancel={() => {
+        depart.current = null
+      }}
       onKeyDown={surClavier}
     >
-      {props.texte}
+      {prefixe}
+      <span className="compteur-valeur" style={gabarit}>
+        {props.texte}
+      </span>
     </span>
   )
 }

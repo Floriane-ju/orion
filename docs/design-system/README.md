@@ -56,7 +56,7 @@ Tout vit dans les deux blocs `:root` de `src/ui/styles.css`. **Il n'y a pas de c
 primitives** : les jetons sont directement sémantiques. Le mode nuit surcharge chacun d'eux
 individuellement, avec une valeur calculée — une primitive n'aurait aucun consommateur.
 
-### Couleurs — 2 origines, 16 jetons, tous repeints en mode nuit
+### Couleurs — 2 origines, 17 jetons, tous repeints en mode nuit
 
 Deux origines en tête du bloc : `--base-neutre` (`#e9e9e9`) et `--base-accent` (`#8bffef`). Chaque nuance
 est `color-mix(in srgb, var(--base-neutre) P%, var(--fond))` : changer l'origine repeint toute la
@@ -68,6 +68,7 @@ mélanges avant de calculer les ratios WCAG.
 | `--fond` | `#000000` | fond de page et de scène |
 | `--surface` | `--base-neutre` 3 % | barres, cartes |
 | `--surface-haute` | `--base-neutre` 8,5 % | un contrôle sous le doigt : survol, appui, fond de saisie |
+| `--surface-survol` | `--base-neutre` 18 % | le survol d'une commande posée seule sur le ciel (flanc gauche) |
 | `--texte` | `--base-neutre` | texte principal |
 | `--attenue` | `--base-neutre` 69 % | texte secondaire, étiquettes |
 | `--accent` | `--base-accent` | **la marque (`h1`) et le cadre du matériel, rien d'autre** |
@@ -212,7 +213,7 @@ où un texte hérite du suivi d'un conteneur qui n'est pas le sien.
 
 `--trait` 1px · `--trait-marque` 3px (le filet épais d'une alerte) ·
 `--decalage-souligne` 3px (le pointillé d'aide) · `--fondu-etat` 150ms (80ms sous
-`prefers-reduced-motion`) · `--jour-trait` 0,2em
+`prefers-reduced-motion`)
 
 `--police-mono` (IBM Plex Mono) · `--police-titre` (Barlow Condensed) ·
 `--police-icone` (Material Symbols Sharp). **Les trois sont livrées dans `src/fonts/`** :
@@ -245,7 +246,7 @@ rupture (1100px) : un jeton pour une valeur unique serait une abstraction « au 
 | `ChampChoix` | 2 | un choix fermé, options en `children` |
 | `Interrupteur` | 4 | une case à cocher et la phrase qui dit ce qu'elle fait |
 | `Curseur` | 4 | un réglage continu, avec repère à une valeur arbitraire |
-| `Compteur` | 2 | un nombre réglable **au milieu d'une phrase** |
+| `Compteur` | 2 | un nombre qu'on **tire** sous la souris ou qu'on **tape** au clic — champ encadré, `prefixe` optionnel (« H », « AZ ») |
 
 ```tsx
 <ChampDomaine domaine="focale_mm" cle="focale" valeur={focale} surValeur={surFocale} requis />

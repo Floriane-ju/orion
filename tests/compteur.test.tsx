@@ -17,10 +17,17 @@ import { App } from '../src/App.tsx'
 import type { Site } from '../src/core/ephem.ts'
 import { cielInstantane } from '../src/core/horloges.ts'
 import { cransGlisse } from '../src/ui/compteur-glisse.ts'
-import { dateAvec, partiesHeure, partiesJour } from '../src/ui/horaire.ts'
+import { lisSaisie, nombreDuTexte } from '../src/ui/Compteur.tsx'
+import { LARGEURS_INSTANT, dateAvec, partiesHeure, partiesJour } from '../src/ui/horaire.ts'
 import { HAUTEUR_MAX_DEG, HAUTEUR_MIN_DEG, tourBorne } from '../src/ui/planetarium-gestes.ts'
 import { etatScene, majVue, reinitialiseScene } from '../src/ui/scene-etat.ts'
-import { ligneVisee, segmentsVisee, viseeJ2000, viseeVersVue } from '../src/ui/scene-lecture.ts'
+import {
+  courtVisee,
+  ligneVisee,
+  segmentsVisee,
+  viseeJ2000,
+  viseeVersVue,
+} from '../src/ui/scene-lecture.ts'
 import { reinitialiseSeance } from '../src/ui/seance-etat.ts'
 import { reinitialiseCoque } from '../src/ui/coque-etat.ts'
 
@@ -46,6 +53,47 @@ afterEach(() => {
   reinitialiseSeance()
   reinitialiseScene()
   reinitialiseCoque()
+})
+
+describe('T-0327 — le compteur se tape aussi', () => {
+  it('propose en saisie le nombre qu’on lit, unité retirée', () => {
+    expect(nombreDuTexte('221.02°', 221.0234)).toBe('221.02')
+    expect(nombreDuTexte('-13.57°', -13.5712)).toBe('-13.57')
+    // Un mois en toutes lettres n'a pas de nombre à lire : on tape son rang.
+    expect(nombreDuTexte('sept.', 9)).toBe('9')
+  })
+
+  it('lit la virgule française, et refuse ce qui n’est pas un nombre', () => {
+    expect(lisSaisie('44,5')).toBe(44.5)
+    expect(lisSaisie(' 390 ')).toBe(390)
+    expect(lisSaisie('')).toBeNull()
+    expect(lisSaisie('abc')).toBeNull()
+  })
+})
+
+describe('T-0327 — un champ ne change pas de taille avec sa valeur', () => {
+  it('donne au mois la largeur du plus long des douze', () => {
+    const mois = Array.from({ length: 12 }, (_, m) =>
+      partiesJour(new Date(2026, m, 1)).find((p) => p.type === 'month')!.value.length,
+    )
+    expect(LARGEURS_INSTANT.month).toBe(Math.max(...mois))
+    expect(LARGEURS_INSTANT.hour).toBe(2)
+    expect(LARGEURS_INSTANT.second).toBe(2)
+  })
+
+  it('pose sur chaque champ de la visée la largeur de sa valeur extrême', () => {
+    const html = ecran()
+    for (const [libelle, extreme] of [
+      ['Ascension droite visée', courtVisee('AD', 360)],
+      ['Déclinaison visée', courtVisee('DEC', -90)],
+      ['Azimut', courtVisee('AZIMUT', 360)],
+      ['Hauteur', courtVisee('HAUTEUR', -90)],
+    ] as const) {
+      const debut = html.indexOf(`aria-label="${libelle}"`)
+      const champ = html.slice(debut, html.indexOf('</span></span>', debut))
+      expect(champ, libelle).toContain(`--compteur-largeur:${extreme.length}`)
+    }
+  })
 })
 
 describe('T-0162 — la loi du glisser latéral', () => {
@@ -116,10 +164,9 @@ describe('T-0162 — un champ de l’instant réécrit', () => {
   it('découpe l’instant sans en changer le format', () => {
     const recompose = (parties: readonly Intl.DateTimeFormatPart[]) =>
       parties.map((p) => p.value).join('')
-    // T-0314 — jour de semaine et mois abrégé : le découpage suit la locale, il ne la réécrit
+    // T-0314 — mois abrégé : le découpage suit la locale, il ne la réécrit
     // pas, et c'est justement ce que cette recomposition vérifie.
     expect(recompose(partiesJour(nuit))).toBe(nuit.toLocaleDateString('fr-FR', {
-      weekday: 'short',
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -183,14 +230,15 @@ describe('T-0163 — la visée se règle par sa réciproque', () => {
 
   it('laisse l’instant au transport : la barre ne le date plus deux fois', () => {
     // Deux horloges côte à côte se contredisent à la seconde près, et celle de gauche n'était
-    // pas réglable. La phrase commence donc à la visée.
+    // pas réglable. Les champs commencent donc à la visée.
     const bas = ecran()
     const debut = bas.indexOf('>', bas.indexOf('barrehaut-visee')) + 1
     const texte = bas
-      .slice(debut, bas.indexOf('</p>', debut))
+      .slice(debut, bas.indexOf('</div>', debut))
       .replaceAll('<!-- -->', '')
       .replace(/<[^>]*>/g, '')
-    expect(texte.trimStart().startsWith('visée')).toBe(true)
+    // Les champs s'ouvrent sur la visée : l'AD, préfixe en tête.
+    expect(texte.trimStart().startsWith('AD')).toBe(true)
     expect(texte).not.toMatch(/\d{2}:\d{2}:\d{2}/)
   })
 

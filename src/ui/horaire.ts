@@ -11,7 +11,6 @@
  * réécrire — découper l'instant en compteurs ne doit pas en changer l'ordre ni la ponctuation.
  */
 
-import { jourLocalIso } from '../core/nuit-datee.ts'
 
 /** L'heure seule, sans la date : les deux bornes d'un créneau tombent dans la même nuit. */
 export function heure(date: Date): string {
@@ -19,16 +18,16 @@ export function heure(date: Date): string {
 }
 
 /**
- * T-0314 — le jour de semaine, le quantième, le mois abrégé, l'année.
+ * T-0314 — le quantième, le mois abrégé, l'année.
  *
  * T-0164 avait mis ce jour tout en chiffres : « août » et « mai » n'ont pas la même largeur, et
  * la date se tire champ par champ. Le glisser capture le pointeur — le compteur tiré reste sous
- * le doigt quelle que soit sa largeur, et seuls ses voisins bougent, après coup. Ce que la date
- * gagne en échange est ce qu'on cherche en préparant une nuit : le jour de la semaine, qu'aucune
- * suite de chiffres ne donne.
+ * le doigt quelle que soit sa largeur, et seuls ses voisins bougent, après coup.
+ *
+ * T-0327 — le jour de la semaine est retiré : ce n'est pas un champ réglable, et posé en texte
+ * devant trois champs encadrés, il se lisait comme un quatrième qui ne répondait pas.
  */
 const OPTIONS_JOUR: Intl.DateTimeFormatOptions = {
-  weekday: 'short',
   day: 'numeric',
   month: 'short',
   year: 'numeric',
@@ -58,15 +57,23 @@ export function partiesHeure(date: Date): readonly Intl.DateTimeFormatPart[] {
   return new Intl.DateTimeFormat('fr-FR', OPTIONS_HEURE).formatToParts(date)
 }
 
-const deuxChiffres = (n: number): string => String(n).padStart(2, '0')
-
-/** `YYYY-MM-DDTHH:mm:ss` en heure locale — la forme qu'attend `<input type="datetime-local">`. */
-export function pourChampDateHeure(date: Date): string {
-  const h = deuxChiffres(date.getHours())
-  const m = deuxChiffres(date.getMinutes())
-  const s = deuxChiffres(date.getSeconds())
-  return `${jourLocalIso(date)}T${h}:${m}:${s}`
-}
+/**
+ * La largeur la plus longue que prend chaque morceau de l'instant, en caractères : le mois le
+ * plus long de l'année, le quantième et l'heure à deux chiffres. Mesurée sur les douze mois
+ * d'une année en fin de journée, dans la locale même — pas écrite : « sept. » n'a pas la
+ * largeur de « mai » dans toutes les langues.
+ */
+export const LARGEURS_INSTANT: Readonly<Partial<Record<Intl.DateTimeFormatPartTypes, number>>> =
+  (() => {
+    const largeurs: Partial<Record<Intl.DateTimeFormatPartTypes, number>> = {}
+    const mois = Array.from({ length: 12 }, (_, m) => new Date(2000, m, 28, 23, 59, 59))
+    for (const date of mois) {
+      for (const partie of [...partiesJour(date), ...partiesHeure(date)]) {
+        largeurs[partie.type] = Math.max(largeurs[partie.type] ?? 0, partie.value.length)
+      }
+    }
+    return Object.freeze(largeurs)
+  })()
 
 /** Les six champs que le panneau du temps règle séparément. Le mois est humain : 1 à 12. */
 export type ChampInstant = 'annee' | 'mois' | 'jour' | 'heure' | 'minute' | 'seconde'

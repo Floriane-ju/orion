@@ -59,12 +59,30 @@ export interface SegmentVisee {
   readonly texte: string
   /** Le littéral qui la précède dans la phrase, ponctuation et espaces compris. */
   readonly avant: string
+  /** Ce que le champ de la barre haute porte en tête : la phrase y cède la place aux champs. */
+  readonly prefixe: string
+  /** La valeur dans son champ, sans ce que le préfixe dit déjà. */
+  readonly court: string
 }
 
 /** Décimales de chaque lecture : une visée se pointe au centième, un champ au dixième. */
 const DECIMALES_VISEE = 2
 const DECIMALES_CHAMP = 1
 const DECIMALES_POINTAGE = 0
+
+const DECIMALES_COURT: Readonly<Record<ChampVisee, number>> = Object.freeze({
+  AD: DECIMALES_VISEE,
+  DEC: DECIMALES_VISEE,
+  AZIMUT: DECIMALES_POINTAGE,
+  HAUTEUR: DECIMALES_POINTAGE,
+  FOV: DECIMALES_CHAMP,
+  ROTATION: DECIMALES_POINTAGE,
+})
+
+/** La valeur d'un champ de la barre haute, telle qu'elle s'y écrit. */
+export function courtVisee(champ: ChampVisee, valeurDeg: number): string {
+  return `${valeurDeg.toFixed(DECIMALES_COURT[champ])}°`
+}
 
 export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly SegmentVisee[] {
   const visee = viseeJ2000(vue, matriceCiel)
@@ -75,6 +93,8 @@ export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly Segmen
       valeurDeg: visee.longitudeDeg,
       texte: `${visee.longitudeDeg.toFixed(DECIMALES_VISEE)}° AD`,
       avant: 'visée ',
+      prefixe: 'AD',
+      court: courtVisee('AD', visee.longitudeDeg),
     },
     {
       champ: 'DEC',
@@ -82,6 +102,8 @@ export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly Segmen
       valeurDeg: visee.latitudeDeg,
       texte: `${visee.latitudeDeg.toFixed(DECIMALES_VISEE)}° δ`,
       avant: ' / ',
+      prefixe: 'δ',
+      court: courtVisee('DEC', visee.latitudeDeg),
     },
     {
       champ: 'AZIMUT',
@@ -89,6 +111,8 @@ export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly Segmen
       valeurDeg: vue.azimutDeg,
       texte: `${vue.azimutDeg.toFixed(DECIMALES_POINTAGE)}°`,
       avant: ' · azimut ',
+      prefixe: 'AZ',
+      court: courtVisee('AZIMUT', vue.azimutDeg),
     },
     {
       champ: 'HAUTEUR',
@@ -96,6 +120,8 @@ export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly Segmen
       valeurDeg: vue.hauteurDeg,
       texte: `${vue.hauteurDeg.toFixed(DECIMALES_POINTAGE)}°`,
       avant: ', hauteur ',
+      prefixe: 'H',
+      court: courtVisee('HAUTEUR', vue.hauteurDeg),
     },
     {
       champ: 'FOV',
@@ -103,6 +129,8 @@ export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly Segmen
       valeurDeg: vue.fovDeg,
       texte: `${vue.fovDeg.toFixed(DECIMALES_CHAMP)}°`,
       avant: ' · champ ',
+      prefixe: 'CH',
+      court: courtVisee('FOV', vue.fovDeg),
     },
     {
       champ: 'ROTATION',
@@ -110,6 +138,8 @@ export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly Segmen
       valeurDeg: vue.rotationCadreDeg,
       texte: `${vue.rotationCadreDeg.toFixed(DECIMALES_POINTAGE)}°`,
       avant: ' · rotation ',
+      prefixe: 'ROT',
+      court: courtVisee('ROTATION', vue.rotationCadreDeg),
     },
   ]
 }

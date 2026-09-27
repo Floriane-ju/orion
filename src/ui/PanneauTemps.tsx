@@ -27,14 +27,14 @@
  * pas aux millisecondes qu'ils affichent.
  */
 
-import { useRef, useState, type ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import { facteurDefilement } from '../core/curseur-temps.ts'
 import { nuitDeLInstant } from '../core/nuit-datee.ts'
 import {
   dateAvec,
+  LARGEURS_INSTANT,
   partiesHeure,
   partiesJour,
-  pourChampDateHeure,
   type ChampInstant,
 } from './horaire.ts'
 import { BoutonGlyphe } from './BoutonGlyphe.tsx'
@@ -112,7 +112,6 @@ export function PanneauTemps(props: PanneauTempsProps) {
   const enLecture = transportActif(temps, null)
   // La saisie exacte remplace la rangée de date : l'état vit ici, les deux morceaux d'horloge
   // l'ouvrent chacun de leur côté sans se connaître.
-  const [edition, setEdition] = useState(false)
 
   /**
    * Le geste commun aux cinq commandes : relâcher celle qui est allumée fige le temps, en
@@ -142,14 +141,8 @@ export function PanneauTemps(props: PanneauTempsProps) {
   return (
     <div className="panneau-temps">
       <div className="panneau-temps-date">
-        {edition ? (
-          <SaisieInstant surNuitIso={props.surNuitIso} surFin={() => setEdition(false)} />
-        ) : (
-          <>
-            <Jour surNuitIso={props.surNuitIso} surSaisie={() => setEdition(true)} />
-            <Heure surNuitIso={props.surNuitIso} surSaisie={() => setEdition(true)} />
-          </>
-        )}
+        <Jour surNuitIso={props.surNuitIso} />
+        <Heure surNuitIso={props.surNuitIso} />
       </div>
 
       <div className="panneau-temps-transport">
@@ -195,11 +188,6 @@ function valeurChamp(date: Date, champ: ChampInstant): number {
   return date.getSeconds()
 }
 
-interface MorceauProps extends PanneauTempsProps {
-  /** Un clic qui n'a pas glissé ouvre le champ natif : la frappe d'une date lointaine. */
-  readonly surSaisie: () => void
-}
-
 /**
  * Les compteurs d'un morceau d'instant — le même geste pour la date et pour l'heure.
  *
@@ -212,7 +200,7 @@ interface MorceauProps extends PanneauTempsProps {
  * L'abonnement à la seconde vit ici, dans le morceau qui l'affiche, et non dans le panneau :
  * les cinq boutons du transport n'ont rien à redessiner à chaque battement (T-0056).
  */
-function useCompteurs(props: MorceauProps): {
+function useCompteurs(props: PanneauTempsProps): {
   readonly date: Date
   readonly compteurs: (parties: readonly Intl.DateTimeFormatPart[]) => readonly ReactNode[]
 } {
@@ -238,12 +226,14 @@ function useCompteurs(props: MorceauProps): {
           libelle={reglage.libelle}
           valeur={valeurChamp(date, champ)}
           texte={partie.value}
+          {...(LARGEURS_INSTANT[partie.type] === undefined
+            ? {}
+            : { largeur: LARGEURS_INSTANT[partie.type] })}
           pas={PAS_INSTANT}
           sur={(valeur) => va(champ, valeur)}
           surDebut={() => {
             depart.current = date
           }}
-          surClic={props.surSaisie}
         />
       )
     })
@@ -253,34 +243,18 @@ function useCompteurs(props: MorceauProps): {
 }
 
 /**
- * T-0314 — le jour de semaine et le mois abrégé, là où T-0164 avait mis des chiffres.
- *
- * T-0164 craignait qu'un mois littéral déplace les compteurs voisins sous le doigt. Le glisser
- * capture le pointeur : le compteur tiré reste sous le doigt quelle que soit sa largeur, et
- * seuls ses voisins bougent — après coup. Ce que la date gagne en échange est ce qu'on cherche
- * en préparant une nuit : le jour de la semaine, qu'aucune suite de chiffres ne donne.
+ * T-0314 — le mois abrégé, là où T-0164 avait mis des chiffres. Le jour de la semaine n'y est
+ * plus (T-0327) : voir `partiesJour`.
  */
-function Jour(props: MorceauProps) {
+function Jour(props: PanneauTempsProps) {
   const { date, compteurs } = useCompteurs(props)
   return <span className="panneau-temps-jour">{compteurs(partiesJour(date))}</span>
 }
 
-/**
- * L'heure en grand, les secondes en petit : §11.1 confisque la luminance, il reste la taille,
- * et c'est l'heure à la minute qu'on lit d'un coup d'œil sur le terrain. Les secondes sont
- * coupées AVEC leur séparateur — le « : » appartient à ce qu'il annonce.
- */
-function Heure(props: MorceauProps) {
+/** L'heure à la seconde, en champs du même corps que ceux de la date (T-0327). */
+function Heure(props: PanneauTempsProps) {
   const { date, compteurs } = useCompteurs(props)
-  const parties = partiesHeure(date)
-  const rang = parties.findIndex((p) => p.type === 'second')
-  const coupe = rang > 0 ? rang - 1 : parties.length
-  return (
-    <span className="panneau-temps-heure">
-      {compteurs(parties.slice(0, coupe))}
-      <span className="panneau-temps-secondes">{compteurs(parties.slice(coupe))}</span>
-    </span>
-  )
+  return <span className="panneau-temps-heure">{compteurs(partiesHeure(date))}</span>
 }
 
 /**
@@ -305,37 +279,6 @@ function BoutonMaintenant(props: PanneauTempsProps) {
       variante="nu"
       classe="panneau-temps-maintenant"
       onClick={maintenant}
-    />
-  )
-}
-
-/**
- * Le champ natif, sous le clic sans glisser : lui seul apporte le sélecteur du système et la
- * frappe d'une date lointaine. Il prend la rangée de la date, et l'heure lui laisse la place —
- * deux horloges à l'écran pendant qu'on en règle une se contrediraient à la seconde près.
- */
-function SaisieInstant(props: PanneauTempsProps & { readonly surFin: () => void }) {
-  const seconde = useTrancheScene(secondeAffichee)
-
-  return (
-    <input
-      className="panneau-temps-saisie"
-      type="datetime-local"
-      step={1}
-      autoFocus
-      aria-label="Aller à une date et une heure"
-      defaultValue={pourChampDateHeure(new Date(seconde * 1000))}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') props.surFin()
-      }}
-      onBlur={props.surFin}
-      onChange={(e) => {
-        // Le champ notifie à chaque frappe : une saisie incomplète ne date rien.
-        const choisi = new Date(e.target.value)
-        if (Number.isNaN(choisi.getTime())) return
-        vaA(choisi.getTime())
-        props.surNuitIso(nuitDeLInstant(choisi))
-      }}
     />
   )
 }

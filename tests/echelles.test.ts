@@ -112,15 +112,15 @@ describe('T-0215 — l’échelle de suivi', () => {
  * colonne, l'onglet, le résumé d'un tiroir, le détail d'un score — se distingue de ce qui
  * VAUT par sa casse et son suivi, puisque §11.1 ne laisse pas assez de luminance pour
  * l'étager autrement. Le motif est écrit neuf fois, et ses quatre valeurs sont déjà des
- * jetons : ce qui peut dériver n'est pas une valeur, c'est la septième règle qui en oublierait
+ * jetons : ce qui peut dériver n'est pas une valeur, c'est la sixième règle qui en oublierait
  * un et produirait un libellé presque semblable.
  *
  * T-0323 — elles étaient dix : le détail de score du plan de nuit portait la dixième, et le
  * plan ne détaille plus son score.
  *
- * Les six règles ne sont PAS regroupées en une seule. Les regrouper les déplacerait dans la
+ * Les cinq règles ne sont PAS regroupées en une seule. Les regrouper les déplacerait dans la
  * cascade — un onglet actif, un tiroir ouvert et un survol reposent chacun sur l'ordre de la
- * feuille pour surcharger leur couleur. Dix-huit lignes gagnées contre six réordonnance-
+ * feuille pour surcharger leur couleur. Dix-huit lignes gagnées contre cinq réordonnance-
  * ments dans une feuille dont toute la discipline est que rien ne bouge en silence : la
  * garantie vaut mieux ici que la concision.
  */
@@ -136,8 +136,8 @@ describe('T-0215 — le micro-libellé', () => {
       )
   }
 
-  it('en compte six, et sait lesquelles', () => {
-    expect(reglesMicro()).toHaveLength(6)
+  it('en compte cinq, et sait lesquelles', () => {
+    expect(reglesMicro()).toHaveLength(5)
   })
 
   it('n’en laisse aucune oublier le suivi ni la couleur qui vont avec', () => {
