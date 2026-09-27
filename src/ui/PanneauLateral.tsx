@@ -19,7 +19,7 @@
  */
 
 import type { ReactNode, RefObject } from 'react'
-import { Icone } from './Icone.tsx'
+import { BoutonGlyphe } from './BoutonGlyphe.tsx'
 import { poseMode, useSeance, type ModeInterface } from './seance-etat.ts'
 
 /**
@@ -69,14 +69,14 @@ export function PanneauLateral(props: PanneauLateralProps) {
       </div>
       {props.fiche !== null && (
         <div className="lateral-entete">
-          <button
-            type="button"
-            className="lateral-retour"
-            aria-label="Revenir à la liste des cibles"
+          <BoutonGlyphe
+            icone="arrow_back"
+            aide="Revenir à la liste des cibles"
+            place="bas"
+            variante="nu"
+            classe="lateral-retour"
             onClick={props.fiche.retour}
-          >
-            <Icone nom="arrow_back" />
-          </button>
+          />
           {/* T-0188 — le titre est focalisable pour la gestion du focus au clavier. */}
           <h2 ref={props.titreRef} tabIndex={-1}>
             {props.fiche.titre}

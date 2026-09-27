@@ -57,6 +57,7 @@ import {
   avecOpacite,
   couleurTeinte,
   paletteScene,
+  POLICE_SCENE,
   teinte,
   TEINTES,
   type PaletteCiel,
@@ -300,7 +301,7 @@ function passeFond(passe: Passe): void {
 function passeTraces(passe: Passe): CandidatLabel | null {
   const { entree, brut, couches, teintes } = passe
   const { ctx, projecteur } = passe.entree
-  ctx.font = `${HAUTEUR_LABEL_PX}px system-ui, sans-serif`
+  ctx.font = `${HAUTEUR_LABEL_PX}px ${POLICE_SCENE}`
   ctx.textBaseline = 'middle'
 
   // T-0110 — le champ se prend sur le projecteur BRUT : c'est une propriété de la vue, pas du

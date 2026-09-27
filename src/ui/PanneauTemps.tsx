@@ -37,9 +37,8 @@ import {
   pourChampDateHeure,
   type ChampInstant,
 } from './horaire.ts'
-import { Bulle } from './Bulle.tsx'
+import { BoutonGlyphe } from './BoutonGlyphe.tsx'
 import { Compteur } from './Compteur.tsx'
-import { Icone } from './Icone.tsx'
 import {
   majTemps,
   reprend,
@@ -129,16 +128,14 @@ export function PanneauTemps(props: PanneauTempsProps) {
   const chevron = (cran: Cran) => {
     const facteur = cran.sens * facteurDefilement(cran.rapide)
     return (
-      <Bulle key={cran.libelle} texte={cran.libelle} nomme>
-        <button
-          type="button"
-          className="panneau-temps-cran"
-          aria-pressed={transportActif(temps, facteur)}
-          onClick={() => commande(facteur)}
-        >
-          <Icone nom={cran.icone} />
-        </button>
-      </Bulle>
+      <BoutonGlyphe
+        key={cran.libelle}
+        icone={cran.icone}
+        aide={cran.libelle}
+        variante="nu"
+        presse={transportActif(temps, facteur)}
+        onClick={() => commande(facteur)}
+      />
     )
   }
 
@@ -157,18 +154,15 @@ export function PanneauTemps(props: PanneauTempsProps) {
 
       <div className="panneau-temps-transport">
         {CRANS.filter((c) => c.sens < 0).map(chevron)}
-        <Bulle texte={libelleLecture(temps)} nomme>
-          <button
-            type="button"
-            className="panneau-temps-lecture"
-            aria-pressed={enLecture}
-            onClick={() => commande(null)}
-          >
-            {/* Le glyphe dit ce que le clic FERA, pas où l'on est : sous un défilement, la
-                lecture n'est pas en cours, et c'est donc une flèche qu'elle montre. */}
-            <Icone nom={enLecture ? 'pause' : 'play_arrow'} />
-          </button>
-        </Bulle>
+        {/* Le glyphe dit ce que le clic FERA, pas où l'on est : sous un défilement, la
+            lecture n'est pas en cours, et c'est donc une flèche qu'elle montre. */}
+        <BoutonGlyphe
+          icone={enLecture ? 'pause' : 'play_arrow'}
+          aide={libelleLecture(temps)}
+          variante="nu"
+          presse={enLecture}
+          onClick={() => commande(null)}
+        />
         {CRANS.filter((c) => c.sens > 0).map(chevron)}
         <BoutonMaintenant surNuitIso={props.surNuitIso} />
       </div>
@@ -305,11 +299,13 @@ function BoutonMaintenant(props: PanneauTempsProps) {
   }
 
   return (
-    <Bulle texte="Revenir à maintenant" nomme>
-      <button type="button" className="panneau-temps-maintenant" onClick={maintenant}>
-        <Icone nom="update" />
-      </button>
-    </Bulle>
+    <BoutonGlyphe
+      icone="update"
+      aide="Revenir à maintenant"
+      variante="nu"
+      classe="panneau-temps-maintenant"
+      onClick={maintenant}
+    />
   )
 }
 

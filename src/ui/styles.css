@@ -8,8 +8,8 @@
    globale resterait trop élevée. La palette est CONÇUE en rouge sur noir, canaux vert et
    bleu strictement nuls.
 
-   LANGAGE VISUEL. La palette de jour est FILAIRE : blanc sur noir pur, un seul accent bleu
-   glace pour ce qui se commande et ce qui se vise. Un instrument de terrain se lit à la lampe
+   LANGAGE VISUEL. La palette de jour est FILAIRE : blanc sur noir pur, et un seul
+   accent pour la marque et le cadre du matériel — ce qu'on vise. Un instrument de terrain se lit à la lampe
    frontale, et une interface déjà sombre et déjà monochrome le jour rend le basculement au
    rouge continu au lieu d'être une rupture. Les cartes s'ouvrent sur une barre de titre
    pleine, comme une fenêtre : un aplat de TEXTE sous un titre couleur de FOND. La nuit, elle
@@ -49,6 +49,9 @@
   --surface-haute: color-mix(in srgb, var(--base-neutre) 8.5%, var(--fond));
   --texte: var(--base-neutre);
   --attenue: color-mix(in srgb, var(--base-neutre) 69%, var(--fond));
+  /* L'accent ne peint plus que deux choses : la marque (`h1`) et le cadre du matériel — sur le
+     canevas comme dans l'encart de l'image. Tout le reste de l'interface est neutre : commandes,
+     survols, focus, réglages. Une teinte réservée à ce qu'on vise se repère d'un coup d'œil. */
   --accent: var(--base-accent);
   --avertissement: #f4c76a;
   --bordure: color-mix(in srgb, var(--base-neutre) 83%, var(--fond));
@@ -56,7 +59,15 @@
   --bordure-faible: color-mix(in srgb, var(--base-neutre) 13.1%, var(--fond));
   --alerte: #ff6f5e;
   --fond-alerte: #1a0f0d;
-  --fond-accent: color-mix(in srgb, var(--base-accent) 10%, var(--fond));
+  /* LA BARRE DE TITRE — sections, cartes, panneau, modale. Le jour, un aplat de texte sous un
+     titre couleur de fond ; la nuit, un bandeau noir sous un titre rouge (§11.1). Tout ce qui
+     s'y pose — titre, commande, pastille — prend `--barre-encre`, ce qu'on y survole prend
+     `--barre-survol`. Quatre rôles nommés au lieu d'une surcharge nocturne par barre : chaque
+     barre les écrivait à sa façon, et deux d'entre elles ne réagissaient pas pareil au survol. */
+  --barre-fond: var(--texte);
+  --barre-encre: var(--fond);
+  --barre-survol: var(--attenue);
+  --barre-survol-encre: var(--fond);
   /* Hauteur minimale d'une cible de clic : usage ganté sur écran tactile (§11.2). */
   --cible-clic: 44px;
 }
@@ -101,7 +112,7 @@
    HIÉRARCHIE — 5,25:1 de plafond ne laisse pas de place pour étager la luminance : --texte
    et --attenue se touchent presque. Ce qui sépare le texte secondaire du principal passe
    donc par la taille (0,7 rem contre 0,95 rem), par la casse et par le suivi — pas par la
-   couleur. --accent et --avertissement, qui se lisent à leur teinte le jour, ne se
+   couleur. --accent (la marque, le cadre) et --avertissement, qui se lisent à leur teinte le jour, ne se
    distinguent plus que par la place qu'ils occupent une fois passés au rouge. */
 :root[data-mode-nuit='true'] {
   --base-neutre: rgb(calc(var(--luminance-nuit) * 250) 0 0);
@@ -118,7 +129,10 @@
   --bordure-faible: rgb(calc(var(--luminance-nuit) * 45) 0 0);
   --alerte: rgb(calc(var(--luminance-nuit) * 255) 0 0);
   --fond-alerte: rgb(calc(var(--luminance-nuit) * 26) 0 0);
-  --fond-accent: rgb(calc(var(--luminance-nuit) * 20) 0 0);
+  --barre-fond: #000000;
+  --barre-encre: rgb(calc(var(--luminance-nuit) * 250) 0 0);
+  --barre-survol: rgb(calc(var(--luminance-nuit) * 20) 0 0);
+  --barre-survol-encre: rgb(calc(var(--luminance-nuit) * 246) 0 0);
 }
 
 /* Passage progressif, jamais un basculement brutal ni un flash (§11.1). */
@@ -165,7 +179,7 @@ body {
    nominal et le dessin varierait d'un poste à l'autre. `tests/polices.test.ts` tient la
    correspondance — aucun nom sans fichier. */
 :root {
-  accent-color: var(--accent);
+  accent-color: var(--texte);
   caret-color: var(--texte);
   scrollbar-color: var(--bordure) var(--fond);
   --police-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -364,7 +378,7 @@ body {
 }
 
 ::selection {
-  background: var(--accent);
+  background: var(--texte);
   color: var(--fond);
 }
 
@@ -379,7 +393,7 @@ body {
    `outline-offset` détache l'anneau : sans lui, un champ déjà bordé le verrait se confondre
    avec sa propre bordure. */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--texte);
   outline-offset: 2px;
 }
 
@@ -432,11 +446,9 @@ body {
   gap: var(--jour-barre);
   padding: 0 var(--pas-3);
   overflow: visible;
-}
-
-/* La barre flotte comme le reste de ce qui se pose sur le ciel : décollée des bords d'un jour
-   de carte, filet complet, fond de surface. Elle reste fixe en haut et s'arrête avant la colonne de droite, qui monte jusqu'en haut. */
-.coque-topbar {
+  /* La barre flotte comme le reste de ce qui se pose sur le ciel : décollée des bords d'un
+     jour de carte, filet complet, fond de surface. Elle reste fixe en haut et s'arrête avant
+     la colonne de droite, qui monte jusqu'en haut. */
   top: var(--jour-carte);
   height: var(--barre-haut);
   border: var(--trait) solid var(--bordure);
@@ -483,7 +495,7 @@ body {
   cursor: ew-resize;
   touch-action: none;
   user-select: none;
-  border-bottom: var(--trait) solid var(--accent);
+  border-bottom: var(--trait) solid var(--bordure-controle);
   padding-bottom: var(--jour-trait);
   /* T-0264 — la valeur et son unité tiennent ensemble : là où la phrase se replie, « 221.09°
      AD » se couperait au blanc, et le trait qui annonce le geste se retrouverait à cheval. */
@@ -491,7 +503,7 @@ body {
 }
 
 /* Le compteur et le curseur sont les deux contrôles qu'on TIRE, tous deux peints en
-   --accent au repos (voir `.curseur-rail`). Sous la main, ils montent au --texte : la même
+   --bordure-controle au repos (voir `.curseur-rail`). Sous la main, ils montent au --texte : la même
    famille, plus claire — « c'est la même chose, sous la main », sans teinte nouvelle qui
    dirait « autre chose ». Le focus au clavier ouvre le même geste, il prend donc le même
    retour. */
@@ -747,22 +759,10 @@ body {
   color: var(--attenue);
 }
 
-/* Un chevron porte un glyphe, pas un mot : il perd le rembourrage et la casse d'un bouton
-   de formulaire, mais garde la cible de clic gantée de §11.2. */
-.panneau-temps-cran,
-.panneau-temps-lecture,
-.panneau-temps-maintenant {
-  min-height: calc(var(--cible-clic) - 0.5rem);
-  min-width: calc(var(--cible-clic) - 0.5rem);
-  padding: var(--pas-1) var(--pas-1);
-  border-color: transparent;
-}
-
-/* La vitesse active et la lecture se voient, sinon deux états identiques à l'œil font croire
-   que le clic n'a rien fait. */
-.panneau-temps-cran[aria-pressed='true'],
-.panneau-temps-lecture[aria-pressed='true'] {
-  border-color: var(--texte);
+/* Six boutons sur une rangée de 22 rem : le transport serre ses glyphes d'un pas. */
+.panneau-temps-transport .bouton-glyphe {
+  min-height: calc(var(--cible-clic) - var(--pas-2));
+  min-width: calc(var(--cible-clic) - var(--pas-2));
 }
 
 /* En saisie, l'instant n'est plus une lecture : il prend la rangée entière et la couleur du
@@ -808,49 +808,72 @@ body {
   gap: var(--pas-2);
 }
 
-.coque-rail .bascule {
+.coque-rail .bouton-glyphe {
   pointer-events: auto;
 }
 
-/* Une bascule porte un glyphe, pas un mot : elle perd le rembourrage et la casse d'un bouton
-   de formulaire, mais garde la cible de clic gantée de §11.2.
-
-   T-0244 — posée seule sur le ciel, elle porte son propre cadre : un filet, et un fond
-   translucide — c'est le ciel qui passe derrière, pas du vide —, avec un aplat plein en repli
-   là où `color-mix` n'est pas connu. */
-.bascule {
+/* LE BOUTON-GLYPHE (`BoutonGlyphe.tsx`). Il porte un glyphe, pas un mot : il perd le
+   rembourrage d'un bouton de formulaire, mais garde la cible de clic gantée de §11.2. Trois
+   variantes, nommées par le fond sur lequel il se pose. */
+.bouton-glyphe {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: var(--cible-clic);
   min-width: var(--cible-clic);
   padding: 0;
+}
+
+/* §11.1 — LE ROUGE NE PORTE JAMAIS SEUL UNE INFORMATION. En mode nuit toute la palette est
+   monochrome : un état actif signalé par la seule teinte y disparaît. Le glyphe se REMPLIT
+   donc — l'axe `FILL` de la police est une forme, pas une couleur, et il survit au
+   basculement. Le fond et la teinte s'y ajoutent, ils ne le remplacent pas. */
+.bouton-glyphe[aria-pressed='true'] > .icone,
+.tiroir-nuit[data-actif='true'] > summary > .icone {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* `cadre` — dans un panneau : un filet discret, qui ne pèse pas sur deux cents lignes. */
+.bouton-glyphe-cadre {
+  border-color: var(--bordure-faible);
+}
+
+.bouton-glyphe-cadre[aria-pressed='true'] {
+  background: var(--surface-haute);
+  color: var(--texte);
+}
+
+/* `nu` — dans une rangée qui le borde déjà : pas de filet au repos. Enfoncé, il en prend un,
+   sinon deux états identiques à l'œil font croire que le clic n'a rien fait. */
+.bouton-glyphe-nu {
+  border-color: transparent;
+}
+
+.bouton-glyphe-nu[aria-pressed='true'] {
+  border-color: var(--texte);
+}
+
+/* `flottant` — T-0244 : posé seul sur le ciel, il porte son propre cadre : un filet, et un fond
+   translucide — c'est le ciel qui passe derrière, pas du vide —, avec un aplat plein en repli
+   là où `color-mix` n'est pas connu. */
+.bouton-glyphe-flottant {
   background: var(--surface);
   background: color-mix(in srgb, var(--surface) 82%, transparent);
   color: var(--attenue);
   border: var(--trait) solid var(--bordure);
 }
 
-.bascule:not(:disabled):hover {
-  border-color: var(--accent);
+.bouton-glyphe-flottant:not(:disabled):hover {
+  border-color: var(--texte);
   color: var(--texte);
 }
 
-/* §11.1 — LE ROUGE NE PORTE JAMAIS SEUL UNE INFORMATION. En mode nuit toute la palette est
-   monochrome : un état actif signalé par la seule teinte y disparaît. Le glyphe se REMPLIT
-   donc — l'axe `FILL` de la police est une forme, pas une couleur, et il survit au
-   basculement. Le fond et la teinte s'y ajoutent le jour, ils ne le remplacent pas. */
-.cible-action[aria-pressed='true'] {
-  background: var(--surface-haute);
-  color: var(--texte);
-}
-
-/* Les bascules posées sur le ciel s'allument en APLAT : fond neutre plein, glyphe au fond.
-   Un état SÉLECTIONNÉ est neutre : l'accent reste à ce qui se commande, pas à ce qui est pris.
+/* Enfoncé sur le ciel, il s'allume en APLAT : fond neutre plein, glyphe au fond.
+   Un état SÉLECTIONNÉ est neutre : l'aplat reste à ce qui est pris, le filet à ce qu'on désigne.
    Un fond teinté se perdait sur le ciel ; un aplat se repère d'un coup d'œil, allumé ou non.
    Le survol garde le glyphe au fond — au --texte, il disparaîtrait dans l'aplat. */
-.bascule[aria-pressed='true'],
-.bascule[aria-pressed='true']:not(:disabled):hover,
+.bouton-glyphe-flottant[aria-pressed='true'],
+.bouton-glyphe-flottant[aria-pressed='true']:not(:disabled):hover,
 .tiroir-nuit[data-actif='true'] > summary,
 .tiroir-nuit[data-actif='true'] > summary:hover {
   background: var(--texte);
@@ -858,21 +881,16 @@ body {
   color: var(--fond);
 }
 
-.bascule[aria-pressed='true'] > .icone,
-.cible-action[aria-pressed='true'] > .icone {
-  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-}
-
 /* Sous l'aperçu peint sur toute la scène, ces couches ne commandent rien. La bascule
    le montre au lieu de faire semblant ; sa bulle dit pourquoi, et le clic reste possible :
    ce qui est éteint est l'effet, pas la commande. */
-.bascule.eteinte {
+.bouton-glyphe.eteinte {
   color: var(--bordure-controle);
 }
 
 /* Allumée mais sans effet : l'aplat s'efface à la surface haute, pour ne pas promettre une
    couche qu'on ne verra pas. */
-.bascule.eteinte[aria-pressed='true'] {
+.bouton-glyphe.eteinte[aria-pressed='true'] {
   background: var(--surface-haute);
 }
 
@@ -894,21 +912,23 @@ body {
   min-height: var(--cible-clic);
   padding: 0;
   border: 0;
-  background: linear-gradient(var(--texte) 0 0) top / 100% var(--barre-titre) no-repeat;
-  color: var(--fond);
+  background: linear-gradient(var(--barre-fond) 0 0) top / 100% var(--barre-titre) no-repeat,
+    linear-gradient(var(--texte) 0 0) 0 var(--barre-titre) / 100% var(--trait) no-repeat;
+  color: var(--barre-encre);
   text-align: start;
 }
 
 /* L'en-tête n'a pas l'allure d'un bouton — c'est une barre de titre —, donc c'est le contrôle
-   qu'il faut le plus désigner avant le clic. La barre passe à l'accent, comme le filet des
+   qu'il faut le plus désigner avant le clic. La barre passe à l'aplat de survol, comme le filet des
    autres commandes : c'est la seule teinte que l'interface réserve à ce qui se commande. */
 /* `:not(:disabled)` n'est pas là pour le désactivé : il porte la spécificité au-dessus de
    `button:not(:disabled):hover`, qui repeindrait sinon toute la barre du fond sombre des
    boutons — titre couleur de fond sur fond sombre, la barre disparaissait au survol. */
 .carte-entete:not(:disabled):hover {
   border-color: transparent;
-  background: linear-gradient(var(--accent) 0 0) top / 100% var(--barre-titre) no-repeat;
-  color: var(--fond);
+  background: linear-gradient(var(--barre-survol) 0 0) top / 100% var(--barre-titre) no-repeat,
+    linear-gradient(var(--texte) 0 0) 0 var(--barre-titre) / 100% var(--trait) no-repeat;
+  color: var(--barre-survol-encre);
 }
 
 /* Une barre de titre se lit comme celle d'une fenêtre : la famille du texte, en casse de
@@ -917,12 +937,6 @@ body {
   grid-row: 1;
   grid-column: 1;
   padding-inline: var(--pas-2);
-  font-family: var(--police-mono);
-  font-size: var(--texte-micro);
-  font-weight: 400;
-  letter-spacing: normal;
-  text-transform: none;
-  color: var(--fond);
 }
 
 /* T-0238 — le résumé d'une carte repliée est une VALEUR, pas une étiquette : il quitte la
@@ -943,7 +957,6 @@ body {
   grid-row: 1;
   grid-column: 2;
   padding-inline: var(--pas-2);
-  color: var(--fond);
 }
 
 /* La note de facilité a quitté l'en-tête de la carte Cible pour celui du panneau, où elle
@@ -955,14 +968,6 @@ body {
   align-items: center;
   gap: var(--pas-2);
   margin-inline-start: auto;
-}
-
-.lateral-entete .carte-rappel-glose {
-  color: var(--attenue);
-  font-size: var(--texte-micro);
-  letter-spacing: var(--suivi-micro);
-  text-transform: uppercase;
-  white-space: nowrap;
 }
 
 .carte-rappel-glose {
@@ -1050,48 +1055,30 @@ body {
   min-height: var(--cible-clic);
   padding: var(--pas-1) var(--pas-2);
   border-bottom: var(--trait) solid var(--texte);
-  background: var(--texte);
-  color: var(--fond);
+  background: var(--barre-fond);
+  color: var(--barre-encre);
 }
 
-/* Sur la barre de titre, tout ce qu'elle porte prend la teinte du fond : une commande en
-   accent y tomberait sous 2:1. Les pastilles suivent, plus bas avec leurs règles. */
-.lateral-entete h2 {
-  font-family: var(--police-mono);
-  font-size: var(--texte-micro);
-  font-weight: 400;
-  letter-spacing: normal;
-  text-transform: none;
-  color: var(--fond);
-}
-
+/* LA COMMANDE POSÉE SUR UNE BARRE DE TITRE — la variante « sur fond clair » du bouton.
+   Tout ce que la barre porte prend son encre : une commande en --texte y disparaîtrait.
+   Au survol, elle prend l'aplat de survol de la barre, comme l'en-tête d'une carte. Les
+   pastilles suivent, plus bas avec leurs règles. */
 .lateral-entete button {
-  border-color: var(--fond);
+  border-color: var(--barre-encre);
   background: transparent;
-  color: var(--fond);
+  color: var(--barre-encre);
 }
 
 .lateral-entete button:not(:disabled):hover {
-  border-color: var(--fond);
-  background: var(--accent);
-  color: var(--fond);
+  border-color: var(--barre-encre);
+  background: var(--barre-survol);
+  color: var(--barre-survol-encre);
 }
 
-/* Le retour n'existe que sur la fiche : il ouvre l'en-tête, à gauche du titre, et
-   garde la cible de clic gantée de §11.2. */
-.lateral-retour {
-  min-height: var(--cible-clic);
-  min-width: var(--cible-clic);
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--fond);
-}
-
-.lateral-entete h2 {
-  margin: 0;
-  padding: 0;
-  border: 0;
+/* Le retour reste nu sur la barre comme ailleurs : c'est la barre qui le borde. */
+.lateral-entete .bouton-glyphe-nu,
+.lateral-entete .bouton-glyphe-nu:not(:disabled):hover {
+  border-color: transparent;
 }
 
 .lateral-corps {
@@ -1225,7 +1212,7 @@ body {
    cible de clic garde sa hauteur d'usage ganté.
 
    T-0246 — la rangée tient lieu d'en-tête au panneau : elle ouvre le cadre, sans jour au-dessus.
-   L'onglet actif prend le fond teinté d'un en-tête de carte — c'est lui qui nomme le panneau.
+   L'onglet actif prend la surface haute — c'est lui qui nomme le panneau.
 
    La rangée est un bandeau plein, séparé du contenu par un unique filet : l'onglet actif se
    pose dessus au lieu de flotter au-dessus d'un liseré. */
@@ -1244,7 +1231,7 @@ body {
   background: transparent;
   color: var(--attenue);
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-bottom: calc(var(--trait) * 2) solid transparent;
   border-radius: 0;
   cursor: pointer;
   font-family: var(--police-mono);
@@ -1254,7 +1241,7 @@ body {
 }
 
 .onglet:hover {
-  background: var(--fond-accent);
+  background: var(--surface-haute);
   color: var(--texte);
 }
 
@@ -1271,7 +1258,7 @@ body {
    l'état ouvert/fermé, le clavier et l'annonce — aucun état React n'est nécessaire.
 
    Un tiroir fermé est une pastille : angles vifs, filet d'un pixel, capitales espacées.
-   Ouvert, il prend le trait d'accent et le fond teinté, comme un onglet actif. */
+   Ouvert, il prend le trait plein et la surface haute, comme un onglet actif. */
 /* Un tiroir ne pousse plus rien : c'est la première lecture de la barre qui cale le
    bloc entier à droite. Une poussée par tiroir disloquait la bande dès qu'un bouton le
    précédait. */
@@ -1303,14 +1290,14 @@ body {
 .bouton-info:hover,
 .tiroir > summary:hover {
   color: var(--texte);
-  border-color: var(--accent);
+  border-color: var(--texte);
   background: transparent;
 }
 
 .tiroir[open] > summary {
-  background: var(--fond-accent);
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--surface-haute);
+  border-color: var(--texte);
+  color: var(--texte);
 }
 
 /* Un tiroir fermé cache ce qu'il contient. Le bouton change d'aspect quand il a
@@ -1336,11 +1323,11 @@ body {
   top: calc(var(--barre-haut) + var(--jour-carte) + var(--pas-1));
   z-index: 5;
   width: min(52rem, calc(100vw - var(--jour-ecran)));
-  max-height: calc(100dvh - var(--barre-haut) - var(--jour-carte) - 1rem);
+  max-height: calc(100dvh - var(--barre-haut) - var(--jour-carte) - var(--pas-4));
   overflow-y: auto;
   padding: 0 var(--pas-4) var(--pas-4);
   background: var(--surface);
-  border: var(--trait) solid var(--accent);
+  border: var(--trait) solid var(--texte);
   border-radius: 0;
 }
 
@@ -1361,12 +1348,6 @@ body {
 }
 
 /* L'alerte de persistance garde son rembourrage : elle porte du texte, pas un glyphe seul. */
-.coque-nuit .bouton-info:not([data-alerte='true']) {
-  justify-content: center;
-  min-width: var(--cible-clic);
-  padding: 0;
-}
-
 .coque-nuit .bouton-info:not([data-alerte='true']),
 .coque-nuit .bouton-info:not([data-alerte='true']):hover,
 .tiroir-nuit > summary,
@@ -1378,20 +1359,16 @@ body {
   background: color-mix(in srgb, var(--surface) 82%, transparent);
 }
 
-/* Au repos le filet des bascules ; le survol garde celui des tiroirs, l'accent. */
+/* Au repos le filet des bascules ; le survol garde celui des tiroirs, le trait plein. */
 .coque-nuit .bouton-info:not([data-alerte='true']):not(:hover),
 .tiroir-nuit > summary {
   border-color: var(--bordure);
 }
 
 .tiroir-nuit[open]:not([data-actif='true']) > summary {
-  background: var(--fond-accent);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.tiroir-nuit[data-actif='true'] > summary > .icone {
-  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  background: var(--surface-haute);
+  border-color: var(--texte);
+  color: var(--texte);
 }
 
 .tiroir-nuit[open] > .tiroir-contenu {
@@ -1446,24 +1423,9 @@ body {
   height: var(--barre-titre);
   margin-inline: calc(-1 * var(--pas-4));
   padding-inline: var(--pas-2);
-  background: var(--texte);
-  color: var(--fond);
-}
-
-/* La modale prend la barre de titre des cartes de l'interface : un aplat fin, titre en casse
-   de phrase au rang micro, couleur de fond. Elle reste collée en haut quand le contenu défile
-   — c'est elle qui porte la croix. Le `h2` perd tout ce que la règle générale lui donne :
-   marges, filet souligné, capitales. */
-.page-info-entete > h2 {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  color: inherit;
-  font-family: var(--police-mono);
-  font-size: var(--texte-micro);
-  font-weight: 400;
-  letter-spacing: normal;
-  text-transform: none;
+  border-bottom: var(--trait) solid var(--texte);
+  background: var(--barre-fond);
+  color: var(--barre-encre);
 }
 
 /* La croix tient dans la barre fine, mais sa cible de clic garde la taille gantée de §11.2 :
@@ -1480,12 +1442,12 @@ body {
   text-decoration: none;
 }
 
-/* Au survol, seule la croix réagit : son glyphe s'inverse en pavé sombre sur la barre claire.
-   Un glyphe bleu sur l'aplat clair ne se lirait pas, et c'est le glyphe qu'on vise — la
-   cible de clic, plus grande, déborde de la barre et ne peut pas porter de fond. */
+/* Au survol, seule la croix réagit, et comme toute commande de barre : son glyphe prend
+   l'aplat de survol. C'est le glyphe qu'on vise — la cible de clic, plus grande, déborde de la
+   barre et ne peut pas porter de fond. */
 .page-info-fermer:hover > .icone {
-  background: var(--fond);
-  color: var(--accent);
+  background: var(--barre-survol);
+  color: var(--barre-survol-encre);
 }
 
 /* La première ligne sous la barre en garde le jour d'une carte, au lieu de la petite marge
@@ -1494,22 +1456,10 @@ body {
   margin-block-start: var(--jour-carte);
 }
 
-/* §11.1 — la nuit, la barre ne s'allume pas : bandeau noir tenu par un filet rouge, comme
-   celui des cartes. */
-:root[data-mode-nuit='true'] .page-info-entete {
-  border-bottom: var(--trait) solid var(--texte);
-  background: var(--fond);
-  color: var(--texte);
-}
-
-:root[data-mode-nuit='true'] .page-info-fermer:hover > .icone {
-  background: var(--fond-accent);
-}
-
 /* T-0325 — une rubrique repliable de la modale info : fond noir, filet blanc, barre de titre
    sans aplat. Sur la surface de la modale, c'est le fond qui détache la rubrique ; le filet
    au plein du texte la cerne. Sa barre est un contrôle : elle prend la cible de clic de §11.2
-   et passe à l'accent au survol. Les jetons se repeignent seuls la nuit — noir cerné de rouge. */
+   et passe à la surface haute au survol. Les jetons se repeignent seuls la nuit — noir cerné de rouge. */
 .accordeon {
   margin-block-start: var(--pas-4);
   background: var(--fond);
@@ -1534,22 +1484,10 @@ body {
 }
 
 .accordeon > summary:hover {
-  background: var(--fond-accent);
-  color: var(--accent);
+  background: var(--surface-haute);
+  color: var(--texte);
 }
 
-
-.accordeon > summary > h2 {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  color: inherit;
-  font-family: var(--police-mono);
-  font-size: var(--texte-micro);
-  font-weight: 400;
-  letter-spacing: normal;
-  text-transform: none;
-}
 
 /* Le chevron dit l'action à venir : vers le bas pour déplier, vers le haut pour replier. */
 .accordeon[open] > summary > .icone {
@@ -1608,7 +1546,7 @@ h2 {
   font-weight: 600;
   letter-spacing: var(--suivi-titre);
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--texte);
 }
 
 h3 {
@@ -1697,11 +1635,31 @@ section:not([class]) > h2:first-child {
   display: flex;
   align-items: center;
   gap: var(--pas-1);
+  /* La même barre que l'en-tête d'une carte repliable : hauteur `--barre-titre` plus son filet,
+     titre décollé d'un `--pas-2`. Une carte qui s'ouvre et une qui ne s'ouvre pas ne se
+     distinguent que par la marque à droite, pas par l'épaisseur de leur barre. */
+  height: calc(var(--barre-titre) + var(--trait));
   margin: calc(-1 * var(--jour-carte)) calc(-1 * var(--jour-carte)) 0;
-  padding: var(--pas-1) var(--jour-carte);
-  border-bottom: 0;
-  background: var(--texte);
-  color: var(--fond);
+  padding: 0 var(--pas-2);
+  border-bottom: var(--trait) solid var(--texte);
+  background: var(--barre-fond);
+  color: var(--barre-encre);
+}
+
+/* §11.1 — la nuit, la barre de titre ne s'allume plus. Un aplat de --texte est la plus grande
+   surface rouge pleine de l'écran : sur un œil adapté, c'est une lampe posée sur chaque carte.
+   Elle devient un bandeau NOIR tenu par son filet bas, titre en rouge — les jetons `--barre-*`
+   le disent une fois pour toutes les barres. Le filet est là le jour aussi, fondu dans l'aplat :
+   la barre a la même hauteur dans les deux modes.
+
+   LE TITRE D'UNE FENÊTRE se lit comme celui d'une fenêtre : la famille du texte, en casse de
+   phrase, au plus petit rang lisible. Il n'a pas à crier — l'aplat le désigne déjà. Une règle
+   pour les cinq titres de barre ; celui de l'accordéon, sans aplat, garde la même voix. */
+section:not([class]) > h2:first-child,
+.lateral-entete h2,
+.carte-titre,
+.page-info-entete > h2,
+.accordeon > summary > h2 {
   font-family: var(--police-mono);
   font-size: var(--texte-micro);
   font-weight: 400;
@@ -1709,46 +1667,17 @@ section:not([class]) > h2:first-child {
   text-transform: none;
 }
 
-
-/* §11.1 — la nuit, la barre de titre ne s'allume plus. Un aplat de --texte est la plus grande
-   surface rouge pleine de l'écran : sur un œil adapté, c'est une lampe posée sur chaque carte.
-   Elle devient un bandeau NOIR tenu par un filet rouge, titre en rouge — la barre reste un
-   objet qu'on reconnaît à sa forme, et le flux émis tombe à celui d'un trait et d'un texte. */
-:root[data-mode-nuit='true'] section:not([class]) > h2:first-child,
-:root[data-mode-nuit='true'] .lateral-entete {
-  border-bottom: var(--trait) solid var(--texte);
-  background: var(--fond);
-  color: var(--texte);
-}
-
-:root[data-mode-nuit='true'] .lateral-entete h2,
-:root[data-mode-nuit='true'] .lateral-entete .facilite-pleine,
-:root[data-mode-nuit='true'] .lateral-entete .facilite-vide,
-:root[data-mode-nuit='true'] .lateral-entete button {
-  border-color: var(--texte);
-  color: var(--texte);
-}
-
-:root[data-mode-nuit='true'] .lateral-entete button:not(:disabled):hover {
-  background: var(--fond-accent);
-}
-
-/* La barre d'une carte n'est qu'une rangée de son bouton : son filet bas est un aplat d'un
-   trait posé à la hauteur de la barre, le filet de la carte fait les trois autres côtés. */
-:root[data-mode-nuit='true'] .carte-entete {
-  background: linear-gradient(var(--texte) 0 0) 0 var(--barre-titre) / 100% var(--trait) no-repeat;
-  color: var(--texte);
-}
-
-:root[data-mode-nuit='true'] .carte-entete:not(:disabled):hover {
-  background: linear-gradient(var(--fond-accent) 0 0) top / 100% var(--barre-titre) no-repeat,
-    linear-gradient(var(--accent) 0 0) 0 var(--barre-titre) / 100% var(--trait) no-repeat;
-  color: var(--accent);
-}
-
-:root[data-mode-nuit='true'] .carte-titre,
-:root[data-mode-nuit='true'] .carte-marque {
+/* Hors d'une section, le `h2` d'une barre perd ce que la règle générale lui donne : marges,
+   filet souligné, couleur de titre. C'est la barre qui le borde et qui l'encre. `color: inherit` ne vaut
+   qu'ici : posé sur le titre de section, il l'emportait sur son encre de barre et peignait un
+   titre blanc sur l'aplat blanc. */
+.lateral-entete h2,
+.page-info-entete > h2,
+.accordeon > summary > h2 {
   color: inherit;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
 /* LE RYTHME VERTICAL EST CELUI DE LA SECTION, PAS CELUI DE LA GRILLE.
@@ -1784,11 +1713,11 @@ section:not([class]) > * + *,
 /* Un libellé est une ÉTIQUETTE : petit, en capitales, espacé. Ce qui le sépare de la valeur
    n'est pas sa luminance — §11.1 n'en laisse pas assez — mais sa casse et son suivi.
 
-   LE MICRO-LIBELLÉ est ce quadruplet, et il vaut pour neuf règles de la feuille :
+   LE MICRO-LIBELLÉ est ce quadruplet, et il vaut pour six règles de la feuille :
    `--attenue`, `--texte-micro`, `--suivi-micro`, `uppercase`. Il ne forme pas une règle
    groupée — un onglet actif, un tiroir ouvert et un survol reposent chacun sur l'ordre de la
    feuille pour surcharger leur couleur, et les rassembler les déplacerait. C'est
-   `echelles.test.ts` qui tient l'ensemble : une dixième règle qui prendrait la taille et la
+   `echelles.test.ts` qui tient l'ensemble : une septième règle qui prendrait la taille et la
    casse sans le suivi ni la couleur échoue au test. */
 label {
   display: flex;
@@ -1827,7 +1756,7 @@ input,
 select {
   min-height: var(--cible-clic);
   padding: var(--pas-2) var(--pas-2);
-  background: var(--fond-accent);
+  background: var(--surface-haute);
   color: var(--texte);
   border: var(--trait) solid var(--bordure-controle);
   border-radius: 0;
@@ -1837,7 +1766,7 @@ select {
 
 input:hover,
 select:hover {
-  border-color: var(--accent);
+  border-color: var(--texte);
 }
 
 /* §11.1 — la case est DESSINÉE, pas laissée au navigateur. La case native ne prend de la
@@ -1845,7 +1774,7 @@ select:hover {
    ceux du système — blancs, en pleine interface de nuit. Dessinée avec les jetons, elle bascule
    au rouge sur noir comme le reste.
 
-   Cochée, elle se REMPLIT : un carré d'accent détaché du filet par un jour de fond. Pas de
+   Cochée, elle se REMPLIT : un carré plein détaché du filet par un jour de fond. Pas de
    coche : un glyphe dessiné en Unicode est interdit ici (`icone.test.tsx`), et un remplissage
    se lit au gant comme à la lampe — la différence est une surface, pas un trait fin. */
 input[type='checkbox'] {
@@ -1862,8 +1791,8 @@ input[type='checkbox'] {
 }
 
 input[type='checkbox']:checked {
-  border-color: var(--accent);
-  background: var(--accent);
+  border-color: var(--texte);
+  background: var(--texte);
   box-shadow: inset 0 0 0 calc(var(--pas-0) + var(--trait)) var(--fond);
 }
 
@@ -1894,14 +1823,14 @@ input[type='checkbox']:checked:disabled {
   user-select: none;
 }
 
-/* Le rail est peint en --accent, comme le trait sous un nombre réglable (`.compteur`) : c'est
-   la couleur qui dit « ceci se règle » dans cette interface, et elle suit le mode nuit (§11.1).
+/* Le rail est peint en --bordure-controle, comme le trait sous un nombre réglable (`.compteur`) : c'est
+   le trait qui dit « ceci se règle » dans cette interface, et elle suit le mode nuit (§11.1).
    Deux pixels plutôt qu'un : un filet de bordure se confondait avec les séparateurs des
    panneaux, qui ne se règlent pas. */
 .curseur-rail {
   width: 100%;
   height: calc(var(--trait) * 2);
-  background: var(--accent);
+  background: var(--bordure-controle);
 }
 
 /* Actif, le rail éclaircit sans changer de famille : il monte au --texte, comme le trait du
@@ -1919,7 +1848,7 @@ input[type='checkbox']:checked:disabled {
   width: 0.5rem;
   height: 1.1rem;
   translate: -50% -50%;
-  background: var(--accent);
+  background: var(--texte);
 }
 
 /* Le repère est plus haut que le pouce : il doit rester lisible quand le pouce est dessus. */
@@ -1929,7 +1858,7 @@ input[type='checkbox']:checked:disabled {
   width: var(--trait);
   height: 1.4rem;
   translate: -50% -50%;
-  background: var(--accent);
+  background: var(--texte);
 }
 
 /* La légende se lit SOUS le trait, à son abscisse : posée ailleurs, il faudrait deviner à quel
@@ -1972,7 +1901,7 @@ input[type='checkbox']:checked:disabled {
   font-size: var(--texte-mini);
   letter-spacing: var(--suivi-micro);
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--texte);
 }
 
 table {
@@ -2210,7 +2139,7 @@ th {
 /* §10.1 — la glose sort au survol. Aucune information critique n'en dépend seule : tout
    s'ouvre aussi au clic (§11.2). */
 .terme abbr {
-  text-decoration: underline dotted var(--accent);
+  text-decoration: underline dotted var(--attenue);
   text-underline-offset: var(--decalage-souligne);
   cursor: help;
 }
@@ -2219,7 +2148,7 @@ th {
   cursor: pointer;
   min-height: var(--cible-clic);
   padding: var(--pas-1) 0;
-  color: var(--accent);
+  color: var(--attenue);
   font-size: var(--texte-legende);
 }
 
@@ -2234,7 +2163,7 @@ th {
   margin: 0 0 var(--pas-3);
   padding: var(--pas-2) var(--pas-3);
   border-left: var(--trait-marque) solid var(--bordure);
-  background: var(--fond-accent);
+  background: var(--surface-haute);
   font-size: var(--texte-legende);
   color: var(--attenue);
 }
@@ -2264,21 +2193,9 @@ th {
   padding: var(--pas-1) 0;
 }
 
-.tracee summary {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--pas-4);
-  min-height: var(--cible-clic);
-  align-items: center;
-  cursor: pointer;
-  font-size: var(--texte-micro);
-  letter-spacing: var(--suivi-micro);
-  text-transform: uppercase;
-  color: var(--attenue);
-}
-
 /* La lecture qui ne se calcule pas encore garde la ligne de sa voisine tracée :
-   elle ne se déplie pas, faute de formule, mais elle occupe la même place. */
+   elle ne se déplie pas, faute de formule, mais elle occupe la même place — la même règle. */
+.tracee summary,
 .tracee-vide {
   display: flex;
   justify-content: space-between;
@@ -2290,6 +2207,10 @@ th {
   letter-spacing: var(--suivi-micro);
   text-transform: uppercase;
   color: var(--attenue);
+}
+
+.tracee summary {
+  cursor: pointer;
 }
 
 .tracee summary:hover {
@@ -2358,14 +2279,14 @@ th {
 }
 
 /* Un bouton est un cadre, pas un relief : filet d'un pixel, fond transparent, et
-   l'aplat teinté ne vient qu'au survol. Rien ne brille tant qu'on ne le désigne pas — sur
+   l'aplat neutre ne vient qu'au survol. Rien ne brille tant qu'on ne le désigne pas — sur
    un écran regardé dans le noir, un aplat permanent est une lampe permanente. */
 button,
 .bouton-fichier {
   min-height: var(--cible-clic);
   padding: var(--pas-2) var(--pas-3);
   background: transparent;
-  color: var(--accent);
+  color: var(--texte);
   border: var(--trait) solid var(--bordure);
   border-radius: 0;
   font: var(--texte-micro)/1.4 var(--police-mono);
@@ -2376,8 +2297,8 @@ button,
 
 button:not(:disabled):hover,
 .bouton-fichier:hover {
-  background: var(--fond-accent);
-  border-color: var(--accent);
+  background: var(--surface-haute);
+  border-color: var(--texte);
   color: var(--texte);
 }
 
@@ -2420,7 +2341,7 @@ button:disabled {
   font-family: var(--police-mono);
   font-variant-numeric: tabular-nums;
   letter-spacing: var(--suivi-horaire);
-  color: var(--accent);
+  color: var(--texte);
 }
 
 /* Le nom de l'étape mène à sa fiche. Il reste un titre : il prend la typographie de la ligne
@@ -2437,13 +2358,13 @@ button:disabled {
   letter-spacing: var(--suivi-etape);
   text-transform: uppercase;
   text-align: left;
-  text-decoration: underline;
+  text-decoration: underline var(--bordure-controle);
 }
 
 .etape-lien:not(:disabled):hover,
 .etape-lien:focus-visible {
   background: transparent;
-  color: var(--accent);
+  text-decoration-color: var(--texte);
 }
 
 /* L'aide au pointage est une commande de l'étape, pas la suite de la ligne de pastilles :
@@ -2474,7 +2395,7 @@ button:disabled {
 .schema {
   position: relative;
   width: 100%;
-  max-width: 22rem;
+  max-width: var(--carte-large);
   aspect-ratio: 1;
   margin: var(--pas-2) auto;
   border: var(--trait) solid var(--bordure);
@@ -2492,12 +2413,12 @@ button:disabled {
 }
 
 .schema-cible {
-  color: var(--accent);
+  color: var(--texte);
   font-weight: 700;
 }
 /* Le zénith et le nord ne sont pas des astres : ils portent la couleur des repères. */
 .schema-repere {
-  color: var(--accent);
+  color: var(--texte);
 }
 
 /* Les trois repères du schéma étaient des caractères Unicode (« ✛ », « ● », « ★ »)
@@ -2646,7 +2567,7 @@ button:disabled {
   gap: var(--pas-1);
 }
 .cibles-mag-valeur {
-  color: var(--accent);
+  color: var(--texte);
   font-family: var(--police-mono);
 }
 
@@ -2669,14 +2590,14 @@ button:disabled {
   gap: var(--pas-2);
   min-height: var(--cible-clic);
   padding: var(--pas-2);
-  background: var(--fond-accent);
+  background: var(--surface-haute);
   color: var(--texte);
   border: var(--trait) solid var(--bordure-controle);
   font: var(--texte-appui)/1.4 var(--police-mono);
   letter-spacing: var(--suivi-saisie);
 }
 .cibles-types > summary:hover > .cibles-types-valeur {
-  border-color: var(--accent);
+  border-color: var(--texte);
 }
 .cibles-types .chevron {
   color: var(--attenue);
@@ -2737,7 +2658,7 @@ button:disabled {
 }
 .cible-ligne:hover,
 .cible-ligne:focus-visible {
-  background: var(--fond-accent);
+  background: var(--surface-haute);
 }
 
 .cible-designation {
@@ -2776,7 +2697,7 @@ button:disabled {
    couleur ne se compte pas, un disque plein contre un cercle vide se compte. `FILL` est l'axe
    de la police qui le fait sans changer la géométrie du glyphe. */
 .facilite-pleine {
-  color: var(--accent);
+  color: var(--texte);
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
@@ -2789,7 +2710,7 @@ button:disabled {
    différence est dans le remplissage, elle survit à la perte de la teinte. */
 .lateral-entete .facilite-pleine,
 .lateral-entete .facilite-vide {
-  color: var(--fond);
+  color: var(--barre-encre);
 }
 
 .cible-lectures {
@@ -2807,20 +2728,6 @@ button:disabled {
    lecteurs d'écran, ni rester orphelin en début de ligne après un retour. */
 .cible-lectures > span + span::before {
   content: '· ';
-}
-
-/* Une commande par ligne, deux cents fois : elle se réduit à son glyphe. Le libellé vit
-   dans `aria-label`, où il reste annoncé sans peser sur la colonne. */
-/* Un bouton d'action posé sur une cible — la viser, l'ajouter au plan. La classe nomme la
-   PLACE, pas le geste : les deux se tiennent côte à côte sur la ligne de liste comme dans
-   l'en-tête de fiche, et deux dessins différents s'y liraient comme deux registres. */
-.cible-action {
-  flex: 0 0 auto;
-  align-self: center;
-  min-width: var(--cible-clic);
-  min-height: var(--cible-clic);
-  padding: 0;
-  border-color: var(--bordure-faible);
 }
 
 .cibles-note {
@@ -2977,10 +2884,9 @@ button:disabled {
    d'un coup se lit comme un défaut d'affichage, pas comme une réponse au geste.
 
    TROIS ÉTATS, TROIS RANGS. Au repos, rien ne brille — sur un écran regardé dans le noir, un
-   aplat permanent est une lampe permanente. Au survol, le contrôle prend le fond
-   teinté et son filet passe à l'accent : il se désigne. À l'appui, il monte d'un cran sur
-   `--surface-haute` : c'est le seul moment où il pèse plus que ce qui l'entoure, et il ne dure
-   que le temps du doigt.
+   aplat permanent est une lampe permanente. Au survol, le contrôle prend l'aplat neutre de
+   `--surface-haute` et son filet passe au trait plein : il se désigne. L'appui garde cet aplat
+   et monte le texte au plein : il ne dure que le temps du doigt.
 
    RIEN NE BOUGE. Pas de `transform`, pas d'ombre portée, pas de décalage : §11.2 refuse
    l'animation, et un contrôle qui se déplace sous le doigt déplace aussi ce qui l'entoure. Ce
@@ -3150,7 +3056,7 @@ button:not(:disabled):active,
 /* Un titre de carte qui porte une aide au survol : même repère visuel qu'un terme du
    glossaire — le pointillé annonce qu'il y a quelque chose à lire, le curseur le confirme. */
 .aide {
-  text-decoration: underline dotted var(--accent);
+  text-decoration: underline dotted var(--attenue);
   text-underline-offset: var(--decalage-souligne);
   cursor: help;
 }

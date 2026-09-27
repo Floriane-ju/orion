@@ -104,6 +104,13 @@ export function avecOpacite(couleur: string, opacite: number): string {
   return `${couleur.slice(0, -1)} / ${opacite.toFixed(3)})`
 }
 
+/**
+ * La famille des textes que la scène écrit — noms, chiffres de pose, étapes du parcours : celle
+ * de l'interface (`--police-mono`), pas celle du système. Même lien que la palette ci-dessous,
+ * tenu par `mode-nuit.test.tsx`.
+ */
+export const POLICE_SCENE = "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+
 export interface PaletteCiel {
   readonly fond: string
   readonly figures: string
@@ -135,11 +142,11 @@ const PALETTE_NUIT: PaletteCiel = Object.freeze({
   frontieres: 'rgb(55 0 0)',
   asterismes: 'rgb(140 0 0)',
   corps: 'rgb(190 0 0)',
-  cadre: 'rgb(200 0 0)',
+  cadre: 'rgb(246 0 0)',
   horizon: 'rgb(70 0 0)',
   sol: 'rgb(18 0 0)',
   voieLactee: 'rgb(110 0 0)',
-  parcours: 'rgb(255 0 0)',
+  parcours: 'rgb(250 0 0)',
   texte: 'rgb(170 0 0)',
 })
 
@@ -155,6 +162,13 @@ const PALETTE_NUIT: PaletteCiel = Object.freeze({
  *
  * Les couleurs d'étoile ne sont pas ici : elles viennent de l'indice B−V (§3.3), c'est une
  * mesure, pas une décision de dessin.
+ *
+ * CE QUE LA SCÈNE EMPRUNTE À L'INTERFACE EST TENU ÉGAL À SON JETON. Le cadre du matériel est
+ * une commande posée sur le ciel — il prend `--accent` ; le parcours de pointage est un tracé de
+ * l'interface — il prend `--texte`. Les deux jours, puis la nuit au facteur nominal.
+ * Le canevas ne lit pas la feuille de style : c'est `mode-nuit.test.tsx` qui compare, et une
+ * origine changée dans `styles.css` sans être reportée ici fait échouer `pnpm test`. Le cadre
+ * avait dérivé de l'accent sans que rien ne le dise.
  */
 const PALETTE_JOUR: PaletteCiel = Object.freeze({
   fond: '#000000',
@@ -162,11 +176,11 @@ const PALETTE_JOUR: PaletteCiel = Object.freeze({
   frontieres: 'rgb(52 52 52)',
   asterismes: 'rgb(170 170 170)',
   corps: 'rgb(244 199 106)',
-  cadre: 'rgb(143 208 255)',
+  cadre: 'rgb(139 255 239)',
   horizon: 'rgb(150 150 150)',
   sol: 'rgb(5 5 5)',
   voieLactee: 'rgb(150 186 205)',
-  parcours: 'rgb(236 236 236)',
+  parcours: 'rgb(233 233 233)',
   texte: 'rgb(214 214 214)',
 })
 

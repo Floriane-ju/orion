@@ -32,6 +32,7 @@ C'est pourquoi chaque discipline ci-dessous a son test :
 | Discipline | Tenue par |
 |---|---|
 | Aucune couleur écrite en dur hors des deux blocs de palette | `mode-nuit.test.tsx` |
+| Le canevas peint le cadre, le parcours et ses textes aux jetons de l'interface | `mode-nuit.test.tsx` |
 | La palette de nuit n'écrit que du rouge pur, et couvre chaque jeton du jour | `mode-nuit.test.tsx` |
 | Ratios WCAG AA calculés sur toute la palette, dans les deux modes | `mode-nuit.test.tsx` |
 | Aucun écart écrit en dur dans une propriété d'espacement | `echelles.test.ts` |
@@ -55,31 +56,49 @@ Tout vit dans les deux blocs `:root` de `src/ui/styles.css`. **Il n'y a pas de c
 primitives** : les jetons sont directement sémantiques. Le mode nuit surcharge chacun d'eux
 individuellement, avec une valeur calculée — une primitive n'aurait aucun consommateur.
 
-### Couleurs — 2 origines, 13 jetons, tous repeints en mode nuit
+### Couleurs — 2 origines, 16 jetons, tous repeints en mode nuit
 
-Deux origines en tête du bloc : `--base-neutre` (`#ececec`) et `--base-accent` (`#8fd0ff`). Chaque nuance
-neutre est `color-mix(in srgb, var(--base-neutre) P%, var(--fond))`, l'aplat d'accent de même depuis
-`--base-accent` : changer une origine repeint toute sa famille. `mode-nuit.test.tsx` résout ces
+Deux origines en tête du bloc : `--base-neutre` (`#e9e9e9`) et `--base-accent` (`#8bffef`). Chaque nuance
+est `color-mix(in srgb, var(--base-neutre) P%, var(--fond))` : changer l'origine repeint toute la
+famille. L'accent n'a pas de nuance — il ne peint que la marque et le cadre du matériel. `mode-nuit.test.tsx` résout ces
 mélanges avant de calculer les ratios WCAG.
 
 | Jeton | Jour | Rôle |
 |---|---|---|
 | `--fond` | `#000000` | fond de page et de scène |
 | `--surface` | `--base-neutre` 3 % | barres, cartes |
-| `--surface-haute` | `--base-neutre` 8,5 % | un contrôle sous le doigt |
+| `--surface-haute` | `--base-neutre` 8,5 % | un contrôle sous le doigt : survol, appui, fond de saisie |
 | `--texte` | `--base-neutre` | texte principal |
 | `--attenue` | `--base-neutre` 69 % | texte secondaire, étiquettes |
-| `--accent` | `--base-accent` | commandes, valeurs actives, focus, « ceci se règle » |
+| `--accent` | `--base-accent` | **la marque (`h1`) et le cadre du matériel, rien d'autre** |
 | `--avertissement` | `#f4c76a` | un rail sous la main |
 | `--bordure` | `--base-neutre` 83 % | filet de conteneur |
 | `--bordure-controle` | `--base-neutre` 59,3 % | filet de contrôle — tenu à ≥ 3:1 (WCAG 1.4.11) |
 | `--bordure-faible` | `--base-neutre` 13,1 % | séparateur de ligne |
 | `--alerte` | `#ff6f5e` | erreur, cause d'écart |
 | `--fond-alerte` | `#1a0f0d` | aplat d'alerte |
-| `--fond-accent` | `--base-accent` 10 % | aplat de survol, fond de saisie |
+| `--barre-fond` | `--texte` | aplat d'une barre de titre (nuit : noir) |
+| `--barre-encre` | `--fond` | titre et commandes posés sur la barre (nuit : rouge) |
+| `--barre-survol` | `--attenue` | aplat d'une commande de barre survolée (nuit : rouge 20) |
+| `--barre-survol-encre` | `--fond` | son glyphe (nuit : `--accent`) |
 
 > En mode nuit, chacun devient `rgb(calc(var(--luminance-nuit) * N) 0 0)`. Canaux vert et bleu
 > strictement nuls : c'est le critère d'acceptation de §11.1, et il est calculé par un test.
+
+**Les quatre `--barre-*` sont les seules couleurs d'une barre de titre** — section, carte,
+panneau latéral, modale info. Une barre ou une commande qui se pose dessus (la variante « sur
+fond clair » d'un bouton) n'écrit ni `--texte` ni `--fond` : elle écrit son rôle, et le mode
+nuit ne la surcharge pas une par une.
+
+**Toute l'interface est neutre** — commandes, survols, focus, réglages, états enfoncés sont des
+nuances de `--base-neutre`. L'accent est réservé à ce qu'on vise : la marque et le cadre du
+matériel (canevas et encart de l'image). Un survol se lit à l'aplat `--surface-haute` et au
+filet qui passe au `--texte`, jamais à une teinte.
+
+**Le canevas reprend les jetons de l'interface.** Le cadre du matériel est `--accent`, le
+parcours de pointage `--texte`, les textes de la scène `--police-mono` : `couleurs.ts` les
+recopie (le canevas ne lit pas la feuille) et `mode-nuit.test.tsx` échoue si l'un dérive, jour
+comme nuit. Les étoiles, objets et fonds de ciel restent hors du kit : ce sont des mesures.
 
 ### Espacement — sept pas, en multiples de 4 px
 
@@ -275,9 +294,20 @@ appartient à la phrase, pas au composant.
 | Composant | Consommateurs | À utiliser pour |
 |---|---|---|
 | `Icone` | 12 | **toute icône**, sans exception |
+| `BoutonGlyphe` | 9 | **tout bouton qui ne porte qu'un glyphe** — bulle, cible gantée, état enfoncé rempli |
 | `Tiroir` | 3 | un tiroir de barre — `<details>` sans JavaScript |
 | `Carte` | 3 | une carte repliable posée sur la scène, à place fixe |
 | `Pastilles` | 2 | une note sur une échelle, comptée d'un coup d'œil |
+
+`BoutonGlyphe` a trois variantes, nommées par le fond où il se pose : `cadre` (dans un panneau,
+par défaut), `flottant` (seul sur le ciel — le rail), `nu` (dans une rangée qui le borde — le
+transport du temps, le retour de fiche). Enfoncé (`presse`), son glyphe se remplit dans toutes.
+La bulle nomme le bouton ; `libelle` ne se passe que si elle dit autre chose que le geste.
+
+```tsx
+<BoutonGlyphe icone="photo_camera" aide="Photographier M31 cette nuit" presse={choisie} onClick={…} />
+<BoutonGlyphe icone="route" aide="Masquer le parcours" variante="flottant" place="droite" onClick={…} />
+```
 
 ```tsx
 <Tiroir modificateur="info" resume={<><Icone nom="info" />info</>}>
@@ -361,7 +391,7 @@ les plus proches, et demander.
 | Une couche de primitives sous les couleurs | Le mode nuit surcharge chaque jeton sémantique individuellement. Une primitive n'aurait aucun consommateur. |
 | Des jetons de z-index | Sept valeurs, un seul bloc, un ordre d'empilement énoncé en commentaire. |
 | Un jeton de point de rupture | Une seule valeur (1100px). |
-| Un composant `Bouton` | Le style est porté par le sélecteur d'élément `button`, appliqué à 23 boutons sans classe. Un composant n'ajouterait qu'une indirection. |
+| Un composant `Bouton` | Le style est porté par le sélecteur d'élément `button`, appliqué aux boutons à libellé. Un composant n'ajouterait qu'une indirection. Le bouton à glyphe seul, lui, en a un (`BoutonGlyphe`) : il porte un contrat — bulle, nom accessible, cible gantée — que neuf recopies tenaient chacune à sa façon. |
 | `Modale`, `Badge`, `Toast`, `Skeleton`, `Pagination` | Aucun n'existe dans le produit. |
 | Une feuille de style découpée | `styles.css` est une TABLE, comme `registry/constants.ts` : une région par bloc, aucune logique à suivre. Douze disciplines lisent son texte ; la découper ferait dépendre leurs garanties d'une liste de fichiers à tenir à jour. |
 | ESLint, Prettier, Stylelint | Le dépôt n'en a pas. La vérification est `pnpm typecheck && pnpm test`. |

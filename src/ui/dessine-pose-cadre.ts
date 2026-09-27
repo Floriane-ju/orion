@@ -16,6 +16,7 @@ import { cellulesCadreJ2000, type Cadre } from '../core/cadre.ts'
 import { DEG, type Mat3 } from '../core/mat3.ts'
 import { pointEcran, type Projecteur } from '../core/projection.ts'
 import { npf } from '../core/tracking.ts'
+import { POLICE_SCENE } from './couleurs.ts'
 
 /** Ce que la NPF demande du matériel, et rien de plus (§9.1). */
 export interface OptiquePose {
@@ -106,11 +107,11 @@ export function dessineCartePose(entree: {
     const limitante =
       seuil !== null && cellule.tNpfS !== null && cellule.tNpfS <= seuil
     ctx.fillStyle = limitante ? entree.couleurLimitante : entree.couleurTexte
-    ctx.font = `${police}px system-ui, sans-serif`
+    ctx.font = `${police}px ${POLICE_SCENE}`
     // Au pôle exact la NPF diverge : la cellule porte le symbole, pas une durée inventée.
     const pose = cellule.tNpfS === null ? '∞' : `${formatePose(cellule.tNpfS)} s`
     ctx.fillText(pose, cellule.xPx, cellule.yPx - policeDec / 2)
-    ctx.font = `${policeDec}px system-ui, sans-serif`
+    ctx.font = `${policeDec}px ${POLICE_SCENE}`
     ctx.fillText(`δ ${cellule.decDeg.toFixed(0)}°`, cellule.xPx, cellule.yPx + police / 2)
   }
   ctx.font = ancienneFonte

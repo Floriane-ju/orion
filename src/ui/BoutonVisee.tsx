@@ -12,8 +12,7 @@ import { coordonneesHorizon } from '../core/cibles-liste.ts'
 import type { Site } from '../core/ephem.ts'
 import { cielInstantane } from '../core/horloges.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
-import { Bulle } from './Bulle.tsx'
-import { Icone } from './Icone.tsx'
+import { BoutonGlyphe } from './BoutonGlyphe.tsx'
 import { majVue, minuteAffichee, useTrancheScene, MS_PAR_MINUTE } from './scene-etat.ts'
 
 export interface BoutonViseeProps {
@@ -24,15 +23,12 @@ export interface BoutonViseeProps {
 
 export function BoutonVisee({ designation, azimutDeg, hauteurDeg }: BoutonViseeProps) {
   return (
-    <Bulle texte={libelleVisee(designation, hauteurDeg)} place="gauche" nomme>
-      <button
-        type="button"
-        className="cible-action"
-        onClick={() => majVue({ azimutDeg, hauteurDeg })}
-      >
-        <Icone nom="my_location" />
-      </button>
-    </Bulle>
+    <BoutonGlyphe
+      icone="my_location"
+      aide={libelleVisee(designation, hauteurDeg)}
+      place="gauche"
+      onClick={() => majVue({ azimutDeg, hauteurDeg })}
+    />
   )
 }
 

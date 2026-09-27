@@ -19,6 +19,7 @@ import { ETAT_INITIAL, appliqueModeNuit, litEtatPersiste } from '../src/ui/ModeN
 import { Mention } from '../src/ui/Mention.tsx'
 import { K } from '../src/registry/constants.ts'
 import { etatScene } from '../src/ui/scene-etat.ts'
+import { POLICE_SCENE, palette, type PaletteCiel } from '../src/ui/couleurs.ts'
 
 const CSS = readFileSync(join(import.meta.dirname, '..', 'src', 'ui', 'styles.css'), 'utf8')
 
@@ -188,6 +189,29 @@ describe('palette du mode nuit §11.1', () => {
  * Ce bloc vérifie qu'ils sont déclarés, et déclarés depuis les jetons de la palette : c'est
  * ce qui les fait basculer au rouge avec le reste.
  */
+/**
+ * La scène peint des objets d'interface — le cadre du matériel, le parcours de pointage — sur un
+ * canevas que la feuille n'atteint pas. Leur teinte est recopiée dans `couleurs.ts` : ce test
+ * est ce qui la tient à son jeton, dans les deux modes.
+ */
+describe('la scène reprend les jetons de l’interface', () => {
+  const rvb = (valeur: string): string => `rgb(${canaux(valeur).join(' ')})`
+  const liens: readonly (readonly [keyof PaletteCiel, string])[] = [
+    ['cadre', 'accent'],
+    ['parcours', 'texte'],
+  ]
+
+  it.each(liens)('%s suit --%s, le jour comme la nuit', (repere, jeton) => {
+    expect(palette(false)[repere]).toBe(rvb(paletteParDefaut()[jeton]!))
+    expect(palette(true)[repere]).toBe(rvb(paletteDeNuit()[jeton]!))
+  })
+
+  it('écrit ses textes dans la famille de l’interface', () => {
+    const famille = /--police-mono:\s*([^;]+);/.exec(CSS)?.[1]?.replace(/\s+/g, ' ')
+    expect(POLICE_SCENE).toBe(famille)
+  })
+})
+
 describe('focus et couleurs du navigateur — T-0070', () => {
   /** Seuil WCAG 2.4.11 « Focus Appearance » pour l'indicateur de focus. */
   const CONTRASTE_FOCUS_MINIMAL = 3
@@ -302,6 +326,18 @@ describe('contraste du texte — WCAG 2.2 AA', () => {
     })
   }
 
+  it('lit l’encre d’une barre de titre sur son aplat, au repos comme au survol', () => {
+    for (const jetons of [paletteParDefaut(), paletteDeNuit()]) {
+      for (const [encre, aplat] of [
+        ['barre-encre', 'barre-fond'],
+        ['barre-survol-encre', 'barre-survol'],
+      ] as const) {
+        expect(contraste(jetons[encre]!, jetons[aplat]!), `--${encre} sur --${aplat}`)
+          .toBeGreaterThanOrEqual(CONTRASTE_TEXTE_MINIMAL)
+      }
+    }
+  })
+
   it('garde la hiérarchie du texte secondaire, que la luminance ne porte plus', () => {
     // Le plafond de 5,25:1 colle --attenue à --texte : l'ordre subsiste mais ne se voit
     // plus. Ce qui distingue le texte secondaire est donc sa taille, et sa graisse là où
@@ -333,7 +369,7 @@ describe('contraste des bordures de controle - WCAG 2.2 1.4.11', () => {
   const CONTRASTE_BORDURE_MINIMAL = 3
 
   const JETONS_BORDURE_CONTROLE = ['bordure-controle'] as const
-  const JETONS_FOND = ['fond', 'surface', 'surface-haute', 'fond-alerte', 'fond-accent'] as const
+  const JETONS_FOND = ['fond', 'surface', 'surface-haute', 'fond-alerte'] as const
 
   for (const [mode, palette] of [
     ['normal', paletteParDefaut],

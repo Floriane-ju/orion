@@ -14,7 +14,7 @@
 
 import type { Projecteur } from '../core/projection.ts'
 import { versVecteur } from '../core/mat3.ts'
-import type { PaletteCiel } from './couleurs.ts'
+import { POLICE_SCENE, type PaletteCiel } from './couleurs.ts'
 import { HAUTEUR_LABEL_PX } from './libelles-cibles.ts'
 import { peintCroix } from './marqueur-objet.ts'
 import type { ParcoursScene } from './scene-etat.ts'
@@ -81,7 +81,7 @@ export function dessineParcours(
   ctx.setLineDash([])
 
   // --- Les étapes : un cercle, son rang et son nom --------------------------
-  ctx.font = `${HAUTEUR_LABEL_PX}px system-ui, sans-serif`
+  ctx.font = `${HAUTEUR_LABEL_PX}px ${POLICE_SCENE}`
   const largeur = projecteur.vue.largeurPx
   const hauteur = projecteur.vue.hauteurPx
   for (const [index, point] of points.entries()) {

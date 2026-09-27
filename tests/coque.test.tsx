@@ -219,8 +219,8 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
   })
 
   // T-0238 — un seul dessin pour tout ce qui se pose sur le ciel. La maquette filaire remplace
-  // les équerres par la fenêtre : filet complet, barre de titre pleine en --texte sous un titre
-  // en --fond — le couple que le mode nuit repeint sans jeton de plus.
+  // les équerres par la fenêtre : filet complet, barre de titre pleine en --barre-fond sous un
+  // titre en --barre-encre — le couple que le mode nuit repeint une fois pour toutes les barres.
   it('donne aux cartes, aux rubriques et aux panneaux la même barre de titre', () => {
     const regleDe = (selecteur: string) => {
       const debut = CSS_COQUE.indexOf(`${selecteur} {`)
@@ -228,8 +228,18 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
       return CSS_COQUE.slice(debut, CSS_COQUE.indexOf('}', debut))
     }
     for (const selecteur of ['.carte-entete', '.lateral-entete', 'section:not([class]) > h2:first-child']) {
-      expect(regleDe(selecteur), selecteur).toMatch(/background: (linear-gradient\()?var\(--texte\)/)
+      expect(regleDe(selecteur), selecteur).toMatch(/background: (linear-gradient\()?var\(--barre-fond\)/)
     }
+    // Le titre d'une section prend l'encre de la barre, et rien après lui ne la reprend : un
+    // `color: inherit` groupé plus bas le peignait en --texte, blanc sur l'aplat blanc.
+    const titre = 'section:not([class]) > h2:first-child'
+    expect(regleDe(titre)).toContain('color: var(--barre-encre)')
+    const suite = CSS_COQUE.slice(CSS_COQUE.indexOf(`${titre} {`) + titre.length)
+    for (const bloc of suite.split('}').filter((b) => b.includes(titre))) {
+      expect(bloc, 'une règle ultérieure recolore le titre de section').not.toMatch(/\bcolor:/)
+    }
+    // Même barre qu'une carte repliable : même hauteur, filet compris.
+    expect(regleDe(titre)).toContain('height: calc(var(--barre-titre) + var(--trait))')
     expect(CSS_COQUE).not.toContain('.coque-lateral::before')
   })
 
@@ -531,7 +541,8 @@ describe('§3.4 — un objet cliqué ouvre sa fiche', () => {
     ouvreCible(M31)
     const fiche = ecran()
     expect(fiche).toContain('lateral-retour')
-    expect(fiche).toContain('aria-label="Revenir à la liste des cibles"')
+    // La bulle nomme le bouton (`BoutonGlyphe`) : son texte est le nom accessible.
+    expect(fiche).toContain('role="tooltip" data-place="bas">Revenir à la liste des cibles<')
     // L'en-tête nomme la cible et porte sa note, hors de tout bouton : elle est annoncée.
     expect(fiche).toContain('<h2 tabindex="-1">M31</h2>')
   })

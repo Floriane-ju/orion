@@ -25,9 +25,8 @@ import {
 } from '../core/constellations.ts'
 import { bornesZoom, type ModeProjection } from '../core/projection.ts'
 import type { MasqueHorizon } from '../core/site.ts'
-import { Bulle } from './Bulle.tsx'
+import { BoutonGlyphe } from './BoutonGlyphe.tsx'
 import type { CouchesActives } from './dessine-ciel.ts'
-import { Icone } from './Icone.tsx'
 import { RACCOURCIS_CLAVIER } from './planetarium-gestes.ts'
 import {
   majRendu,
@@ -126,21 +125,18 @@ interface BasculeProps {
 
 function Bascule(props: BasculeProps) {
   return (
-    <Bulle texte={props.aide} place="droite">
-      {/* `aria-pressed` plutôt qu'une case : ces boutons ne déplient rien, ils tiennent un
-          état à deux positions — même grammaire que la bascule de mode de la barre haute.
-          L'icône reste `aria-hidden` : le bouton porte déjà son nom, la ligature serait
-          annoncée deux fois. */}
-      <button
-        type="button"
-        className={props.eteinte === true ? 'bascule eteinte' : 'bascule'}
-        aria-label={props.libelle}
-        aria-pressed={props.actif}
-        onClick={props.sur}
-      >
-        <Icone nom={props.nom} />
-      </button>
-    </Bulle>
+    // `aria-pressed` plutôt qu'une case : ces boutons ne déplient rien, ils tiennent un état à
+    // deux positions — même grammaire que la bascule de mode de la barre haute.
+    <BoutonGlyphe
+      icone={props.nom}
+      aide={props.aide}
+      libelle={props.libelle}
+      place="droite"
+      variante="flottant"
+      presse={props.actif}
+      eteinte={props.eteinte === true}
+      onClick={props.sur}
+    />
   )
 }
 
@@ -216,16 +212,13 @@ export function RailVue(props: RailVueProps) {
             {/* T-0324 — la bulle NOMME la cible : deux étapes du plan peuvent avoir leur aide
                 au pointage ouverte en même temps, et un libellé générique laisserait deviner
                 lequel des deux trajets la scène montre. */}
-            <Bulle texte={`Masquer le parcours vers ${cibleDuParcours}`} place="droite">
-              <button
-                type="button"
-                className="bascule"
-                aria-label={`Masquer le parcours vers ${cibleDuParcours}`}
-                onClick={masqueParcours}
-              >
-                <Icone nom="route" />
-              </button>
-            </Bulle>
+            <BoutonGlyphe
+              icone="route"
+              aide={`Masquer le parcours vers ${cibleDuParcours}`}
+              place="droite"
+              variante="flottant"
+              onClick={masqueParcours}
+            />
           </div>
         )}
 
@@ -260,15 +253,13 @@ export function RailVue(props: RailVueProps) {
             d'`aria-pressed`. Sa bulle s'ouvre au focus autant qu'au survol, et c'est exactement
             le public concerné : qui pilote la scène au clavier l'atteint au clavier. */}
         <div className="rail-groupe">
-          <Bulle texte={RACCOURCIS_CLAVIER} place="droite">
-            <button
-              type="button"
-              className="bascule"
-              aria-label="Raccourcis clavier de la scène"
-            >
-              <Icone nom="keyboard" />
-            </button>
-          </Bulle>
+          <BoutonGlyphe
+            icone="keyboard"
+            aide={RACCOURCIS_CLAVIER}
+            libelle="Raccourcis clavier de la scène"
+            place="droite"
+            variante="flottant"
+          />
         </div>
       </div>
 
