@@ -42,7 +42,7 @@
      ou de l'autre en est un MÉLANGE avec le fond, pas une seconde couleur. Changer
      l'une de ces deux lignes repeint toute la famille, dans les mêmes proportions.
      `mode-nuit.test.tsx` résout ces mélanges pour recalculer les ratios WCAG. */
-  --base-neutre: #fff;
+  --base-neutre: #e9e9e9;
   --base-accent: #8bffef;
   --fond: #000000;
   --surface: color-mix(in srgb, var(--base-neutre) 3%, var(--fond));
