@@ -450,8 +450,8 @@ describe('§11.3 — la bascule de mode forme les onglets du panneau latéral', 
     const debut = CSS_COQUE.indexOf('.onglet.actif {')
     expect(debut).toBeGreaterThan(-1)
     const actif = CSS_COQUE.slice(debut, CSS_COQUE.indexOf('}', debut))
-    expect(actif).toContain('background: var(--fond-accent)')
-    expect(actif).toContain('border-bottom-color: var(--accent)')
+    expect(actif).toContain('background: var(--surface-haute)')
+    expect(actif).toContain('border-bottom-color: var(--texte)')
     expect(actif).toContain('font-weight: 700')
   })
 

@@ -37,11 +37,30 @@ function declarationsCouleur(bloc: string): readonly string[] {
     .map((ligne) => ligne.slice(ligne.indexOf(':') + 1).replace(';', '').trim())
 }
 
-/** Les jetons d'un bloc de palette, avec leur valeur brute. */
+/**
+ * Les jetons d'un bloc de palette, avec leur valeur résolue : `var(--x)` prend la valeur de
+ * `--x`, et `color-mix(in srgb, var(--a) P%, var(--b))` est calculé en `#rrggbb` — les nuances
+ * du neutre et de l'accent dérivent de leur origine, et c'est leur couleur RENDUE qui doit tenir.
+ */
 function jetonsDuBloc(bloc: string): Readonly<Record<string, string>> {
-  return Object.fromEntries(
+  const bruts: Record<string, string> = Object.fromEntries(
     [...bloc.matchAll(/--([a-z-]+):\s*([^;]+);/g)].map((m) => [m[1]!, m[2]!.trim()]),
   )
+  const resous = (valeur: string): string => {
+    const reference = /^var\(--([a-z-]+)\)$/.exec(valeur)
+    if (reference) return resous(bruts[reference[1]!]!)
+    const melange =
+      /^color-mix\(in srgb,\s*var\(--([a-z-]+)\)\s+([\d.]+)%,\s*var\(--([a-z-]+)\)\)$/.exec(valeur)
+    if (!melange) return valeur
+    const part = Number(melange[2]) / 100
+    const [a, b] = [canaux(resous(bruts[melange[1]!]!)), canaux(resous(bruts[melange[3]!]!))]
+    const octet = (i: number): string =>
+      Math.round(a[i]! * part + b[i]! * (1 - part))
+        .toString(16)
+        .padStart(2, '0')
+    return `#${octet(0)}${octet(1)}${octet(2)}`
+  }
+  return Object.fromEntries(Object.keys(bruts).map((nom) => [nom, resous(bruts[nom]!)]))
 }
 
 const paletteParDefaut = (): Readonly<Record<string, string>> =>
@@ -55,6 +74,8 @@ const paletteDeNuit = (): Readonly<Record<string, string>> => jetonsDuBloc(blocM
  * le lire à 1 revient à mesurer le meilleur cas, celui où le seuil doit tenir.
  */
 function canaux(valeur: string): readonly [number, number, number] {
+  const court = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(valeur)
+  if (court) return [1, 2, 3].map((i) => parseInt(court[i]!.repeat(2), 16)) as [number, number, number]
   const hex = /^#([0-9a-f]{6})$/i.exec(valeur)
   if (hex) {
     const canal = (i: number): number => parseInt(hex[1]!.slice(i, i + 2), 16)

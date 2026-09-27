@@ -55,23 +55,28 @@ Tout vit dans les deux blocs `:root` de `src/ui/styles.css`. **Il n'y a pas de c
 primitives** : les jetons sont directement sémantiques. Le mode nuit surcharge chacun d'eux
 individuellement, avec une valeur calculée — une primitive n'aurait aucun consommateur.
 
-### Couleurs — 13 jetons, tous repeints en mode nuit
+### Couleurs — 2 origines, 13 jetons, tous repeints en mode nuit
+
+Deux origines en tête du bloc : `--base-neutre` (`#ececec`) et `--base-accent` (`#8fd0ff`). Chaque nuance
+neutre est `color-mix(in srgb, var(--base-neutre) P%, var(--fond))`, l'aplat d'accent de même depuis
+`--base-accent` : changer une origine repeint toute sa famille. `mode-nuit.test.tsx` résout ces
+mélanges avant de calculer les ratios WCAG.
 
 | Jeton | Jour | Rôle |
 |---|---|---|
 | `--fond` | `#000000` | fond de page et de scène |
-| `--surface` | `#070707` | barres, cartes |
-| `--surface-haute` | `#141414` | un contrôle sous le doigt |
-| `--texte` | `#ececec` | texte principal |
-| `--attenue` | `#a3a3a3` | texte secondaire, étiquettes |
-| `--accent` | `#8fd0ff` | commandes, valeurs actives, focus, « ceci se règle » |
+| `--surface` | `--base-neutre` 3 % | barres, cartes |
+| `--surface-haute` | `--base-neutre` 8,5 % | un contrôle sous le doigt |
+| `--texte` | `--base-neutre` | texte principal |
+| `--attenue` | `--base-neutre` 69 % | texte secondaire, étiquettes |
+| `--accent` | `--base-accent` | commandes, valeurs actives, focus, « ceci se règle » |
 | `--avertissement` | `#f4c76a` | un rail sous la main |
-| `--bordure` | `#c4c4c4` | filet de conteneur |
-| `--bordure-controle` | `#8c8c8c` | filet de contrôle — tenu à ≥ 3:1 (WCAG 1.4.11) |
-| `--bordure-faible` | `#1f1f1f` | séparateur de ligne |
+| `--bordure` | `--base-neutre` 83 % | filet de conteneur |
+| `--bordure-controle` | `--base-neutre` 59,3 % | filet de contrôle — tenu à ≥ 3:1 (WCAG 1.4.11) |
+| `--bordure-faible` | `--base-neutre` 13,1 % | séparateur de ligne |
 | `--alerte` | `#ff6f5e` | erreur, cause d'écart |
 | `--fond-alerte` | `#1a0f0d` | aplat d'alerte |
-| `--fond-accent` | `#0a121a` | aplat de survol, fond de saisie |
+| `--fond-accent` | `--base-accent` 10 % | aplat de survol, fond de saisie |
 
 > En mode nuit, chacun devient `rgb(calc(var(--luminance-nuit) * N) 0 0)`. Canaux vert et bleu
 > strictement nuls : c'est le critère d'acceptation de §11.1, et il est calculé par un test.

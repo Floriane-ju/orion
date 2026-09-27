@@ -38,19 +38,25 @@
 
 :root {
   color-scheme: dark;
+  /* LES DEUX ORIGINES. Le neutre et l'accent sont écrits une fois ; chaque nuance de l'un
+     ou de l'autre en est un MÉLANGE avec le fond, pas une seconde couleur. Changer
+     l'une de ces deux lignes repeint toute la famille, dans les mêmes proportions.
+     `mode-nuit.test.tsx` résout ces mélanges pour recalculer les ratios WCAG. */
+  --base-neutre: #fff;
+  --base-accent: #8bffef;
   --fond: #000000;
-  --surface: #070707;
-  --surface-haute: #141414;
-  --texte: #ececec;
-  --attenue: #a3a3a3;
-  --accent: #8fd0ff;
+  --surface: color-mix(in srgb, var(--base-neutre) 3%, var(--fond));
+  --surface-haute: color-mix(in srgb, var(--base-neutre) 8.5%, var(--fond));
+  --texte: var(--base-neutre);
+  --attenue: color-mix(in srgb, var(--base-neutre) 69%, var(--fond));
+  --accent: var(--base-accent);
   --avertissement: #f4c76a;
-  --bordure: #c4c4c4;
-  --bordure-controle: #8c8c8c;
-  --bordure-faible: #1f1f1f;
+  --bordure: color-mix(in srgb, var(--base-neutre) 83%, var(--fond));
+  --bordure-controle: color-mix(in srgb, var(--base-neutre) 59.3%, var(--fond));
+  --bordure-faible: color-mix(in srgb, var(--base-neutre) 13.1%, var(--fond));
   --alerte: #ff6f5e;
   --fond-alerte: #1a0f0d;
-  --fond-accent: #0a121a;
+  --fond-accent: color-mix(in srgb, var(--base-accent) 10%, var(--fond));
   /* Hauteur minimale d'une cible de clic : usage ganté sur écran tactile (§11.2). */
   --cible-clic: 44px;
 }
@@ -98,6 +104,8 @@
    couleur. --accent et --avertissement, qui se lisent à leur teinte le jour, ne se
    distinguent plus que par la place qu'ils occupent une fois passés au rouge. */
 :root[data-mode-nuit='true'] {
+  --base-neutre: rgb(calc(var(--luminance-nuit) * 250) 0 0);
+  --base-accent: rgb(calc(var(--luminance-nuit) * 246) 0 0);
   --fond: #000000;
   --surface: rgb(calc(var(--luminance-nuit) * 8) 0 0);
   --surface-haute: rgb(calc(var(--luminance-nuit) * 18) 0 0);
@@ -754,7 +762,7 @@ body {
    que le clic n'a rien fait. */
 .panneau-temps-cran[aria-pressed='true'],
 .panneau-temps-lecture[aria-pressed='true'] {
-  border-color: var(--accent);
+  border-color: var(--texte);
 }
 
 /* En saisie, l'instant n'est plus une lecture : il prend la rangée entière et la couleur du
@@ -833,19 +841,20 @@ body {
    donc — l'axe `FILL` de la police est une forme, pas une couleur, et il survit au
    basculement. Le fond et la teinte s'y ajoutent le jour, ils ne le remplacent pas. */
 .cible-action[aria-pressed='true'] {
-  background: var(--fond-accent);
-  color: var(--accent);
+  background: var(--surface-haute);
+  color: var(--texte);
 }
 
-/* Les bascules posées sur le ciel s'allument en APLAT : fond d'accent plein, glyphe au fond.
+/* Les bascules posées sur le ciel s'allument en APLAT : fond neutre plein, glyphe au fond.
+   Un état SÉLECTIONNÉ est neutre : l'accent reste à ce qui se commande, pas à ce qui est pris.
    Un fond teinté se perdait sur le ciel ; un aplat se repère d'un coup d'œil, allumé ou non.
    Le survol garde le glyphe au fond — au --texte, il disparaîtrait dans l'aplat. */
 .bascule[aria-pressed='true'],
 .bascule[aria-pressed='true']:not(:disabled):hover,
 .tiroir-nuit[data-actif='true'] > summary,
 .tiroir-nuit[data-actif='true'] > summary:hover {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--texte);
+  border-color: var(--texte);
   color: var(--fond);
 }
 
@@ -861,10 +870,10 @@ body {
   color: var(--bordure-controle);
 }
 
-/* Allumée mais sans effet : l'aplat s'efface au fond teinté, pour ne pas promettre une couche
-   qu'on ne verra pas. */
+/* Allumée mais sans effet : l'aplat s'efface à la surface haute, pour ne pas promettre une
+   couche qu'on ne verra pas. */
 .bascule.eteinte[aria-pressed='true'] {
-  background: var(--fond-accent);
+  background: var(--surface-haute);
 }
 
 /* L'en-tête est l'interrupteur de la carte : `aria-expanded` l'annonce. T-0238 — il n'est
@@ -1251,10 +1260,10 @@ body {
 
 /* L'onglet actif ne se signale pas que par sa teinte : il porte aussi le trait et la graisse. */
 .onglet.actif {
-  background: var(--fond-accent);
-  color: var(--accent);
+  background: var(--surface-haute);
+  color: var(--texte);
   font-weight: 700;
-  border-bottom-color: var(--accent);
+  border-bottom-color: var(--texte);
   box-shadow: none;
 }
 
