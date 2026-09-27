@@ -231,7 +231,8 @@ body {
 
      `.icone` garde son corps propre (1,25 rem) : c'est la taille d'un glyphe, pas d'un
      texte. `.tracee-plage` reste en `em` : elle se règle sur ce qui la contient. */
-  --texte-titre: 1rem;
+  /* La marque seule : 40 px, le seul texte de l'écran qui se lit comme un cartouche. */
+  --texte-titre: 2.5rem;
   --texte-corps: 0.95rem;
   --texte-appui: 0.85rem;
   --texte-legende: 0.78rem;
@@ -443,17 +444,18 @@ body {
   z-index: 5;
   display: flex;
   flex-wrap: nowrap;
-  align-items: center;
+  /* Calée en haut, pas centrée ni sur la ligne de base : le cadre des champs part du même trait
+     que celui de la colonne de droite, un jour de carte sous le bord. Sur la ligne de base, la
+     marque de 40 px les aurait fait descendre de toute la hauteur de ses capitales. */
+  align-items: flex-start;
   gap: var(--jour-barre);
-  padding: 0 var(--pas-3);
   overflow: visible;
-  /* La barre flotte comme le reste de ce qui se pose sur le ciel : décollée des bords d'un
-     jour de carte, filet complet, fond de surface. Elle reste fixe en haut et s'arrête avant
-     la colonne de droite, qui monte jusqu'en haut. */
+  /* La barre n'a ni fond ni filet : la marque et les champs de visée se posent seuls sur le
+     ciel, chacun avec son cadre, comme les boutons du rail. Sans cadre à remplir, elle n'a
+     pas de rembourrage non plus — son bord est celui des cartes, un jour de carte. Elle reste
+     fixe en haut et s'arrête avant la colonne de droite, qui monte jusqu'en haut. */
   top: var(--jour-carte);
   height: var(--barre-haut);
-  border: var(--trait) solid var(--bordure);
-  background: var(--surface);
 }
 
 /* Une lecture se rogne, une commande jamais. Sur une fenêtre étroite, c'est la phrase qui
@@ -467,6 +469,8 @@ body {
 
 .coque-topbar > h1 {
   flex: none;
+  /* Interligne resserré : la marque tient dans la hauteur de la barre, sans air au-dessus. */
+  line-height: 1;
 }
 
 /* Les champs de la visée prennent ce que la marque et les commandes laissent, et se calent au

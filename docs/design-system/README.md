@@ -191,7 +191,7 @@ tronque pas** (T-0264).
 
 | Jeton | Valeur | Rôle |
 |---|---|---|
-| `--texte-titre` | 1rem | la marque |
+| `--texte-titre` | 2,5rem (40 px) | la marque |
 | `--texte-corps` | 0,95rem | le texte courant |
 | `--texte-appui` | 0,85rem | un titre de section, une saisie |
 | `--texte-legende` | 0,78rem | une phrase d'état, une cellule |
