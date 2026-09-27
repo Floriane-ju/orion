@@ -8,9 +8,12 @@
    globale resterait trop élevée. La palette est CONÇUE en rouge sur noir, canaux vert et
    bleu strictement nuls.
 
-   LANGAGE VISUEL. La palette de jour est verte-menthe sur noir profond, pas grise sur gris :
-   un instrument de terrain se lit à la lampe frontale, et une interface déjà sombre et déjà
-   monochrome le jour rend le basculement au rouge continu au lieu d'être une rupture. Les
+   LANGAGE VISUEL. La palette de jour est FILAIRE : blanc sur noir pur, un seul accent bleu
+   glace pour ce qui se commande et ce qui se vise. Un instrument de terrain se lit à la lampe
+   frontale, et une interface déjà sombre et déjà monochrome le jour rend le basculement au
+   rouge continu au lieu d'être une rupture. Les cartes s'ouvrent sur une barre de titre
+   pleine, comme une fenêtre : c'est un aplat de TEXTE sur FOND, donc le mode nuit la repeint
+   en rouge sur noir sans jeton de plus. Les
    angles sont vifs, les traits font un pixel, les micro-libellés sont en capitales espacées :
    cette grammaire distingue une ÉTIQUETTE d'une VALEUR sans recourir à la luminance, qui est
    justement ce que §11.1 confisque. Les jetons de forme — familles, suivis, épaisseur de
@@ -35,19 +38,19 @@
 
 :root {
   color-scheme: dark;
-  --fond: #050807;
-  --surface: #0a0f0e;
-  --surface-haute: #101817;
-  --texte: #eafff5;
-  --attenue: #9db3a9;
-  --accent: #a9ecc9;
+  --fond: #000000;
+  --surface: #070707;
+  --surface-haute: #141414;
+  --texte: #ececec;
+  --attenue: #a3a3a3;
+  --accent: #8fd0ff;
   --avertissement: #f4c76a;
-  --bordure: #2b3a34;
-  --bordure-controle: #5a6964;
-  --bordure-faible: #18211d;
+  --bordure: #6b6b6b;
+  --bordure-controle: #8c8c8c;
+  --bordure-faible: #1f1f1f;
   --alerte: #ff6f5e;
   --fond-alerte: #1a0f0d;
-  --fond-accent: #0f1a16;
+  --fond-accent: #0a121a;
   /* Hauteur minimale d'une cible de clic : usage ganté sur écran tactile (§11.2). */
   --cible-clic: 44px;
 }
@@ -63,9 +66,11 @@
    texte courant : 4,5:1 (3:1 seulement à ≥ 18,66 px ou en gras — aucun texte d'information
    n'est dans ce cas ici, les libellés sont sous 12,75 px).
 
-   MODE JOUR — le pire couple de la palette est --alerte sur --fond-accent, à 6,5:1 ;
-   --attenue plancher à 8,0:1, --texte à 17:1. La marge vient de ce que les fonds sont
-   presque noirs — la même raison qui rend le passage au rouge continu plutôt que brutal.
+   MODE JOUR — le pire couple de la palette est --alerte sur --surface-haute, à 6,7:1 ;
+   --attenue plancher à 7,3:1, --texte à 15,6:1. La barre de titre inverse le couple : --fond
+   sur --texte, 17,8:1 le jour, 5,06:1 la nuit — le même ratio que le texte courant. La marge
+   vient de ce que les fonds sont noirs — la même raison qui rend le passage au rouge continu
+   plutôt que brutal.
 
    MODE NUIT — au facteur nominal, avec les valeurs ci-dessous ; le pire fond est
    --fond-alerte :
@@ -878,15 +883,16 @@ body {
   min-height: var(--cible-clic);
   padding: var(--pas-1) var(--pas-2);
   border: 0;
-  border-bottom: var(--trait) solid var(--bordure);
-  background: var(--fond-accent);
+  border-bottom: var(--trait) solid var(--texte);
+  background: var(--texte);
+  color: var(--fond);
 }
 
-/* L'en-tête n'a pas l'allure d'un bouton — c'est un bandeau de titre —, donc c'est le contrôle
-   qu'il faut le plus désigner avant le clic. Le filet passe à l'accent comme sur les autres
-   commandes ; le fond monte d'un cran, l'en-tête étant déjà teinté au repos. */
+/* L'en-tête n'a pas l'allure d'un bouton — c'est une barre de titre —, donc c'est le contrôle
+   qu'il faut le plus désigner avant le clic. La barre passe à l'accent, comme le filet des
+   autres commandes : c'est la seule teinte que l'interface réserve à ce qui se commande. */
 .carte-entete:hover {
-  background: var(--surface-haute);
+  background: var(--accent);
   border-bottom-color: var(--accent);
 }
 
@@ -896,7 +902,7 @@ body {
   font-weight: 600;
   letter-spacing: var(--suivi-titre);
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--fond);
 }
 
 /* T-0238 — le résumé d'une carte repliée est une VALEUR, pas une étiquette : il quitte la
@@ -905,7 +911,7 @@ body {
    Sa marge droite le colle au titre et repousse le signe au bord. */
 .carte-resume {
   margin-inline-end: auto;
-  color: var(--attenue);
+  color: var(--fond);
   font-size: var(--texte-legende);
   letter-spacing: normal;
   text-transform: none;
@@ -913,7 +919,7 @@ body {
 }
 
 .carte-marque {
-  color: var(--attenue);
+  color: var(--fond);
 }
 
 /* La note de facilité a quitté l'en-tête de la carte Cible pour celui du panneau, où elle
@@ -1019,8 +1025,25 @@ body {
   gap: var(--pas-2);
   min-height: var(--cible-clic);
   padding: var(--pas-1) var(--pas-2);
-  border-bottom: var(--trait) solid var(--bordure);
-  background: var(--fond-accent);
+  border-bottom: var(--trait) solid var(--texte);
+  background: var(--texte);
+  color: var(--fond);
+}
+
+/* Sur la barre de titre, tout ce qu'elle porte prend la teinte du fond : une commande en
+   accent y tomberait sous 2:1. Les pastilles suivent, plus bas avec leurs règles. */
+.lateral-entete h2 {
+  color: var(--fond);
+}
+
+.lateral-entete button {
+  border-color: var(--fond);
+  background: transparent;
+  color: var(--fond);
+}
+
+.lateral-entete button:hover {
+  background: var(--accent);
 }
 
 /* Le retour n'existe que sur la fiche : il ouvre l'en-tête, à gauche du titre, et
@@ -1031,7 +1054,7 @@ body {
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--accent);
+  color: var(--fond);
 }
 
 .lateral-entete h2 {
@@ -2439,6 +2462,13 @@ button:disabled {
 .facilite-vide {
   color: var(--attenue);
   font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Sur la barre de titre du panneau, les deux pastilles prennent la teinte du fond : leur
+   différence est dans le remplissage, elle survit à la perte de la teinte. */
+.lateral-entete .facilite-pleine,
+.lateral-entete .facilite-vide {
+  color: var(--fond);
 }
 
 .cible-lectures {

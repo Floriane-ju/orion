@@ -141,7 +141,7 @@ const PALETTE_NUIT: PaletteCiel = Object.freeze({
  *
  * Le canevas et la feuille de style peignent le même écran : deux familles de teintes y
  * font deux applications superposées. Les repères de tracé reprennent donc les jetons de
- * `styles.css` — menthe pour ce que l'instrument dessine, rouge pour ce qu'il vise, ambre
+ * `styles.css` — gris filaire pour ce que l'instrument dessine, bleu glace pour ce qu'il vise, ambre
  * pour les corps du système solaire. La Voie lactée garde une teinte froide : c'est la
  * seule structure peinte qui ne soit ni un tracé de l'instrument ni un objet pointé, et
  * l'écart de teinte est ce qui la sépare des astérismes sans la rendre plus lumineuse.
@@ -150,16 +150,16 @@ const PALETTE_NUIT: PaletteCiel = Object.freeze({
  * mesure, pas une décision de dessin.
  */
 const PALETTE_JOUR: PaletteCiel = Object.freeze({
-  fond: '#050807',
-  figures: 'rgb(64 96 82)',
-  frontieres: 'rgb(38 54 47)',
-  asterismes: 'rgb(110 158 134)',
+  fond: '#000000',
+  figures: 'rgb(110 110 110)',
+  frontieres: 'rgb(52 52 52)',
+  asterismes: 'rgb(170 170 170)',
   corps: 'rgb(244 199 106)',
-  cadre: 'rgb(255 111 94)',
-  horizon: 'rgb(70 96 84)',
-  sol: 'rgb(8 12 11)',
+  cadre: 'rgb(143 208 255)',
+  horizon: 'rgb(150 150 150)',
+  sol: 'rgb(5 5 5)',
   voieLactee: 'rgb(150 186 205)',
-  texte: 'rgb(207 227 218)',
+  texte: 'rgb(214 214 214)',
 })
 
 export function palette(modeNuit: boolean): PaletteCiel {
