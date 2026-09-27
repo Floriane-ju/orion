@@ -1600,10 +1600,40 @@ select:hover {
   border-color: var(--accent);
 }
 
+/* §11.1 — la case est DESSINÉE, pas laissée au navigateur. La case native ne prend de la
+   palette que son `accent-color`, et encore à moitié : son fond, sa coche et son filet restent
+   ceux du système — blancs, en pleine interface de nuit. Dessinée avec les jetons, elle bascule
+   au rouge sur noir comme le reste.
+
+   Cochée, elle se REMPLIT : un carré d'accent détaché du filet par un jour de fond. Pas de
+   coche : un glyphe dessiné en Unicode est interdit ici (`icone.test.tsx`), et un remplissage
+   se lit au gant comme à la lampe — la différence est une surface, pas un trait fin. */
 input[type='checkbox'] {
+  appearance: none;
+  flex: none;
   min-height: 0;
   width: 1.1rem;
   height: 1.1rem;
+  margin: 0;
+  padding: 0;
+  background: var(--fond);
+  border: var(--trait) solid var(--bordure-controle);
+  cursor: pointer;
+}
+
+input[type='checkbox']:checked {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: inset 0 0 0 calc(var(--pas-0) + var(--trait)) var(--fond);
+}
+
+input[type='checkbox']:disabled {
+  border-color: var(--bordure-faible);
+  cursor: default;
+}
+
+input[type='checkbox']:checked:disabled {
+  background: var(--bordure-faible);
 }
 
 /* Le rail de `Curseur.tsx`. Il remplace `input[type=range]`, qui ne sait pas peindre
