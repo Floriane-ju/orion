@@ -896,12 +896,14 @@ body {
   border-bottom-color: var(--accent);
 }
 
+/* Une barre de titre se lit comme celle d'une fenêtre : la famille du texte, en casse de
+   phrase, au plus petit rang lisible. Le titre n'a pas à crier — l'aplat le désigne déjà. */
 .carte-titre {
-  font-family: var(--police-titre);
-  font-size: var(--texte-appui);
-  font-weight: 600;
-  letter-spacing: var(--suivi-titre);
-  text-transform: uppercase;
+  font-family: var(--police-mono);
+  font-size: var(--texte-micro);
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
   color: var(--fond);
 }
 
@@ -912,7 +914,7 @@ body {
 .carte-resume {
   margin-inline-end: auto;
   color: var(--fond);
-  font-size: var(--texte-legende);
+  font-size: var(--texte-micro);
   letter-spacing: normal;
   text-transform: none;
   white-space: nowrap;
@@ -1033,7 +1035,23 @@ body {
 /* Sur la barre de titre, tout ce qu'elle porte prend la teinte du fond : une commande en
    accent y tomberait sous 2:1. Les pastilles suivent, plus bas avec leurs règles. */
 .lateral-entete h2 {
+  font-family: var(--police-mono);
+  font-size: var(--texte-micro);
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
   color: var(--fond);
+}
+
+/* Les deux carrés de fenêtre ferment la barre, après ce qu'elle porte. */
+.lateral-entete::before,
+.lateral-entete::after {
+  content: '';
+  order: 1;
+  flex: none;
+  inline-size: var(--pas-2);
+  block-size: var(--pas-2);
+  border: var(--trait) solid var(--fond);
 }
 
 .lateral-entete button {
@@ -1437,6 +1455,11 @@ section:not([class]) > h2:first-child {
   border-bottom: 0;
   background: var(--texte);
   color: var(--fond);
+  font-family: var(--police-mono);
+  font-size: var(--texte-micro);
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 section:not([class]) > h2:first-child::before,
