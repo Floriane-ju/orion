@@ -435,10 +435,10 @@ body {
 
 /* La marque et la lecture du matériel tiennent ensemble le bord gauche ; les commandes
    forment un bloc calé à droite. La poussée est portée par le premier élément qui suit la
-   lecture : ce qui vient après reste soudé, quelle que soit la largeur de la fenêtre. Le
+   visée (T-0325 — la profondeur, qui la portait, est partie dans la modale info) : ce qui vient après reste soudé, quelle que soit la largeur de la fenêtre. Le
    sélecteur cite la barre : `.etat` repose ses marges plus bas dans la feuille, et une classe
    seule perdrait l'arbitrage. */
-.coque-topbar > .barrehaut-lectures-fin + * {
+.coque-topbar > .barrehaut-visee + * {
   margin-left: auto;
 }
 
@@ -459,8 +459,8 @@ body {
 /* Les commandes de la barre forment une bande continue : ni jour, ni double filet. La marge
    négative absorbe le `gap` de la barre et superpose les deux traits voisins, si bien qu'une
    pastille et sa suivante ne partagent qu'un trait. La règle démarre au DEUXIÈME élément qui
-   suit la lecture — le premier garde son jour, sinon la bande collerait au texte. */
-.coque-topbar > .barrehaut-lectures-fin ~ * ~ * {
+   suit la visée — le premier garde son jour, sinon la bande collerait au texte. */
+.coque-topbar > .barrehaut-visee ~ * ~ * {
   margin-left: calc(-1 * (var(--jour-barre) + var(--trait)));
 }
 
@@ -507,13 +507,6 @@ body {
 .compteur:active,
 .compteur:focus-visible {
   border-bottom-color: var(--texte);
-}
-
-/* La légende n'a que six lignes courtes : elle prend la largeur de son texte, pas celle
-   d'une fenêtre de réglages. */
-.coque-topbar .tiroir-legende[open] > .tiroir-contenu {
-  width: max-content;
-  max-width: calc(100vw - var(--jour-ecran));
 }
 
 .legende-couleurs {
@@ -1275,6 +1268,9 @@ body {
   position: relative;
 }
 
+/* T-0325 — le bouton « info » est un lien vers une page, pas un tiroir : il en garde l'allure
+   pour que la bande de commandes reste une. */
+.bouton-info,
 .tiroir > summary {
   display: flex;
   align-items: center;
@@ -1290,8 +1286,10 @@ body {
   letter-spacing: var(--suivi-micro);
   text-transform: uppercase;
   white-space: nowrap;
+  text-decoration: none;
 }
 
+.bouton-info:hover,
 .tiroir > summary:hover {
   color: var(--texte);
   border-color: var(--accent);
@@ -1309,6 +1307,8 @@ body {
    filet passe à `transparent` plutôt qu'à zéro — la géométrie ne bouge pas, donc rien ne se
    décale entre l'état au repos, le survol et l'état actif, qui se signalent au fond et à la
    teinte. Le trait reste ailleurs : la barre basse garde le sien. */
+.coque-topbar .bouton-info,
+.coque-topbar .bouton-info:hover,
 .coque-topbar .tiroir > summary,
 .coque-topbar .tiroir > summary:hover,
 .coque-topbar .tiroir[open] > summary {
@@ -1318,6 +1318,7 @@ body {
 /* Un tiroir fermé cache ce qu'il contient. Le bouton change d'aspect quand il a
    quelque chose à dire ; le compte, lui, est écrit en toutes lettres dans le libellé — le
    rouge ne porte jamais seul une information (§11.1). */
+.bouton-info[data-alerte='true'],
 .tiroir[data-alerte='true'] > summary {
   border-color: var(--alerte);
   color: var(--alerte);
@@ -1344,6 +1345,190 @@ body {
   border: var(--trait) solid var(--accent);
   border-radius: 0;
 }
+
+/* T-0325 — la page info est une MODALE large : elle laisse un jour d'écran tout autour, et
+   le ciel se devine derrière le voile — on sait d'où l'on vient et où l'on retourne. Elle
+   est au-dessus de tout l'empilement (barres à 5). Elle n'existe à l'écran que tant que
+   l'ancre `#info` la vise : pas de JavaScript pour l'ouvrir, le retour du navigateur la
+   referme. Pas de fermeture au clic sur le voile, comme pour les tiroirs (`gere-echap.ts`) :
+   Échap et le bouton suffisent. */
+.page-info {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  padding: var(--jour-ecran);
+  background: var(--fond);
+  background: color-mix(in srgb, var(--fond) 75%, transparent);
+}
+
+.page-info:target {
+  display: block;
+}
+
+/* La fenêtre prend toute la largeur que le voile laisse : trois rubriques qui se lisent en
+   longueur n'ont rien à gagner à une colonne étroite. Elle défile seule, le voile reste. */
+.page-info-corps {
+  box-sizing: border-box;
+  height: 100%;
+  overflow-y: auto;
+  /* L'ascenseur n'apparaît qu'au premier accordéon qui fait déborder la fenêtre : sans place
+     réservée, il rognait la largeur à cet instant et toutes les barres de titre glissaient. */
+  scrollbar-gutter: stable;
+  padding: 0 var(--pas-4) var(--pas-4);
+  background: var(--surface);
+  border: var(--trait) solid var(--texte);
+}
+
+.page-info-entete {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pas-3);
+  height: var(--barre-titre);
+  margin-inline: calc(-1 * var(--pas-4));
+  padding-inline: var(--pas-2);
+  background: var(--texte);
+  color: var(--fond);
+}
+
+/* La modale prend la barre de titre des cartes de l'interface : un aplat fin, titre en casse
+   de phrase au rang micro, couleur de fond. Elle reste collée en haut quand le contenu défile
+   — c'est elle qui porte la croix. Le `h2` perd tout ce que la règle générale lui donne :
+   marges, filet souligné, capitales. */
+.page-info-entete > h2 {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  font-family: var(--police-mono);
+  font-size: var(--texte-micro);
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* La croix tient dans la barre fine, mais sa cible de clic garde la taille gantée de §11.2 :
+   les marges négatives la laissent déborder de la barre sans l'épaissir. */
+.page-info-fermer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--cible-clic);
+  min-height: var(--cible-clic);
+  margin-block: calc((var(--barre-titre) - var(--cible-clic)) / 2);
+  margin-inline-end: calc(-1 * var(--pas-2));
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Au survol, seule la croix réagit : son glyphe s'inverse en pavé sombre sur la barre claire.
+   Un glyphe bleu sur l'aplat clair ne se lirait pas, et c'est le glyphe qu'on vise — la
+   cible de clic, plus grande, déborde de la barre et ne peut pas porter de fond. */
+.page-info-fermer:hover > .icone {
+  background: var(--fond);
+  color: var(--accent);
+}
+
+/* La première ligne sous la barre en garde le jour d'une carte, au lieu de la petite marge
+   d'un `.etat`. Le sélecteur cite la modale : `.etat` pose ses marges plus bas dans la feuille. */
+.page-info-corps > .page-info-profondeur {
+  margin-block-start: var(--jour-carte);
+}
+
+/* §11.1 — la nuit, la barre ne s'allume pas : bandeau noir tenu par un filet rouge, comme
+   celui des cartes. */
+:root[data-mode-nuit='true'] .page-info-entete {
+  border-bottom: var(--trait) solid var(--texte);
+  background: var(--fond);
+  color: var(--texte);
+}
+
+:root[data-mode-nuit='true'] .page-info-fermer:hover > .icone {
+  background: var(--fond-accent);
+}
+
+/* T-0325 — une rubrique repliable de la modale info : fond noir, filet blanc, barre de titre
+   sans aplat. Sur la surface de la modale, c'est le fond qui détache la rubrique ; le filet
+   au plein du texte la cerne. Sa barre est un contrôle : elle prend la cible de clic de §11.2
+   et passe à l'accent au survol. Les jetons se repeignent seuls la nuit — noir cerné de rouge. */
+.accordeon {
+  margin-block-start: var(--pas-4);
+  background: var(--fond);
+  border: var(--trait) solid var(--texte);
+}
+
+.accordeon > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pas-2);
+  min-height: var(--cible-clic);
+  padding: 0 var(--jour-carte);
+  list-style: none;
+  cursor: pointer;
+  background: var(--fond);
+  color: var(--texte);
+}
+
+.accordeon > summary::-webkit-details-marker {
+  display: none;
+}
+
+.accordeon > summary:hover {
+  background: var(--fond-accent);
+  color: var(--accent);
+}
+
+
+.accordeon > summary > h2 {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  font-family: var(--police-mono);
+  font-size: var(--texte-micro);
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* Le chevron dit l'action à venir : vers le bas pour déplier, vers le haut pour replier. */
+.accordeon[open] > summary > .icone {
+  transform: rotate(180deg);
+}
+
+/* Ouverte, la barre se sépare du corps d'un filet : sans aplat, rien d'autre ne la borne. Il
+   est porté par le CORPS, pas par la barre : il tombe ainsi exactement où était le filet bas
+   de la rubrique fermée. Porté par la barre, il se posait un trait plus haut, et le bas de
+   l'en-tête semblait remonter à l'ouverture. */
+/* Le corps est la ligne de grille qui se replie (voir le bloc `no-preference`) : il doit
+   pouvoir descendre à zéro, et rogner ce qui dépasse pendant le repli. Hors animation, ces
+   deux règles ne changent rien. */
+.accordeon-corps {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.accordeon-contenu {
+  padding: var(--jour-carte);
+  border-top: var(--trait) solid var(--texte);
+}
+
+.accordeon-contenu > * + * {
+  margin-block-start: var(--pas-2);
+}
+
+/* Le premier bloc visible colle au rembourrage du corps : sans cela, la marge d'une section
+   ordinaire (`--pas-4`) s'ajoutait en haut, et le jour du haut doublait celui du bas. La
+   légende pose sa feuille `<style>` en premier : c'est son suivant qui ouvre le corps. */
+.accordeon-contenu > :is(:first-child, style:first-child + *) {
+  margin-block-start: 0;
+}
+
 
 /* La marque est le seul endroit où le suivi s'ouvre à ce point : elle se lit comme
    le cartouche d'un instrument, pas comme un titre de page. */
@@ -2355,13 +2540,19 @@ button:disabled {
   border-bottom: var(--trait) solid var(--bordure-faible);
 }
 
-/* Les cinq poids C-15 dans le tiroir des réglages. Le poids effectif se lit au bout
-   de la ligne du critère : c'est lui que le plan utilise, pas la position brute du curseur. */
+/* Les cinq poids C-15 dans l'accordéon des réglages. Le poids effectif se lit au bout
+   de la ligne du critère : c'est lui que le plan utilise, pas la position brute du curseur.
+   T-0325 — le `fieldset` perd son cadre et son fond : il ne fait plus que regrouper, et ses
+   lignes suivent le rythme du corps de l'accordéon. */
 .poids-scoring {
-  border: var(--trait) solid var(--bordure);
-  border-radius: 0;
-  padding: var(--pas-2) var(--pas-3) var(--pas-3);
-  background: var(--fond-accent);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.poids-scoring > * + * {
+  margin-block-start: var(--pas-2);
 }
 
 .poids-scoring > label > span:first-child {
@@ -2742,6 +2933,7 @@ button:disabled {
 button,
 .bouton-fichier,
 .onglet,
+.bouton-info,
 .tiroir > summary,
 .terme-detail summary,
 .tracee summary,
@@ -2761,6 +2953,7 @@ select,
 button:not(:disabled):active,
 .bouton-fichier:active,
 .onglet:active,
+.bouton-info:active,
 .tiroir > summary:active,
 .terme-detail summary:active,
 .tracee summary:active,
@@ -2787,6 +2980,27 @@ button:not(:disabled):active,
 
   .image-cible-encart-mention {
     transition: opacity 140ms ease;
+  }
+
+  /* T-0325 — une rubrique de la modale info se déplie au lieu d'apparaître d'un bloc : le
+     regard suit le contenu qui descend, et voit la rubrique voisine se refermer (groupe
+     exclusif). La hauteur passe par une piste de grille de `0fr` à `1fr` : c'est la seule
+     façon d'animer jusqu'à la hauteur du contenu que Firefox et Safari savent faire —
+     `interpolate-size` n'existe que dans Chrome. `content-visibility` en `allow-discrete`
+     attend la fin du repli pour cacher le contenu. Un navigateur qui ignore
+     `::details-content` ouvre sans animation — rien ne casse. */
+  .accordeon::details-content {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 180ms ease, content-visibility 180ms allow-discrete;
+  }
+
+  .accordeon[open]::details-content {
+    grid-template-rows: 1fr;
+  }
+
+  .accordeon > summary > .icone {
+    transition: transform 180ms ease;
   }
 }
 

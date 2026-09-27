@@ -49,8 +49,10 @@ describe('T-0196 — la légende des couleurs du ciel profond', () => {
 
   it('ne laisse pas la couleur porter seule : les témoins sont décoratifs', () => {
     const html = renderToStaticMarkup(<LegendeCouleurs modeNuit={false} />)
+    // T-0325 — plus un : le chevron de l'accordéon qui porte la légende, décoratif lui aussi.
+    const CHEVRON_ACCORDEON = 1
     expect(html.match(/aria-hidden="true"/g) ?? []).toHaveLength(
-      teintesDistinctes() + TEMOINS_DE_FORME,
+      teintesDistinctes() + TEMOINS_DE_FORME + CHEVRON_ACCORDEON,
     )
     expect(html).not.toContain('aria-label')
   })

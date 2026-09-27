@@ -18,7 +18,7 @@ import { normalisePoids } from '../core/session.ts'
 import { DOMAINES } from '../registry/domains.ts'
 import { CRITERES_SCORING, type CritereScoring, type SaisiePoids } from './app-saisie.ts'
 import { Curseur } from './Curseur.tsx'
-import { Etiquette } from './Terme.tsx'
+import { Accordeon } from './Accordeon.tsx'
 
 const POURCENT = 100
 
@@ -46,10 +46,9 @@ function ReglagePoids(props: SaisiePoids) {
   const effectifs = normalisePoids(props.poids)
 
   return (
-    <fieldset className="poids-scoring">
-      <legend>
-        <Etiquette cle="score_cible" />
-      </legend>
+    // T-0325 — plus de légende ni de cadre : l'accordéon nomme déjà le groupe, et une carte
+    // dans la rubrique était la seule de la modale. Le `fieldset` reste pour le regroupement.
+    <fieldset className="poids-scoring" aria-label="Score de cible">
       <p className="etat">Départage deux cibles qui se disputent le même moment de la nuit.</p>
       {CRITERES_SCORING.map((critere) => (
         <label key={critere}>
@@ -84,9 +83,8 @@ export interface MenuReglagesProps {
 
 export function MenuReglages(props: MenuReglagesProps) {
   return (
-    <section className="menu-reglages">
-      <h2>Réglages</h2>
+    <Accordeon titre="Réglages — score de cible">
       <ReglagePoids {...props.poids} />
-    </section>
+    </Accordeon>
   )
 }

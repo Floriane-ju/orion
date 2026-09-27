@@ -50,6 +50,8 @@ export interface CoqueProps {
   readonly cartes: ReactNode
   /** Panneau de séance, sous le temps dans la même colonne. */
   readonly lateral: ReactNode
+  /** T-0325 — la page info : dernière du DOM, elle couvre tout quand l'ancre la vise. */
+  readonly page: ReactNode
 }
 
 export function Coque(props: CoqueProps) {
@@ -67,6 +69,7 @@ export function Coque(props: CoqueProps) {
         {props.temps}
         {props.lateral}
       </div>
+      {props.page}
     </div>
   )
 }

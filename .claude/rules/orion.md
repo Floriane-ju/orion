@@ -54,3 +54,6 @@ non-négociables.
 
 Avant d'annoncer qu'un travail est terminé : `pnpm typecheck && pnpm test`, et rapporter la
 sortie réelle. Pas de « ça devrait marcher ».
+
+Firefox est un navigateur cible : une propriété CSS/JS réservée à Chrome n'entre qu'avec un
+repli qui marche dans Firefox, et un rendu ou une animation se vérifie aussi dans Firefox.

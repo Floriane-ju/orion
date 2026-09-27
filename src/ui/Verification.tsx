@@ -17,6 +17,7 @@ import type { EtatDemarrage } from '../data/bootstrap.ts'
 import { REGISTRE } from '../registry/constants.ts'
 import { Mention } from './Mention.tsx'
 import type { ModeReseau } from '../data/degradation.ts'
+import { Accordeon } from './Accordeon.tsx'
 import {
   LIBELLE_DISPONIBILITE_HORS_LIGNE,
   LIBELLE_INTEGRITE_PAQUET,
@@ -44,8 +45,7 @@ export function Verification(props: VerificationProps) {
 
   return (
     <>
-      <section>
-        <h2>Vérification — état du socle</h2>
+      <Accordeon titre="Vérification — état du socle" ouvert={props.echecPersistance}>
         {/* T-0187 — l'état du socle et le mode réseau s'annoncent à leur changement seulement,
             via une région vive. Ils n'annoncent pas le message de persistance : c'est son
             propre changement qui doit l'annoncer. */}
@@ -107,10 +107,9 @@ export function Verification(props: VerificationProps) {
         >
           {props.messagePersistance}
         </Mention>
-      </section>
+      </Accordeon>
 
-      <section>
-        <h2>Matrice de dégradation hors-ligne</h2>
+      <Accordeon titre="Matrice de dégradation hors-ligne">
         <table>
           <thead>
             <tr>
@@ -129,10 +128,9 @@ export function Verification(props: VerificationProps) {
             ))}
           </tbody>
         </table>
-      </section>
+      </Accordeon>
 
-      <section>
-        <h2>Registre de constantes</h2>
+      <Accordeon titre="Registre de constantes">
         {/* T-0278 — surface d'audit : l'inventaire des constantes nomme des paquets que le MVP
             ne livre pas (le paquet Gaia de §12.2), parce qu'il décrit le REGISTRE et sa
             provenance, pas ce que l'application propose de faire. La classe porte l'exemption
@@ -164,7 +162,7 @@ export function Verification(props: VerificationProps) {
             ))}
           </tbody>
         </table>
-      </section>
+      </Accordeon>
     </>
   )
 }

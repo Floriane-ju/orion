@@ -20,6 +20,7 @@ import { PanneauMateriel, modeObjectif } from './ui/PanneauMateriel.tsx'
 import { useTrancheScene, type EtatScene } from './ui/scene-etat.ts'
 import { ouvreCible, useSeance } from './ui/seance-etat.ts'
 import { BarreHaut } from './ui/BarreHaut.tsx'
+import { PageInfo } from './ui/PageInfo.tsx'
 import { PanneauTemps } from './ui/PanneauTemps.tsx'
 import { CartesSeance, LateralSeance } from './ui/RegionSeance.tsx'
 import { useSaisieLieu, useSaisieMateriel, useSaisiePoids } from './ui/app-saisie.ts'
@@ -135,12 +136,7 @@ function AppPrete({
     <BarreHaut
       modeNuit={modeNuit}
       surModeNuit={setModeNuit}
-      etat={catalogues.etat}
-      modeReseau={modeReseau}
       persistance={persistance}
-      poids={poids}
-      profondeurMag={chaine.index.profondeurMag}
-      sbCiel={ciel.ok ? ciel.ciel.sbCiel.value : null}
       site={chaine.site}
       gaiaCharge={gaia}
     />
@@ -214,6 +210,17 @@ function AppPrete({
       materiel={panneauMateriel}
       cartes={<CartesSeance {...regions} />}
       lateral={<LateralSeance {...regions} />}
+      page={
+        <PageInfo
+          etat={catalogues.etat}
+          modeReseau={modeReseau}
+          persistance={persistance}
+          poids={poids}
+          profondeurMag={chaine.index.profondeurMag}
+          sbCiel={ciel.ok ? ciel.ciel.sbCiel.value : null}
+          modeNuit={modeNuit.actif}
+        />
+      }
     />
   )
 }

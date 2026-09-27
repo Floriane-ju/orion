@@ -532,12 +532,16 @@ describe('mouvement réduit — WCAG 2.3.3', () => {
     expect(accepte).not.toMatch(/@keyframes/)
     expect(accepte).not.toMatch(/\banimation(-name)?:/)
 
-    const gestes = [...CSS.matchAll(/^[^{}\n]*:(?:hover|focus)[^{}\n]*\{/gm)].map((m) => m[0])
+    // T-0325 — ouvrir un `<details>` au clic est un geste aussi : l'état `[open]` en porte la
+    // trace. Il se retire du sélecteur pour retrouver celui de la règle de base qui s'anime.
+    const gestes = [...CSS.matchAll(/^[^{}\n]*(?::(?:hover|focus)|\[open\])[^{}\n]*\{/gm)].map(
+      (m) => m[0].replaceAll('[open]', ''),
+    )
     const animes = [...accepte.matchAll(/^ {2}([^\s{][^{\n]*)\{/gm)].map((m) => m[1]!.trim())
     expect(animes.length, 'le bloc n’anime rien').toBeGreaterThan(0)
     for (const selecteur of animes) {
       expect(
-        gestes.some((geste) => geste.includes(selecteur)),
+        gestes.some((geste) => geste.includes(selecteur.replaceAll('[open]', ''))),
         `${selecteur} s’anime sans geste qui le déclenche`,
       ).toBe(true)
     }

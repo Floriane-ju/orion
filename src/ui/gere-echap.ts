@@ -72,6 +72,19 @@ function fermeTiroir(tiroir: HTMLDetailsElement): void {
   if (resume instanceof HTMLElement) resume.focus()
 }
 
+/**
+ * T-0325 — la page info s'ouvre par son ancre (`:target`) : la refermer, c'est quitter
+ * l'ancre, et le focus revient au bouton de la barre qui l'avait ouverte. Elle passe après
+ * la bulle, comme un tiroir : une glose ouverte sur la page se congédie sans la fermer.
+ */
+function fermePageInfo(doc: Document): boolean {
+  const vue = doc.defaultView
+  if (vue === null || doc.querySelector('.page-info:target') === null) return false
+  vue.location.hash = ''
+  doc.querySelector<HTMLElement>('.bouton-info')?.focus()
+  return true
+}
+
 /** Pose l'écoute unique. Rend la fonction qui la retire — c'est le nettoyage d'un `useEffect`. */
 export function installeEchap(doc: Document): () => void {
   const surTouche = (evt: KeyboardEvent) => {
@@ -91,6 +104,7 @@ export function installeEchap(doc: Document): () => void {
       evt.preventDefault()
       fermeTiroir(tiroir)
     }
+    if (cible === 'RIEN' && evt.key === 'Escape' && fermePageInfo(doc)) evt.preventDefault()
   }
 
   doc.addEventListener('keydown', surTouche)

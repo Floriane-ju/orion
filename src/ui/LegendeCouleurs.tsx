@@ -19,10 +19,10 @@
  */
 
 import type { TypeObjet } from '../data/deepsky.ts'
+import { Accordeon } from './Accordeon.tsx'
 import { APPARENCE_OBJET, EPAISSEUR_BORD_PX, teintesReference } from './apparence-objets.ts'
 import { Icone } from './Icone.tsx'
 import { LIBELLE_TYPE_OBJET } from './libelles-objet.ts'
-import { Tiroir } from './Tiroir.tsx'
 
 /**
  * Le fourre-tout ferme la marche : une légende qui s'ouvre sur « type inconnu » enseigne
@@ -81,7 +81,7 @@ export function feuilleLegende(modeNuit: boolean): string {
 
 export function LegendeCouleurs(props: { readonly modeNuit: boolean }) {
   return (
-    <Tiroir modificateur="legende" resume="Légende">
+    <Accordeon titre="Légende">
       <style>{feuilleLegende(props.modeNuit)}</style>
 
       <section>
@@ -117,6 +117,6 @@ export function LegendeCouleurs(props: { readonly modeNuit: boolean }) {
           </li>
         </ul>
       </section>
-    </Tiroir>
+    </Accordeon>
   )
 }

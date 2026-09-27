@@ -75,5 +75,9 @@ le projet, lire `ovrsee/tickets/` et `ovrsee/plans/` avant d'ouvrir le code.
 - Ne pas éditer `public/data/*.bin` à la main — les régénérer avec `pnpm data:build`.
 - Ne pas ajouter de télémétrie, d'apprentissage ni d'ajustement automatique du registre : une
   prédiction reproductible est vérifiable, une prédiction qui dérive ne l'est pas.
+- **Firefox est un navigateur cible** (navigateur par défaut du poste de développement) :
+  toute fonctionnalité CSS/JS doit y marcher. Une propriété réservée à Chrome
+  (`interpolate-size`, `calc-size()`…) ne s'utilise qu'avec un repli qui fonctionne dans
+  Firefox, et un rendu ou une animation se vérifie dans Firefox, pas seulement dans Chrome.
 - Ne pas casser le démarrage hors réseau : tout ajout de donnée obligatoire passe par le
   précache et la matrice de dégradation §12.5.

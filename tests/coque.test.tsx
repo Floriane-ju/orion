@@ -94,6 +94,11 @@ function barreHaute(html: string): string {
   return html.slice(0, html.indexOf('coque-scene'))
 }
 
+/** T-0325 — la page info, montée en dernier dans la coque. */
+function pageInfo(html: string): string {
+  return html.slice(html.indexOf('class="page-info"'))
+}
+
 /** La tête du panneau latéral : tout ce qui précède son corps. */
 function ongletsPanneau(html: string): string {
   const aside = html.slice(html.indexOf('<aside class="coque-lateral"'))
@@ -280,13 +285,12 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
     expect(corps).toContain('top: calc(var(--barre-haut) + var(--jour-carte))')
   })
 
-  it('porte le mode nuit et la vérification du socle dans la barre du haut', () => {
-    const topbar = barreHaute(ecran())
-    expect(topbar).toContain('Activer le mode nuit')
-    expect(topbar).toContain('Vérification')
-    expect(topbar).toContain('Registre de constantes')
-    // Fermé par défaut : le tiroir n'est pas déplié à l'ouverture de l'application.
-    expect(topbar).not.toMatch(/<details class="tiroir tiroir-outils" open/)
+  it('porte le mode nuit dans la barre du haut, et la vérification sur la page info', () => {
+    const html = ecran()
+    expect(barreHaute(html)).toContain('Activer le mode nuit')
+    expect(barreHaute(html)).toContain('href="#info"')
+    expect(pageInfo(html)).toContain('Vérification')
+    expect(pageInfo(html)).toContain('Registre de constantes')
   })
 
   // T-0153 — la barre haute ne dit plus où pointe la vue : la phrase complète est en bas,
@@ -674,8 +678,9 @@ describe('T-0153 — la barre porte la phrase qui date l’image', () => {
     const haut = barreHaute(ecran()).replaceAll('<!-- -->', '')
     expect(haut).toMatch(/visée[\s\S]*AD[\s\S]*azimut[\s\S]*hauteur[\s\S]*champ/)
     expect(haut).toContain('barrehaut-visee')
-    expect(haut.indexOf('<h1')).toBeLessThan(haut.indexOf('tiroir-legende'))
-    expect(haut.indexOf('tiroir-legende')).toBeLessThan(haut.indexOf('barrehaut-visee'))
+    expect(haut.indexOf('<h1')).toBeLessThan(haut.indexOf('barrehaut-visee'))
+    // T-0325 — la légende a quitté la barre pour la modale info.
+    expect(haut).not.toContain('Couleur — famille')
     expect(haut).not.toContain('panneau-temps')
   })
 
@@ -793,15 +798,13 @@ describe('T-0041 — un tiroir qui s’alerte ne le dit pas par la seule couleur
 
 
 describe('T-0047 — la roue crantée reloge le choix brut dans le catalogue', () => {
-  it('T-0184 — monte un tiroir d’outils dans la barre haute', () => {
-    const ecran = renderToStaticMarkup(<App />)
-    expect(ecran).toContain('tiroir tiroir-outils')
-    expect(ecran).toContain('Réglages')
+  it('T-0325 — les réglages sont sur la page info', () => {
+    expect(pageInfo(renderToStaticMarkup(<App />))).toContain('Réglages')
   })
 
   it('T-0153 — ferme la barre : plus rien ne se monte après lui', () => {
     const topbar = barreHaute(renderToStaticMarkup(<App />))
-    expect(topbar.slice(topbar.indexOf('tiroir-outils'))).not.toContain('<details')
+    expect(topbar.slice(topbar.indexOf('bouton-info'))).not.toContain('<details')
   })
 
   it('T-0128 — ne porte plus le catalogue : il a un écran à lui', () => {
@@ -831,13 +834,13 @@ describe('T-0047 — la roue crantée reloge le choix brut dans le catalogue', (
     expect(rendu).toMatch(/Départage deux cibles/)
   })
 
-  it('garde la cible de clic de §11.2 : le tiroir est un `.tiroir` comme les autres', () => {
-    expect(barreHaute(renderToStaticMarkup(<App />))).toMatch(/class="tiroir tiroir-outils"/)
+  it('garde la cible de clic de §11.2 : le bouton info a l’allure d’un tiroir', () => {
+    expect(barreHaute(renderToStaticMarkup(<App />))).toMatch(/class="bouton-info"/)
     const styles = readFileSync(
       join(import.meta.dirname, '..', 'src', 'ui', 'styles.css'),
       'utf8',
     )
-    const debut = styles.indexOf('.tiroir > summary {')
+    const debut = styles.indexOf('.bouton-info,\n.tiroir > summary {')
     expect(debut).toBeGreaterThan(-1)
     expect(styles.slice(debut, styles.indexOf('}', debut))).toContain(
       'min-height: var(--cible-clic)',
@@ -861,17 +864,12 @@ describe('T-0184 — un seul tiroir pour la vérification et les réglages', () 
     const props: BarreHautProps = {
       modeNuit: { actif: false, luminance: 1 },
       surModeNuit: () => undefined,
-      etat: null,
-      modeReseau: 'HORS_LIGNE',
       persistance: {
         message: echec ? 'écriture perdue' : null,
         echec,
         surExport: () => undefined,
         surImport: () => undefined,
       },
-      poids: POIDS_INERTES,
-      profondeurMag: 12,
-      sbCiel: null,
       site: {
         latitudeDeg: Number(DEFAUT.latitude),
         longitudeDeg: Number(DEFAUT.longitude),
@@ -882,33 +880,40 @@ describe('T-0184 — un seul tiroir pour la vérification et les réglages', () 
     return renderToStaticMarkup(<BarreHaut {...props} />)
   }
 
-  it('ne monte plus qu’une fenêtre, et les deux contenus y sont', () => {
-    const topbar = barreHaute(ecran())
-    expect(topbar).not.toContain('tiroir-verification')
-    expect(topbar).not.toContain('tiroir-reglages')
-    // Une seule fenêtre : ce qui suit l'ouverture du tiroir d'outils porte les deux sections.
-    const fenetre = topbar.slice(topbar.indexOf('tiroir-outils'))
-    expect(fenetre).toContain('état du socle')
-    expect(fenetre).toContain('Réglages')
+  it('T-0325 — plus aucun tiroir d’outils ni d’info : les deux contenus sont sur la page', () => {
+    const html = ecran()
+    expect(barreHaute(html)).not.toContain('tiroir-outils')
+    expect(barreHaute(html)).not.toContain('tiroir-info')
+    expect(pageInfo(html)).toContain('état du socle')
+    expect(pageInfo(html)).toContain('Réglages')
   })
 
-  it('reste le dernier élément de la barre : le plus à droite', () => {
+  it('T-0325 — le bouton info n’a que son icône, et sa bulle le nomme', () => {
     const topbar = barreHaute(ecran())
-    expect(topbar.slice(topbar.indexOf('tiroir-outils'))).not.toContain('<details')
+    const bouton = topbar.slice(topbar.indexOf('<a href="#info"'))
+    const lien = bouton.slice(0, bouton.indexOf('</a>'))
+    expect(lien).toContain('aria-labelledby')
+    expect(lien.replace(/<[^>]+>/g, '')).toBe('info') // la ligature de l'icône, seule
+    expect(topbar).toContain('Infos de l’app')
+  })
+
+  it('le bouton info reste le dernier élément de la barre : le plus à droite', () => {
+    const topbar = barreHaute(ecran())
+    expect(topbar.slice(topbar.indexOf('bouton-info'))).not.toContain('<details')
   })
 
   it('T-0041 — un échec de persistance se signale sur le tiroir fermé, et nomme sa section', () => {
     const alerte = barreSeule(true)
-    const resume = alerte.slice(alerte.indexOf('tiroir-outils'))
+    const resume = alerte.slice(alerte.indexOf('<a href="#info"'))
     expect(resume).toContain('data-alerte="true"')
-    expect(resume.slice(0, resume.indexOf('</summary>'))).toContain(ALERTE_VERIFICATION)
+    expect(resume.slice(0, resume.indexOf('</a>'))).toContain(ALERTE_VERIFICATION)
     // La mention nomme la section : « Vérification », pas seulement l'échec.
     expect(ALERTE_VERIFICATION).toMatch(/^Vérification/)
     expect(barreSeule(false)).toContain('data-alerte="false"')
   })
 
   it('n’a rien retiré : les cinq poids et l’état du socle restent atteignables', () => {
-    const topbar = barreHaute(ecran())
+    const topbar = pageInfo(ecran())
     expect(topbar.match(/role="slider"/g)?.length).toBeGreaterThanOrEqual(5)
     expect(topbar).toContain('Registre de constantes')
     expect(topbar).toContain('Matrice de dégradation hors-ligne')
@@ -924,21 +929,31 @@ describe('T-0184 — un seul tiroir pour la vérification et les réglages', () 
  * vérifie ici est le regroupement ET son prix : les deux mentions que le PRD impose au
  * contact ne doivent pas être parties avec les autres.
  */
-describe('T-0228 — un tiroir « info » porte les sources', () => {
-  it('monte un tiroir de plus dans la barre haute, avant celui des réglages', () => {
-    const topbar = barreHaute(ecran())
-    expect(topbar).toContain('tiroir tiroir-info')
-    expect(topbar.indexOf('tiroir-info')).toBeLessThan(topbar.indexOf('tiroir-outils'))
+describe('T-0228 / T-0325 — la page « info » porte les sources', () => {
+  it('T-0325 — la page info porte les sources', () => {
+    expect(pageInfo(ecran())).toContain('Sources des données')
   })
 
-  it('le tiroir des outils reste le dernier : rien ne se monte après lui', () => {
-    const topbar = barreHaute(ecran())
-    expect(topbar.slice(topbar.indexOf('tiroir-outils'))).not.toContain('<details')
+  it('T-0325 — la profondeur affichée se lit sous le titre de la page, plus dans la barre', () => {
+    const html = ecran()
+    expect(barreHaute(html)).not.toContain('Profondeur affichée')
+    const page = pageInfo(html)
+    expect(page.indexOf('Profondeur affichée')).toBeLessThan(page.indexOf('<details'))
+    expect(page).toMatch(/Profondeur affichée (<!-- -->)?\d+\.\d(<!-- -->)? mag/)
+  })
+
+  it('T-0325 — ses six rubriques sont des accordéons fermés à l’ouverture', () => {
+    const page = pageInfo(ecran())
+    expect(page.match(/<details class="accordeon"/g)).toHaveLength(6)
+    // La légende ouvre la liste.
+    expect(page.indexOf('Légende')).toBeLessThan(page.indexOf('Vérification'))
+    expect(page).not.toMatch(/<details class="accordeon"[^>]* open/)
+    // Un seul ouvert à la fois : les six forment un groupe exclusif natif.
+    expect(page.match(/<details class="accordeon" name="page-info"/g)).toHaveLength(6)
   })
 
   it('nomme l’amont de chaque donnée affichée', () => {
-    const fenetre = barreHaute(ecran())
-    const info = fenetre.slice(fenetre.indexOf('tiroir-info'), fenetre.indexOf('tiroir-outils'))
+    const info = pageInfo(ecran())
     for (const source of SOURCES) {
       expect(info).toContain(source.donnee)
     }

@@ -11,11 +11,11 @@
  */
 
 import { SOURCES } from '../registry/sources.ts'
+import { Accordeon } from './Accordeon.tsx'
 
 export function Sources() {
   return (
-    <section>
-      <h2>Sources des données</h2>
+    <Accordeon titre="Sources des données">
       <p className="etat">
         Les catalogues sont embarqués : ils ne se mettent pas à jour tout seuls, et la version
         nommée ici est celle que l’application porte.
@@ -48,6 +48,6 @@ export function Sources() {
           ))}
         </tbody>
       </table>
-    </section>
+    </Accordeon>
   )
 }
