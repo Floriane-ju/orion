@@ -89,8 +89,8 @@ Trois écarts nommés s'appuient dessus : `--jour-carte`, `--jour-barre`, `--jou
 ### Une section ordinaire est une carte
 
 `<section>` sans classe porte un **cadre de fenêtre** : filet complet en `--bordure`, et son
-premier `h2` devient une **barre de titre pleine** — aplat `--texte`, titre en `--fond`, deux
-carrés de fenêtre au bout —, jour de `--jour-carte`. Le style est porté par le
+premier `h2` devient une **barre de titre pleine** — aplat `--texte`, titre en `--fond` ; la nuit,
+bandeau noir cerné de rouge —, jour de `--jour-carte`. Le style est porté par le
 sélecteur d'élément, comme celui de `button` — il n'y a **pas de composant `Carte` à appeler**,
 et `Carte.tsx` reste la carte repliable de la scène. Poser une rubrique, c'est écrire
 `<section><h2>…</h2>…</section>`.

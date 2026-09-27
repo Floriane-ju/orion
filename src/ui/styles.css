@@ -1062,17 +1062,6 @@ body {
   color: var(--fond);
 }
 
-/* Les deux carrés de fenêtre ferment la barre, après ce qu'elle porte. */
-.lateral-entete::before,
-.lateral-entete::after {
-  content: '';
-  order: 1;
-  flex: none;
-  inline-size: var(--pas-2);
-  block-size: var(--pas-2);
-  border: var(--trait) solid var(--fond);
-}
-
 .lateral-entete button {
   border-color: var(--fond);
   background: transparent;
@@ -1463,10 +1452,7 @@ section:not([class]) {
 /* Le `h2` ouvre la carte : il en devient la BARRE DE TITRE. Ses marges négatives le collent
    au filet sur trois côtés — le rembourrage de la section est celui du corps, pas du titre.
    Il ne commande rien, donc il n'a pas la hauteur d'une cible de clic : c'est une ligne de
-   titre, pas un en-tête-bouton comme celui d'une carte repliable.
-
-   Les deux carrés au bout de la barre sont ceux d'une fenêtre : deux pseudo-éléments, filet
-   couleur de fond. Ils ne commandent rien et ne s'annoncent pas — `content` vide. */
+   titre, pas un en-tête-bouton comme celui d'une carte repliable. */
 section:not([class]) > h2:first-child {
   display: flex;
   align-items: center;
@@ -1483,19 +1469,6 @@ section:not([class]) > h2:first-child {
   text-transform: none;
 }
 
-section:not([class]) > h2:first-child::before,
-section:not([class]) > h2:first-child::after {
-  content: '';
-  order: 1;
-  flex: none;
-  inline-size: var(--pas-2);
-  block-size: var(--pas-2);
-  border: var(--trait) solid var(--fond);
-}
-
-section:not([class]) > h2:first-child::before {
-  margin-inline-start: auto;
-}
 
 /* §11.1 — la nuit, la barre de titre ne s'allume plus. Un aplat de --texte est la plus grande
    surface rouge pleine de l'écran : sur un œil adapté, c'est une lampe posée sur chaque carte.
@@ -1506,13 +1479,6 @@ section:not([class]) > h2:first-child::before {
   border-bottom: var(--trait) solid var(--texte);
   background: var(--fond);
   color: var(--texte);
-}
-
-:root[data-mode-nuit='true'] section:not([class]) > h2:first-child::before,
-:root[data-mode-nuit='true'] section:not([class]) > h2:first-child::after,
-:root[data-mode-nuit='true'] .lateral-entete::before,
-:root[data-mode-nuit='true'] .lateral-entete::after {
-  border-color: var(--texte);
 }
 
 :root[data-mode-nuit='true'] .lateral-entete h2,
