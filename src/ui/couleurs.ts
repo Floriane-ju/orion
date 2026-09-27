@@ -116,6 +116,12 @@ export interface PaletteCiel {
   readonly sol: string
   /** T-0033 — plan galactique : rose en vue normale, rouge pur en mode nuit comme le reste. */
   readonly voieLactee: string
+  /**
+   * §8.4 / T-0324 — le trajet de pointage. Il ne peut pas se distinguer du cadre par la teinte :
+   * en mode nuit tout est rouge. Il s'en distingue par la FORME — trait tireté contre contour
+   * plein — et la teinte ne fait que le poser au premier plan de sa scène dépouillée.
+   */
+  readonly parcours: string
   readonly texte: string
 }
 
@@ -133,6 +139,7 @@ const PALETTE_NUIT: PaletteCiel = Object.freeze({
   horizon: 'rgb(70 0 0)',
   sol: 'rgb(18 0 0)',
   voieLactee: 'rgb(110 0 0)',
+  parcours: 'rgb(255 0 0)',
   texte: 'rgb(170 0 0)',
 })
 
@@ -159,6 +166,7 @@ const PALETTE_JOUR: PaletteCiel = Object.freeze({
   horizon: 'rgb(150 150 150)',
   sol: 'rgb(5 5 5)',
   voieLactee: 'rgb(150 186 205)',
+  parcours: 'rgb(236 236 236)',
   texte: 'rgb(214 214 214)',
 })
 
@@ -393,6 +401,7 @@ export function paletteRealiste(sbCiel: number): PaletteCiel {
     cadre: compense(PALETTE_JOUR.cadre),
     horizon: compense(PALETTE_JOUR.horizon),
     voieLactee: compense(PALETTE_JOUR.voieLactee),
+    parcours: compense(PALETTE_JOUR.parcours),
     texte: compense(PALETTE_JOUR.texte),
   })
   cacheRealiste = { sb: sbCiel, palette: composee }

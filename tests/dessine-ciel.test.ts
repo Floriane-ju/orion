@@ -56,6 +56,8 @@ import { etoileLabellisable } from '../src/core/labels.ts'
 import { palette, paletteRealiste } from '../src/ui/couleurs.ts'
 import { OPACITE_OBJET_ESTOMPE, teintesObjets } from '../src/ui/apparence-objets.ts'
 import type { LuneEcran } from '../src/ui/dessine-fond-ciel.ts'
+import { OPACITE_ETOILE_PARCOURS } from '../src/ui/apparence-objets.ts'
+import type { ParcoursScene } from '../src/ui/scene-etat.ts'
 import { sousLeSol } from '../src/core/sol.ts'
 import { K } from '../src/registry/constants.ts'
 import { SB_PLAFOND_TABLE, SB_PLANCHER_NATUREL } from '../src/registry/bortle.ts'
@@ -87,11 +89,14 @@ function contexteEspion() {
   const couleurs: string[] = []
   /** Opacités effectivement utilisées pour un tracé : la bande de §3.7 s'y lit. */
   const opacites: number[] = []
+  /** T-0324 — celles des REMPLISSAGES : les étoiles sont des disques pleins, pas des traits. */
+  const opacitesRemplies: number[] = []
   let opacite = 1
   const espion = {
     appels,
     couleurs,
     opacites,
+    opacitesRemplies,
     font: '',
     textBaseline: '',
     lineWidth: 1,
@@ -135,7 +140,10 @@ function contexteEspion() {
       opacites.push(opacite)
       appels.push({ nom: 'stroke', args })
     },
-    fill: enregistre('fill'),
+    fill: (...args: unknown[]) => {
+      opacitesRemplies.push(opacite)
+      appels.push({ nom: 'fill', args })
+    },
     createRadialGradient: (..._args: number[]) => ({
       addColorStop(_o: number, c: string) {
         couleurs.push(c)
@@ -197,6 +205,7 @@ function rend(
     lune?: LuneEcran
     poseCadre?: OptiquePose
     enAvant?: ReadonlySet<string>
+    parcours?: ParcoursScene
   } = {},
 ) {
   const ctx = contexteEspion()
@@ -252,6 +261,7 @@ function rend(
     passeFile: options.passeFile,
     poseCadre: options.poseCadre,
     enAvant: options.enAvant,
+    parcours: options.parcours,
   }
   return { ctx, sortie: dessineCiel(entree), entree }
 }
@@ -1604,5 +1614,180 @@ describe('§9.1 — T-0142, la carte de pose peinte dans le cadre', () => {
       }
       expect(couleur, couleur).toBe('#000000')
     }
+  })
+})
+
+/**
+ * §8.4 / T-0324 — la scène sous un parcours de pointage.
+ *
+ * L'assertion ne porte pas sur les ordres de tracé — le trajet en émet lui-même — mais sur les
+ * TEINTES : chaque couche a la sienne, et une couche qui n'a rien peint n'a jamais posé sa
+ * couleur sur le contexte. C'est la seule façon de dire « cette couche est absente » sans
+ * dépendre de la géométrie du champ.
+ */
+describe('T-0324 — le parcours ne laisse que ce qui sert à le suivre', () => {
+  const TEINTES = palette(false)
+  const OBJET: ObjetCielProfond = {
+    designation: 'NGC7000',
+    nomsCommuns: 'Amérique du Nord',
+    adDeg: CENTRE_VUE.longitudeDeg,
+    decDeg: CENTRE_VUE.latitudeDeg,
+    type: 'EMISSION',
+    majAxArcmin: 120,
+    minAxArcmin: 100,
+    posAngDeg: null,
+    vMag: 4,
+    bMag: null,
+    surfBr: null,
+  }
+  /** Trois étapes autour de la direction visée : elles tombent dans le canevas par construction. */
+  const PARCOURS: ParcoursScene = {
+    designation: OBJET.designation,
+    etapes: [
+      { ordre: 1, adH: CENTRE_VUE.longitudeDeg / 15 + 0.4, decDeg: CENTRE_VUE.latitudeDeg + 4, nom: 'Deneb' },
+      { ordre: 2, adH: CENTRE_VUE.longitudeDeg / 15 + 0.2, decDeg: CENTRE_VUE.latitudeDeg + 2, nom: '' },
+      { ordre: 3, adH: CENTRE_VUE.longitudeDeg / 15 + 0.1, decDeg: CENTRE_VUE.latitudeDeg + 1, nom: 'Sadr' },
+    ],
+    adCibleH: OBJET.adDeg / 15,
+    decCibleDeg: OBJET.decDeg,
+  }
+  const COUCHES_TOUTES: CouchesActives = { ...COUCHES, sol: true }
+  const options = {
+    couches: COUCHES_TOUTES,
+    objets: [OBJET],
+    corps: [
+      {
+        corps: 'Moon' as unknown as PositionCorps['corps'],
+        azimutDeg: 180,
+        hauteurDeg: 45,
+        adH: 0,
+        decDeg: 0,
+      } as PositionCorps,
+    ],
+  }
+
+  it('efface les quatre couches de repérage, le sol et l’horizon', () => {
+    const { ctx } = rend({ ...options, parcours: PARCOURS })
+    for (const absente of [
+      TEINTES.figures,
+      TEINTES.frontieres,
+      TEINTES.asterismes,
+      TEINTES.voieLactee,
+      TEINTES.sol,
+      TEINTES.horizon,
+      TEINTES.corps,
+    ]) {
+      expect(ctx.couleurs).not.toContain(absente)
+    }
+  })
+
+  it('efface les marqueurs du ciel profond', () => {
+    const { ctx } = rend({ ...options, parcours: PARCOURS })
+    const teintesObjet = teintesObjets(false, false, SB_PLANCHER_NATUREL)[OBJET.type]
+    expect(ctx.couleurs).not.toContain(teintesObjet.bord)
+    expect(ctx.couleurs).not.toContain(teintesObjet.coeur)
+  })
+
+  it('garde le cadre matériel : c’est la seule échelle de distance qui reste', () => {
+    const { ctx } = rend({ ...options, parcours: PARCOURS })
+    expect(ctx.couleurs).toContain(TEINTES.cadre)
+  })
+
+  it('garde le cadre même quand le rail l’a éteint', () => {
+    const { ctx } = rend({
+      ...options,
+      couches: { ...COUCHES_TOUTES, cadre: false },
+      parcours: PARCOURS,
+    })
+    expect(ctx.couleurs).toContain(TEINTES.cadre)
+  })
+
+  it('peint le trajet en tirets, et le nomme', () => {
+    const { ctx } = rend({ ...options, parcours: PARCOURS })
+    expect(ctx.couleurs).toContain(TEINTES.parcours)
+    const tirets = ctx.appels.filter((a) => a.nom === 'setLineDash')
+    expect(tirets.some((a) => (a.args[0] as number[]).length > 0)).toBe(true)
+    const textes = ctx.appels.filter((a) => a.nom === 'fillText').map((a) => a.args[0])
+    expect(textes).toContain('1 · Deneb')
+    expect(textes).toContain('2 · sans nom')
+    expect(textes).toContain(OBJET.designation)
+  })
+
+  it('garde les étoiles de fond, mais atténuées', () => {
+    const nu = rend(options)
+    const avec = rend({ ...options, parcours: PARCOURS })
+    // Les étoiles sont toujours peintes : la scène dépouillée dit encore où l'on regarde.
+    expect(avec.sortie.etoilesDessinees).toBe(nu.sortie.etoilesDessinees)
+    expect(avec.ctx.opacitesRemplies).toContain(OPACITE_ETOILE_PARCOURS)
+    expect(nu.ctx.opacitesRemplies).not.toContain(OPACITE_ETOILE_PARCOURS)
+  })
+
+  it('ne laisse rien à désigner : ce qui n’est pas peint ne se survole pas', () => {
+    const { sortie } = rend({ ...options, parcours: PARCOURS })
+    expect(sortie.cibles).toHaveLength(0)
+    expect(sortie.labels).toHaveLength(0)
+  })
+
+  it('reste rouge pur en mode nuit, canaux vert et bleu nuls', () => {
+    const { ctx } = rend({ ...options, parcours: PARCOURS, modeNuit: true })
+    for (const couleur of ctx.couleurs) {
+      const m = /rgb\((\d+) (\d+) (\d+)\)/.exec(couleur)
+      if (m === null) continue
+      expect(Number(m[2])).toBe(0)
+      expect(Number(m[3])).toBe(0)
+    }
+  })
+})
+
+/**
+ * T-0324 — la carte du plan et le rail restent montés quel que soit l'onglet : ouvrir un
+ * parcours en ciel profond puis basculer en panorama amenait les deux modes sur la même image.
+ * Aucun des deux ne prévoit l'autre, et le résultat — un aperçu de filé au cadre forcé visible,
+ * au sol forcé invisible, avec un trajet en tirets par-dessus — n'était voulu par personne.
+ */
+describe('T-0324 — l’aperçu §9.5 l’emporte sur le parcours', () => {
+  const TEINTES = palette(false)
+  const PARCOURS: ParcoursScene = {
+    designation: 'NGC7000',
+    etapes: [
+      {
+        ordre: 1,
+        adH: CENTRE_VUE.longitudeDeg / 15 + 0.2,
+        decDeg: CENTRE_VUE.latitudeDeg + 2,
+        nom: 'Deneb',
+      },
+    ],
+    adCibleH: CENTRE_VUE.longitudeDeg / 15,
+    decCibleDeg: CENTRE_VUE.latitudeDeg,
+  }
+  const COUCHES_TOUTES: CouchesActives = { ...COUCHES, sol: true }
+  /** Une passe de filé qui ne peint rien : sa seule présence suffit à déclarer l'aperçu. */
+  const APERCU = () => {}
+
+  it('ne peint aucun trajet sous l’aperçu', () => {
+    const { ctx } = rend({
+      couches: COUCHES_TOUTES,
+      passeFile: APERCU,
+      parcours: PARCOURS,
+    })
+    expect(ctx.couleurs).not.toContain(TEINTES.parcours)
+  })
+
+  it('laisse l’aperçu strictement identique à ce qu’il est sans parcours', () => {
+    const seul = rend({ couches: COUCHES_TOUTES, passeFile: APERCU })
+    const avec = rend({ couches: COUCHES_TOUTES, passeFile: APERCU, parcours: PARCOURS })
+    expect(avec.ctx.couleurs).toEqual(seul.ctx.couleurs)
+    expect(avec.ctx.appels.map((a) => a.nom)).toEqual(seul.ctx.appels.map((a) => a.nom))
+    expect(avec.ctx.opacitesRemplies).toEqual(seul.ctx.opacitesRemplies)
+  })
+
+  it('garde le sol et l’horizon que l’aperçu, lui, conserve', () => {
+    const { ctx } = rend({
+      couches: COUCHES_TOUTES,
+      passeFile: APERCU,
+      parcours: PARCOURS,
+    })
+    expect(ctx.couleurs).toContain(TEINTES.sol)
+    expect(ctx.couleurs).toContain(TEINTES.horizon)
   })
 })

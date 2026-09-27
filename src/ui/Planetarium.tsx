@@ -296,6 +296,7 @@ export function Planetarium(props: PlanetariumProps) {
     // matériel, il n'y a pas de NPF, donc pas de cadre à masquer.
     poseCadre: file.poseDansCadre && props.file !== undefined ? props.file.optique : null,
     enAvant: props.enAvant,
+    parcours: rendu.parcours,
     magLimite: profondeur.magLimite.value,
     sbCiel: sbCielScene,
     vueRealiste: rendu.vueRealiste,

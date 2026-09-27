@@ -106,6 +106,7 @@ export function CartesSeance(props: RegionSeanceProps) {
         mLimOeil={ciel.ciel.mLimOeil.value}
         etoiles={props.etoiles}
         nommees={props.constellations.etoilesNommees}
+        gaiaCharge={props.gaiaCharge}
         enTete={{
           nuitIso: lieu.nuitIso,
           lieu: `${lieu.latitude}° / ${lieu.longitude}° — Bortle ${lieu.bortle}`,

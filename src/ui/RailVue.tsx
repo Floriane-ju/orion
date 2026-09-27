@@ -29,7 +29,13 @@ import { Bulle } from './Bulle.tsx'
 import type { CouchesActives } from './dessine-ciel.ts'
 import { Icone } from './Icone.tsx'
 import { RACCOURCIS_CLAVIER } from './planetarium-gestes.ts'
-import { majRendu, majVue, useTrancheScene, type EtatScene } from './scene-etat.ts'
+import {
+  majRendu,
+  majVue,
+  masqueParcours,
+  useTrancheScene,
+  type EtatScene,
+} from './scene-etat.ts'
 import { useSeance } from './seance-etat.ts'
 
 export interface RailVueProps {
@@ -51,6 +57,10 @@ function couchesScene(etat: EtatScene): CouchesActives {
 }
 function vueRealisteScene(etat: EtatScene): boolean {
   return etat.rendu.vueRealiste
+}
+/** T-0324 — la cible du parcours, `null` quand il n'y en a pas : la bulle la nomme. */
+function cibleParcours(etat: EtatScene): string | null {
+  return etat.rendu.parcours?.designation ?? null
 }
 
 /**
@@ -85,6 +95,13 @@ const ETEINTES_EN_PANORAMA: readonly (keyof CouchesActives)[] = [
 ]
 
 const NOTE_PANORAMA = 'masqué pendant l’aperçu photo'
+
+/**
+ * T-0324 — sous un parcours de pointage, la scène ne garde que le trajet, la cible et le cadre
+ * matériel. AUCUNE bascule de couche n'y change quoi que ce soit — pas même celle du cadre, qui
+ * est forcé allumé. Elles s'éteignent donc toutes, et disent pourquoi.
+ */
+const NOTE_PARCOURS = 'masqué pendant le parcours de pointage'
 
 /* T-0097 — la bascule ne plafonne plus seulement la magnitude : elle peint le fond de ciel
    du site, son halo d'horizon et celui de la Lune. */
@@ -131,6 +148,8 @@ export function RailVue(props: RailVueProps) {
   const mode = useTrancheScene(modeScene)
   const couches = useTrancheScene(couchesScene)
   const vueRealiste = useTrancheScene(vueRealisteScene)
+  const cibleDuParcours = useTrancheScene(cibleParcours)
+  const parcours = cibleDuParcours !== null
   const { mode: modeInterface } = useSeance()
 
   /* Les bornes de champ sont une propriété de la PROJECTION (`fovMaxSelonMode`), et leur
@@ -189,15 +208,42 @@ export function RailVue(props: RailVueProps) {
           />
         </div>
 
+        {/* T-0324 — le parcours se déclenche depuis le plan de nuit, un panneau qui se replie.
+            Sans cette sortie posée près de la scène, on resterait devant un ciel dépouillé sans
+            savoir d'où il vient. Pas de bascule : il n'y a rien à rallumer, seulement à sortir. */}
+        {parcours && (
+          <div className="rail-groupe" role="group" aria-label="Parcours de pointage">
+            {/* T-0324 — la bulle NOMME la cible : deux étapes du plan peuvent avoir leur aide
+                au pointage ouverte en même temps, et un libellé générique laisserait deviner
+                lequel des deux trajets la scène montre. */}
+            <Bulle texte={`Masquer le parcours vers ${cibleDuParcours}`} place="droite">
+              <button
+                type="button"
+                className="bascule"
+                aria-label={`Masquer le parcours vers ${cibleDuParcours}`}
+                onClick={masqueParcours}
+              >
+                <Icone nom="route" />
+              </button>
+            </Bulle>
+          </div>
+        )}
+
         <div className="rail-groupe" role="group" aria-label="Couches">
           {COUCHES.map(([cle, glyphe, libelle]) => {
-            const eteinte = modeInterface === 'PANORAMA' && ETEINTES_EN_PANORAMA.includes(cle)
+            const eteintePanorama =
+              modeInterface === 'PANORAMA' && ETEINTES_EN_PANORAMA.includes(cle)
+            const eteinte = parcours || eteintePanorama
             return (
               <Bascule
                 key={cle}
                 nom={glyphe}
                 libelle={libelle}
-                aide={aide(libelle, notes[cle], eteinte ? NOTE_PANORAMA : undefined)}
+                aide={aide(
+                  libelle,
+                  notes[cle],
+                  parcours ? NOTE_PARCOURS : eteintePanorama ? NOTE_PANORAMA : undefined,
+                )}
                 actif={couches[cle]}
                 eteinte={eteinte}
                 sur={() =>

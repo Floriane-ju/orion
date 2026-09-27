@@ -7,7 +7,14 @@
 
 import { useMemo, useState } from 'react'
 import { faciliteCible } from '../core/facilite.ts'
-import { cartePointage, RAPPEL_MISE_EN_STATION, type Ancrage } from '../core/pointage.ts'
+import {
+  cadrageParcours,
+  cartePointage,
+  etapesParcours,
+  RAPPEL_MISE_EN_STATION,
+  type Ancrage,
+  type EtapeParcours,
+} from '../core/pointage.ts'
 import { planEnTexte, type EnTetePlan } from '../core/plan-texte.ts'
 import type { CibleEcartee, EtapePlan, PlanSession as Plan } from '../core/session.ts'
 import type { Site } from '../core/ephem.ts'
@@ -23,6 +30,20 @@ import { Etiquette } from './Terme.tsx'
 import { heure } from './horaire.ts'
 import { Mention } from './Mention.tsx'
 import { ouvreCible } from './seance-etat.ts'
+import { bornesZoom, fovPourRayonDeg } from '../core/projection.ts'
+import { cielInstantane } from '../core/horloges.ts'
+import { fovBorne } from './planetarium-gestes.ts'
+import { viseeVersVue } from './scene-lecture.ts'
+import {
+  etatScene,
+  majVue,
+  masqueParcours,
+  montreParcours,
+  parcoursScene,
+  useTrancheScene,
+  vuePlanetarium,
+  type ParcoursScene,
+} from './scene-etat.ts'
 import { LIBELLE_MODE_POINTAGE } from '../registry/libelles.ts'
 
 const DEG_PAR_HEURE = 15
@@ -47,6 +68,8 @@ export interface PlanSessionProps {
   readonly etoiles: readonly Etoile[]
   /** §3.4 — le paquet qui donne un nom aux étoiles repères de §8.4 (T-0287). */
   readonly nommees: readonly EtoileNommee[]
+  /** §3.3 — il borne le champ que « Voir le parcours » demande à la scène (T-0324). */
+  readonly gaiaCharge: boolean
   readonly enTete: EnTetePlan
 }
 
@@ -206,6 +229,7 @@ function Etape({ etape, rang, ...props }: EtapeProps) {
             : { fovChercheurDeg: props.fovChercheurDeg })}
           etoiles={props.etoiles}
           nommees={props.nommees}
+          gaiaCharge={props.gaiaCharge}
         />
       )}
     </div>
@@ -271,21 +295,88 @@ export interface PointageProps {
   readonly fovChercheurDeg?: number | undefined
   readonly etoiles: readonly Etoile[]
   readonly nommees: readonly EtoileNommee[]
+  /** §3.3 — il borne le champ que « Voir le parcours » demande à la scène (T-0324). */
+  readonly gaiaCharge: boolean
+}
+
+/**
+ * T-0324 — la scène prend le trajet, puis s'y range : elle va à l'heure du pointage, se centre
+ * dessus et ouvre son champ juste assez pour le contenir.
+ *
+ * L'HORLOGE SAUTE, contrairement au bouton « Voir » de T-0046 qui ne bouge que la visée. Ce
+ * n'est pas la même question : « Voir » demande où est cette cible en ce moment, le parcours
+ * montre le trajet qu'on fera à l'heure de l'étape. Le reste de l'aide au pointage — la table,
+ * le schéma, l'angle parallactique de §8.4 — est déjà calculé pour cette heure-là ; laisser la
+ * scène à la sienne montrerait le ciel d'un autre moment sous des chiffres qui n'en parlent
+ * pas, et le cadrage automatique raterait le trajet d'autant que les deux heures diffèrent.
+ *
+ * Le rayon du trajet devient un champ par `fovPourRayonDeg`, qui le fait tenir sur le bord le
+ * plus proche : `fovDeg` est horizontal, et un trajet à dominante verticale sortirait d'un champ
+ * dimensionné sur la largeur d'un canevas plus large que haut.
+ *
+ * Le champ passe ensuite par `bornesZoom` alors que `majVue` ne pose que le plafond de la
+ * projection. Sans ce plancher, un trajet court laisserait la scène sous la profondeur du
+ * catalogue embarqué — et l'y laisserait encore après la fermeture du parcours.
+ */
+function poseParcours(props: PointageProps, etapes: readonly EtapeParcours[]): void {
+  const adCibleH = props.objet.adDeg / DEG_PAR_HEURE
+  const parcours: ParcoursScene = {
+    designation: props.objet.designation,
+    etapes,
+    adCibleH,
+    decCibleDeg: props.objet.decDeg,
+  }
+  montreParcours(parcours, props.date.getTime())
+
+  const cadrage = cadrageParcours(etapes, adCibleH, props.objet.decDeg)
+  const { matrice } = cielInstantane(props.site, props.date)
+  const { azimutDeg, hauteurDeg } = viseeVersVue(cadrage.adDeg, cadrage.decDeg, matrice)
+  const vue = etatScene().vue
+  const fovDeg = fovPourRayonDeg(
+    vuePlanetarium(vue),
+    cadrage.rayonDeg * K('MARGE_CADRAGE_PARCOURS'),
+  )
+  majVue({
+    azimutDeg,
+    hauteurDeg,
+    fovDeg: fovBorne(fovDeg, bornesZoom(props.gaiaCharge, vue.mode)),
+  })
 }
 
 export function Pointage(props: PointageProps) {
-  const carte = cartePointage({
-    site: props.site,
-    date: props.date,
-    adCibleH: props.objet.adDeg / DEG_PAR_HEURE,
-    decCibleDeg: props.objet.decDeg,
-    fovHDeg: props.fovHDeg,
-    fovLDeg: props.fovLDeg,
-    mLimOeil: props.mLimOeil,
-    ...(props.fovChercheurDeg === undefined ? {} : { fovChercheurDeg: props.fovChercheurDeg }),
-    etoiles: props.etoiles,
-    nommees: props.nommees,
-  })
+  // T-0324 — un cheminement est un parcours en largeur sur le catalogue : le mémo le retient
+  // pour que basculer le parcours, ou n'importe quel interrupteur de la scène, ne le relance pas.
+  const carte = useMemo(
+    () =>
+      cartePointage({
+        site: props.site,
+        date: props.date,
+        adCibleH: props.objet.adDeg / DEG_PAR_HEURE,
+        decCibleDeg: props.objet.decDeg,
+        fovHDeg: props.fovHDeg,
+        fovLDeg: props.fovLDeg,
+        mLimOeil: props.mLimOeil,
+        ...(props.fovChercheurDeg === undefined
+          ? {}
+          : { fovChercheurDeg: props.fovChercheurDeg }),
+        etoiles: props.etoiles,
+        nommees: props.nommees,
+      }),
+    [
+      props.site,
+      props.date,
+      props.objet,
+      props.fovHDeg,
+      props.fovLDeg,
+      props.mLimOeil,
+      props.fovChercheurDeg,
+      props.etoiles,
+      props.nommees,
+    ],
+  )
+  const parcours = useTrancheScene(parcoursScene)
+  const etapes = useMemo(() => etapesParcours(carte), [carte])
+  const montre = parcours !== null && parcours.designation === props.objet.designation
   const deplies = K('ANCRAGES_DEPLIES_MAX')
   const tete = carte.ancrages.slice(0, deplies)
   const reste = carte.ancrages.slice(deplies)
@@ -308,6 +399,25 @@ export function Pointage(props: PointageProps) {
         decimales={0}
         unite="°"
       />
+
+      {/* T-0324 — le tableau dit le trajet, la scène le MONTRE. Absent quand la carte n'a
+          rien à proposer : elle en donne déjà la cause juste au-dessus. */}
+      {etapes.length > 0 && (
+        <button
+          type="button"
+          className="etape-pointage"
+          aria-pressed={montre}
+          onClick={() => {
+            if (montre) {
+              masqueParcours()
+              return
+            }
+            poseParcours(props, etapes)
+          }}
+        >
+          <Icone nom="route" /> {montre ? 'Masquer le parcours' : 'Voir le parcours'}
+        </button>
+      )}
 
       {carte.ancrages.length > 0 && (
         <>

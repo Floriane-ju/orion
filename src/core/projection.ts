@@ -183,6 +183,28 @@ export function rayonChampDeg(vue: Vue): number {
 }
 
 /**
+ * §8.4 / T-0324 — le champ qu'il faut pour qu'une calotte de rayon `rayonDeg` autour de la
+ * visée tienne ENTIÈREMENT dans le canevas.
+ *
+ * Réciproque partielle de `rayonChampDeg`, et son contraire de bout : celle-là mesure le coin,
+ * celle-ci vise le bord le PLUS PROCHE. `fovDeg` est le champ horizontal — il remplit la
+ * largeur (`echelleProjection`) —, or un canevas est plus large que haut et la visée y est
+ * décalée (T-0258). Dimensionner sur la largeur laisserait donc sortir par le haut et par le
+ * bas ce qu'on prétendait montrer en entier.
+ *
+ * Le passage par R(θ) et sa réciproque, jamais par une règle de trois sur les degrés : la
+ * proportionnalité entre angle et pixels est une approximation petit-angle, et c'est elle que
+ * T-0110 a chassée du calcul de champ.
+ */
+export function fovPourRayonDeg(vue: Vue, rayonDeg: number): number {
+  const centreX = centreViseePx(vue).xPx
+  const demiCotePx = Math.min(centreX, vue.largeurPx - centreX, vue.hauteurPx / 2)
+  if (demiCotePx <= 0) return vue.fovDeg
+  const rayonBord = (rayonProjete(vue.mode, rayonDeg * DEG) * (vue.largeurPx / 2)) / demiCotePx
+  return (2 * angleProjete(vue.mode, rayonBord)) / DEG
+}
+
+/**
  * Portée utile d'un point projeté, en diagonales de canevas.
  *
  * Au-delà, une position n'est plus une position : c'est le voisinage de la singularité de la

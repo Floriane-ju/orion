@@ -34,7 +34,7 @@ import type { Site } from './ephem.ts'
 import { tempsSideralLocal } from './ephem.ts'
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
-import { DEG } from './mat3.ts'
+import { DEG, separationDeg, versSpherique, versVecteur, type Vec3 } from './mat3.ts'
 
 const HEURES_PAR_TOUR = 24
 const DEG_PAR_HEURE = 360 / HEURES_PAR_TOUR
@@ -62,6 +62,17 @@ export interface Ancrage {
   readonly separationDeg: number
   /** L'ancrage principal : le plus brillant, sous la magnitude fiable en ciel dégradé. */
   readonly principal: boolean
+}
+
+/**
+ * §8.4 — un point du trajet, dans l'ordre où on le parcourt. Ni un `Saut` ni un `Ancrage` : le
+ * dénominateur commun des deux modes, qui est tout ce qu'il faut pour DESSINER le trajet.
+ */
+export interface EtapeParcours {
+  readonly ordre: number
+  readonly adH: number
+  readonly decDeg: number
+  readonly nom: string
 }
 
 export interface Saut {
@@ -463,3 +474,67 @@ export function cartePointage(entree: EntreePointage): CartePointage {
 
 export const RAPPEL_MISE_EN_STATION =
   'La mise en station reste à faire vous-même : l’application aide seulement à trouver les objets.'
+
+/**
+ * §8.4, T-0324 — le trajet à suivre, quel que soit le mode de la carte.
+ *
+ * En CHEMINEMENT, ce sont les sauts, du départ visible à l'œil nu vers la cible. En
+ * CARTE_DIRECTE, §8.4 ne prévoit qu'« une seule étape de pointage » : c'est l'ancrage
+ * PRINCIPAL, et lui seul. Les autres ancrages sont des confirmations, pas des étapes — les
+ * relier dessinerait un chemin que personne n'est censé suivre.
+ *
+ * Le repli sur le premier ancrage quand aucun n'est principal est celui que `carteDirecte`
+ * applique déjà à ses décalages : un ciel dégradé peut n'offrir aucune étoile sous la
+ * magnitude fiable, et le plus brillant disponible vaut mieux qu'aucun trajet.
+ */
+export function etapesParcours(carte: CartePointage): readonly EtapeParcours[] {
+  if (carte.sauts.length > 0) {
+    return carte.sauts.map(({ ordre, adH, decDeg, nom }) => ({ ordre, adH, decDeg, nom }))
+  }
+  const principal = carte.ancrages.find((ancrage) => ancrage.principal) ?? carte.ancrages[0]
+  if (principal === undefined) return []
+  return [{ ordre: 1, adH: principal.adH, decDeg: principal.decDeg, nom: principal.nom }]
+}
+
+/**
+ * §8.4, T-0324 — la calotte céleste qui contient un parcours : son centre et son rayon.
+ *
+ * Le centre est le barycentre des DIRECTIONS, pas la moyenne des ascensions droites : une
+ * moyenne d'angles casse au passage 24 h → 0 h, et un cheminement circumpolaire le traverse.
+ *
+ * Un RAYON, pas un champ. Le champ dépend de la forme du canevas, de la projection et du
+ * décalage de la visée (T-0258) — trois choses que ce moteur ignore. `fovPourRayonDeg`
+ * (§3.3) les connaît, `bornesZoom` connaît les bornes : c'est l'appelant qui les enchaîne.
+ */
+export function cadrageParcours(
+  etapes: readonly EtapeParcours[],
+  adCibleH: number,
+  decCibleDeg: number,
+): { readonly adDeg: number; readonly decDeg: number; readonly rayonDeg: number } {
+  const points: Vec3[] = etapes.map((etape) =>
+    versVecteur(etape.adH * DEG_PAR_HEURE, etape.decDeg),
+  )
+  points.push(versVecteur(adCibleH * DEG_PAR_HEURE, decCibleDeg))
+
+  let x = 0
+  let y = 0
+  let z = 0
+  for (const point of points) {
+    x += point.x
+    y += point.y
+    z += point.z
+  }
+  const norme = Math.hypot(x, y, z)
+  // Une somme nulle demanderait des directions diamétralement opposées : un trajet de pointage
+  // ne couvre jamais l'hémisphère. La cible fait alors le centre, faute de mieux.
+  const centre: Vec3 =
+    norme === 0
+      ? points[points.length - 1]!
+      : { x: x / norme, y: y / norme, z: z / norme }
+
+  let rayonDeg = 0
+  for (const point of points) rayonDeg = Math.max(rayonDeg, separationDeg(centre, point))
+
+  const { longitudeDeg, latitudeDeg } = versSpherique(centre)
+  return { adDeg: longitudeDeg, decDeg: latitudeDeg, rayonDeg }
+}

@@ -11,7 +11,7 @@
 
 import { K } from '../registry/constants.ts'
 import { champVisible } from './champ-visible.ts'
-import { cheminCadre, traceHorizon, traceLignes, traceSegments } from './traces-ciel.ts'
+import { traceHorizon, traceLignes, traceSegments } from './traces-ciel.ts'
 import {
   ancreVoieLactee,
   NOM_VOIE_LACTEE,
@@ -62,8 +62,19 @@ import {
   type PaletteCiel,
 } from './couleurs.ts'
 import { dessineHaloHorizon, dessineHaloLune, type LuneEcran } from './dessine-fond-ciel.ts'
-import { dessineCartePose, type OptiquePose } from './dessine-pose-cadre.ts'
-import { OPACITE_OBJET_ESTOMPE, teintesObjets } from './apparence-objets.ts'
+import type { OptiquePose } from './dessine-pose-cadre.ts'
+import {
+  dessineCarteDansCadre,
+  dessineContourCadre,
+  type EntreeCadre,
+} from './dessine-cadre.ts'
+import {
+  OPACITE_ETOILE_PARCOURS,
+  OPACITE_OBJET_ESTOMPE,
+  teintesObjets,
+} from './apparence-objets.ts'
+import { dessineParcours } from './dessine-parcours.ts'
+import type { ParcoursScene } from './scene-etat.ts'
 import { geometrieMarqueur, peintCroix, peintEllipse } from './marqueur-objet.ts'
 
 export interface CouchesActives {
@@ -172,6 +183,14 @@ export interface EntreeDessin {
    * question que la liste. Absent — aucun filtre actif — tout garde sa pleine opacité.
    */
   readonly enAvant?: ReadonlySet<string> | undefined
+  /**
+   * §8.4 / T-0324 — le trajet de pointage. Présent, il tient lieu de scène entière : comme
+   * l'aperçu de §9.5, il éteint tout ce qui COMMENTE le ciel, et il éteint en plus ce qui le
+   * cadre — sol, horizon, grille de pose — parce qu'aucun de ces repères n'aide à aller d'une
+   * étoile à la suivante. Ne survivent que le cadre matériel, seule échelle de distance, les
+   * étoiles de fond très atténuées, et le trajet lui-même.
+   */
+  readonly parcours?: ParcoursScene | undefined
 }
 
 export interface SortieDessin {
@@ -229,6 +248,14 @@ interface Passe {
   readonly teintes: PaletteCiel
   /** T-0171 — faux quand l'aperçu plein ciel tient lieu de prise de vue : les repères s'effacent. */
   readonly peintReperes: boolean
+  /** T-0324 — vrai quand la scène ne montre qu'un parcours de pointage (§8.4). */
+  readonly modeParcours: boolean
+  /**
+   * T-0324 — opacité des étoiles de fond. Nulle sous l'aperçu de §9.5, où un point net à
+   * l'extrémité d'une trace n'existe sur aucune pose ; atténuée sous un parcours, où le fond
+   * n'est plus le sujet mais reste ce qui dit où l'on regarde ; pleine partout ailleurs.
+   */
+  readonly opaciteEtoiles: number
   readonly fondPeint: boolean
   readonly largeur: number
   readonly hauteur: number
@@ -303,7 +330,9 @@ function passeTraces(passe: Passe): CandidatLabel | null {
   // T-0173 — le TRAIT du plan galactique survit à l'aperçu : sur une prise de vue où la Voie
   // lactée se voit, c'est la seule ligne qui dise où elle passe. Il cadre comme l'horizon
   // cadre. La bande, le repère du centre et les noms, eux, l'annotent : ils restent éteints.
-  if (entree.couches.voieLactee) {
+  // T-0324 — sous un parcours il s'éteint quand même : ce qui cadre une PRISE DE VUE n'aide pas
+  // à aller d'une étoile à la suivante, et la scène du parcours ne garde que le cadre matériel.
+  if (entree.couches.voieLactee && !passe.modeParcours) {
     ctx.strokeStyle = teintes.voieLactee
     ctx.lineWidth = 1
     traceLignes(ctx, projecteur, [PLAN_GALACTIQUE])
@@ -314,7 +343,7 @@ function passeTraces(passe: Passe): CandidatLabel | null {
 
 /** §3.3 — les étoiles du paquet, regroupées par teinte : huit tracés, pas seize mille. */
 function passeEtoiles(passe: Passe): { stats: StatistiquesSelection; etoilesDessinees: number } {
-  const { entree, peintReperes, largeur, hauteur, p, cibles } = passe
+  const { entree, opaciteEtoiles, largeur, hauteur, p, cibles } = passe
   const { ctx, projecteur, index } = passe.entree
   // --- Étoiles ------------------------------------------------------------
   // Rayon du champ : la diagonale du canevas, exprimée en degrés au centre.
@@ -333,7 +362,7 @@ function passeEtoiles(passe: Passe): { stats: StatistiquesSelection; etoilesDess
     (x, y, z, magV, bv, source) => {
       if (!projecteur.projetteEn(x, y, z, p)) return
       if (p.xPx < 0 || p.yPx < 0 || p.xPx > largeur || p.yPx > hauteur) return
-      if (peintReperes) {
+      if (opaciteEtoiles > 0) {
         const rayon = Math.max(RAYON_MIN_ETOILE_PX, rayonEtoilePx(magV))
         const chemin = chemins[teinte(bv)]!
         chemin.moveTo(p.xPx + rayon, p.yPx)
@@ -346,11 +375,13 @@ function passeEtoiles(passe: Passe): { stats: StatistiquesSelection; etoilesDess
       }
     },
   )
-  if (peintReperes) {
+  if (opaciteEtoiles > 0) {
+    ctx.globalAlpha = opaciteEtoiles
     for (let t = 0; t < TEINTES; t++) {
       ctx.fillStyle = couleurTeinte(t, entree.modeNuit)
       ctx.fill(chemins[t]!)
     }
+    ctx.globalAlpha = 1
   }
 
   return { stats, etoilesDessinees }
@@ -454,7 +485,6 @@ function passeCorps(passe: Passe): void {
   const { ctx, projecteur } = passe.entree
   // --- Corps mobiles -------------------------------------------------------
   const versJ2000 = transpose(entree.matriceCiel)
-  ctx.fillStyle = teintes.corps
   for (const corps of entree.corps) {
     const v = applique(versJ2000, versVecteur(corps.azimutDeg, corps.hauteurDeg))
     if (!projecteur.projetteEn(v.x, v.y, v.z, p)) continue
@@ -463,6 +493,9 @@ function passeCorps(passe: Passe): void {
     // qu'on ne voit pas prenait la place d'un nom qu'on voit (§3.4).
     if (p.xPx < 0 || p.yPx < 0 || p.xPx > largeur || p.yPx > hauteur) continue
     if (peintReperes) {
+      // T-0324 — la teinte se pose au moment de peindre, pas avant la boucle : une couleur
+      // déposée sur le contexte par une passe qui ne peint rien annonce une couche absente.
+      ctx.fillStyle = teintes.corps
       ctx.beginPath()
       ctx.arc(p.xPx, p.yPx, RAYON_CORPS_PX, 0, TOUR_RAD)
       ctx.fill()
@@ -547,24 +580,6 @@ function passeNomsConstellations(passe: Passe): void {
   }
 }
 
-/** §3.5 — le contour du cadre matériel, tracé au projecteur brut. */
-function passeCadre(passe: Passe): void {
-  const { entree, brut, couches, teintes } = passe
-  const { ctx } = passe.entree
-  // --- Cadre matériel §3.5 -------------------------------------------------
-  if (couches.cadre) {
-    ctx.strokeStyle = teintes.cadre
-    ctx.lineWidth = 2
-    for (const cadre of entree.cadres) {
-      // Projecteur BRUT : le contour dit où pointe le matériel, y compris sous l'horizon. Un
-      // cadrage qui se rompt en visant bas ne dirait plus où l'on pointe (§3.5).
-      cheminCadre(ctx, brut, cadre, entree.matriceCiel)
-      ctx.stroke()
-    }
-    ctx.lineWidth = 1
-  }
-}
-
 /** §3.4, T-0085 — les labels retenus, puis le nom que le survol révèle. */
 function passeLabels(passe: Passe): {
   labels: readonly CandidatLabel[]
@@ -609,39 +624,6 @@ function passeLabels(passe: Passe): {
   return { labels, revele }
 }
 
-/** §9.1, T-0142 — la carte de pose, EN DERNIER : elle masque tout ce qui précède dans le cadre. */
-function passeCartePose(passe: Passe): void {
-  const { entree, brut, couches, teintes } = passe
-  const { ctx } = passe.entree
-  // --- Carte de pose dans le cadre §9.1 / T-0142 ---------------------------
-  // En DERNIER : la carte masque le cadre, traces, repères et noms compris. Peinte avec les
-  // repères, elle laisserait passer par-dessus elle les labels retenus juste au-dessus.
-  if (entree.poseCadre !== undefined && couches.cadre) {
-    for (const cadre of entree.cadres) {
-      const garni = dessineCartePose({
-        ctx,
-        // Projecteur BRUT, comme le contour : la carte décrit le cadre du matériel, y compris
-        // quand il vise sous l'horizon (§3.5).
-        projecteur: brut,
-        cadre,
-        matriceCiel: entree.matriceCiel,
-        optique: entree.poseCadre,
-        chemin: () => cheminCadre(ctx, brut, cadre, entree.matriceCiel),
-        couleurTexte: teintes.texte,
-        couleurLimitante: teintes.cadre,
-      })
-      // Le contour se retrace sur le masque : peint plus tôt, il en perdrait la moitié.
-      if (garni) {
-        ctx.strokeStyle = teintes.cadre
-        ctx.lineWidth = 2
-        cheminCadre(ctx, brut, cadre, entree.matriceCiel)
-        ctx.stroke()
-        ctx.lineWidth = 1
-      }
-    }
-  }
-}
-
 /**
  * L'image du planétarium : une passe par couche, dans l'ordre où elles se recouvrent.
  *
@@ -657,21 +639,44 @@ export function dessineCiel(entreeBrute: EntreeDessin): SortieDessin {
   // ce qui a été tracé avant lui : rien d'autre ne masque la largeur d'un trait épais. Et ce
   // qui est tracé APRÈS lui hérite d'un projecteur aveugle au sol — sans quoi les étoiles se
   // reposeraient par-dessus le sol qu'on vient de peindre, et resteraient cliquables.
-  const entree: EntreeDessin = entreeBrute.couches.sol
-    ? {
-        ...entreeBrute,
-        projecteur: projecteurSansSol(brut, entreeBrute.masque, entreeBrute.matriceCiel),
-      }
-    : entreeBrute
+  // T-0324 — sous un parcours le sol n'est pas peint, donc il ne filtre rien : le trajet et ses
+  // étoiles se voient jusque sous l'horizon, et la grille de pose de §9.1 quitte le cadre —
+  // elle y garnirait le seul repère d'échelle que la scène garde d'une information qui ne dit
+  // rien du chemin à suivre.
+  // L'APERÇU L'EMPORTE. La carte du plan et le rail restent montés quel que soit l'onglet :
+  // ouvrir un parcours en ciel profond puis basculer en panorama amenait les deux modes sur la
+  // même image — un aperçu de filé au cadre forcé visible, au sol forcé invisible, avec un
+  // trajet en tirets par-dessus. Aucun des deux ne prévoit cela. L'aperçu tient lieu de prise
+  // de vue (§9.5) ; un trajet peint dessus annoterait une photo, ce qu'elle n'est pas. Le
+  // parcours reste en mémoire et revient dès qu'on quitte l'aperçu.
+  const modeParcours = entreeBrute.parcours !== undefined && entreeBrute.passeFile === undefined
+  const entree: EntreeDessin = modeParcours
+    ? { ...entreeBrute, poseCadre: undefined }
+    : entreeBrute.couches.sol
+      ? {
+          ...entreeBrute,
+          projecteur: projecteurSansSol(brut, entreeBrute.masque, entreeBrute.matriceCiel),
+        }
+      : entreeBrute
   const { projecteur } = entree
   // T-0171 — l'aperçu peint sur toute la scène tient lieu de prise de vue : ce qui la
   // commente s'efface. Ne restent que le sol, l'horizon et le cadre matériel — ce qui CADRE le
   // champ, pas ce qui l'annote. T-0316 — la sélection s'arrête avec la peinture : sous
   // l'aperçu, ni survol ni clic ne désignent quoi que ce soit (voir la sortie, plus bas).
-  const peintReperes = entree.passeFile === undefined
+  const peintReperes = entree.passeFile === undefined && !modeParcours
   const couches: CouchesActives = peintReperes
     ? entree.couches
-    : { ...entree.couches, figures: false, frontieres: false, asterismes: false, voieLactee: false }
+    : {
+        ...entree.couches,
+        figures: false,
+        frontieres: false,
+        asterismes: false,
+        voieLactee: false,
+        // T-0324 — le parcours va plus loin que l'aperçu : il éteint aussi ce qui CADRE le
+        // champ. Le cadre matériel, lui, est forcé allumé quel que soit le rail — c'est de lui
+        // seul qu'on tire la distance qui reste à parcourir.
+        ...(modeParcours ? { sol: false, horizon: false, cadre: true } : {}),
+      }
   const teintes = paletteScene(entree.modeNuit, entree.vueRealiste, entree.sbCiel)
   // §11.1 — le mode nuit protège l'adaptation à l'obscurité : éclaircir tout le canevas le
   // rendrait inutile. La vue réaliste n'y change donc que la magnitude limite.
@@ -685,6 +690,8 @@ export function dessineCiel(entreeBrute: EntreeDessin): SortieDessin {
     couches,
     teintes,
     peintReperes,
+    modeParcours,
+    opaciteEtoiles: modeParcours ? OPACITE_ETOILE_PARCOURS : peintReperes ? 1 : 0,
     fondPeint,
     largeur,
     hauteur,
@@ -704,9 +711,25 @@ export function dessineCiel(entreeBrute: EntreeDessin): SortieDessin {
   passeCorps(passe)
   passeNomsVoieLactee(passe, labelCentreGalactique)
   passeNomsConstellations(passe)
-  passeCadre(passe)
+  // §3.5, §9.1 — le cadre matériel encadre tout le reste : son contour avec les repères, sa
+  // carte de pose tout en dernier, parce qu'elle masque ce qu'elle recouvre.
+  const cadreMateriel: EntreeCadre = {
+    ctx: entree.ctx,
+    brut,
+    matriceCiel: entree.matriceCiel,
+    cadres: entree.cadres,
+    teintes,
+    actif: couches.cadre,
+    poseCadre: entree.poseCadre,
+  }
+  dessineContourCadre(cadreMateriel)
   const { labels, revele } = passeLabels(passe)
-  passeCartePose(passe)
+  dessineCarteDansCadre(cadreMateriel)
+  // T-0324 — EN DERNIER : le trajet passe au-dessus du contour du cadre qu'il traverse. Peint
+  // avant, il se ferait couper par le seul repère qu'on lui a laissé.
+  if (modeParcours && entree.parcours !== undefined) {
+    dessineParcours(entree.ctx, projecteur, entree.parcours, teintes)
+  }
 
   // encore les étoiles brillantes que le paquet nommé ne porte pas.
   const ciblesUniques = passe.cibles.filter(

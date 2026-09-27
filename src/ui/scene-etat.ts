@@ -16,6 +16,7 @@ import { useCallback, useSyncExternalStore } from 'react'
 import { K } from '../registry/constants.ts'
 import { fovMaxSelonMode, type ModeProjection, type Vue } from '../core/projection.ts'
 import type { ModeTemps } from '../core/curseur-temps.ts'
+import type { EtapeParcours } from '../core/pointage.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { CouchesActives } from './dessine-ciel.ts'
 
@@ -179,6 +180,24 @@ export interface RenduScene {
   readonly couches: CouchesActives
   /** §3.3 — profondeur plafonnée par le fond de ciel plutôt que par le zoom. */
   readonly vueRealiste: boolean
+  /**
+   * §8.4 / T-0324 — le trajet de pointage que la scène montre, `null` en temps normal.
+   *
+   * Il n'est pas une couche : une couche est un booléen que le rail commande, celui-ci porte
+   * des données qu'un seul panneau produit. Sa présence dépouille la scène de tout ce qui ne
+   * sert pas à suivre le trajet — c'est `dessineCiel` qui applique la règle, pas ce magasin.
+   */
+  readonly parcours: ParcoursScene | null
+}
+
+/** §8.4 — le trajet à parcourir pour amener une cible dans le cadre, tel que la scène le peint. */
+export interface ParcoursScene {
+  /** La cible du trajet : elle nomme le parcours dans l'interface. */
+  readonly designation: string
+  /** Du départ visible à l'œil nu vers la cible ; un seul point en mode CARTE_DIRECTE. */
+  readonly etapes: readonly EtapeParcours[]
+  readonly adCibleH: number
+  readonly decCibleDeg: number
 }
 
 /** §3.4 — l'objet cliqué dans la scène, décrit en clair. */
@@ -250,6 +269,7 @@ const ETAT_INITIAL: EtatScene = {
       sol: true,
     },
     vueRealiste: false,
+    parcours: null,
   },
   lectures: { selection: null },
   msAffiche: instant.ms,
@@ -342,6 +362,45 @@ export function vaA(ms: number): void {
 }
 
 /**
+ * §8.4 / T-0324 — montrer un parcours de pointage, et aller à l'heure où on le suivra.
+ *
+ * Les deux gestes tiennent ensemble parce que le second est la condition du premier : le
+ * trajet est un jeu d'étoiles fixes, mais le ciel tourne, et une visée calculée pour 22 h 47
+ * rate le trajet d'autant que l'horloge de la scène en est loin. L'heure du pointage est aussi
+ * celle de toute l'aide au pointage — table, schéma, angle parallactique de §8.4 : les laisser
+ * diverger montrerait le ciel d'un autre moment sous des chiffres qui n'en parlent pas.
+ *
+ * L'état de temps d'avant est retenu ici, et `masqueParcours` le rend. `vaA` FIGE le temps —
+ * c'est ce qu'on veut le temps de lire le trajet — mais une horloge arrêtée sans qu'on sache
+ * quand ni pourquoi est un bug, pas un mode.
+ */
+let avantParcours: { readonly temps: TempsScene; readonly ms: number } | null = null
+
+export function montreParcours(parcours: ParcoursScene, ms: number): void {
+  if (etat.rendu.parcours === null) avantParcours = { temps: etat.temps, ms: instant.ms }
+  majRendu({ parcours })
+  vaA(ms)
+}
+
+/**
+ * Ferme le parcours et rend à l'horloge l'instant ET le mode qu'elle avait avant.
+ *
+ * `reprend` ne conviendrait pas : il repart de l'instant AFFICHÉ, qui est encore celui du
+ * pointage, et il ne connaît que `MAINTENANT` — un défilement en cours ne se retrouverait pas.
+ * Le décalage est reposé tel quel : c'est l'écart constant à l'horloge système, et le rendre
+ * intact est ce qui fait reprendre la lecture là où elle serait arrivée.
+ */
+export function masqueParcours(): void {
+  if (etat.rendu.parcours === null) return
+  const avant = avantParcours
+  avantParcours = null
+  majRendu({ parcours: null })
+  if (avant === null) return
+  vaA(avant.ms)
+  majTemps(avant.temps)
+}
+
+/**
  * §3.2 — rendre le temps à son écoulement, DEPUIS l'instant affiché.
  *
  * Le décalage est figé ici plutôt que lu par image : c'est ce qui fait de la reprise un
@@ -408,6 +467,15 @@ export function tempsScene(etat: EtatScene): TempsScene {
 
 export function renduScene(etat: EtatScene): RenduScene {
   return etat.rendu
+}
+
+/**
+ * T-0324 — le seul trajet montré. Tranche à part : l'aide au pointage recalcule un cheminement
+ * complet à chaque rendu, s'abonner au rendu entier la ferait repartir à chaque interrupteur du
+ * rail.
+ */
+export function parcoursScene(etat: EtatScene): ParcoursScene | null {
+  return etat.rendu.parcours
 }
 
 /** Les commandes du magasin, telles que la scène et ses gestes les reçoivent. */

@@ -29,7 +29,12 @@ import { projecteur } from '../core/projection.ts'
 import type { Cadre, ProfilCadre } from '../core/cadre.ts'
 import type { MasqueHorizon } from '../core/site.ts'
 import type { Site } from '../core/ephem.ts'
-import { afficheInstant, vuePlanetarium, type VueScene } from './scene-etat.ts'
+import {
+  afficheInstant,
+  vuePlanetarium,
+  type ParcoursScene,
+  type VueScene,
+} from './scene-etat.ts'
 import { poseRenduFile, publicateurRenduFile } from './seance-etat.ts'
 import type { CouchesActives } from './dessine-ciel.ts'
 import { dessineChamp, type ParametresFile, type SortieDessinChamp } from './dessine-champ.ts'
@@ -84,6 +89,8 @@ export interface EtatBoucle {
   readonly poseCadre: OptiquePose | null
   /** §6.4 — les cibles retenues par les filtres du catalogue, `null` si aucun n'est actif. */
   readonly enAvant: ReadonlySet<string> | null
+  /** §8.4 / T-0324 — le trajet de pointage montré, `null` quand la scène est celle de tous les jours. */
+  readonly parcours: ParcoursScene | null
   readonly vue: VueScene
   readonly modeTemps: string
   readonly facteur: number
@@ -267,6 +274,7 @@ export function useBoucleRendu(entree: {
         cadres,
         ...(courant.poseCadre === null ? {} : { poseCadre: courant.poseCadre }),
         ...(courant.enAvant === null ? {} : { enAvant: courant.enAvant }),
+        ...(courant.parcours === null ? {} : { parcours: courant.parcours }),
         couches: courant.couches,
         magLimite: courant.magLimite,
         sbCiel: courant.sbCiel,

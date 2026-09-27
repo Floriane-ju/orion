@@ -887,6 +887,18 @@ const POINTAGE = {
     ordreDeGrandeur: false,
     sections: ['8.4'],
   }),
+  MARGE_CADRAGE_PARCOURS: entree({
+    ref: 'C-21',
+    libelle: 'Marge du champ qui montre un parcours de pointage en entier',
+    valeur: 1.4,
+    unite: '—',
+    source:
+      '§8.4 — T-0324 : un trajet calé sur les bords du canevas ne dit plus où il commence ' +
+      'ni où il finit ; la marge est ce qui laisse voir ses deux extrémités',
+    tolerance: null,
+    ordreDeGrandeur: false,
+    sections: ['8.4'],
+  }),
 } as const
 
 /** §7.5, §10.3 — conseil filtre chiffré, et §11.1 — mode nuit. */

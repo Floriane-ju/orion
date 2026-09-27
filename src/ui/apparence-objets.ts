@@ -75,6 +75,15 @@ export const EPAISSEUR_BORD_PX = 1.5
  */
 export const OPACITE_OBJET_ESTOMPE = 0.1
 
+/**
+ * §8.4 / T-0324 — opacité des étoiles de fond sous un parcours de pointage.
+ *
+ * Plus haute que celle d'un marqueur écarté : le fond n'est pas ce qu'on écarte, c'est ce qui
+ * dit où l'on regarde. Assez basse pour que les étapes cerclées du trajet se détachent du semis
+ * sans qu'on ait à les chercher — c'est le seul repère que la scène dépouillée garde encore.
+ */
+export const OPACITE_ETOILE_PARCOURS = 0.35
+
 export interface TeintesObjet {
   /** Arrêt central du dégradé. */
   readonly coeur: string

@@ -73,6 +73,7 @@ const PROPS: PointageProps = {
   mLimOeil: 6.05,
   etoiles: CIEL,
   nommees: [NOMMEE],
+  gaiaCharge: false,
 }
 
 /** La même carte que celle que le composant demande au moteur : les repères s'en déduisent. */
@@ -187,5 +188,27 @@ describe('T-0287 — aucun glyphe ne s’affiche en toutes lettres', () => {
     const html = rendu()
     expect(html).toContain('aria-label="Ancrage principal"')
     expect(html).toContain('aria-label="Ancrage secondaire"')
+  })
+})
+
+/**
+ * T-0324 — le tableau dit le trajet, la scène le montre. Le bouton est le seul chemin vers
+ * elle : absent, la dette de vignettes de §8.4 reste entière quoi qu'en dise le moteur.
+ */
+describe('T-0324 — l’aide au pointage mène le parcours à la scène', () => {
+  it('offre de voir le parcours quand la carte en propose un', () => {
+    expect(CARTE.ancrages.length + CARTE.sauts.length).toBeGreaterThan(0)
+    expect(rendu()).toContain('Voir le parcours')
+  })
+
+  it('n’offre rien quand la carte n’a aucun repère à donner', () => {
+    // Un ciel vide : aucun ancrage à proposer, donc aucun trajet à montrer.
+    const html = renderToStaticMarkup(<Pointage {...PROPS} etoiles={[]} nommees={[]} />)
+    expect(html).not.toContain('Voir le parcours')
+  })
+
+  it('passe le trajet par une ligature, jamais par un caractère dessiné', () => {
+    const html = rendu()
+    expect(html).toContain('>route<')
   })
 })

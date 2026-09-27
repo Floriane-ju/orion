@@ -25,9 +25,12 @@ import {
   majVue,
   decalageCentreScene,
   BORDURES_SCENE,
+  masqueParcours,
+  montreParcours,
   reinitialiseScene,
   vaA,
   type EtatScene,
+  type ParcoursScene,
 } from '../src/ui/scene-etat.ts'
 import { epoqueAffichee } from '../src/App.tsx'
 
@@ -283,5 +286,67 @@ describe('T-0258 — le centre de la scène', () => {
   it('reste au milieu quand deux surfaces ne laissent aucun ciel', () => {
     const tout = { left: 0, right: 1440, top: 0, bottom: 900 }
     expect(decalageCentreScene(SCENE, [tout], SCENE.right)).toBe(0)
+  })
+})
+
+/**
+ * §8.4 / T-0324 — montrer un parcours fige l'horloge à l'heure du pointage. Une horloge
+ * arrêtée sans qu'on sache quand ni pourquoi est un bug, pas un mode : le fermer doit rendre
+ * exactement l'instant et le mode d'avant, sinon le ciel, la Lune et le crépuscule restent
+ * bloqués à l'heure d'une étape qu'on ne consulte plus.
+ */
+describe('T-0324 — le parcours rend l’horloge qu’il a empruntée', () => {
+  const PARCOURS: ParcoursScene = {
+    designation: 'NGC7000',
+    etapes: [{ ordre: 1, adH: 20.5, decDeg: 45, nom: 'Deneb' }],
+    adCibleH: 20.99,
+    decCibleDeg: 44.52,
+  }
+  const HEURE_ETAPE = Date.parse('2026-08-15T22:47:00Z')
+
+  beforeEach(() => {
+    reinitialiseScene()
+  })
+
+  it('va à l’heure du pointage et fige le temps', () => {
+    montreParcours(PARCOURS, HEURE_ETAPE)
+    expect(etatScene().rendu.parcours).toEqual(PARCOURS)
+    expect(instant.ms).toBe(HEURE_ETAPE)
+    expect(etatScene().temps.modeTemps).toBe('FIGE')
+  })
+
+  it('rend l’instant et le mode d’avant en se fermant', () => {
+    const avantMs = instant.ms
+    const avantTemps = etatScene().temps
+    montreParcours(PARCOURS, HEURE_ETAPE)
+    masqueParcours()
+    expect(etatScene().rendu.parcours).toBeNull()
+    expect(instant.ms).toBe(avantMs)
+    expect(etatScene().temps).toEqual(avantTemps)
+  })
+
+  it('rend un défilement en cours, et pas seulement « maintenant »', () => {
+    majTemps({ modeTemps: 'DEFILEMENT', facteur: K('FACTEUR_DEFILEMENT_NORMAL') })
+    const avantTemps = etatScene().temps
+    montreParcours(PARCOURS, HEURE_ETAPE)
+    expect(etatScene().temps.modeTemps).toBe('FIGE')
+    masqueParcours()
+    expect(etatScene().temps).toEqual(avantTemps)
+  })
+
+  it('ne touche à rien quand aucun parcours n’est montré', () => {
+    const avant = etatScene()
+    masqueParcours()
+    expect(etatScene()).toBe(avant)
+  })
+
+  it('retient l’horloge du PREMIER parcours quand on passe de l’un à l’autre', () => {
+    // Deux étapes du plan peuvent avoir leur aide au pointage ouverte : passer de la première
+    // à la seconde ne doit pas faire de l'heure de la première l'état « d'avant ».
+    const avantMs = instant.ms
+    montreParcours(PARCOURS, HEURE_ETAPE)
+    montreParcours({ ...PARCOURS, designation: 'M31' }, HEURE_ETAPE + 3600_000)
+    masqueParcours()
+    expect(instant.ms).toBe(avantMs)
   })
 })
