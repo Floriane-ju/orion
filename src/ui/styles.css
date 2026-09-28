@@ -439,7 +439,10 @@ pre {
 
    `outline-offset` détache l'anneau : sans lui, un champ déjà bordé le verrait se confondre
    avec sa propre bordure. */
-:focus-visible {
+/* T-0337 — le compteur en saisie porte le MÊME anneau : il n'a pas le focus lui-même, c'est
+   son champ qui l'a, d'où `:focus-within`. */
+:focus-visible,
+.compteur.en-saisie:focus-within {
   outline: var(--trait-focus) solid var(--texte);
   outline-offset: var(--trait-focus);
 }
@@ -581,11 +584,6 @@ body {
 .compteur .compteur-saisie {
   all: unset;
   cursor: text;
-}
-
-.compteur.en-saisie:focus-within {
-  outline: var(--trait-focus) solid var(--texte);
-  outline-offset: var(--trait-focus);
 }
 
 /* LA VALEUR A SA LARGEUR, PAS CELLE DE CE QU'ELLE AFFICHE. `--compteur-largeur` est posée par
@@ -1358,7 +1356,8 @@ body {
   background: transparent;
 }
 
-.tiroir[open] > summary {
+.tiroir[open] > summary,
+.tiroir-nuit[open]:not([data-actif='true']) > summary {
   background: var(--surface-haute);
   border-color: var(--texte);
   color: var(--texte);
@@ -1427,11 +1426,6 @@ body {
   border-color: var(--bordure);
 }
 
-.tiroir-nuit[open]:not([data-actif='true']) > summary {
-  background: var(--surface-haute);
-  border-color: var(--texte);
-  color: var(--texte);
-}
 
 /* LE SURVOL SUR LE CIEL SE VOIT. Les commandes du flanc gauche — le rail, le mode nuit, l'info —
    n'ont pas de panneau autour d'elles : un filet qui s'éclaircit ne suffisait pas à dire laquelle
@@ -1618,26 +1612,26 @@ h1 {
 
 /* Un titre de rubrique est une étiquette, pas un poids : capitales condensées, filet
    dessous. Il n'a pas à peser plus que la valeur qu'il annonce. */
-h2 {
-  margin: var(--pas-5) 0 var(--pas-2);
-  padding-bottom: var(--pas-1);
-  border-bottom: var(--trait) solid var(--bordure);
+h2,
+h3 {
   font-family: var(--police-titre);
-  font-size: var(--texte-appui);
   font-weight: var(--graisse-titre);
-  letter-spacing: var(--suivi-titre);
   text-transform: uppercase;
   color: var(--texte);
 }
 
+h2 {
+  margin: var(--pas-5) 0 var(--pas-2);
+  padding-bottom: var(--pas-1);
+  border-bottom: var(--trait) solid var(--bordure);
+  font-size: var(--texte-appui);
+  letter-spacing: var(--suivi-titre);
+}
+
 h3 {
   margin: var(--pas-4) 0 var(--pas-2);
-  font-family: var(--police-titre);
   font-size: var(--texte-legende);
-  font-weight: var(--graisse-titre);
   letter-spacing: var(--suivi-micro);
-  text-transform: uppercase;
-  color: var(--texte);
 }
 
 .champs {
@@ -2219,7 +2213,10 @@ th {
 
 /* §10.1 — la glose sort au survol. Aucune information critique n'en dépend seule : tout
    s'ouvre aussi au clic (§11.2). */
-.terme abbr {
+/* Un titre de carte qui porte une aide au survol (`.aide`) prend le même repère qu'un terme : le
+   pointillé annonce qu'il y a quelque chose à lire, le curseur le confirme. */
+.terme abbr,
+.aide {
   text-decoration: underline dotted var(--attenue);
   text-underline-offset: var(--decalage-souligne);
   cursor: help;
@@ -2404,18 +2401,23 @@ button:disabled {
   background: transparent;
 }
 
-.etape-titre {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: var(--pas-2);
-  margin: 0 0 var(--pas-1);
+/* Le titre d'une étape et le lien qui porte son nom se lisent pareil : une seule typographie. */
+.etape-titre,
+.etape-lien {
   font-family: var(--police-titre);
   font-size: var(--texte-corps);
   font-weight: var(--graisse-titre);
   letter-spacing: var(--suivi-etape);
   text-transform: uppercase;
   color: var(--texte);
+}
+
+.etape-titre {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--pas-2);
+  margin: 0 0 var(--pas-1);
 }
 
 .etape-horaire {
@@ -2432,12 +2434,6 @@ button:disabled {
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--texte);
-  font-family: var(--police-titre);
-  font-size: var(--texte-corps);
-  font-weight: var(--graisse-titre);
-  letter-spacing: var(--suivi-etape);
-  text-transform: uppercase;
   text-align: left;
   text-decoration: underline var(--bordure-controle);
 }
@@ -3133,14 +3129,6 @@ button:not(:disabled):active,
   display: inline-flex;
   align-items: center;
   color: var(--alerte);
-  cursor: help;
-}
-
-/* Un titre de carte qui porte une aide au survol : même repère visuel qu'un terme du
-   glossaire — le pointillé annonce qu'il y a quelque chose à lire, le curseur le confirme. */
-.aide {
-  text-decoration: underline dotted var(--attenue);
-  text-underline-offset: var(--decalage-souligne);
   cursor: help;
 }
 

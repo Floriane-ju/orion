@@ -103,7 +103,9 @@ function contraste(a: string, b: string): number {
 
 /** Le corps d'une règle, désignée par son sélecteur en début de ligne. */
 function regle(selecteur: string): string {
-  const debut = CSS.indexOf(`\n${selecteur} {`)
+  // Seul, ou en tête d'une liste de sélecteurs groupés (T-0337).
+  const seul = CSS.indexOf(`\n${selecteur} {`)
+  const debut = seul > -1 ? seul : CSS.indexOf(`\n${selecteur},\n`)
   expect(debut, selecteur).toBeGreaterThan(-1)
   return CSS.slice(debut, CSS.indexOf('}', debut))
 }
