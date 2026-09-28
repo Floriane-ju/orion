@@ -79,27 +79,6 @@ export const GLOSSAIRE = Object.freeze({
     consequence: 'Sur un site encaissé, le renseigner évite de viser une cible cachée.',
     sections: ['4.1', '8.1'],
   }),
-  hypothese: terme({
-    // T-0275 — le badge s'écrit en toutes lettres : « [HYP] » était une abréviation interne
-    // que cette entrée devait justement expliquer, ce qui la rendait circulaire.
-    libelle: 'Hypothèse',
-    glose: 'valeur supposée, non mesurée',
-    explication:
-      'Une valeur marquée [HYPOTHÈSE] comble une donnée absente par une hypothèse par ' +
-      'défaut. Elle ' +
-      'est affichée comme telle pour qu’aucune sortie qui en dépend ne passe pour une mesure.',
-    consequence: 'Remplacer une hypothèse par une donnée réelle affine tout ce qui en découle.',
-    sections: ['4.1', '2.3'],
-  }),
-  declinaison: terme({
-    libelle: 'Déclinaison',
-    glose: 'latitude d’un astre dans le ciel',
-    explication:
-      'C’est la position nord-sud d’un astre sur la voûte céleste. Avec votre latitude, elle ' +
-      'fixe la hauteur maximale de la cible.',
-    consequence: 'Comparée aux seuils du lieu, elle dit tout de suite si la cible est accessible.',
-    sections: ['4.1', '8.2'],
-  }),
   circumpolaire: terme({
     libelle: 'Circumpolaire',
     glose: 'astre qui ne se couche jamais',
@@ -195,46 +174,6 @@ export const GLOSSAIRE = Object.freeze({
     consequence: 'Comparez-le à la taille de la cible pour savoir si elle tient dans l’image.',
     sections: ['5.1', '6.2'],
   }),
-  pitch: terme({
-    libelle: 'Pitch',
-    glose: 'taille d’un pixel',
-    explication:
-      'C’est la distance entre deux pixels du capteur. Il se déduit du type de capteur et de la ' +
-      'résolution.',
-    consequence: 'Rien à saisir : il est calculé pour vous.',
-    sections: ['5.1'],
-  }),
-  echantillonnage: terme({
-    libelle: 'Échantillonnage',
-    glose: 'ciel couvert par pixel',
-    explication:
-      'L’échantillonnage dit combien de secondes d’arc de ciel tombent sur un pixel. Sous une ' +
-      'seconde, on enregistre surtout du bruit ; au-delà de quatre, la résolution est limitée ' +
-      'par le pixel et non par l’optique. Ce dernier régime est le régime normal du grand ' +
-      'champ, pas un défaut.',
-    consequence: 'Il fixe la taille en pixels de toute cible, et donc ce qui est cadrable.',
-    sections: ['5.1', '6.2'],
-  }),
-  diametre_pupille: terme({
-    libelle: 'Diamètre de pupille',
-    glose: 'ouverture réelle de l’objectif',
-    explication:
-      'C’est le diamètre physique du faisceau entrant, égal à la focale divisée par le nombre ' +
-      'f. Il commande la quantité de lumière collectée et le pouvoir séparateur théorique.',
-    consequence: 'À focale égale, un plus grand diamètre gagne à la fois en flux et en finesse.',
-    sections: ['5.1', '6.3'],
-  }),
-  pouvoir_separateur: terme({
-    libelle: 'Pouvoir séparateur',
-    glose: 'plus petit détail séparable',
-    explication:
-      'La limite de Dawes donne l’écart angulaire minimal entre deux étoiles encore ' +
-      'distinguables, à partir du seul diamètre de la pupille. C’est une limite optique ' +
-      'théorique, souvent hors d’atteinte car la turbulence ou l’échantillonnage limitent avant.',
-    consequence:
-      'Comparé à l’échantillonnage, il dit lequel des deux limite réellement l’image.',
-    sections: ['5.1'],
-  }),
   recadrage_capteur: terme({
     libelle: 'Format du capteur',
     glose: 'plein format ou APS-C',
@@ -244,25 +183,6 @@ export const GLOSSAIRE = Object.freeze({
       'détails.',
     consequence: 'Passer en recadrage cadre plus serré, sans rapprocher la cible.',
     sections: ['5.1'],
-  }),
-  plein_format: terme({
-    libelle: 'Plein format',
-    glose: 'capteur au format argentique',
-    explication:
-      'Le plein format désigne un capteur de vingt-quatre sur trente-six millimètres, hérité du ' +
-      'film. Il sert de référence pour comparer les champs entre matériels différents.',
-    consequence: 'Toute focale équivalente citée ailleurs se rapporte à ce format.',
-    sections: ['5.1'],
-  }),
-  type_objectif: terme({
-    libelle: 'Type d’objectif',
-    glose: 'rectilinéaire ou fisheye',
-    explication:
-      'Un objectif rectilinéaire conserve les lignes droites, un fisheye les courbe pour ' +
-      'englober bien plus de ciel. À focale identique, les deux ne couvrent pas le même champ ' +
-      'et ne se projettent pas de la même façon.',
-    consequence: 'Le type choisi change le rendu du cadre et la superposition sur le ciel.',
-    sections: ['5.1', '3.3'],
   }),
   format_capteur: terme({
     libelle: 'Type de capteur',
@@ -339,16 +259,6 @@ export const GLOSSAIRE = Object.freeze({
     consequence: 'Sans suivi, seules les photos grand champ sont possibles.',
     sections: ['5.2'],
   }),
-  mise_en_station: terme({
-    libelle: 'Mise en station',
-    glose: 'alignement sur le pôle',
-    sansBulle: true,
-    explication:
-      'C’est l’alignement de l’axe de la monture sur le pôle céleste. Au viseur polaire, les ' +
-      'poses tiennent bien plus longtemps qu’à la boussole.',
-    consequence: 'La soigner est le moyen le moins cher d’allonger les poses.',
-    sections: ['5.2'],
-  }),
   type_monture: terme({
     libelle: 'Monture',
     glose: 'ce qui suit les étoiles, et sa mise en station',
@@ -359,16 +269,6 @@ export const GLOSSAIRE = Object.freeze({
     consequence: 'Elle fixe la pose maximale, et le retournement au méridien s’il y en a un.',
     sections: ['5.2', '8.2'],
   }),
-  pose_max_suivi: terme({
-    libelle: 'Pose maximale avec suivi',
-    glose: 'plafond imposé par la monture',
-    explication:
-      'La pose de suivi dépend de la qualité de la mise en station et de la focale employée, ' +
-      'car l’erreur de suivi se mesure en secondes d’arc. Elle est plafonnée sans autoguidage. ' +
-      'Les valeurs de référence sont des ordres de grandeur de terrain, affichés en plage.',
-    consequence: 'Elle borne la pose unitaire retenue, même quand l’optimum calculé est plus long.',
-    sections: ['5.2', '7.2'],
-  }),
   npf: terme({
     libelle: 'Pose maximale sans suivi',
     glose: 'pose avant que les étoiles filent',
@@ -377,17 +277,6 @@ export const GLOSSAIRE = Object.freeze({
       'focale, de l’ouverture et de la zone du ciel visée.',
     consequence: 'Sans monture, ne posez pas plus longtemps.',
     sections: ['9.1'],
-  }),
-  rotation_de_champ: terme({
-    libelle: 'Rotation de champ',
-    glose: 'champ pivotant pendant la pose',
-    explication:
-      'Sur une monture altazimutale, le champ tourne lentement autour du centre visé pendant ' +
-      'la pose. Les étoiles décrivent alors des arcs même avec un suivi parfait. Le phénomène ' +
-      'n’est pas modélisé dans cette version.',
-    consequence:
-      'Avec ce type de monture, aucune pose unitaire n’est chiffrée pour le ciel profond.',
-    sections: ['5.2'],
   }),
   // §6.2 — cadrage
   remplissage: terme({
@@ -454,17 +343,6 @@ export const GLOSSAIRE = Object.freeze({
       'Positif, l’objet est plus lumineux que le ciel autour. Négatif, il est plus pâle et seule ' +
       'une longue pose le révèle.',
     consequence: 'Un contraste négatif n’empêche pas la photo, il allonge la pose.',
-    sections: ['6.3'],
-  }),
-  verdict_detectabilite: terme({
-    libelle: 'Verdict de détectabilité',
-    glose: 'œil, jumelles, télescope, photo',
-    explication:
-      'Les quatre verdicts sont évalués dans l’ordre et le premier satisfait gagne. Un ' +
-      'instrument n’augmente jamais la brillance de surface : il agrandit l’objet, et c’est ' +
-      'l’agrandissement qui abaisse le seuil de détection. Photo seulement n’est pas un refus, ' +
-      'c’est une durée d’intégration.',
-    consequence: 'Le verdict dit avec quoi sortir ce soir, pas si la cible est « bonne ».',
     sections: ['6.3'],
   }),
   tolerance_lune: terme({
@@ -654,15 +532,6 @@ export const GLOSSAIRE = Object.freeze({
     consequence: 'C’est là qu’il faut agir en premier.',
     sections: ['10.2'],
   }),
-  levier: terme({
-    libelle: 'Levier',
-    glose: 'action pour améliorer',
-    explication:
-      'Les actions sont classées de la moins chère à la plus chère. Un achat n’arrive jamais en ' +
-      'premier.',
-    consequence: 'Le premier levier est toujours gratuit ou presque.',
-    sections: ['10.2'],
-  }),
 
   // §8.1 — fenêtre nocturne et Lune
   degradation_lunaire: terme({
@@ -692,17 +561,6 @@ export const GLOSSAIRE = Object.freeze({
       'dit pourquoi.',
     consequence: 'La cause dit quoi changer : date, lieu ou cible.',
     sections: ['8.2'],
-  }),
-
-  // §8.3 — plan de session
-  score_cible: terme({
-    libelle: 'Score de cible',
-    glose: 'départage les cibles',
-    explication:
-      'Il combine cadrage, hauteur, signal, durée disponible et Lune. Le poids de chaque critère ' +
-      'se règle.',
-    consequence: 'Quand deux cibles se chevauchent, la mieux notée passe.',
-    sections: ['8.3'],
   }),
 
   // §8.4 — pointage
@@ -735,19 +593,6 @@ export const GLOSSAIRE = Object.freeze({
   }),
 
   // §11 — mode nuit
-  mode_nuit: terme({
-    libelle: 'Mode nuit',
-    glose: 'rouge profond, sans bleu',
-    explication:
-      'Les bâtonnets de la rétine assurent la vision nocturne et s’effondrent au-delà de 640 nm : ' +
-      'un rouge profond est vu sans les blanchir. L’adaptation à l’obscurité demande 20 à 30 ' +
-      'minutes et se détruit en quelques secondes de lumière blanche — le mode est donc global ' +
-      'et sans exception, pas un thème sombre.',
-    consequence:
-      'Une seule fenêtre blanche annule une demi-heure d’attente : aucune surface claire n’est ' +
-      'affichée tant que le mode est actif.',
-    sections: ['11.1'],
-  }),
   luminance_mode_nuit: terme({
     libelle: 'Luminance du mode nuit',
     sansBulle: true,
@@ -760,41 +605,6 @@ export const GLOSSAIRE = Object.freeze({
   }),
 
   // §3 — planétarium et rendu du ciel
-  deux_horloges: terme({
-    libelle: 'Pipeline à deux horloges',
-    glose: 'rendu rapide, éphémérides lentes',
-    explication:
-      'L’image est produite soixante fois par seconde, les positions planétaires dix fois ' +
-      'seulement, et l’écart est comblé par interpolation. Les étoiles, elles, ne sont jamais ' +
-      'interpolées : elles sont fixes, seule la matrice de rotation du ciel change. C’est ce ' +
-      'découplage qui rend l’animation fluide, quel que soit le nombre d’étoiles.',
-    consequence:
-      'Ajouter des étoiles au catalogue ne ralentit pas l’animation : le coût suit ce qui est ' +
-      'affiché, pas ce qui est stocké.',
-    sections: ['3.1'],
-  }),
-  vitesse_ecran: terme({
-    libelle: 'Vitesse à l’écran',
-    glose: 'défilement perçu, en pixels/seconde',
-    explication:
-      'La vitesse utile ne se mesure pas en heures par seconde mais en pixels par seconde. ' +
-      'Sous 2 px/s le mouvement est invisible ; au-delà de 600 px/s l’image se replie et le ' +
-      'ciel devient illisible. Entre les deux se trouve la plage lisible.',
-    consequence:
-      'Le temps réel, à 0,13 px/s, ne montre rien : l’animation n’a d’intérêt qu’accélérée.',
-    sections: ['3.2'],
-  }),
-  facteur_vitesse_max: terme({
-    libelle: 'Plafond de défilement',
-    glose: 'vitesse maximale encore lisible',
-    explication:
-      'Le plafond est dérivé de la lisibilité, pas de la puissance de la machine. Il dépend du ' +
-      'zoom : un champ serré grandit l’échelle en pixels par degré, donc abaisse le facteur ' +
-      'admissible. Un réglage fixe serait fluide en vue large et illisible en vue serrée.',
-    consequence:
-      'Zoomer ramène automatiquement le facteur sous le plafond, et l’application le signale.',
-    sections: ['3.2'],
-  }),
   magnitude_limite_rendue: terme({
     libelle: 'Profondeur affichée',
     glose: 'étoiles les plus faibles affichées',
@@ -803,19 +613,6 @@ export const GLOSSAIRE = Object.freeze({
       'votre ciel apparaissent.',
     consequence: 'Désactivez la vue réaliste pour voir tout le catalogue.',
     sections: ['3.3'],
-  }),
-  precession: terme({
-    libelle: 'Précession',
-    glose: 'lente dérive des coordonnées',
-    explication:
-      'L’axe de la Terre décrit un cône en 26 000 ans : les coordonnées d’un astre changent ' +
-      'de 50,29 secondes d’arc par an, soit un degré tous les 71,6 ans. Les frontières IAU ' +
-      'sont définies dans les coordonnées de 1875 ; sans correction, elles seraient décalées ' +
-      'de plus de deux degrés aujourd’hui.',
-    consequence:
-      'Les positions sont précessées vers l’époque affichée ; ni les magnitudes ni les noms ' +
-      'ne le sont, et les mouvements propres restent ignorés.',
-    sections: ['3.1', '3.4'],
   }),
 
   // §9 — grand champ, prévisualisation et filé
@@ -846,33 +643,6 @@ export const GLOSSAIRE = Object.freeze({
       'C’est jusqu’où la photo enregistre des étoiles faibles. Elle dépend de la pose, de ' +
       'l’objectif et du ciel.',
     consequence: 'Un ciel pollué ou une pose courte montrent moins d’étoiles.',
-    sections: ['9.2'],
-  }),
-  semis_generatif: terme({
-    libelle: 'Fond génératif',
-    glose: 'étoiles générées, non catalographiées',
-    explication:
-      'Au-delà du seuil catalographié, les étoiles affichées sont générées par un semis à ' +
-      'graine fixe : leurs positions individuelles sont fausses, leur densité est fidèle. La ' +
-      'densité est modulée par la latitude galactique, sans quoi la bande de la Voie lactée ' +
-      'n’apparaîtrait pas. Le même cadre donne toujours le même rendu.',
-    consequence:
-      'Aucun repérage ne doit s’appuyer sur ces étoiles-là, seulement sur les étoiles réelles.',
-    sections: ['9.2'],
-  }),
-  voie_lactee: terme({
-    libelle: 'Voie lactée',
-    glose: 'bande modulée par le ciel',
-    explication:
-      'La bande est peinte comme une lumière qui s’AJOUTE au fond de ciel, hors ligne : sa ' +
-      'brillance de surface s’additionne à celle du site, exactement comme le halo de la Lune. ' +
-      'Elle s’efface donc d’elle-même quand le site est pollué — non parce qu’un seuil ' +
-      'l’éteint, mais parce que sa lumière devient négligeable devant celle du ciel. ' +
-      'L’application montre ce que vous verrez depuis ce lieu, pas une carte de référence. Sa ' +
-      'brillance ne dépend que de la latitude galactique : le bulbe du Sagittaire est en vrai ' +
-      'plus lumineux que le reste, et la Grande Faille n’est pas figurée.',
-    consequence:
-      'Si la bande disparaît du rendu, elle ne sortira pas non plus sur les images depuis ce site.',
     sections: ['9.2'],
   }),
   vignettage: terme({
@@ -934,15 +704,6 @@ export const GLOSSAIRE = Object.freeze({
     sections: ['9.4'],
   }),
 
-  ordre_de_grandeur: terme({
-    libelle: 'Ordre de grandeur',
-    glose: 'valeur approchée, affichée en plage',
-    explication:
-      'Certaines constantes du registre sont des conventions de terrain, pas des mesures. ' +
-      'Toute sortie qui en dépend est affichée avec sa plage plutôt que comme un nombre exact.',
-    consequence: 'Une valeur en plage se lit comme un repère à ajuster, pas comme une consigne.',
-    sections: ['2.1'],
-  }),
 } as const satisfies Record<string, EntreeGlossaire>)
 
 export type TermeGlossaire = keyof typeof GLOSSAIRE

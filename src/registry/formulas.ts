@@ -12,6 +12,12 @@ export interface FormulaEntry {
   readonly section: string
   /** Précision de lecture, quand l'expression seule ne suffit pas. */
   readonly note?: string
+  /**
+   * T-0341 — calculée par un moteur dont la sortie n'est pas une valeur tracée (un score, un
+   * rendu, une géométrie de scène) : l'entrée documente le calcul, §10.2 ne la déplie pas.
+   * Absent, la formule DOIT être citée par un `trace()` — `tests/registre-cite.test.ts` y veille.
+   */
+  readonly documentaire?: true
 }
 
 export const FORMULES = Object.freeze({
@@ -88,6 +94,7 @@ export const FORMULES = Object.freeze({
   // Détectabilité — §6.3
   // Le facteur 2827,4 du PRD est ce produit, calculé plutôt qu’écrit en dur.
   AIRE_ELLIPSE: {
+    documentaire: true,
     expression: "aire_arcsec2 = (π / 4) × 3600 × a'_arcmin × b'_arcmin",
     unite: 'arcsec²',
     section: '6.3',
@@ -103,6 +110,7 @@ export const FORMULES = Object.freeze({
     section: '6.3',
   },
   GAIN_INSTRUMENTAL: {
+    documentaire: true,
     expression: 'gain_mag = 5 × log10( D_mm / 6,5 )',
     unite: 'mag',
     section: '6.3',
@@ -113,12 +121,14 @@ export const FORMULES = Object.freeze({
     section: '6.3',
   },
   GROSSISSEMENT: {
+    documentaire: true,
     expression: 'G = D_mm / pupille_oeil_mm',
     unite: '×',
     section: '6.3',
     note: 'Le grossissement qui montre le mieux un objet étendu.',
   },
   TAILLE_APPARENTE: {
+    documentaire: true,
     expression: 'taille_apparente_arcmin = taille_reelle_arcmin × G',
     unite: "'",
     section: '6.3',
@@ -127,6 +137,7 @@ export const FORMULES = Object.freeze({
   // Tables Blackwell / Clark embarquées. Au-delà de la plus grande taille tabulée, la sommation
   // spatiale est complète : le seuil plafonne, il n’est pas extrapolé.
   SEUIL_CONTRASTE: {
+    documentaire: true,
     expression: 'seuil_ΔSB = table_de_contraste( taille_apparente_arcmin )',
     unite: 'mag/arcsec²',
     section: '6.3',
@@ -166,6 +177,7 @@ export const FORMULES = Object.freeze({
     section: '7.2',
   },
   SNR: {
+    documentaire: true,
     expression: 'SNR(T) = E_obj × T / √( (E_obj + E_ciel) × T + (T / t_pose) × RN² )',
     unite: '—',
     section: '7.3',
@@ -253,12 +265,14 @@ export const FORMULES = Object.freeze({
     section: '9.2',
   },
   POSITION_POLE: {
+    documentaire: true,
     expression: 'altitude_pole = |latitude| · azimut_pole = 0 si latitude > 0, sinon 180',
     unite: '°',
     section: '9.3',
     note: 'Le pôle est souvent hors du cadre.',
   },
   INTENSITE_TRACE: {
+    documentaire: true,
     expression:
       'pose_par_pixel_s = duree_s / longueur_arc_px · ' +
       'opacite = min( 1, 10^( −(mag − m_lim(pose_par_pixel_s)) / 2,5 ) )',
@@ -319,11 +333,13 @@ export const FORMULES = Object.freeze({
     section: '3.1',
   },
   ANGLE_HORAIRE: {
+    documentaire: true,
     expression: 'cos H = ( sin(h) − sin δ × sin φ ) / ( cos δ × cos φ )',
     unite: '°',
     section: '8.2',
   },
   DUREE_NUIT: {
+    documentaire: true,
     expression: 'duree_nuit_h = 2 × (180° − H) / 15,041, avec h = −18°',
     unite: 'h',
     section: '8.1',
@@ -342,6 +358,7 @@ export const FORMULES = Object.freeze({
 
   // Lune et fenêtre utile — §8.1
   ILLUMINATION_LUNE: {
+    documentaire: true,
     expression: 'illumination = ( 1 + cos(α) ) / 2, α = angle de phase',
     unite: '—',
     section: '8.1',
@@ -349,6 +366,7 @@ export const FORMULES = Object.freeze({
   },
   // Masse d’air du modèle de Krisciunas & Schaefer, valide jusqu’à l’horizon.
   MASSE_AIR_KS: {
+    documentaire: true,
     expression: 'X(Z) = ( 1 − 0,96 × sin²(Z) )^(−1/2)',
     unite: '—',
     section: '8.1',
@@ -366,6 +384,7 @@ export const FORMULES = Object.freeze({
   // constante libre, l’exposition. Le rapport entre deux fonds de ciel n’est donc jamais
   // choisi, il est celui des brillances.
   LUMINANCE_FOND_CIEL: {
+    documentaire: true,
     expression: 'Y_ecran = K_exposition × B(sb) · (R,V,B)_lin = Y_ecran × (chroma_R, chroma_V, chroma_B)',
     unite: '—',
     section: '3.3',
@@ -374,6 +393,7 @@ export const FORMULES = Object.freeze({
   // baisse. Le terme d’extinction n’est pas décoratif — van Rhijn seul donnerait ×6 à
   // l’horizon, valeur non observée ; avec l’extinction, ×3,2.
   HALO_HORIZON: {
+    documentaire: true,
     expression:
       'vanRhijn(h) = 1 / √( 1 − (R / (R + H))² cos²h ) · ' +
       'facteur(h) = vanRhijn(h) × 10^(−0,4 k (X(h) − 1))',
@@ -383,11 +403,13 @@ export const FORMULES = Object.freeze({
   // Les brillances s’additionnent en nanolamberts, jamais en magnitudes : c’est déjà la règle
   // de ΔSB_lune (§8.1). Le rendu réemploie ce moteur, il ne le réécrit pas.
   SB_EFFECTIF_RENDU: {
+    documentaire: true,
     expression: 'B_total = B_site × facteur(h) + B_lune(ρ, h_lune, α) · sb_effectif = B⁻¹(B_total)',
     unite: 'mag/arcsec²',
     section: '3.3',
   },
   DUREE_NUIT_NAUTIQUE: {
+    documentaire: true,
     expression: 'fenetre_nautique = [ Soleil à −12° en descente ; Soleil à −12° en montée ]',
     unite: 'h',
     section: '8.1',
@@ -409,26 +431,31 @@ export const FORMULES = Object.freeze({
     note: 'Poids réglables dans les réglages.',
   },
   SCORE_CADRAGE: {
+    documentaire: true,
     expression: 'S_cadrage = 1 − | remplissage − 0,42 | / 0,42',
     unite: '—',
     section: '8.3',
   },
   SCORE_HAUTEUR: {
+    documentaire: true,
     expression: 'S_hauteur = min( 1, (alt_culmination − 30) / 40 )',
     unite: '—',
     section: '8.3',
   },
   SCORE_SIGNAL: {
+    documentaire: true,
     expression: 'S_signal = min( 1, duree_creneau / T_requis )',
     unite: '—',
     section: '8.3',
   },
   SCORE_FENETRE: {
+    documentaire: true,
     expression: 'S_fenetre = duree_creneau / duree_nuit_noire',
     unite: '—',
     section: '8.3',
   },
   SCORE_LUNE: {
+    documentaire: true,
     expression: 'S_lune = 1 − ΔSB_lune / 3,0, borné à [0 ; 1]',
     unite: '—',
     section: '8.3',
@@ -449,17 +476,20 @@ export const FORMULES = Object.freeze({
     note: 'Oriente le schéma de pointage comme le ciel à cette heure.',
   },
   DECALAGE_POINTAGE: {
+    documentaire: true,
     expression: 'Δad_h = AD_cible − AD_ancrage · Δdec_deg = δ_cible − δ_ancrage',
     unite: 'h, °',
     section: '8.4',
   },
   DISTANCE_SAUT: {
+    documentaire: true,
     expression: 'distance_saut_deg ≤ 0,7 × FOV_chercheur_deg',
     unite: '°',
     section: '8.4',
     note: 'Deux vues successives se chevauchent toujours.',
   },
   SEPARATION_ANGULAIRE: {
+    documentaire: true,
     expression: 'cos(d) = sin(δ₁)·sin(δ₂) + cos(δ₁)·cos(δ₂)·cos(AD₁ − AD₂)',
     unite: '°',
     section: '8.4',
@@ -467,6 +497,7 @@ export const FORMULES = Object.freeze({
 
   // Conseil filtre et recommandation d'équipement — §7.5, §10.3
   GAIN_FILTRE: {
+    documentaire: true,
     expression: 'gain_snr = √( E_ciel_sans / E_ciel_avec )',
     unite: '—',
     section: '7.5',
@@ -503,6 +534,7 @@ export const FORMULES = Object.freeze({
   // Une seule implémentation : le mode ne change que la fonction radiale R. Deux bases de code
   // feraient diverger le cadre du planétarium et la prévisualisation.
   PROJECTION_RADIALE: {
+    documentaire: true,
     expression:
       'R(θ) = 2·tan(θ/2) [stéréographique] · tan(θ) [gnomonique] · θ [équidistante] · ' +
       'x = k·R·sin(φ), y = −k·R·cos(φ), k = (largeur_px / 2) / R(fov / 2)',
@@ -513,6 +545,7 @@ export const FORMULES = Object.freeze({
   // développement IAU 2006 : à l’échelle de lecture d’un planétarium, l’écart reste très
   // inférieur au pixel sur le domaine des séries.
   PRECESSION_MATRICE: {
+    documentaire: true,
     expression:
       'P = R_x(−ε) · R_z(ψ) · R_x(ε), avec ψ = 50,29"/an × (époque − 2000)',
     unite: '—',
@@ -537,6 +570,7 @@ export const FORMULES = Object.freeze({
   },
   // Sert à désigner le facteur dominant d’un verdict.
   SENSIBILITE: {
+    documentaire: true,
     expression: 'sensibilite = | ∂ln(sortie) / ∂ln(variable) |',
     unite: '—',
     section: '10.2',
