@@ -75,12 +75,6 @@ export const FORMULES = Object.freeze({
     unite: '—',
     section: '6.2',
   },
-  FENETRE_CADRAGE: {
-    expression: 'taille_min_deg = FOV_H_deg / 3 · taille_max_deg = FOV_H_deg / 2',
-    unite: '°',
-    section: '6.1',
-    note: 'C’est le petit côté du cadre qui limite.',
-  },
   // Le PRD écrit « taille / (2 × 0,42) / 2 » et annonce 4 200 mm pour M84 : les deux ne
   // concordent pas. La focale visant 42 % du champ est retenue, et la plage affichée couvre
   // toute la fenêtre C-05 — sa borne basse est le 4 200 mm du PRD.

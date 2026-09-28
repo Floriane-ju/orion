@@ -1422,25 +1422,17 @@ Aucune source externe. Constantes C-07, C-12, C-13 du registre §2.1, présenté
 
 # 6 — Moteur Faisabilité ciel profond
 
-## 6.1 Feature — Verdict de domaine
+## 6.1 Feature — Focale idéale d'une cible écartée
 
-**Feature** — À la validation du profil matériel, l'application annonce quelle famille d'objets ce setup peut réellement cadrer, avant que l'utilisateur ne cherche par lui-même. Persona : débutant qui ne sait pas encore que son matériel choisit ses cibles.
+**Feature** — Quand une cible sort de la fenêtre de cadrage (§6.2), l'application dit quelle focale la cadrerait proprement, avec sa plage. Persona : débutant qui ne sait pas encore que son matériel choisit ses cibles.
+
+> Le verdict de domaine qu'annonçait cette section à la validation du profil matériel — classification en quatre domaines, fenêtre de cadrage, cibles d'exemple — est retiré (décision 25, annexe C). Le numéro de section est conservé : les renvois à §6.1 restent stables.
 
 ### Règle métier
 
 ```
 Le cadrage propre exige que l'objet occupe 1/3 à 1/2 du champ (C-05).
 On contraint sur la PETITE dimension du champ : c'est elle qui limite.
-
-taille_min_deg = FOV_H_deg / 3
-taille_max_deg = FOV_H_deg / 2
-domaine = { objets du catalogue dont la taille tombe dans [min ; max] }
-
-CLASSIFICATION (bornes en degrés, sur taille_min_deg)
-  < 0,05      DOMAINE_LONGUE_FOCALE     galaxies lointaines, nébuleuses planétaires
-  0,05 – 0,5  DOMAINE_CLASSIQUE         Messier standard, amas, galaxies proches
-  0,5 – 2,0   DOMAINE_GRAND_CHAMP       grandes nébuleuses, M31, M42, Pléiades
-  > 2,0       DOMAINE_TRES_GRAND_CHAMP  complexes, Voie lactée, régions entières
 
 FOCALE IDÉALE pour une cible rejetée
   fov_h_visee_deg  = taille_objet_deg / remplissage_visé
@@ -1458,44 +1450,24 @@ FOCALE IDÉALE pour une cible rejetée
 
 | Champ | Type | Unité | Plage valide | Note |
 |---|---|---|---|---|
-| `fov_h_deg` | float | ° | §5.1 | |
-| `ech_apx` | float | "/px | §5.1 | |
-| `taille_min_deg`, `taille_max_deg` | float | ° | sortie | |
-| `domaine` | enum | — | 4 valeurs | sortie |
-| `cibles_exemples` | list | — | 5 à 8 | tirées du catalogue, `[À CALCULER]` |
-| `focale_ideale_mm` | float | mm | sortie | pour une cible rejetée |
+| `taille_objet_deg` | float | ° | catalogue | grand axe |
+| `capteur_H_mm` | float | mm | §5.1 | petite dimension du capteur |
+| `focale_ideale_mm` | float | mm | sortie | pour une cible rejetée, avec sa plage aux bornes de C-05 |
 
 ### Critères d'acceptation
 
 ```gherkin
-Étant donné le profil de référence plein format, 120 mm (FOV_H = 11,375°)
-Quand je valide le profil matériel
-Alors l'app annonce un domaine TRES_GRAND_CHAMP, fenêtre de cadrage 3,79° – 5,69°
-Et propose 5 à 8 cibles réelles issues du catalogue dans cette fenêtre
-Et formule le verdict en une phrase, du type « excellent pour la Voie lactée
-    et les grands complexes nébuleux, hors domaine pour les galaxies »
-
-Étant donné le même profil basculé en APSC_CROP (FOV_H = 7,44°)
-Quand le domaine est recalculé
-Alors la fenêtre devient 2,48° – 3,72° et la liste de cibles est mise à jour
-Et le domaine reste TRES_GRAND_CHAMP
-
 Étant donné une recherche de M84 (6,5', soit 0,108°)                # cas limite
 Quand j'ouvre sa fiche
 Alors le verdict de cadrage est « hors domaine — 0,95 % du champ, 44 px de diamètre »
 Et l'app indique la focale nécessaire pour un cadrage propre : 5 300 mm au remplissage
     visé de 42 %, plage 4 230 à 6 340 mm aux deux bornes de C-05
 Et l'app ne propose PAS de compenser par un recadrage logiciel
-
-Étant donné un catalogue vide pour la fenêtre calculée              # cas limite
-Quand le domaine est évalué
-Alors l'app annonce l'absence de cible cataloguée à cette échelle
-    plutôt que de retourner une liste par défaut hors fenêtre
 ```
 
 ### Dépendances données
 
-OpenNGC (dimensions `MajAx` / `MinAx`), Messier, **Sharpless** et **Barnard**. Ces deux derniers sont obligatoires au MVP : sans eux, le domaine d'un setup grand champ est quasi vide dans les catalogues standard — la Boucle de Barnard est Sh2-276. Fraîcheur : statique. Fallback : catalogues embarqués intégralement, quelques Mo (§12.2).
+OpenNGC (dimensions `MajAx` / `MinAx`), Messier, **Sharpless** et **Barnard**. Ces deux derniers sont obligatoires au MVP : sans eux, un setup grand champ ne trouve presque rien à cadrer dans les catalogues standard — la Boucle de Barnard est Sh2-276. Fraîcheur : statique. Fallback : catalogues embarqués intégralement, quelques Mo (§12.2).
 
 ---
 
@@ -1694,7 +1666,7 @@ CIBLES VISIBLES — deux motifs d'exclusion, et deux seulement
       §8.2 dit ce qui est OBSERVABLE. Fusionner les deux ferait disparaître de la vue
       une cible qui sera bonne dans deux heures.
     - le cadrage : un objet trop grand ou trop petit pour le capteur reste listé, avec
-      son verdict de §6.2. C'est `ciblesDansFenetre` (§6.1) qui répond à l'autre question.
+      son verdict de §6.2.
     - PHOTO_SEULE : c'est un verdict, pas un refus (§6.3). Il est porté comme les trois
       autres.
 
@@ -4334,7 +4306,7 @@ Aucune pour Soleil, Lune, planètes, étoiles. TLE CelesTrak pour les satellites
 |---|---|---|---|
 | Planétarium, curseur temporel, constellations | §3 | **complet** | aucune |
 | Profil matériel, champ, échantillonnage | §5 | **complet** | aucune |
-| Verdict de domaine, cadrage, détectabilité | §6.1–6.3 | **complet** | aucune |
+| Focale idéale, cadrage, détectabilité | §6.1–6.3 | **complet** | aucune |
 | Prévisualisation du cadre sur imagerie de fond | §6.2 | **tombe** | cadre schématique sur positions d'étoiles réelles |
 | Image de l'objet dans la liste et la fiche | §6.4 | **tombe** | cible déjà consultée : image du cache ; cible neuve : désignation et type, sans image |
 | Flux, pose unitaire, N poses, calibration | §7 | **complet** | aucune |
@@ -4491,7 +4463,7 @@ Le découpage suit les dépendances entre moteurs, pas la valeur perçue. Un lot
 
 ## Lot 2 — Cœur métier ciel profond
 
-**Contenu** §6.1 verdict de domaine · §6.2 cadrage par cible · §6.3 détectabilité et quatre verdicts · §7.1 flux · §7.2 pose unitaire · §7.3 nombre de poses · §7.4 calibration · §10.2 explication de verdict
+**Contenu** §6.1 focale idéale · §6.2 cadrage par cible · §6.3 détectabilité et quatre verdicts · §7.1 flux · §7.2 pose unitaire · §7.3 nombre de poses · §7.4 calibration · §10.2 explication de verdict
 
 **Livrable** pour une cible et un setup, l'application produit un verdict dépliable jusqu'à sa formule, une pose avec sa plage utile, un nombre d'images et un plan de calibration.
 
@@ -4599,7 +4571,6 @@ Valeurs de travail : RN ≈ 1,5 e⁻ au-delà du seuil de double gain (≈ ISO 6
 | Échantillonnage | 8,80 "/px | 206,265 × 5,12 / 120 |
 | Diagnostic | grand champ assumé | > 4 "/px, non bloquant |
 | Fenêtre de cadrage (plein format) | 3,79° – 5,69° | FOV_H / 3 à FOV_H / 2 |
-| Domaine | TRES_GRAND_CHAMP | §6.1 |
 | Pose max sans suivi (NPF, δ = 0) | 2,10 s | (35·N + 30·p) / f |
 | Pose max avec suivi approximatif | 75 s | 45 × 200 / 120 |
 | Pose max avec suivi soigné | 200 s | 120 × 200 / 120 |
@@ -4608,7 +4579,7 @@ Valeurs de travail : RN ≈ 1,5 e⁻ au-delà du seuil de double gain (≈ ISO 6
 | Plage utile de pose | 6 à 26 s | [t/2 ; t×2] |
 | Régime | NOMINAL | t_opt < t_max_suivi |
 
-**Verdict de domaine** : excellent sur les grands complexes du plan galactique nord, hors domaine sur les galaxies. Un objet de 6,5' y occupe 0,95 % du champ, soit 44 px — il faudrait 5 300 mm de focale pour le cadrer au remplissage visé de 42 %, et de 4 230 à 6 340 mm aux deux bornes de C-05.
+**Cadrage** : un objet de 6,5' y occupe 0,95 % du champ, soit 44 px — il faudrait 5 300 mm de focale pour le cadrer au remplissage visé de 42 %, et de 4 230 à 6 340 mm aux deux bornes de C-05.
 
 **Intégrations calculées** (SNR cible 10, pose 13,4 s) :
 
@@ -4742,6 +4713,7 @@ sensibilite  = | ∂ln(sortie) / ∂ln(variable) |                   facteur dom
 | 22 | Le budget batterie retiré, remplacé par un rappel | §9.4, §8.3, C-16. L'autonomie CIPA se mesure en rafale au flash et la température prévue se saisit à la main : leur produit portait trois incertitudes multiplicatives et s'affichait à côté du volume de fichiers, réellement calculé. Ce que l'application connaît d'elle-même, c'est la durée de prise de vue — au-delà du seuil, elle rappelle le risque et ne chiffre rien. |
 | 23 | La validation d'une bibliothèque de darks retirée | §7.4, C-10 supprimée. Personne n'alimentait `temp_capteur_c` ni `biblio_darks` : la validation ne s'exécutait jamais et son seul effet visible était un avertissement réclamant un champ qu'aucun écran n'offrait. La garder sans température aurait déclaré valide une bibliothèque prise vingt degrés plus haut — une erreur qui autorise à sauter les darks. Un lot par séance, en fin de séance capteur encore froid, est juste sans thermomètre. |
 | 24 | Le multi-cadres retiré : la scène porte un seul profil | §3.5. La seule comparaison qu'on savait produire — plein format contre APS-C — se commandait par un interrupteur d'affichage posé au milieu d'un panneau qui décrit le matériel, et elle répondait à une question que la bascule de format répond déjà : le cadre se resserre sous les yeux, l'échantillonnage ne bouge pas. Comparer deux optiques distinctes reste le cas utile, et il suppose d'abord un stock de profils enregistrés — post-MVP, avec §12.3. |
+| 25 | Le verdict de domaine retiré | §6.1. Annoncer à la validation du profil une famille d'objets, une fenêtre et cinq à huit cibles d'exemple répondait avant la question : on vient chercher le verdict d'UNE cible, et la fiche le donne (§6.2), focale idéale comprise. Le panneau Matériel s'arrête à ce que le matériel donne. |
 
 ## Corrections apportées au socle initial en cours de rédaction
 

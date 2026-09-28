@@ -1,5 +1,5 @@
 /**
- * §6.1 — verdict de domaine, et §6.2 — verdict de cadrage par cible.
+ * §6.1 — focale idéale d'une cible écartée, et §6.2 — verdict de cadrage par cible.
  *
  * Deux règles de produit portées ici plutôt que rappelées ailleurs :
  *
@@ -11,14 +11,10 @@
 
 import { K } from '../registry/constants.ts'
 import {
-  CIBLES_EXEMPLES,
   RAPPORT_AXES_ORIENTATION,
   TABLE_CADRAGE,
-  TABLE_DOMAINES,
-  type Domaine,
   type VerdictCadrage,
 } from '../registry/verdicts.ts'
-import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
 import { DEG } from './mat3.ts'
@@ -27,7 +23,7 @@ const ARCMIN_PAR_DEG = 60
 const ARCSEC_PAR_ARCMIN = 60
 const POURCENT = 100
 
-export type { Domaine, VerdictCadrage }
+export type { VerdictCadrage }
 
 /**
  * Jamais proposé, et énoncé une seule fois : c'est la phrase qui remplace le réflexe
@@ -35,77 +31,6 @@ export type { Domaine, VerdictCadrage }
  */
 export const REFUS_RECADRAGE_LOGICIEL =
   'Recadrer ensuite n’ajoute pas de détail : seule une focale plus longue aide.'
-
-// ---------------------------------------------------------------------------
-// §6.1 — verdict de domaine
-// ---------------------------------------------------------------------------
-
-export interface VerdictDomaine {
-  readonly tailleMinDeg: Traced<number>
-  readonly tailleMaxDeg: Traced<number>
-  readonly domaine: Domaine
-  readonly phrase: string
-  /** 5 à 8 cibles réelles du catalogue tombant dans la fenêtre de cadrage. */
-  readonly cibles: readonly ObjetCielProfond[]
-  /** Renseigné quand le catalogue ne contient aucune cible à cette échelle. */
-  readonly causeAbsence?: string
-}
-
-/** Grand axe d'un objet, en degrés. `null` quand le catalogue ne donne pas la dimension. */
-export function tailleDeg(objet: ObjetCielProfond): number | null {
-  return objet.majAxArcmin === null ? null : objet.majAxArcmin / ARCMIN_PAR_DEG
-}
-
-/**
- * Cibles du catalogue dont la taille tombe dans la fenêtre de cadrage, les plus brillantes
- * d'abord. Un objet sans magnitude passe après ceux qui en ont : il n'est pas écarté, il
- * n'est simplement pas mis en avant.
- */
-export function ciblesDansFenetre(
-  catalogue: readonly ObjetCielProfond[],
-  tailleMinDeg: number,
-  tailleMaxDeg: number,
-  limite: number = CIBLES_EXEMPLES.max,
-): readonly ObjetCielProfond[] {
-  const dans = catalogue.filter((o) => {
-    const taille = tailleDeg(o)
-    return taille !== null && taille >= tailleMinDeg && taille <= tailleMaxDeg
-  })
-  return dans
-    .slice()
-    .sort((a, b) => (a.vMag ?? Number.POSITIVE_INFINITY) - (b.vMag ?? Number.POSITIVE_INFINITY))
-    .slice(0, limite)
-}
-
-/**
- * Ce que ce setup peut réellement cadrer, annoncé à la validation du profil matériel —
- * avant que l'utilisateur ne cherche par lui-même et ne se heurte au matériel.
- */
-export function verdictDomaine(
-  fovHDeg: number,
-  catalogue: readonly ObjetCielProfond[] = [],
-): VerdictDomaine {
-  const min = fovHDeg * K('REMPLISSAGE_CADRE_MIN')
-  const max = fovHDeg * K('REMPLISSAGE_CADRE_MAX')
-  const ligne = TABLE_DOMAINES.find((l) => min < l.borneHauteDeg) ?? TABLE_DOMAINES[0]!
-  const cibles = ciblesDansFenetre(catalogue, min, max)
-  const inputs = { fov_h_deg: fovHDeg }
-  const constants = ['REMPLISSAGE_CADRE_MIN', 'REMPLISSAGE_CADRE_MAX'] as const
-
-  return {
-    tailleMinDeg: trace({ value: min, formula: 'FENETRE_CADRAGE', inputs, constants }),
-    tailleMaxDeg: trace({ value: max, formula: 'FENETRE_CADRAGE', inputs, constants }),
-    domaine: ligne.domaine,
-    phrase: ligne.phrase,
-    cibles,
-    ...(cibles.length === 0
-      ? {
-          causeAbsence:
-            `Aucun objet du catalogue ne mesure entre ${min.toFixed(2)}° et ${max.toFixed(2)}°.`,
-        }
-      : {}),
-  }
-}
 
 /**
  * Focale qui cadrerait proprement une cible donnée. La valeur vise le milieu de la fenêtre

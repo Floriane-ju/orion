@@ -389,27 +389,7 @@ export const GLOSSAIRE = Object.freeze({
       'Avec ce type de monture, aucune pose unitaire n’est chiffrée pour le ciel profond.',
     sections: ['5.2'],
   }),
-  // §6.1, §6.2 — cadrage
-  domaine_cadrage: terme({
-    libelle: 'Domaine de cadrage',
-    glose: 'famille d’objets cadrables',
-    explication:
-      'Le domaine dit quelle famille d’objets ce matériel cadre proprement : longue focale, ' +
-      'classique, grand champ ou très grand champ. Il se déduit du champ, sans rien demander ' +
-      'd’autre. C’est le matériel qui choisit les cibles, pas l’inverse.',
-    consequence: 'Chercher hors de son domaine mène à des cibles trop petites ou débordantes.',
-    sections: ['6.1'],
-  }),
-  fenetre_cadrage: terme({
-    libelle: 'Fenêtre de cadrage',
-    glose: 'tailles bien cadrées ici',
-    explication:
-      'Un cadrage propre veut que l’objet occupe du tiers à la moitié de la petite dimension ' +
-      'du champ. La fenêtre traduit cette règle en tailles angulaires réelles pour ce setup. ' +
-      'C’est la contrainte sur la petite dimension qui décide : c’est elle qui limite.',
-    consequence: 'Toute cible hors de cette fenêtre demande une autre focale, pas un recadrage.',
-    sections: ['6.1'],
-  }),
+  // §6.2 — cadrage
   remplissage: terme({
     libelle: 'Remplissage du champ',
     glose: 'part du cadre occupée',

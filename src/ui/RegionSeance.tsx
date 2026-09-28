@@ -30,7 +30,7 @@ import { PanneauFile } from './PanneauFile.tsx'
 import { FicheCible } from './FicheCible.tsx'
 import { Pastilles } from './Pastilles.tsx'
 import { Bulle } from './Bulle.tsx'
-import { ViseeCible } from './BoutonVisee.tsx'
+import { AlignementCible, ViseeCible } from './BoutonVisee.tsx'
 import { BoutonChoixCible } from './BoutonChoixCible.tsx'
 import { useCiblesChoisies } from './cibles-choisies.ts'
 import { PlanSessionVue } from './PlanSession.tsx'
@@ -294,6 +294,11 @@ export function LateralSeance(props: RegionSeanceProps) {
                   {facilite !== null && <RappelFacilite etat={facilite} />}
                   {/* T-0221 — viser depuis la fiche, sans repasser par la ligne de liste. */}
                   <ViseeCible objet={props.cibleDuCiel} site={chaine.site} />
+                  <AlignementCible
+                    objet={props.cibleDuCiel}
+                    site={chaine.site}
+                    profil={chaine.profilsCadre[0]}
+                  />
                   {/* §8.3 — le geste qui compose le plan. Le même prédicat que la liste :
                       ce que la nuit ne permet pas ne s'ajoute pas. */}
                   {photographiable(facilite ?? undefined) && (

@@ -1,25 +1,19 @@
 /**
- * §6.1 verdict de domaine · §6.2 verdict de cadrage.
+ * §6.1 focale idéale · §6.2 verdict de cadrage.
  *
  * Valeurs de référence : Annexe A et critères d'acceptation du PRD. Le fil directeur des
  * cas limites est toujours le même — une cible écartée l'est avec sa cause, et jamais avec
  * une proposition de recadrage logiciel.
  */
 
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
-  ciblesDansFenetre,
   ficheCadrage,
   focaleIdeale,
   REFUS_RECADRAGE_LOGICIEL,
-  verdictDomaine,
 } from '../src/core/framing.ts'
 import { profilOptique } from '../src/core/optics.ts'
-import { decodeObjets, type ObjetCielProfond } from '../src/data/deepsky.ts'
 import { BOITIER_REFERENCE, capteurEffectif } from '../src/data/equipment.ts'
-import { CIBLES_EXEMPLES } from '../src/registry/verdicts.ts'
 
 const REFERENCE = {
   focaleMm: 120,
@@ -27,101 +21,6 @@ const REFERENCE = {
   ...capteurEffectif(BOITIER_REFERENCE, 'FULL_FRAME'),
 }
 const OPTIQUE = profilOptique(REFERENCE)
-const APSC = profilOptique({
-  focaleMm: 120,
-  ouvertureN: 2.8,
-  ...capteurEffectif(BOITIER_REFERENCE, 'APSC_CROP'),
-})
-
-function lit(nom: string): ArrayBuffer {
-  const octets = readFileSync(join(import.meta.dirname, '..', 'public', 'data', nom))
-  return octets.buffer.slice(octets.byteOffset, octets.byteOffset + octets.byteLength) as ArrayBuffer
-}
-
-function catalogue(): readonly ObjetCielProfond[] {
-  return decodeObjets({
-    enregistrements: lit('openngc-1.bin'),
-    chaines: lit('openngc-noms-1.bin'),
-  })
-}
-
-/** Le complément §6.1 : Sharpless et Barnard, que ni NGC ni IC ne portent. */
-function complement(): readonly ObjetCielProfond[] {
-  return decodeObjets({
-    enregistrements: lit('deepsky-1.bin'),
-    chaines: lit('deepsky-noms-1.bin'),
-  })
-}
-
-const OPENNGC = catalogue()
-const COMPLET = [...OPENNGC, ...complement()]
-const EST_COMPLEMENT = /^(Sh2-|B)\d+$/
-
-describe('verdict de domaine §6.1', () => {
-  it('annonce un très grand champ et sa fenêtre de cadrage pour le profil de référence', () => {
-    const verdict = verdictDomaine(OPTIQUE.fovHDeg.value)
-    expect(verdict.domaine).toBe('DOMAINE_TRES_GRAND_CHAMP')
-    expect(verdict.tailleMinDeg.value).toBeCloseTo(3.79, 2)
-    expect(verdict.tailleMaxDeg.value).toBeCloseTo(5.69, 2)
-    expect(verdict.phrase).toMatch(/Voie lactée/)
-    expect(verdict.phrase).toMatch(/Trop large/)
-  })
-
-  it('recalcule la fenêtre au basculement en APS-C sans changer de domaine', () => {
-    const verdict = verdictDomaine(APSC.fovHDeg.value)
-    expect(verdict.tailleMinDeg.value).toBeCloseTo(2.48, 2)
-    expect(verdict.tailleMaxDeg.value).toBeCloseTo(3.72, 2)
-    expect(verdict.domaine).toBe('DOMAINE_TRES_GRAND_CHAMP')
-  })
-
-  it('propose 5 à 8 cibles réelles du catalogue dans la fenêtre calculée', () => {
-    const verdict = verdictDomaine(APSC.fovHDeg.value, OPENNGC)
-    expect(verdict.cibles.length).toBeGreaterThanOrEqual(CIBLES_EXEMPLES.min)
-    expect(verdict.cibles.length).toBeLessThanOrEqual(CIBLES_EXEMPLES.max)
-    for (const cible of verdict.cibles) {
-      const tailleDeg = cible.majAxArcmin! / 60
-      expect(tailleDeg).toBeGreaterThanOrEqual(verdict.tailleMinDeg.value)
-      expect(tailleDeg).toBeLessThanOrEqual(verdict.tailleMaxDeg.value)
-    }
-    expect(verdict.causeAbsence).toBeUndefined()
-  })
-
-  /**
-   * §6.1, dépendances données — « Sharpless et Barnard obligatoires au MVP : sans eux, le
-   * domaine d'un setup grand champ est quasi vide dans les catalogues standard ».
-   *
-   * C'est ICI que la promesse grand champ se vérifie, et nulle part ailleurs : le verdict de
-   * domaine sélectionne sur la TAILLE seule, quand le plan de séance exige en plus une
-   * magnitude intégrée pour rendre un verdict de détectabilité (§6.3, §6.4). Une grande
-   * nébuleuse sans photométrie publiée a donc toute sa place ici, et aucune dans le plan.
-   * T-0079 avait posé l'exigence sur le plan : elle n'y était tenable que par une magnitude
-   * inventée (T-0266).
-   */
-  it('peuple le très grand champ avec le complément, que NGC et IC ne portent pas', () => {
-    const verdict = verdictDomaine(OPTIQUE.fovHDeg.value, COMPLET)
-    expect(verdict.domaine).toBe('DOMAINE_TRES_GRAND_CHAMP')
-    expect(verdict.causeAbsence).toBeUndefined()
-
-    const issuesDuComplement = verdict.cibles.filter((o) => EST_COMPLEMENT.test(o.designation))
-    expect(
-      issuesDuComplement.length,
-      verdict.cibles.map((o) => o.designation).join(', '),
-    ).toBeGreaterThan(0)
-
-    // Sans lui, la même fenêtre se vide — c'est ce qui rend les deux catalogues obligatoires.
-    const sansComplement = verdictDomaine(OPTIQUE.fovHDeg.value, OPENNGC)
-    expect(sansComplement.cibles.length).toBeLessThan(verdict.cibles.length)
-  })
-
-  it('annonce l’absence de cible plutôt qu’une liste par défaut hors fenêtre', () => {
-    // Aucun objet du catalogue ne mesure plusieurs dizaines de degrés.
-    const verdict = verdictDomaine(300, OPENNGC)
-    expect(verdict.cibles).toHaveLength(0)
-    expect(verdict.causeAbsence).toMatch(/Aucun objet du catalogue/)
-    expect(ciblesDansFenetre(OPENNGC, 100, 200)).toHaveLength(0)
-  })
-})
-
 describe('verdict de cadrage §6.2', () => {
   const cadre = (tailleMajArcmin: number, tailleMinArcmin?: number, posAngDeg?: number) =>
     ficheCadrage({

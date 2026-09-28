@@ -33,7 +33,7 @@ export const MATRICE_DEGRADATION: readonly LigneDegradation[] = Object.freeze([
     degradation: 'aucune',
   },
   {
-    fonction: 'Verdict de domaine, cadrage, détectabilité',
+    fonction: 'Focale idéale, cadrage, détectabilité',
     sections: '§6.1–6.3',
     horsReseau: 'COMPLET',
     degradation: 'aucune',

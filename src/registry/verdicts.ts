@@ -1,5 +1,5 @@
 /**
- * Tables énumérées du PRD — §6.1 domaines, §6.2 verdicts de cadrage, §7.2 valeurs
+ * Tables énumérées du PRD — §6.2 verdicts de cadrage, §7.2 valeurs
  * d'obturateur, §7.3 objectifs de qualité, §7.4 prescriptions de calibration.
  *
  * Ce sont des tables déclarées, au même titre que la table Bortle : elles vivent dans le
@@ -11,65 +11,6 @@
  */
 
 import { K } from './constants.ts'
-
-// ---------------------------------------------------------------------------
-// §6.1 — verdict de domaine
-// ---------------------------------------------------------------------------
-
-export type Domaine =
-  | 'DOMAINE_LONGUE_FOCALE'
-  | 'DOMAINE_CLASSIQUE'
-  | 'DOMAINE_GRAND_CHAMP'
-  | 'DOMAINE_TRES_GRAND_CHAMP'
-
-export interface LigneDomaine {
-  readonly domaine: Domaine
-  /** Borne haute, exclue, sur `taille_min_deg`. `Infinity` pour la dernière ligne. */
-  readonly borneHauteDeg: number
-  readonly libelle: string
-  /** La phrase de verdict de §6.1 : ce que ce setup fait bien, et ce qu'il ne fait pas. */
-  readonly phrase: string
-}
-
-export const TABLE_DOMAINES: readonly LigneDomaine[] = Object.freeze(
-  [
-    {
-      domaine: 'DOMAINE_LONGUE_FOCALE',
-      borneHauteDeg: 0.05,
-      libelle: 'longue focale',
-      phrase:
-        'Idéal pour les petites galaxies et les nébuleuses planétaires. Trop serré pour les ' +
-        'grandes nébuleuses.',
-    },
-    {
-      domaine: 'DOMAINE_CLASSIQUE',
-      borneHauteDeg: 0.5,
-      libelle: 'classique',
-      phrase:
-        'Idéal pour la plupart des objets Messier, amas et galaxies proches. Trop serré pour ' +
-        'la Voie lactée.',
-    },
-    {
-      domaine: 'DOMAINE_GRAND_CHAMP',
-      borneHauteDeg: 2.0,
-      libelle: 'grand champ',
-      phrase:
-        'Idéal pour les grandes nébuleuses, M31, M42 et les Pléiades. Trop large pour les ' +
-        'petites galaxies.',
-    },
-    {
-      domaine: 'DOMAINE_TRES_GRAND_CHAMP',
-      borneHauteDeg: Number.POSITIVE_INFINITY,
-      libelle: 'très grand champ',
-      phrase:
-        'Idéal pour la Voie lactée et les grandes régions nébuleuses. Trop large pour les ' +
-        'galaxies.',
-    },
-  ].map(Object.freeze) as LigneDomaine[],
-)
-
-/** Nombre de cibles d'exemple proposées à la validation du profil (§6.1). */
-export const CIBLES_EXEMPLES = Object.freeze({ min: 5, max: 8 })
 
 // ---------------------------------------------------------------------------
 // §6.2 — verdict de cadrage par cible
