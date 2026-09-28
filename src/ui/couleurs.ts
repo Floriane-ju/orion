@@ -140,8 +140,8 @@ export interface PaletteCiel {
 const PALETTE_NUIT: PaletteCiel = Object.freeze({
   fond: '#000000',
   figures: 'rgb(90 0 0)',
-  frontieres: 'rgb(55 0 0)',
-  asterismes: 'rgb(140 0 0)',
+  frontieres: 'rgb(70 0 0)',
+  asterismes: 'rgb(120 0 0)',
   corps: 'rgb(190 0 0)',
   cadre: 'rgb(246 0 0)',
   horizon: 'rgb(70 0 0)',
@@ -178,9 +178,9 @@ const PALETTE_NUIT: PaletteCiel = Object.freeze({
  */
 const PALETTE_JOUR: PaletteCiel = Object.freeze({
   fond: '#000000',
-  figures: 'rgb(110 110 110)',
-  frontieres: 'rgb(52 52 52)',
-  asterismes: 'rgb(170 170 170)',
+  figures: 'rgb(100 100 100)',
+  frontieres: 'rgb(72 72 72)',
+  asterismes: 'rgb(100 100 100)',
   corps: 'rgb(244 199 106)',
   cadre: 'rgb(139 255 239)',
   horizon: 'rgb(150 150 150)',

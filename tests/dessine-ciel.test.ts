@@ -91,10 +91,13 @@ function contexteEspion() {
   const opacites: number[] = []
   /** T-0324 — celles des REMPLISSAGES : les étoiles sont des disques pleins, pas des traits. */
   const opacitesRemplies: number[] = []
+  /** Chaque trait peint, sous la forme `teinte@épaisseur` : deux couches s'y distinguent. */
+  const traits: string[] = []
   let opacite = 1
   const espion = {
     appels,
     couleurs,
+    traits,
     opacites,
     opacitesRemplies,
     font: '',
@@ -138,6 +141,7 @@ function contexteEspion() {
     scale: enregistre('scale'),
     stroke: (...args: unknown[]) => {
       opacites.push(opacite)
+      traits.push(`${espion.strokeStyle}@${espion.lineWidth}`)
       appels.push({ nom: 'stroke', args })
     },
     fill: (...args: unknown[]) => {
@@ -351,10 +355,11 @@ describe('passe de rendu §3.3', () => {
     expect(lignes(sans)).toBeLessThan(lignes(avec))
   })
 
-  it('trace les astérismes dans une teinte distincte des figures IAU', () => {
+  it('trace les astérismes d’un trait distinct des figures IAU', () => {
+    // Même gris que les figures : c'est l'épaisseur qui les sépare, et le trait la porte.
     const sansAsterismes = rend({ couches: { ...COUCHES, asterismes: false } })
     const avec = rend()
-    const nouvelles = avec.ctx.couleurs.filter((c) => !sansAsterismes.ctx.couleurs.includes(c))
+    const nouvelles = avec.ctx.traits.filter((t) => !sansAsterismes.ctx.traits.includes(t))
     expect(nouvelles.length).toBeGreaterThan(0)
     // Une couche, un tracé : pas de motif dépendant de la longueur du segment, qui
     // rendrait plein un segment court et pointillé un segment long.

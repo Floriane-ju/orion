@@ -317,7 +317,7 @@ function passeTraces(passe: Passe): CandidatLabel | null {
     traceSegments(ctx, projecteur, entree.figures, champScene)
   }
   if (couches.asterismes) {
-    // Couche distincte des figures IAU par la teinte et l'épaisseur, pas par des tirets :
+    // Couche distincte des figures IAU par l'épaisseur — même gris —, pas par des tirets :
     // le motif de tirets se rend plein sur un segment plus court que sa période, et un
     // astérisme mélange des branches longues et des chaînes de segments courts. La même
     // couche paraîtrait alors tracée de deux façons.
