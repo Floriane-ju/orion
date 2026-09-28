@@ -35,7 +35,7 @@ const TOUR_DEG = 360
 const DEG_PAR_HEURE_SIDERALE = TOUR_DEG / HEURES_PAR_TOUR
 
 const MS_PAR_S = 1000
-const MS_PAR_JOUR = K('JOUR_SOLAIRE_S') * MS_PAR_S
+export const MS_PAR_JOUR = K('JOUR_SOLAIRE_S') * MS_PAR_S
 /** J2000,0 tombe à midi, soit une demi-journée après le début du 1er janvier 2000. */
 const EPOQUE_J2000_MS = Date.UTC(K('EPOQUE_J2000_ANNEE'), 0, 1) + MS_PAR_JOUR / 2
 

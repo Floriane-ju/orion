@@ -98,6 +98,26 @@ export const BUDGETS = Object.freeze({
     source: 'granularité de découpage — compromis entre coût du test et dépassement',
     tolerance: 'sans objet — granularité, pas une grandeur mesurée',
   }),
+
+  /**
+   * T-0335 — le plafond de cadence du planétarium. Sous les 50 Hz de §3.2 : une scène lourde
+   * reste en dessous sans que la boucle la force, et une scène légère ne brûle pas la batterie
+   * à peindre des images que l'œil ne distingue plus.
+   */
+  IMAGES_PAR_S_MAX: valeur({
+    valeur: 30,
+    unite: 'im/s',
+    source: '§3.2 — plafond de rendu, sous la cadence d’animation de 50 Hz',
+    tolerance: 'sans objet — budget d’interface, pas une grandeur mesurée',
+  }),
+
+  /** T-0335 — l'instant rendu et les compteurs du filé se republient à ce rythme : lisible sans clignoter. */
+  PUBLICATION_MS: valeur({
+    valeur: 500,
+    unite: 'ms',
+    source: 'convention d’interaction — deux lectures par seconde',
+    tolerance: 'sans objet — budget d’interface, pas une grandeur mesurée',
+  }),
 } satisfies Record<string, ValeurBudget>)
 
 export type IdBudget = keyof typeof BUDGETS

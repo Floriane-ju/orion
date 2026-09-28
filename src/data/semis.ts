@@ -38,8 +38,8 @@ function generateur(graine: number): () => number {
 }
 
 /** Indices de couleur plausibles pour des étoiles faibles : majorité jaune à rouge. */
-const BV_MIN = 0.2
-const BV_ETENDUE = 1.2
+const BV_MIN = K('SEMIS_BV_MIN')
+const BV_ETENDUE = K('SEMIS_BV_ETENDUE')
 
 /**
  * Semis génératif de toute la sphère. Aucun cache n'est conservé : la fonction est

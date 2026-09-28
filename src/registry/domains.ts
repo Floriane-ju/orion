@@ -14,9 +14,15 @@ export interface DomaineSaisie {
   readonly max: number
   readonly unite: string
   readonly section: string
+  /**
+   * T-0335 — le cran d'un curseur qui parcourt ce domaine. Absent pour un champ qui ne se tape
+   * qu'au clavier : un pas n'y aurait rien à régler.
+   */
+  readonly pas?: number
 }
 
-function domaine(d: DomaineSaisie): DomaineSaisie {
+/** Générique pour que le type garde ce qui est déclaré : un domaine qui porte un `pas` le dit. */
+function domaine<D extends DomaineSaisie>(d: D): Readonly<D> {
   return Object.freeze(d)
 }
 
@@ -94,7 +100,7 @@ export const DOMAINES = Object.freeze({
   iso_capture: domaine({ champ: 'l’ISO de capture', min: 100, max: 6400, unite: 'ISO', section: '7.2' }),
 
   // §6.3, §7.1 — détectabilité et flux
-  m_int: domaine({ champ: 'la magnitude intégrée', min: -2, max: 20, unite: 'mag', section: '6.3' }),
+  m_int: domaine({ champ: 'la magnitude intégrée', min: -2, max: 20, pas: 0.5, unite: 'mag', section: '6.3' }),
   sb_ciel: domaine({
     champ: 'la brillance du fond de ciel',
     min: 16,
@@ -116,6 +122,10 @@ export const DOMAINES = Object.freeze({
   // §5.2 — profil Suivi
   t_max_suivi_s: domaine({ champ: 'la pose maximale de suivi', min: 1, max: 240, unite: 's', section: '5.2' }),
 
+  // §7.2 — pose unitaire de l'aperçu. La borne haute est le plafond sans autoguidage (C-07) :
+  // au-delà, aucune monture de ce produit ne tient la pose.
+  t_pose_s: domaine({ champ: 'la pose unitaire', min: 1, max: 240, pas: 1, unite: 's', section: '7.2' }),
+
   // §9.1 — déclinaison de la zone visée
   dec_deg: domaine({ champ: 'la déclinaison', min: -90, max: 90, unite: '°', section: '9.1' }),
 
@@ -127,6 +137,7 @@ export const DOMAINES = Object.freeze({
     champ: 'la durée du filé',
     min: 5,
     max: 480,
+    pas: 5,
     unite: 'min',
     section: '9.3',
   }),

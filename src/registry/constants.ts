@@ -1509,6 +1509,28 @@ const GRAND_CHAMP = {
     ordreDeGrandeur: false,
     sections: ['9.2'],
   }),
+  SEMIS_BV_MIN: entree({
+    ref: 'C-33',
+    libelle: 'Indice de couleur le plus bleu du semis génératif',
+    valeur: 0.2,
+    unite: 'mag',
+    source:
+      '§9.2 — les étoiles faibles du champ sont en majorité des naines G à M : le semis tire ' +
+      'son B−V entre une F tardive et une M précoce',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: true,
+    sections: ['9.2'],
+  }),
+  SEMIS_BV_ETENDUE: entree({
+    ref: 'C-33',
+    libelle: 'Étendue de l’indice de couleur du semis génératif',
+    valeur: 1.2,
+    unite: 'mag',
+    source: '§9.2 — de SEMIS_BV_MIN (F tardive) à environ 1,4 (M précoce)',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: true,
+    sections: ['9.2'],
+  }),
   ECHELLE_LATITUDE_GALACTIQUE_DEG: entree({
     ref: 'C-33',
     libelle: 'Échelle de décroissance de la densité stellaire hors du plan galactique',

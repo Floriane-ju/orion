@@ -1346,7 +1346,7 @@ body {
    dessous sont donc le repli : bord droit de l'écran, jamais hors champ. */
 .tiroir[open] > .tiroir-contenu {
   position: fixed;
-  right: var(--pas-3);
+  right: var(--jour-carte);
   left: auto;
   top: calc(var(--barre-haut) + var(--jour-carte) + var(--pas-1));
   z-index: 5;

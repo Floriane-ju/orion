@@ -65,7 +65,6 @@ import { minuteAffichee, useTrancheScene, MS_PAR_MINUTE } from './scene-etat.ts'
 import { compte } from './horaire.ts'
 
 const DOMAINE_MAG = DOMAINES.m_int
-const PAS_MAG = 0.5
 const POURCENT = 100
 
 /**
@@ -260,7 +259,7 @@ export function PanneauCibles(props: PanneauCiblesProps) {
             valeur={magMax}
             min={DOMAINE_MAG.min}
             max={DOMAINE_MAG.max}
-            pas={PAS_MAG}
+            pas={DOMAINE_MAG.pas}
             texte={magMax >= DOMAINE_MAG.max ? 'toutes' : `${magMax.toFixed(1)} mag`}
             sur={(magMax) => majCatalogue({ magMax })}
           />

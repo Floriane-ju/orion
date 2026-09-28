@@ -41,6 +41,7 @@ import { dessineChamp, type ParametresFile, type SortieDessinChamp } from './des
 import { dessineCiel, type CibleEcran, type SurvolEcran } from './dessine-ciel.ts'
 import type { OptiquePose } from './dessine-pose-cadre.ts'
 import type { LuneEcran } from './dessine-fond-ciel.ts'
+import { B } from '../registry/budgets.ts'
 
 /** Noms français des corps mobiles de §3.1. */
 const NOMS_CORPS: Readonly<Record<string, string>> = {
@@ -54,12 +55,9 @@ const NOMS_CORPS: Readonly<Record<string, string>> = {
   Uranus: 'Uranus',
 }
 
-/** Publication de l'instant rendu et des compteurs du filé : lisible sans clignoter. */
-const PERIODE_PUBLICATION_MS = 500
-/** Plafond de rendu : 30 im/s max. Les scènes plus lourdes restent en dessous, sans forcer. */
-const FPS_MAX = 30
-const INTERVALLE_MIN_MS = 1000 / FPS_MAX
 const MS_PAR_S = 1000
+const PERIODE_PUBLICATION_MS = B('PUBLICATION_MS')
+const INTERVALLE_MIN_MS = MS_PAR_S / B('IMAGES_PAR_S_MAX')
 /** La plus petite dérive que l'écran sait montrer. Fait de plateforme, pas seuil de rendu. */
 const DERIVE_VISIBLE_PX = 1
 

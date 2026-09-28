@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useState, useSyncExternalStore } from 'react'
-import { epoqueAnnee } from './core/horloges.ts'
+import { MS_PAR_JOUR, epoqueAnnee } from './core/horloges.ts'
 import { abonneModeReseau, modeReseauCourant, type ModeReseau } from './data/degradation.ts'
 import { gaiaCharge } from './data/bootstrap.ts'
 import { Coque } from './ui/Coque.tsx'
@@ -43,7 +43,6 @@ import {
 import { installeEchap } from './ui/gere-echap.ts'
 import { Mention } from './ui/Mention.tsx'
 
-const MS_PAR_JOUR = 86_400_000
 
 /**
  * T-0056 — la tranche du magasin de scène dont l'application dépend vraiment : l'époque de

@@ -13,9 +13,6 @@
  * style, qui l'ancre à la barre, laquelle ne bouge pas.
  */
 
-/** Marge des barres (0.75 rem) : une fenêtre ne s'approche pas du bord plus près que la coque. */
-const MARGE_PX = 12
-
 function cale(tiroir: HTMLDetailsElement): void {
   const contenu = tiroir.querySelector<HTMLElement>('.tiroir-contenu')
   const bouton = tiroir.querySelector('summary')
@@ -29,9 +26,13 @@ function cale(tiroir: HTMLDetailsElement): void {
     return
   }
 
+  // La marge est celle que la feuille pose en repli (`right: var(--jour-carte)`) : lue, pas
+  // recopiée, pour qu'une fenêtre ne s'approche jamais du bord plus près que la coque.
+  contenu.style.removeProperty('right')
+  const marge = parseFloat(getComputedStyle(contenu).right)
   const gauche = bouton.getBoundingClientRect().left
-  const debord = window.innerWidth - contenu.offsetWidth - MARGE_PX
-  contenu.style.left = `${Math.round(Math.max(MARGE_PX, Math.min(gauche, debord)))}px`
+  const debord = window.innerWidth - contenu.offsetWidth - marge
+  contenu.style.left = `${Math.round(Math.max(marge, Math.min(gauche, debord)))}px`
   contenu.style.right = 'auto'
 }
 

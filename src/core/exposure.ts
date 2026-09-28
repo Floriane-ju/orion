@@ -294,6 +294,7 @@ export function poseUnitaire(entree: EntreePose): PoseUnitaire {
   const cEffectif = bride ? (entree.eCiel * tMax) / rn ** 2 : K(constanteC)
   const perte = perteSnr(cEffectif)
 
+  // PLAGE_UTILE_POSE (§2.3) : le facteur 2 EST la formule tracée ci-dessous, pas un seuil.
   const plage: readonly [number, number] = [Math.floor(tRecommande / 2), Math.floor(tRecommande * 2)]
 
   return {

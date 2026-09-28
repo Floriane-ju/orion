@@ -5,7 +5,6 @@
  * magasin de séance. Le rendu de l'image, lui, se voit dans le cadre matériel sur la scène.
  */
 
-import { K } from '../registry/constants.ts'
 import { DOMAINES } from '../registry/domains.ts'
 import { vignettageDiaph } from '../core/galactique.ts'
 import { libelleZpSource, type PointZeroSysteme } from '../data/equipment.ts'
@@ -153,9 +152,9 @@ export function ProfondeurDUnePose({
         <Curseur
           libelle="Pose unitaire"
           valeur={file.tPoseS}
-          min={1}
-          max={K('PLAFOND_POSE_SANS_AUTOGUIDAGE_S')}
-          pas={1}
+          min={DOMAINES.t_pose_s.min}
+          max={DOMAINES.t_pose_s.max}
+          pas={DOMAINES.t_pose_s.pas}
           texte={`${file.tPoseS.toFixed(0)} s`}
           {...(accroche === null ? {} : { accroche })}
           sur={(tPoseS) => majFile({ tPoseS })}
@@ -189,7 +188,7 @@ export function ProfondeurDUnePose({
       {poseDepassee && carte.poseOperanteS !== null && (
         <button
           type="button"
-          onClick={() => majFile({ tPoseS: Math.max(1, Math.floor(carte.poseOperanteS!)) })}
+          onClick={() => majFile({ tPoseS: Math.max(DOMAINES.t_pose_s.min, Math.floor(carte.poseOperanteS!)) })}
         >
           Corriger la pose à {formatePose(carte.poseOperanteS)} s
         </button>
@@ -227,7 +226,7 @@ export function ArcsDuFile({
           valeur={file.dureeTotaleMin}
           min={DUREE_APERCU_CHAMP_MIN}
           max={DOMAINES.duree_file_min.max}
-          pas={5}
+          pas={DOMAINES.duree_file_min.pas}
           texte={`${file.dureeTotaleMin.toFixed(0)} min`}
           sur={(dureeTotaleMin) => majFile({ dureeTotaleMin })}
         />
