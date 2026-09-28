@@ -67,4 +67,18 @@ describe('polices livrées (§12.2)', () => {
       expect(licences, famille).toContain(famille)
     }
   })
+
+  it('les éléments à police de navigateur héritent de la charte (T-0329)', () => {
+    // `code`, `kbd`, `samp` et `pre` reçoivent `font-family: monospace` de la feuille du
+    // navigateur : sans remise, une formule s'écrit en Menlo au lieu de --police-mono.
+    const regle = [...FEUILLE.matchAll(/([^{}]+)\{([^}]*)\}/g)].find(
+      ([, , corps]) => /font:\s*inherit/.test(corps!),
+    )
+    const selecteurs = new Set(
+      (regle?.[1] ?? '').replace(/\/\*[\s\S]*?\*\//g, '').split(',').map((s) => s.trim()),
+    )
+    for (const element of ['code', 'kbd', 'samp', 'pre']) {
+      expect({ element, herite: selecteurs.has(element) }).toEqual({ element, herite: true })
+    }
+  })
 })

@@ -74,7 +74,8 @@ describe('T-0194 — l’échelle typographique', () => {
     const derogations = ['1.25rem', '0.85em']
     for (const valeur of corps) {
       if (derogations.includes(valeur)) continue
-      expect(valeur, valeur).toMatch(/^var\(--texte-[a-z]+\)$/)
+      // `inherit` n'écrit aucun corps : il rend la main à la règle qui contient (T-0329).
+      expect(valeur, valeur).toMatch(/^(?:var\(--texte-[a-z]+\)|inherit)$/)
     }
   })
 })
