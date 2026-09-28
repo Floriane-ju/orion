@@ -48,7 +48,7 @@ export const SOURCE_TABLE_CONTRASTE =
   'complète, il n’est pas extrapolé.'
 
 /** Sous cette taille apparente, l'objet est ponctuel : la magnitude intégrée décide seule. */
-export const TAILLE_PONCTUELLE_ARCMIN = TABLE_CONTRASTE[0]!.tailleArcmin
+const TAILLE_PONCTUELLE_ARCMIN = TABLE_CONTRASTE[0]!.tailleArcmin
 
 const PLATEAU = TABLE_CONTRASTE[TABLE_CONTRASTE.length - 1]!
 

@@ -292,7 +292,6 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
 
   const cielSaisi = useMemo(
     () => evalueCiel(site, lieuBorne),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [site, lieuBorne.bortleDeclare, lieuBorne.sqmMesure, lieuBorne.nuitIso],
   )
 
@@ -315,7 +314,6 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
 
   const calcul = useMemo(
     () => evalueMateriel(materiel, materielBorne),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       materiel.boitierId,
       materiel.boitier,
@@ -340,7 +338,6 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
   /** §3.5 — le cadre projeté sur la scène, tel que le matériel saisi le définit. */
   const profilsCadre = useMemo(
     () => profilsDeCadre(calcul, materiel),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [calcul, materiel.capteurMode, materiel.typeObjectif],
   )
 

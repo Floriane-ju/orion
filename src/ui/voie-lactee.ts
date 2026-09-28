@@ -103,7 +103,7 @@ interface SegmentBande {
   readonly demiExtensionDeg: number
 }
 
-export const TRANCHES_BANDE: readonly {
+const TRANCHES_BANDE: readonly {
   readonly bDeg: number
   readonly segments: readonly SegmentBande[]
 }[] = Array.from({ length: (2 * QUART_TOUR_DEG) / PAS_LATITUDE_BANDE_DEG }, (_, i) => {
@@ -140,8 +140,8 @@ export const TRANCHES_BANDE: readonly {
 })
 
 /** T-0091 — le centre galactique : l = 0°, b = 0°, soit δ ≈ −29°. Calculé, jamais recopié. */
-export const CENTRE_GALACTIQUE: Vec3 = depuisGalactique(0, 0)
-export const NOM_CENTRE_GALACTIQUE = 'Centre galactique'
+const CENTRE_GALACTIQUE: Vec3 = depuisGalactique(0, 0)
+const NOM_CENTRE_GALACTIQUE = 'Centre galactique'
 
 /**
  * T-0034 — ancre du label : le point de la ligne visible le plus proche du centre du canevas,

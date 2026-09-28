@@ -51,10 +51,6 @@ const OPTIONS_HEURE: Intl.DateTimeFormatOptions = {
   second: '2-digit',
 }
 
-export function heureSeconde(date: Date): string {
-  return date.toLocaleTimeString(LOCALE, OPTIONS_HEURE)
-}
-
 /** L'instant complet, date et heure : les bornes de la nuit tombent sur deux jours. */
 export function dateHeure(date: Date): string {
   return date.toLocaleString(LOCALE)

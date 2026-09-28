@@ -37,7 +37,7 @@ const UM_PAR_MM = 1000
  * sur le méridien origine, le basculer sur l'axe z, puis caler la longitude sur le centre
  * galactique — ce dernier calage se lit sur la longitude galactique du pôle céleste.
  */
-export const MATRICE_GALACTIQUE: Mat3 = multiplie(
+const MATRICE_GALACTIQUE: Mat3 = multiplie(
   rotationZ(K('LONGITUDE_GALACTIQUE_POLE_CELESTE_DEG') - DEMI_TOUR_DEG),
   multiplie(
     rotationY(QUART_TOUR - K('POLE_GALACTIQUE_DEC_DEG')),
@@ -58,10 +58,21 @@ export function depuisGalactique(lDeg: number, bDeg: number): Vec3 {
   return applique(MATRICE_DEPUIS_GALACTIQUE, versVecteur(lDeg, bDeg))
 }
 
-/** §9.2 — densité relative du semis génératif : 1 dans le plan galactique, décroissante hors. */
+/**
+ * §9.2 — densité relative du semis génératif : 1 dans le plan galactique, décroissante hors.
+ * Sans trace : le semis l'évalue à chaque tirage, et une trace par tirage allouerait pour rien.
+ */
+export function densite(
+  bDeg: number,
+  echelleDeg: number = K('ECHELLE_LATITUDE_GALACTIQUE_DEG'),
+): number {
+  return Math.exp(-Math.abs(bDeg) / echelleDeg)
+}
+
+/** La même densité, tracée jusqu'à sa formule. */
 export function densiteRelative(bDeg: number): Traced<number> {
   return trace({
-    value: Math.exp(-Math.abs(bDeg) / K('ECHELLE_LATITUDE_GALACTIQUE_DEG')),
+    value: densite(bDeg),
     formula: 'DENSITE_GALACTIQUE',
     inputs: { b_deg: bDeg },
     constants: ['ECHELLE_LATITUDE_GALACTIQUE_DEG'],

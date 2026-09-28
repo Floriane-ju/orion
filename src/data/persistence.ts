@@ -70,7 +70,7 @@ export async function demandePersistance(): Promise<boolean> {
   return navigator.storage.persist()
 }
 
-export const FORMAT_EXPORT = 'orion-export'
+const FORMAT_EXPORT = 'orion-export'
 /** Format écrit quand le produit s'appelait Astrofort : relu, jamais réécrit. */
 const FORMAT_EXPORT_ANCIEN = 'astrofort-export'
 
@@ -348,7 +348,7 @@ export async function importeDonneesUtilisateur(donnees: unknown): Promise<Poids
 export const ID_SITE_ACTIF = 'site-actif'
 
 /** §5.1 — un seul profil matériel actif, pour la même raison qu'un seul site. */
-export const ID_PROFIL_ACTIF = 'profil-actif'
+const ID_PROFIL_ACTIF = 'profil-actif'
 
 export interface SiteAExporter {
   readonly latitudeDeg: number

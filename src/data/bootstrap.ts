@@ -71,7 +71,7 @@ async function resoudPaquet(manifeste: ManifestePaquet): Promise<EtatPaquet> {
   }
 }
 
-export async function verifieCatalogues(): Promise<EtatCatalogues> {
+async function verifieCatalogues(): Promise<EtatCatalogues> {
   const manifestes = await chargeManifeste()
   if (manifestes === null) {
     return {
@@ -142,7 +142,7 @@ export async function chargeObjetsCielProfond(): Promise<readonly ObjetCielProfo
   return [...ngc, ...complement]
 }
 
-export const PAQUET_ETOILES = 'hyg'
+const PAQUET_ETOILES = 'hyg'
 
 /**
  * Catalogue d'étoiles décodé depuis le paquet HYG. Il sert au cheminement et à la carte de
@@ -154,7 +154,7 @@ export async function chargeEtoiles(): Promise<readonly Etoile[]> {
   return paquet === null ? [] : parTranches(decodeEtoilesPas(paquet))
 }
 
-export const PAQUET_CONSTELLATIONS = 'constellations'
+const PAQUET_CONSTELLATIONS = 'constellations'
 
 /**
  * §3.4 — figures, astérismes et frontières. Un paquet absent laisse le planétarium
@@ -177,7 +177,7 @@ export async function construitIndexEtoiles(
 }
 
 /** §3.3 — le paquet Gaia est différé : sa présence conditionne le plancher de zoom. */
-export const PAQUET_GAIA = 'gaia'
+const PAQUET_GAIA = 'gaia'
 
 export function gaiaCharge(catalogues: EtatCatalogues): boolean {
   return catalogues.paquets.some(

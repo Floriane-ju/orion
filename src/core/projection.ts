@@ -149,7 +149,7 @@ export function echelleProjection(vue: Vue): number {
  * resté libre. Un seul endroit le dit ; tout ce qui lit « le centre » passe par lui ou par le
  * projecteur qui le republie, sinon la phrase de visée désigne un point et l'image un autre.
  */
-export function centreViseePx(vue: Vue): PointEcran {
+function centreViseePx(vue: Vue): PointEcran {
   return {
     xPx: vue.largeurPx / 2 + (vue.decalageCentreXPx ?? 0),
     yPx: vue.hauteurPx / 2,

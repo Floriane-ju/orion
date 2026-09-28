@@ -86,7 +86,7 @@ export interface EntreeCadrage {
  * Sans orientation exploitable, on retombe sur la petite dimension seule : c'est le cas
  * conservateur, et il ne prétend pas connaître un angle que le catalogue ne donne pas.
  */
-export function remplissageCadre(entree: EntreeCadrage): Traced<number> {
+function remplissageCadre(entree: EntreeCadrage): Traced<number> {
   const majDeg = entree.tailleMajArcmin / ARCMIN_PAR_DEG
   const phi = entree.angleGrandAxeDeg
   if (entree.fovLDeg === undefined || phi === null || phi === undefined) {

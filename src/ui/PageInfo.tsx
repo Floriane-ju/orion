@@ -32,7 +32,7 @@ import {
 } from './scene-etat.ts'
 
 /** L'ancre de la page : le bouton de la barre y mène, Échap et « fermer » en repartent. */
-export const ANCRE_INFO = 'info'
+const ANCRE_INFO = 'info'
 
 /** T-0325 — le nom du bouton info, dit par sa bulle : le bouton ne porte que son icône. */
 const AIDE_INFO = 'Infos de l’app'

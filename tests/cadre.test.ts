@@ -12,7 +12,6 @@ import {
   angleGrandAxeDansCadre,
   cibleDominante,
   contourCadreJ2000,
-  refusAuDelaDuMaximum,
   rotationSuggeree,
   type Cadre,
   type ProfilCadre,
@@ -324,11 +323,6 @@ describe('garde-fous du cadre §3.5', () => {
   // Reste la règle elle-même, qui interdit au moteur d'inventer un cadre sans profil.
   it('refuse d’inventer un cadre sans profil déclaré', () => {
     expect(REFUS_SANS_PROFIL).toMatch(/Pas de cadre/)
-  })
-
-  it('borne la comparaison à trois profils simultanés', () => {
-    expect(refusAuDelaDuMaximum(K('PROFILS_CADRE_MAX'))).toBeNull()
-    expect(refusAuDelaDuMaximum(K('PROFILS_CADRE_MAX') + 1)).toMatch(/lisible/)
   })
 })
 

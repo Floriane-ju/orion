@@ -54,7 +54,7 @@ export function matricePrecession(anneeEpoque: number): Mat3 {
 let precessionMemo: { annee: number; matrice: Mat3 } | null = null
 
 /** Même matrice, mémoïsée sur l'année entière : le recalcul par image est inutile (§3.1). */
-export function matricePrecessionAnnee(anneeEpoque: number): Mat3 {
+function matricePrecessionAnnee(anneeEpoque: number): Mat3 {
   const annee = Math.round(anneeEpoque)
   if (precessionMemo === null || precessionMemo.annee !== annee) {
     precessionMemo = { annee, matrice: matricePrecession(annee) }

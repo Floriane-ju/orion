@@ -31,7 +31,7 @@ export const TYPES_EN_EMISSION: readonly TypeObjet[] = Object.freeze([
   'NEB_PLANETAIRE',
 ])
 
-export const TABLE_FILTRES: readonly LigneFiltre[] = Object.freeze(
+const TABLE_FILTRES: readonly LigneFiltre[] = Object.freeze(
   [
     {
       famille: 'AUCUN',

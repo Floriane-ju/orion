@@ -68,7 +68,7 @@ export function etatLune(site: Site, date: Date): EtatLuneInstant {
 
 
 /** Position de la Lune en coordonnées équatoriales de la date, sans calcul horizontal. */
-export function positionEquatorialeLune(date: Date, site: Site): {
+function positionEquatorialeLune(date: Date, site: Site): {
   readonly adH: number
   readonly decDeg: number
 } {
@@ -108,7 +108,7 @@ export function extinctionV(masseAir: number): number {
 }
 
 /** Illuminance hors atmosphère de la Lune à l'angle de phase donné. */
-export function illuminanceLune(anglePhaseDeg: number): number {
+function illuminanceLune(anglePhaseDeg: number): number {
   const a = Math.abs(anglePhaseDeg)
   const magnitude =
     K('KS_MAGNITUDE_LUNE_PLEINE') + K('KS_COEF_PHASE') * a + K('KS_COEF_PHASE_4') * (a * a) ** 2

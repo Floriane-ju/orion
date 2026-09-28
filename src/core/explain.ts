@@ -25,8 +25,6 @@ import { libelleEntree } from '../registry/libelles.ts'
 /** Pas relatif de la dérivée numérique : assez petit pour la pente, assez grand pour le bruit. */
 const PAS_RELATIF = 1 / 1000
 
-export type NiveauExplication = 'N1' | 'N2' | 'N3'
-
 // ---------------------------------------------------------------------------
 // N3 — chaîne de calcul
 // ---------------------------------------------------------------------------

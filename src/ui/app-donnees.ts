@@ -266,7 +266,6 @@ export function usePersistance(entree: EntreePersistance): Persistance {
         })
       }
     })()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aEcrire])
 
   async function exporte(): Promise<void> {

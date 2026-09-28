@@ -81,6 +81,9 @@ const EXACTES = {
     tolerance: null,
     ordreDeGrandeur: false,
     sections: ['2.1'],
+    deprecie:
+      'Conservée pour mémoire (§2.1) : la phase de la Lune vient d’`astronomy-engine`, ' +
+      'aucun moteur ne la dérive de la période moyenne.',
   }),
   ANNEE_TROPIQUE_J: entree({
     ref: 'A-TRO',
@@ -91,6 +94,9 @@ const EXACTES = {
     tolerance: null,
     ordreDeGrandeur: false,
     sections: ['2.1'],
+    deprecie:
+      'Conservée pour mémoire (§2.1) : les époques se comptent en années juliennes ' +
+      '(A-JUL), aucun moteur ne consomme l’année tropique.',
   }),
   PRECESSION_ARCSEC_AN: entree({
     ref: 'A-PRE',
@@ -131,6 +137,9 @@ const EXACTES = {
     tolerance: null,
     ordreDeGrandeur: false,
     sections: ['12.4'],
+    deprecie:
+      'Conservée pour mémoire (§12.4) : `astronomy-engine` applique la réfraction de ' +
+      'Bennett aux levers et couchers ; une valeur fixe ici la compterait deux fois.',
   }),
   EPOQUE_FRONTIERES_IAU: entree({
     ref: 'A-B1875',
@@ -1327,16 +1336,6 @@ const RENDU = {
     tolerance: 'ordre de grandeur',
     ordreDeGrandeur: true,
     sections: ['3.3', '3.4'],
-  }),
-  PROFILS_CADRE_MAX: entree({
-    ref: 'C-31',
-    libelle: 'Nombre de profils de cadre comparables simultanément',
-    valeur: 3,
-    unite: '—',
-    source: '§3.5 — « jusqu’à trois profils comparés simultanément »',
-    tolerance: null,
-    ordreDeGrandeur: false,
-    sections: ['3.5'],
   }),
   /**
    * T-0097 — extension de rendu. §3.3 ne dit du fond de ciel que « plafonne mag_limite en vue

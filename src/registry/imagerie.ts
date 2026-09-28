@@ -63,7 +63,7 @@ function valeur(v: ValeurImagerie): ValeurImagerie {
   return Object.freeze(v)
 }
 
-export const IMAGERIE = Object.freeze({
+const IMAGERIE = Object.freeze({
   /**
    * La largeur demandée à la découpe. Une vignette d'illustration, pas une planche :
    * à cette largeur une découpe DSS2 pèse une dizaine de kilo-octets, ce qui rend le cache

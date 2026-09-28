@@ -188,7 +188,7 @@ export interface EntreeFondRendu {
 }
 
 /** Brillance totale du ciel dans cette direction, en nanolamberts. */
-export function brillanceFondNl(entree: EntreeFondRendu): number {
+function brillanceFondNl(entree: EntreeFondRendu): number {
   const bCrepuscule =
     entree.depressionSolaireDeg === undefined
       ? 0

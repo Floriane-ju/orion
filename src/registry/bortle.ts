@@ -39,8 +39,8 @@ export const SOURCE_TABLE_BORTLE =
   'Échelle de Bortle (Sky & Telescope, 2001) ; lignes 4 et 8 ancrées sur le socle. ' +
   'Interpolation autorisée entre deux lignes, extrapolation interdite hors [1 ; 9].'
 
-export const BORTLE_MIN = TABLE_BORTLE[0]!.bortle
-export const BORTLE_MAX = TABLE_BORTLE[TABLE_BORTLE.length - 1]!.bortle
+const BORTLE_MIN = TABLE_BORTLE[0]!.bortle
+const BORTLE_MAX = TABLE_BORTLE[TABLE_BORTLE.length - 1]!.bortle
 
 /** Fond de ciel naturel le plus sombre atteignable, borne haute de la table. */
 export const SB_PLANCHER_NATUREL = TABLE_BORTLE[0]!.sb

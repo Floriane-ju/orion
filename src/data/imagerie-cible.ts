@@ -46,7 +46,7 @@ export function champDecoupeDeg(objet: ObjetCielProfond): number {
 }
 
 /** L'adresse de la découpe de relevé aux coordonnées de l'objet, au champ demandé. */
-export function urlDecoupeAuChamp(objet: ObjetCielProfond, champDeg: number): string {
+function urlDecoupeAuChamp(objet: ObjetCielProfond, champDeg: number): string {
   const cote = I('LARGEUR_VIGNETTE_PX')
   const parametres = new URLSearchParams({
     hips: RELEVE_DECOUPE,

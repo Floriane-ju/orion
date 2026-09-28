@@ -82,7 +82,6 @@ export function FicheCible(props: FicheCibleProps) {
       if (erreur instanceof SaisieRefuseeError) return { ok: false, erreur: erreur.message }
       throw erreur
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props, objet, snrCible, iso.iso, nuit, permissif])
 
   const conseils = useMemo(
@@ -95,7 +94,6 @@ export function FicheCible(props: FicheCibleProps) {
             explicationDepliee,
           })
         : null,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [calcul, filtreDualBand, explicationDepliee, objet, snrCible, props],
   )
 

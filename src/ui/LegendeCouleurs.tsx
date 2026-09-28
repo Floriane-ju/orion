@@ -68,7 +68,7 @@ export const LIGNES_LEGENDE: readonly LigneLegende[] = Object.freeze(parTeinte()
  * nombre de teintes. Le disque reprend le dégradé radial et le contour de `peintEllipse` ;
  * la croix n'a qu'un trait, donc qu'une couleur — celle du bord, comme `peintCroix`.
  */
-export function feuilleLegende(modeNuit: boolean): string {
+function feuilleLegende(modeNuit: boolean): string {
   const teintes = teintesReference(modeNuit)
   return LIGNES_LEGENDE.map((ligne, rang) => {
     const { coeur, halo, bord } = teintes[ligne.types[0]!]

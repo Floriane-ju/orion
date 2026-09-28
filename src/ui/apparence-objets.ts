@@ -60,9 +60,9 @@ export const APPARENCE_OBJET: Readonly<Record<TypeObjet, ApparenceObjet>> = Obje
 } satisfies Record<TypeObjet, ApparenceObjet>)
 
 /** Opacité au centre du dégradé. En dessous de 1 : le fond de ciel reste lisible au travers. */
-export const OPACITE_RADIANT_COEUR = 0.75
+const OPACITE_RADIANT_COEUR = 0.75
 /** Opacité au bord du dégradé. Nulle : le halo s'éteint sur le contour, il ne s'y arrête pas. */
-export const OPACITE_RADIANT_BORD = 0
+const OPACITE_RADIANT_BORD = 0
 /** Épaisseur du contour. Un peu plus qu'un pixel : c'est lui qui porte la forme de l'objet. */
 export const EPAISSEUR_BORD_PX = 1.5
 

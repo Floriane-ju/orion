@@ -60,7 +60,7 @@ export function calotte(points: readonly Vec3[]): ChampVisible | null {
  */
 const calottesMemo = new WeakMap<object, readonly (ChampVisible | null)[]>()
 
-export function calottesDe<T>(
+function calottesDe<T>(
   jeu: readonly T[],
   points: (element: T) => readonly Vec3[],
 ): readonly (ChampVisible | null)[] {
@@ -72,7 +72,7 @@ export function calottesDe<T>(
 }
 
 /** Compose le chemin sans le peindre : au tracé du ciel de le remplir, au cadre de le découper. */
-export function cheminLignes(
+function cheminLignes(
   ctx: CanvasRenderingContext2D,
   projecteur: Projecteur,
   polylignes: readonly (readonly Vec3[])[],

@@ -14,7 +14,7 @@ export const NOM_BASE = 'orion'
  * 2 — ajout du magasin `images` (§6.4). Une montée de version ne détruit rien : les magasins
  * existants traversent la mise à niveau, seul le nouveau est créé.
  */
-export const VERSION_BASE = 2
+const VERSION_BASE = 2
 
 /** Nom porté avant que le produit s'appelle Orion. Voir `reprendAncienneBase`. */
 const NOM_BASE_ANCIEN = 'astrofort'

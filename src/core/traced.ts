@@ -84,7 +84,3 @@ export function plageOrdreDeGrandeur(valeur: number): readonly [number, number] 
 export function dependDUnOrdreDeGrandeur(t: Traced<unknown>): boolean {
   return t.constants.some((c) => c.ordreDeGrandeur)
 }
-
-export function aLeFlag(t: Traced<unknown>, flag: Flag): boolean {
-  return t.flags?.includes(flag) ?? false
-}

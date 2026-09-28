@@ -24,7 +24,7 @@ import { mentionProjection } from './scene-overlay.ts'
  * Définition de référence du cadre pour les diagnostics. Elle ne décrit aucun canevas :
  * c'est l'échelle en pixels sur laquelle §9.3 chiffre longueurs d'arcs et position du pôle.
  */
-export const LARGEUR_CADRE_PX = 1200
+const LARGEUR_CADRE_PX = 1200
 
 export interface MaterielCadre {
   readonly site: Site
@@ -103,7 +103,6 @@ export function useLecturesFile(
         rotationDeg,
         tMaxSuiviS: materiel.tMaxSuiviS,
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [materiel, visee, rotationDeg],
   )
 

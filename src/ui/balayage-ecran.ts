@@ -55,11 +55,11 @@ export interface FrontiereEcran {
 
 const angleDe = (f: FrontiereEcran, i: number): number => (i * TOUR_RAD) / f.rayons
 
-export function xDe(f: FrontiereEcran, i: number): number {
+function xDe(f: FrontiereEcran, i: number): number {
   return f.centreX + f.bords[i]! * Math.cos(angleDe(f, i))
 }
 
-export function yDe(f: FrontiereEcran, i: number): number {
+function yDe(f: FrontiereEcran, i: number): number {
   return f.centreY + f.bords[i]! * Math.sin(angleDe(f, i))
 }
 

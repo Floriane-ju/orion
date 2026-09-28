@@ -33,7 +33,7 @@ export const RAYON_CORPS_PX = 5
  * T-0107 — cinq étoiles brillantes du ciel réel n'ont ni Bayer, ni Flamsteed, ni nom propre
  * dans les paquets versionnés. Elles n'ont pas de label ; elles n'ont que ce titre.
  */
-export const TITRE_ETOILE_SANS_DESIGNATION = `Étoile ${SANS_NOM}`
+const TITRE_ETOILE_SANS_DESIGNATION = `Étoile ${SANS_NOM}`
 
 /**
  * Le texte à peindre pour cet élément, `null` s'il n'en porte aucun.

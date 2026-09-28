@@ -144,13 +144,6 @@ export const REFUS_SANS_PROFIL =
   'Pas de cadre : renseignez le capteur dans la carte Boîtier, la focale et l’ouverture ' +
   'dans la carte Optique.'
 
-export function refusAuDelaDuMaximum(nombreProfils: number): string | null {
-  if (nombreProfils <= K('PROFILS_CADRE_MAX')) return null
-  return (
-    `${K('PROFILS_CADRE_MAX')} cadres au plus à la fois, sinon ils deviennent illisibles.`
-  )
-}
-
 // ---------------------------------------------------------------------------
 // Cible dominante et rotation suggérée
 // ---------------------------------------------------------------------------

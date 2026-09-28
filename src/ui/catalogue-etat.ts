@@ -35,7 +35,7 @@ const ETAT_INITIAL: EtatCatalogue = Object.freeze({
 let etat: EtatCatalogue = ETAT_INITIAL
 const abonnes = new Set<() => void>()
 
-export function etatCatalogue(): EtatCatalogue {
+function etatCatalogue(): EtatCatalogue {
   return etat
 }
 

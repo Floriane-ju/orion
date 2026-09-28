@@ -11,7 +11,7 @@
 
 import { dUnBloc, pointDeCoupe, type Decoupable } from '../core/tranches.ts'
 
-export const OCTETS_PAR_OBJET = 28
+const OCTETS_PAR_OBJET = 28
 
 const OFFSET_AD = 0
 const OFFSET_DEC = 4
@@ -36,7 +36,7 @@ const ABSENT_U16 = 0xffff
 const ABSENT_I16 = -32768
 
 /** Séparateur entre la désignation principale et les noms communs. */
-export const SEPARATEUR_NOMS = '\u001f'
+const SEPARATEUR_NOMS = '\u001f'
 
 /** Types de §6.3, qui pilotent la tolérance à la Lune et le conseil filtre. */
 export const TYPES_OBJET = [
