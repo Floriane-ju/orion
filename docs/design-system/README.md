@@ -32,7 +32,7 @@ C'est pourquoi chaque discipline ci-dessous a son test :
 | Discipline | Tenue par |
 |---|---|
 | Aucune couleur écrite en dur hors des deux blocs de palette | `mode-nuit.test.tsx` |
-| Le canevas peint le cadre, le parcours et ses textes aux jetons de l'interface | `mode-nuit.test.tsx` |
+| Le canevas peint aux jetons ce qu'il emprunte à l'interface, et déclare le reste hors kit | `mode-nuit.test.tsx` |
 | La palette de nuit n'écrit que du rouge pur, et couvre chaque jeton du jour | `mode-nuit.test.tsx` |
 | Ratios WCAG AA calculés sur toute la palette, dans les deux modes | `mode-nuit.test.tsx` |
 | Aucun écart écrit en dur dans une propriété d'espacement | `echelles.test.ts` |
@@ -96,10 +96,17 @@ nuances de `--base-neutre`. L'accent est réservé à ce qu'on vise : la marque 
 matériel (canevas et encart de l'image). Un survol se lit à l'aplat `--surface-haute` et au
 filet qui passe au `--texte`, jamais à une teinte.
 
-**Le canevas reprend les jetons de l'interface.** Le cadre du matériel est `--accent`, le
-parcours de pointage `--texte`, les textes de la scène `--police-mono` : `couleurs.ts` les
-recopie (le canevas ne lit pas la feuille) et `mode-nuit.test.tsx` échoue si l'un dérive, jour
-comme nuit. Les étoiles, objets et fonds de ciel restent hors du kit : ce sont des mesures.
+**Le canevas reprend les jetons de l'interface, là où il peint de l'interface.** Le fond est
+`--fond`, le cadre du matériel `--accent`, le parcours de pointage `--texte`, les corps du
+système solaire `--avertissement` de jour, les textes de la scène `--police-mono` :
+`couleurs.ts` les recopie (le canevas ne lit pas la feuille) et `mode-nuit.test.tsx` échoue si
+l'un dérive.
+
+Le reste est **hors kit, et déclaré** : les gris filaires des figures, frontières, astérismes et
+de l'horizon sont une graduation propre à la scène ; les noms peints restent sous `--texte`
+pour ne pas lutter avec l'interface ; la nuit, les corps descendent sous l'ambre-rouge. Une
+teinte ajoutée à la palette de la scène sans être liée ni déclarée fait échouer le test. Les
+étoiles, objets et fonds de ciel restent hors du kit : ce sont des mesures.
 
 ### Espacement — sept pas, en multiples de 4 px
 

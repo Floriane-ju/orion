@@ -68,6 +68,7 @@ export function dessineCarteDansCadre(entree: EntreeCadre): void {
       optique: poseCadre,
       chemin: () => cheminCadre(ctx, brut, cadre, matriceCiel),
       couleurTexte: teintes.texte,
+      couleurMasque: teintes.fond,
       couleurLimitante: teintes.cadre,
     })
     // Le contour se retrace sur le masque : peint plus tôt, il en perdrait la moitié.

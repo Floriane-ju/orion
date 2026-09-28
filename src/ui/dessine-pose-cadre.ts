@@ -25,8 +25,6 @@ export interface OptiquePose {
   readonly pitchUm: number
 }
 
-/** Masque opaque : le cadre garni ne laisse rien transparaître de ce qu'il recouvre. */
-const MASQUE = '#000000'
 /** Part de la hauteur d'une cellule prise par le chiffre de pose. */
 const FRACTION_POLICE = 0.3
 /** La déclinaison est la légende du chiffre : elle se lit en dessous, plus petite. */
@@ -62,6 +60,8 @@ export function dessineCartePose(entree: {
   /** Chemin fermé du contour du cadre, composé par l'appelant : il n'en existe qu'un (§3.5). */
   readonly chemin: () => void
   readonly couleurTexte: string
+  /** Masque opaque, au fond de la scène : le cadre garni ne laisse rien transparaître. */
+  readonly couleurMasque: string
   /** Teinte de la zone limitante et de ses voisines : ce sont elles qui fixent la pose. */
   readonly couleurLimitante: string
 }): boolean {
@@ -95,7 +95,7 @@ export function dessineCartePose(entree: {
   if (police < POLICE_MIN_PX) return false
 
   entree.chemin()
-  ctx.fillStyle = MASQUE
+  ctx.fillStyle = entree.couleurMasque
   ctx.fill()
 
   const seuil = plusCourte === null ? null : plusCourte * K('ECART_POSE_CADRE_SIGNIFICATIF')

@@ -151,21 +151,26 @@ const PALETTE_NUIT: PaletteCiel = Object.freeze({
 })
 
 /**
- * T-0113 — la scène partage la palette de l'interface.
+ * T-0113 — la scène partage la palette de l'interface, là où elle peint de l'interface.
  *
  * Le canevas et la feuille de style peignent le même écran : deux familles de teintes y
- * font deux applications superposées. Les repères de tracé reprennent donc les jetons de
- * `styles.css` — gris filaire pour ce que l'instrument dessine, bleu glace pour ce qu'il vise, ambre
- * pour les corps du système solaire. La Voie lactée garde une teinte froide : c'est la
- * seule structure peinte qui ne soit ni un tracé de l'instrument ni un objet pointé, et
- * l'écart de teinte est ce qui la sépare des astérismes sans la rendre plus lumineuse.
+ * font deux applications superposées. Ce que la scène EMPRUNTE à l'interface reprend donc son
+ * jeton : le fond (`--fond`), le cadre visé (`--accent`), le parcours (`--texte`), et de jour
+ * les corps du système solaire (`--avertissement`, l'ambre).
+ *
+ * T-0330 — le reste est une GRADUATION PROPRE À LA SCÈNE, et le dit : figures, frontières,
+ * astérismes et horizon sont des gris filaires étagés entre eux pour se hiérarchiser sur le
+ * ciel, pas des nuances de `--base-neutre` ; les noms peints (`texte`) restent sous le texte de
+ * l'interface pour ne pas lutter avec lui ; la nuit, les corps descendent sous l'ambre-rouge de
+ * l'interface pour la même raison que tout le reste de la scène. La Voie lactée garde une teinte
+ * froide : c'est la seule structure peinte qui ne soit ni un tracé de l'instrument ni un objet
+ * pointé, et l'écart de teinte est ce qui la sépare des astérismes sans la rendre plus lumineuse.
  *
  * Les couleurs d'étoile ne sont pas ici : elles viennent de l'indice B−V (§3.3), c'est une
  * mesure, pas une décision de dessin.
  *
- * CE QUE LA SCÈNE EMPRUNTE À L'INTERFACE EST TENU ÉGAL À SON JETON. Le cadre du matériel est
- * une commande posée sur le ciel — il prend `--accent` ; le parcours de pointage est un tracé de
- * l'interface — il prend `--texte`. Les deux jours, puis la nuit au facteur nominal.
+ * CE QUE LA SCÈNE EMPRUNTE À L'INTERFACE EST TENU ÉGAL À SON JETON, et chaque autre teinte est
+ * déclarée hors kit dans `mode-nuit.test.tsx` : une teinte nouvelle doit choisir son camp.
  * Le canevas ne lit pas la feuille de style : c'est `mode-nuit.test.tsx` qui compare, et une
  * origine changée dans `styles.css` sans être reportée ici fait échouer `pnpm test`. Le cadre
  * avait dérivé de l'accent sans que rien ne le dise.
@@ -355,7 +360,8 @@ export function fondRealiste(sbCiel: number): string {
 }
 
 /**
- * Retient une teinte de repère à SON rapport de contraste actuel contre `#05070d`.
+ * Retient une teinte de repère à SON rapport de contraste actuel contre le fond de jour
+ * (`PALETTE_JOUR.fond`, celui de `LUMINANCE_FOND_REFERENCE`).
  *
  * Sans cela, `frontieres` passe de 2,14:1 à 1,15:1 sur un fond de Bortle 9 et disparaît —
  * exactement ce que §3.7 interdit. Préserver le rapport que chaque teinte a déjà évite

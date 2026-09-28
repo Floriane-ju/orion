@@ -196,14 +196,43 @@ describe('palette du mode nuit §11.1', () => {
  */
 describe('la scène reprend les jetons de l’interface', () => {
   const rvb = (valeur: string): string => `rgb(${canaux(valeur).join(' ')})`
+  /** Le canevas écrit `rgb(r g b)` ou `#rrggbb` : les deux se comparent sous la même forme. */
+  const scene = (valeur: string): string => (valeur.startsWith('rgb(') ? valeur : rvb(valeur))
   const liens: readonly (readonly [keyof PaletteCiel, string])[] = [
+    ['fond', 'fond'],
     ['cadre', 'accent'],
     ['parcours', 'texte'],
   ]
+  /** T-0330 — de jour seulement : la nuit, la scène abaisse les corps sous l'interface. */
+  const liensDeJour: readonly (readonly [keyof PaletteCiel, string])[] = [['corps', 'avertissement']]
+  /**
+   * T-0330 — graduations propres à la scène, déclarées comme telles dans `couleurs.ts` et le
+   * README. Une teinte absente des trois listes fait échouer le test : elle doit choisir.
+   */
+  const horsKit: readonly (keyof PaletteCiel)[] = [
+    'figures',
+    'frontieres',
+    'asterismes',
+    'horizon',
+    'sol',
+    'voieLactee',
+    'texte',
+  ]
 
   it.each(liens)('%s suit --%s, le jour comme la nuit', (repere, jeton) => {
-    expect(palette(false)[repere]).toBe(rvb(paletteParDefaut()[jeton]!))
-    expect(palette(true)[repere]).toBe(rvb(paletteDeNuit()[jeton]!))
+    expect(scene(palette(false)[repere])).toBe(rvb(paletteParDefaut()[jeton]!))
+    expect(scene(palette(true)[repere])).toBe(rvb(paletteDeNuit()[jeton]!))
+  })
+
+  it.each(liensDeJour)('%s suit --%s de jour', (repere, jeton) => {
+    expect(scene(palette(false)[repere])).toBe(rvb(paletteParDefaut()[jeton]!))
+  })
+
+  it('chaque teinte de la scène est liée à un jeton ou déclarée hors kit', () => {
+    const classees = new Set([...liens, ...liensDeJour].map(([r]) => r).concat(horsKit))
+    expect(Object.keys(palette(false)).filter((r) => !classees.has(r as keyof PaletteCiel))).toEqual(
+      [],
+    )
   })
 
   it('écrit ses textes dans la famille de l’interface', () => {
