@@ -33,7 +33,7 @@ const PROFIL: ProfilMateriel = {
   focaleMm: 200,
   ouvertureN: 4,
   typeObjectif: 'RECTILINEAIRE',
-  formatCapteur: 'APS_C',
+  formatCapteur: 'APSC_NIKON',
   capteurMode: 'FULL_FRAME',
   suiviActif: false,
 }

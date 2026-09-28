@@ -225,7 +225,7 @@ export const BOITIER_REFERENCE: Boitier = Object.freeze({
  * résolution sur une fiche produit, jamais un pitch en micromètres.
  */
 export interface SaisieBoitier {
-  readonly formatCapteur: string
+  readonly formatCapteur: FormatCapteur
   readonly resolutionMpx: string
   readonly readNoiseE: string
   readonly seuilDoubleGainIso: string
@@ -321,7 +321,7 @@ export interface OrigineBoitier {
  * l'identité du modèle et sa courbe de bruit de lecture complète.
  */
 export function resoutBoitier(saisie: SaisieBoitier, origine?: OrigineBoitier): Boitier {
-  const format = ligneFormatCapteur(saisie.formatCapteur as FormatCapteur)
+  const format = ligneFormatCapteur(saisie.formatCapteur)
   const resolutionMpx = champRequis(saisie.resolutionMpx, 'resolution_mpx')
   const capteurLMm = format.capteurLMm
   const capteurHMm = format.capteurHMm

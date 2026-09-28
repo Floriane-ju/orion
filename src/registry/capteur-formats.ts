@@ -61,8 +61,19 @@ export const TABLE_FORMATS_CAPTEUR: readonly LigneFormatCapteur[] = Object.freez
   ].map(Object.freeze) as LigneFormatCapteur[],
 )
 
+/** T-0343 — la garde des frontières : une chaîne venue d'un fichier ou d'un `<select>`. */
+export function estFormatCapteur(valeur: string): valeur is FormatCapteur {
+  return TABLE_FORMATS_CAPTEUR.some((l) => l.format === valeur)
+}
+
+/**
+ * La ligne d'un format. Plus de repli silencieux sur le plein format : un format inconnu est
+ * refusé aux frontières (`estFormatCapteur`), et le typage garantit qu'il n'arrive pas ici.
+ */
 export function ligneFormatCapteur(format: FormatCapteur): LigneFormatCapteur {
-  return TABLE_FORMATS_CAPTEUR.find((l) => l.format === format) ?? TABLE_FORMATS_CAPTEUR[0]!
+  const ligne = TABLE_FORMATS_CAPTEUR.find((l) => l.format === format)
+  if (ligne === undefined) throw new Error(`Format de capteur inconnu : ${String(format)}`)
+  return ligne
 }
 
 /**

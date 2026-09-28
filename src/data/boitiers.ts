@@ -14,6 +14,7 @@
 import source from './boitiers.md?raw'
 import { resoutBoitier, type Boitier, type SaisieBoitier } from './equipment.ts'
 import { valide } from '../registry/domains.ts'
+import { estFormatCapteur } from '../registry/capteur-formats.ts'
 
 export interface LigneBoitier {
   readonly id: string
@@ -57,6 +58,10 @@ function ligneBoitierDepuis(cellules: readonly string[]): LigneBoitier {
   const [id, libelle, formatCapteur, resolutionMpx, tailleRawMo, seuilDoubleGainIso, courbe, fullWellE, zpSys, src] =
     cellules as [string, string, string, string, string, string, string, string, string, string]
   const readNoiseE = courbeReadNoise(courbe)
+  // T-0343 — la base est un fichier : un format mal orthographié y devenait plein format.
+  if (!estFormatCapteur(formatCapteur)) {
+    throw new Error(`Base boîtiers, ligne ${id} : format de capteur inconnu « ${formatCapteur} ».`)
+  }
   return Object.freeze({
     id,
     libelle,

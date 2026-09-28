@@ -17,7 +17,7 @@ import type { PlanEnregistre, ProfilMateriel, SiteEnregistre } from './db.ts'
 import type { MasqueHorizon, PointMasque } from '../core/site.ts'
 import { normalisePoids, type PoidsScoring } from '../core/session.ts'
 import { type DomaineId, valide as valideDomaine } from '../registry/domains.ts'
-import { TABLE_FORMATS_CAPTEUR } from '../registry/capteur-formats.ts'
+import { TABLE_FORMATS_CAPTEUR, estFormatCapteur } from '../registry/capteur-formats.ts'
 
 export interface EtatStockage {
   readonly persistant: boolean
@@ -410,8 +410,20 @@ export async function litSiteActif(): Promise<SiteEnregistre | null> {
 }
 
 /** Le profil actif tel qu'il a été enregistré, ou `null` au premier démarrage. */
+/**
+ * T-0343 — la base est une frontière : un format de capteur qu'aucune ligne de la table ne
+ * porte devenait en silence un plein format, donc un autre champ et un autre pitch. Il est
+ * refusé avec sa cause, que la relecture affiche. Le reste du profil n'est pas re-borné ici :
+ * un domaine resserré depuis l'écriture ne doit pas condamner un profil au démarrage.
+ */
 export async function litProfilActif(): Promise<ProfilMateriel | null> {
-  return (await (await db()).get('profils', ID_PROFIL_ACTIF)) ?? null
+  const profil = (await (await db()).get('profils', ID_PROFIL_ACTIF)) ?? null
+  if (profil !== null && !estFormatCapteur(profil.formatCapteur)) {
+    throw new Error(
+      `Profil enregistré illisible : format de capteur inconnu « ${String(profil.formatCapteur)} ».`,
+    )
+  }
+  return profil
 }
 
 /** Les relevés du site actif, tels qu'un import vient de les restaurer. */

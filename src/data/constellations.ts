@@ -106,8 +106,31 @@ export function encodeConstellations(paquet: PaquetConstellations): ArrayBuffer 
   ) as ArrayBuffer
 }
 
+/**
+ * T-0343 — un paquet illisible ou de mauvaise forme rend le paquet vide plutôt qu'une
+ * exception : les couches de repérage manquent, le ciel reste juste (§3.4, §12.5).
+ */
 export function decodeConstellations(buffer: ArrayBuffer): PaquetConstellations {
-  return JSON.parse(new TextDecoder().decode(buffer)) as PaquetConstellations
+  let brut: unknown
+  try {
+    brut = JSON.parse(new TextDecoder().decode(buffer))
+  } catch {
+    return PAQUET_VIDE
+  }
+  return estPaquetConstellations(brut) ? brut : PAQUET_VIDE
+}
+
+function estPaquetConstellations(brut: unknown): brut is PaquetConstellations {
+  if (typeof brut !== 'object' || brut === null) return false
+  const p = brut as Record<string, unknown>
+  return (
+    Array.isArray(p.figures) &&
+    Array.isArray(p.asterismes) &&
+    Array.isArray(p.frontieres) &&
+    Array.isArray(p.etoilesNommees) &&
+    typeof p.segmentsIgnores === 'number' &&
+    typeof p.source === 'string'
+  )
 }
 
 export const PAQUET_VIDE: PaquetConstellations = Object.freeze({

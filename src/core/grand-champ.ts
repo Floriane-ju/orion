@@ -114,7 +114,9 @@ export function cartePoseMax(entree: EntreeCartePose): CartePoseMax {
       const absolue = Math.abs(decDeg)
       if (absolue < decMinAbs) decMinAbs = absolue
       if (absolue > decMaxAbs) decMaxAbs = absolue
-      if (tNpfS !== null && (limitante === null || tNpfS < limitante.tNpfS!)) limitante = cellule
+      if (tNpfS !== null && (limitante === null || tNpfS < (limitante.tNpfS ?? Infinity))) {
+        limitante = cellule
+      }
       // Le pôle exact, sans NPF définie, tient les poses les plus longues du cadre : sa
       // cellule l'emporte sur toutes les autres.
       if (plusLongue === null || pose(tNpfS) > pose(plusLongue.tNpfS)) plusLongue = cellule

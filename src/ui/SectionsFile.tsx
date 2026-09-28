@@ -127,6 +127,7 @@ export function ProfondeurDUnePose({
   readonly zeroSysteme: PointZeroSysteme
 }) {
   const { carte, trainee, poseDepassee } = lectures
+  const poseMax = carte.poseOperanteS
   // T-0169 — le rail porte la pose max du cadre : elle décide de tout, et jusqu'ici elle ne se
   // manifestait qu'après coup, une fois dépassée. Arrondie vers le bas comme le bouton de
   // correction : une accroche qui atterrirait au-dessus du seuil ovaliserait les étoiles.
@@ -180,12 +181,12 @@ export function ProfondeurDUnePose({
           {carte.poseOperanteS.toFixed(0)} s.
         </Mention>
       )}
-      {poseDepassee && carte.poseOperanteS !== null && (
+      {poseDepassee && poseMax !== null && (
         <button
           type="button"
-          onClick={() => majFile({ tPoseS: Math.max(DOMAINES.t_pose_s.min, Math.floor(carte.poseOperanteS!)) })}
+          onClick={() => majFile({ tPoseS: Math.max(DOMAINES.t_pose_s.min, Math.floor(poseMax)) })}
         >
-          Corriger la pose à {formatePose(carte.poseOperanteS)} s
+          Corriger la pose à {formatePose(poseMax)} s
         </button>
       )}
       {renduFile !== null && renduFile.reelles === 0 && (

@@ -35,11 +35,33 @@ export interface EtatCatalogues {
   readonly cause?: string
 }
 
+/**
+ * T-0343 — le manifeste vient du réseau : il est vérifié avant d'être cru. Une entrée mal
+ * formée ferait planter `resoudPaquet` sur un champ absent ; refusé, le manifeste retombe sur
+ * la cause « catalogues introuvables » que `verifieCatalogues` sait déjà nommer.
+ */
+export function estManifeste(brut: unknown): brut is readonly ManifestePaquet[] {
+  return (
+    Array.isArray(brut) &&
+    brut.every(
+      (e: unknown) =>
+        typeof e === 'object' &&
+        e !== null &&
+        typeof (e as Record<string, unknown>).nom === 'string' &&
+        typeof (e as Record<string, unknown>).version === 'string' &&
+        typeof (e as Record<string, unknown>).sha256 === 'string' &&
+        typeof (e as Record<string, unknown>).octets === 'number' &&
+        typeof (e as Record<string, unknown>).obligatoire === 'boolean',
+    )
+  )
+}
+
 async function chargeManifeste(): Promise<readonly ManifestePaquet[] | null> {
   try {
     const reponse = await fetch(CHEMIN_MANIFESTE)
     if (!reponse.ok) return null
-    return (await reponse.json()) as ManifestePaquet[]
+    const brut: unknown = await reponse.json()
+    return estManifeste(brut) ? brut : null
   } catch {
     return null
   }

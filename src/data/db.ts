@@ -8,6 +8,7 @@
  */
 
 import { deleteDB, openDB, type DBSchema, type IDBPDatabase } from 'idb'
+import type { FormatCapteur } from '../registry/capteur-formats.ts'
 
 export const NOM_BASE = 'orion'
 /**
@@ -60,7 +61,7 @@ export interface ProfilMateriel {
    * il ne se persiste pas séparément. Ne se retéléchargent pas : sans eux dans l'export, un
    * profil réimporté décrirait le capteur d'un autre appareil (§12.3).
    */
-  readonly formatCapteur: string
+  readonly formatCapteur: FormatCapteur
   readonly resolutionMpx?: number
   readonly readNoiseE?: number
   readonly seuilDoubleGainIso?: number

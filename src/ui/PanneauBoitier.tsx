@@ -42,6 +42,7 @@ import {
   ligneFormatCapteur,
   pitchDepuisFormat,
   type FormatCapteur,
+  estFormatCapteur,
 } from '../registry/capteur-formats.ts'
 import { nombreDeTexte, type DomaineId } from '../registry/domains.ts'
 import { K } from '../registry/constants.ts'
@@ -143,12 +144,12 @@ function ApercuPitch({
   formatCapteur,
   resolutionMpx,
 }: {
-  readonly formatCapteur: string
+  readonly formatCapteur: FormatCapteur
   readonly resolutionMpx: string
 }) {
   const mpx = nombreDeTexte(resolutionMpx)
   if (!Number.isFinite(mpx) || mpx <= 0) return null
-  const pitch = pitchDepuisFormat(ligneFormatCapteur(formatCapteur as FormatCapteur), mpx)
+  const pitch = pitchDepuisFormat(ligneFormatCapteur(formatCapteur), mpx)
   return <p className="etat">Pitch calculé : {pitch.toFixed(2)} µm</p>
 }
 
@@ -297,7 +298,10 @@ export function PanneauBoitier(props: PanneauBoitierProps) {
             <ChampChoix
               cle="format_capteur"
               valeur={props.boitier.formatCapteur}
-              surChangement={surChamp('formatCapteur')}
+              surChangement={(v) => {
+                // Un `<select>` rend une chaîne : seule une valeur de la table entre.
+                if (estFormatCapteur(v)) props.surBoitier({ ...props.boitier, formatCapteur: v })
+              }}
             >
               {TABLE_FORMATS_CAPTEUR.map((f) => (
                 <option key={f.format} value={f.format}>
