@@ -34,10 +34,12 @@ C'est pourquoi chaque discipline ci-dessous a son test :
 | Aucune couleur écrite en dur hors des deux blocs de palette | `mode-nuit.test.tsx` |
 | Le canevas peint aux jetons ce qu'il emprunte à l'interface, et déclare le reste hors kit | `mode-nuit.test.tsx` |
 | La palette de nuit n'écrit que du rouge pur, et couvre chaque jeton du jour | `mode-nuit.test.tsx` |
+| La nuit, le canevas et la feuille de la légende n'écrivent que du rouge ; aucune couleur en ligne | `mode-nuit.test.tsx` |
 | Ratios WCAG AA calculés sur toute la palette, dans les deux modes | `mode-nuit.test.tsx` |
 | Aucun écart écrit en dur dans une propriété d'espacement | `echelles.test.ts` |
 | Aucun corps de texte écrit en dur | `echelles.test.ts` |
 | Aucun suivi écrit en dur | `echelles.test.ts` |
+| Aucun interlignage, graisse, durée ni empilement écrit en dur ; chaque graisse a son fichier ; la bulle est au sommet de la pile | `echelles.test.ts` |
 | Le micro-libellé ne perd ni son suivi ni sa couleur | `echelles.test.ts` |
 | `label` ne déclare que de la disposition, et tout `<label>` a son `.libelle` | `echelles.test.ts` |
 | Une grille `.champs` ne contient que des champs nommés, et jamais rien de vide | `echelles.test.ts` |
@@ -247,7 +249,7 @@ vérifie qu'aucune famille nommée n'est sans fichier.
 ### Gabarits — hors échelle, délibérément
 
 `--barre-haut` 2,75rem · `--sous-barre` (barre + deux jours de carte, départ de ce qui flotte dessous) · `--lateral` 22rem ·
-`--rail` · `--carte-large` 19rem · `--carte-plan` 29rem · `--bulle-large` 18rem ·
+`--barre-titre` 1,375rem (la barre de titre d'une fenêtre) · `--rail` · `--carte-large` 22rem · `--carte-plan` 29rem · `--bulle-large` 18rem ·
 `--cible-clic` 44px (usage ganté sur écran tactile, §11.2)
 
 Ils mesurent des **objets**, pas l'air entre eux. Un pas d'espacement qui dimensionnerait une
@@ -421,8 +423,9 @@ les plus proches, et demander.
 | Une couche de primitives sous les couleurs | Le mode nuit surcharge chaque jeton sémantique individuellement. Une primitive n'aurait aucun consommateur. |
 | Un jeton de point de rupture | Une seule valeur (1100px). |
 | Un composant `Bouton` | Le style est porté par le sélecteur d'élément `button`, appliqué aux boutons à libellé. Un composant n'ajouterait qu'une indirection. Le bouton à glyphe seul, lui, en a un (`BoutonGlyphe`) : il porte un contrat — bulle, nom accessible, cible gantée — que neuf recopies tenaient chacune à sa façon. |
-| `Modale`, `Badge`, `Toast`, `Skeleton`, `Pagination` | Aucun n'existe dans le produit. |
-| Une feuille de style découpée | `styles.css` est une TABLE, comme `registry/constants.ts` : une région par bloc, aucune logique à suivre. Douze disciplines lisent son texte ; la découper ferait dépendre leurs garanties d'une liste de fichiers à tenir à jour. |
+| `Modale` | Une seule existe, la page info (`PageInfo.tsx`, `role="dialog"`, T-0325), ouverte par l'ancre `#info` : un composant pour une instance serait une abstraction « au cas où ». |
+| `Badge`, `Toast`, `Skeleton`, `Pagination` | Aucun n'existe dans le produit. |
+| Une feuille de style découpée | `styles.css` est une TABLE, comme `registry/constants.ts` : une région par bloc, aucune logique à suivre. Les disciplines lisent son texte ; la découper ferait dépendre leurs garanties d'une liste de fichiers à tenir à jour. |
 | ESLint, Prettier, Stylelint | Le dépôt n'en a pas. La vérification est `pnpm typecheck && pnpm test`. |
 
 ---

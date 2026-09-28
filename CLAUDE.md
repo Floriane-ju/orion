@@ -32,7 +32,7 @@ intégralement hors-ligne (`src/data/degradation.ts`, §12.5).
 
 **Design system — lire `docs/design-system/README.md` AVANT d'écrire de l'interface.** Les
 jetons, les composants partagés, le rythme vertical et la règle des icônes y sont décrits,
-avec la liste des douze disciplines qui les tiennent. Écrire une couleur, un écart, un corps
+avec la liste des disciplines qui les tiennent. Écrire une couleur, un écart, un corps
 de texte ou un suivi en dur fait échouer `pnpm test` : le raccourci n'existe pas, autant prendre le bon chemin d'emblée.
 
 ## Commandes

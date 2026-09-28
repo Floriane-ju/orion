@@ -1,5 +1,9 @@
 # Audit du design system — Orion
 
+> **Instantané historique du 15 septembre 2026.** Les chiffres, fichiers et jetons cités ici
+> sont ceux de cette date (`BarreBas.tsx` a disparu depuis, la suite compte plus de tests). Ce
+> qui fait foi aujourd'hui est `README.md`, tenu par les tests.
+
 > Phase 0. Lecture seule, aucun code modifié. Relevé du 15 septembre 2026, sur `main` à
 > `0a31935`.
 

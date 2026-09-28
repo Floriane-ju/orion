@@ -36,7 +36,8 @@ non-négociables.
 
 - Toute icône passe par `<Icone nom="..." />` (`src/ui/Icone.tsx`) et la police Material
   Symbols Sharp livrée dans `src/fonts/`. Pas de SVG inline, pas de caractère Unicode
-  décoratif (`✕`, `→`, `●`) posé à la place d'un glyphe.
+  décoratif (`✕`, `●`, `★`) posé à la place d'un glyphe. Les signes qui se lisent dans une
+  phrase (`→`, `×`, `°`, `·`) restent permis — voir le README du design system.
 - `nom` est la ligature Material Symbols, en anglais — c'est l'identifiant de la police, pas
   un libellé.
 - Le style commun vit dans `.icone` (`styles.css`) : c'est le seul endroit à modifier pour

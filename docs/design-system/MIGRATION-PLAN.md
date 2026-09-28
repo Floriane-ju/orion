@@ -1,5 +1,9 @@
 # Plan de migration — design system Orion
 
+> **Instantané historique du 15 septembre 2026.** Les chiffres, fichiers et jetons cités ici
+> sont ceux de cette date (`BarreBas.tsx` a disparu depuis, la suite compte plus de tests). Ce
+> qui fait foi aujourd'hui est `README.md`, tenu par les tests.
+
 > Phase 0, livrable 2. Ordre de traitement trié par (fréquence d'usage × faible risque)
 > décroissant. Établi sur `AUDIT.md` du 15 septembre 2026.
 

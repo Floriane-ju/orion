@@ -315,9 +315,8 @@ pre {
   /* L'écart entre deux éléments d'une barre. Nommé parce que la bande de commandes l'annule
      par marge négative : la valeur doit être lue au même endroit des deux côtés. */
   --jour-barre: var(--pas-2);
-  /* L'air réservé entre un flottant et le bord de l'écran. Cité par les quatre surfaces qui
-     se posent en absolu et peuvent atteindre ce bord : les deux fenêtres de tiroir, la bulle
-     rabattue, la carte du plan. */
+  /* L'air réservé entre un flottant et le bord de l'écran. Cité par les surfaces qui se posent
+     en absolu et peuvent atteindre ce bord : les deux fenêtres de tiroir, et la page info. */
   --jour-ecran: var(--pas-5);
   /* Largeur maximale d'une bulle de survol. Une infobulle est une phrase, pas un
      paragraphe : au-delà, ce n'est plus un survol qu'il faut, c'est la fiche. */
