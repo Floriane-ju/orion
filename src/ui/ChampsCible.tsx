@@ -22,9 +22,10 @@
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { Etiquette } from './Terme.tsx'
 import { LIBELLE_TYPE_OBJET } from './libelles-objet.ts'
+import { MENTION_DONNEE_MANQUANTE } from '../registry/libelles.ts'
 
 /** §6.3 — ce que le catalogue ne porte pas se nomme, et aucune saisie n'y changera rien. */
-export const MANQUANTE = '[DONNÉE MANQUANTE]'
+export const MANQUANTE = MENTION_DONNEE_MANQUANTE
 
 export interface ChampsCibleProps {
   readonly objet: ObjetCielProfond

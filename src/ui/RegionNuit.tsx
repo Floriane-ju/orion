@@ -13,9 +13,10 @@ import type { Traced } from '../core/traced.ts'
 import { TracedValue } from './TracedValue.tsx'
 import { Mention } from './Mention.tsx'
 import { LIBELLE_ETAT_NUIT, LIBELLE_SOURCE_SB } from '../registry/libelles.ts'
+import { dateHeure } from './horaire.ts'
 
-function heure(date: Date | null): string {
-  return date === null ? '—' : date.toLocaleString('fr-FR')
+function instant(date: Date | null): string {
+  return date === null ? '—' : dateHeure(date)
 }
 
 export interface RegionNuitProps {
@@ -73,23 +74,23 @@ function FenetreNocturneVue({
         <tbody>
           <tr>
             <th>Coucher du Soleil</th>
-            <td>{heure(nuit.coucherSoleil)}</td>
+            <td>{instant(nuit.coucherSoleil)}</td>
           </tr>
           <tr>
             <th>Début de nuit astronomique (−18°)</th>
-            <td>{heure(nuit.debutNuitAstronomique)}</td>
+            <td>{instant(nuit.debutNuitAstronomique)}</td>
           </tr>
           <tr>
             <th>Milieu de nuit vrai</th>
-            <td>{heure(nuit.milieuNuitVrai)}</td>
+            <td>{instant(nuit.milieuNuitVrai)}</td>
           </tr>
           <tr>
             <th>Fin de nuit astronomique</th>
-            <td>{heure(nuit.finNuitAstronomique)}</td>
+            <td>{instant(nuit.finNuitAstronomique)}</td>
           </tr>
           <tr>
             <th>Lever du Soleil</th>
-            <td>{heure(nuit.leverSoleil)}</td>
+            <td>{instant(nuit.leverSoleil)}</td>
           </tr>
           <tr>
             <th>Durée de nuit astronomique</th>

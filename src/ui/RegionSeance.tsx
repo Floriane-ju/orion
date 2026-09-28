@@ -42,6 +42,7 @@ import type { SaisieLieu, SaisieMateriel } from './app-saisie.ts'
 import { RECALCUL_EN_COURS, type ChaineCalcul } from './app-calcul.ts'
 import { Mention } from './Mention.tsx'
 import { cibleFocus, idLigneCible } from './focus-panneau.ts'
+import { nombreDeTexte } from '../registry/domains.ts'
 
 export interface RegionSeanceProps {
   readonly chaine: ChaineCalcul
@@ -62,9 +63,9 @@ export interface RegionSeanceProps {
  * Latitude et longitude à une décimale pour l'en-tête replié. Une saisie en cours de frappe
  * (vide, « - ») n'est pas un nombre : elle se marque « ? » plutôt que « NaN ».
  */
-function resumeSite(latitude: string, longitude: string): string {
+export function resumeSite(latitude: string, longitude: string): string {
   const arrondi = (v: string) => {
-    const n = Number(v)
+    const n = nombreDeTexte(v)
     return v.trim() === '' || !Number.isFinite(n) ? '?' : `${n.toFixed(1)}°`
   }
   return `${arrondi(latitude)} / ${arrondi(longitude)}`

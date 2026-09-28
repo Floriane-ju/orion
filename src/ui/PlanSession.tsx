@@ -44,7 +44,7 @@ import {
   vuePlanetarium,
   type ParcoursScene,
 } from './scene-etat.ts'
-import { LIBELLE_MODE_POINTAGE } from '../registry/libelles.ts'
+import { LIBELLE_MODE_POINTAGE, SANS_NOM } from '../registry/libelles.ts'
 
 const DEG_PAR_HEURE = 15
 const POURCENT = 100
@@ -55,7 +55,6 @@ const POURCENT = 100
  * ligne le DIT plutôt que de laisser une cellule vide : une colonne blanche se lit comme un
  * défaut d'affichage, pas comme une étoile anonyme.
  */
-const SANS_NOM = 'sans nom'
 
 export interface PlanSessionProps {
   readonly plan: Plan

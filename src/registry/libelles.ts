@@ -89,6 +89,12 @@ export const LIBELLE_FLAG: Readonly<Record<Flag, string>> = Object.freeze({
   HORS_DOMAINE: 'HORS DOMAINE',
 })
 
+/** §6.3 — la mention posée à la place d'une valeur que le catalogue ne porte pas. */
+export const MENTION_DONNEE_MANQUANTE = `[${LIBELLE_FLAG.DONNEE_MANQUANTE}]`
+
+/** T-0107 — une étoile de repère que les paquets ne nomment pas : table, parcours et fiche. */
+export const SANS_NOM = 'sans nom'
+
 /** §11.1 — comment on amène l'instrument sur la cible. */
 export const LIBELLE_MODE_POINTAGE: Readonly<Record<ModePointage, string>> = Object.freeze({
   CARTE_DIRECTE: 'à la carte, directement',

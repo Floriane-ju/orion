@@ -18,6 +18,7 @@ import { POLICE_SCENE, type PaletteCiel } from './couleurs.ts'
 import { HAUTEUR_LABEL_PX } from './libelles-cibles.ts'
 import { peintCroix } from './marqueur-objet.ts'
 import type { ParcoursScene } from './scene-etat.ts'
+import { SANS_NOM } from '../registry/libelles.ts'
 
 const DEG_PAR_HEURE = 15
 
@@ -33,7 +34,6 @@ const JOUR_TEXTE_PX = 5
 const TOUR_RAD = 2 * Math.PI
 
 /** T-0287 — une cellule vide se lit comme un défaut d'affichage, pas comme une étoile anonyme. */
-const SANS_NOM = 'sans nom'
 
 interface PointParcours {
   readonly xPx: number

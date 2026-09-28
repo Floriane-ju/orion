@@ -17,6 +17,7 @@ import type { Mat3 } from '../core/mat3.ts'
 import { applique, versSpherique, versVecteur } from '../core/mat3.ts'
 import { projecteur } from '../core/projection.ts'
 import { vuePlanetarium, type VueScene } from './scene-etat.ts'
+import { dateHeure } from './horaire.ts'
 
 /** §3.3 — la direction visée, ramenée en J2000 : le centre du canevas, projeté à l'envers. */
 export function viseeJ2000(
@@ -154,6 +155,6 @@ const SEPARATEUR = ' · '
 export function ligneVisee(vue: VueScene, matriceCiel: Mat3, date: Date): string {
   return segmentsVisee(vue, matriceCiel).reduce(
     (phrase, s) => phrase + s.avant + s.texte,
-    date.toLocaleString('fr-FR') + SEPARATEUR,
+    dateHeure(date) + SEPARATEUR,
   )
 }

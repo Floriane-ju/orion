@@ -11,10 +11,12 @@
  * réécrire — découper l'instant en compteurs ne doit pas en changer l'ordre ni la ponctuation.
  */
 
+/** La langue de l'interface : une seule écriture, sans quoi deux écrans dateraient différemment. */
+export const LOCALE = 'fr-FR'
 
 /** L'heure seule, sans la date : les deux bornes d'un créneau tombent dans la même nuit. */
 export function heure(date: Date): string {
-  return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  return date.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' })
 }
 
 /**
@@ -42,7 +44,17 @@ const OPTIONS_HEURE: Intl.DateTimeFormatOptions = {
 }
 
 export function heureSeconde(date: Date): string {
-  return date.toLocaleTimeString('fr-FR', OPTIONS_HEURE)
+  return date.toLocaleTimeString(LOCALE, OPTIONS_HEURE)
+}
+
+/** L'instant complet, date et heure : les bornes de la nuit tombent sur deux jours. */
+export function dateHeure(date: Date): string {
+  return date.toLocaleString(LOCALE)
+}
+
+/** Un compte, avec le séparateur de milliers de la langue de l'interface. */
+export function compte(n: number): string {
+  return n.toLocaleString(LOCALE)
 }
 
 /**
@@ -50,11 +62,11 @@ export function heureSeconde(date: Date): string {
  * ceux de la locale, que ce soit « 31/08/2026 » ou une autre langue un jour.
  */
 export function partiesJour(date: Date): readonly Intl.DateTimeFormatPart[] {
-  return new Intl.DateTimeFormat('fr-FR', OPTIONS_JOUR).formatToParts(date)
+  return new Intl.DateTimeFormat(LOCALE, OPTIONS_JOUR).formatToParts(date)
 }
 
 export function partiesHeure(date: Date): readonly Intl.DateTimeFormatPart[] {
-  return new Intl.DateTimeFormat('fr-FR', OPTIONS_HEURE).formatToParts(date)
+  return new Intl.DateTimeFormat(LOCALE, OPTIONS_HEURE).formatToParts(date)
 }
 
 /**

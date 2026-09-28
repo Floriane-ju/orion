@@ -62,6 +62,7 @@ import { ouvreCible, poseMode } from './seance-etat.ts'
 import { ouvreCarte } from './coque-etat.ts'
 import { majCatalogue, useCatalogue } from './catalogue-etat.ts'
 import { minuteAffichee, useTrancheScene, MS_PAR_MINUTE } from './scene-etat.ts'
+import { compte } from './horaire.ts'
 
 const DOMAINE_MAG = DOMAINES.m_int
 const PAS_MAG = 0.5
@@ -94,7 +95,7 @@ function aidePortee(
     `Objets à plus de ${seuilDeg}° cette nuit, dont le grand axe mesure de ` +
     `${taille.minArcmin.toFixed(0)}’ à ${taille.maxArcmin.toFixed(0)}’ — plus petit, ` +
     `l’objet ne fait que quelques pixels ; plus grand, il déborde du cadre. ` +
-    `${tropPetites.toLocaleString('fr-FR')} objet${pluriel ? 's' : ''} du catalogue ` +
+    `${compte(tropPetites)} objet${pluriel ? 's' : ''} du catalogue ` +
     `${pluriel ? 'sont écartés' : 'est écarté'} comme trop petit${pluriel ? 's' : ''} ` +
     `pour ce cadre.`
   )
@@ -270,7 +271,7 @@ export function PanneauCibles(props: PanneauCiblesProps) {
           Deux régions annonceraient deux fois le même changement. */}
       <div aria-live="polite" aria-atomic="true">
         <p className="etat">
-          {retenues.length.toLocaleString('fr-FR')} objet{retenues.length > 1 ? 's' : ''}
+          {compte(retenues.length)} objet{retenues.length > 1 ? 's' : ''}
           {retenues.length > plafond ? `, les ${plafond} plus brillants affichés` : ''}.
         </p>
 

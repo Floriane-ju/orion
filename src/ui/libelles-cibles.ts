@@ -19,6 +19,8 @@
 import type { BoiteLabel } from '../core/labels.ts'
 import { nomComplet } from '../data/constellations.ts'
 import type { CibleEcran } from './dessine-ciel.ts'
+import { SANS_NOM } from '../registry/libelles.ts'
+import { nomCommun } from './libelles-objet.ts'
 
 /* T-0027 — noms des éléments trop petits à l'écran une fois le canevas 1920×1080 réduit à
    la taille d'affichage réelle (object-fit: contain). */
@@ -31,7 +33,7 @@ export const RAYON_CORPS_PX = 5
  * T-0107 — cinq étoiles brillantes du ciel réel n'ont ni Bayer, ni Flamsteed, ni nom propre
  * dans les paquets versionnés. Elles n'ont pas de label ; elles n'ont que ce titre.
  */
-export const TITRE_ETOILE_SANS_DESIGNATION = 'Étoile sans nom'
+export const TITRE_ETOILE_SANS_DESIGNATION = `Étoile ${SANS_NOM}`
 
 /**
  * Le texte à peindre pour cet élément, `null` s'il n'en porte aucun.
@@ -52,7 +54,8 @@ export function libelleCible(cible: CibleEcran): string | null {
 export function titreCible(cible: CibleEcran): string {
   if (cible.type === 'OBJET' && cible.objet !== undefined) {
     const o = cible.objet
-    return o.designation + (o.nomsCommuns === '' ? '' : ` — ${o.nomsCommuns.split('|')[0]}`)
+    const nom = nomCommun(o)
+    return o.designation + (nom === '' ? '' : ` — ${nom}`)
   }
   if (cible.type === 'CORPS') return cible.nom
   const nommee = cible.etoileNommee

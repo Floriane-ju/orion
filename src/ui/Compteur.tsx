@@ -23,6 +23,7 @@
 
 import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react'
 import { cransGlisse } from './compteur-glisse.ts'
+import { nombreDeTexte } from '../registry/domains.ts'
 
 export interface CompteurProps {
   /** Nom accessible : le compteur affiche une valeur, jamais ce qu'elle désigne. */
@@ -61,8 +62,8 @@ export function nombreDuTexte(texte: string, valeur: number): string {
 
 /** Ce qu'une frappe vaut : la virgule française vaut le point, le reste ne vaut rien. */
 export function lisSaisie(tape: string): number | null {
-  const nombre = Number(tape.trim().replace(',', '.'))
-  return tape.trim() === '' || !Number.isFinite(nombre) ? null : nombre
+  const nombre = nombreDeTexte(tape)
+  return Number.isFinite(nombre) ? nombre : null
 }
 
 export function Compteur(props: CompteurProps) {

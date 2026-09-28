@@ -11,7 +11,7 @@ import { dependDUnOrdreDeGrandeur } from '../core/traced.ts'
 import type { TermeGlossaire } from '../registry/glossaire.ts'
 import { sansSection } from './sans-section.ts'
 import { Etiquette, Glose } from './Terme.tsx'
-import { libelleEntree, libelleFlag } from '../registry/libelles.ts'
+import { MENTION_DONNEE_MANQUANTE, libelleEntree, libelleFlag } from '../registry/libelles.ts'
 
 interface TracedValueProps {
   /** Clé de glossaire : un libellé sans définition ne compile pas (§10.1). */
@@ -24,7 +24,6 @@ interface TracedValueProps {
 }
 
 /** Une seule formulation de l'absence, pour la sortie comme pour ses entrées (§6.3). */
-const DONNEE_MANQUANTE = '[DONNÉE MANQUANTE]'
 
 function formate(valeur: number | null, decimales: number, unite?: string): string | null {
   if (valeur === null) return null
@@ -49,7 +48,7 @@ export function TracedValue({ terme, trace, decimales = 2, unite, suffixe }: Tra
           {suffixe !== undefined && <span className="tracee-suffixe"> — {suffixe}</span>}
         </span>
         <span className="tracee-valeur">
-          {valeur ?? DONNEE_MANQUANTE}
+          {valeur ?? MENTION_DONNEE_MANQUANTE}
           {plage !== null && <span className="tracee-plage"> (ordre de grandeur : {plage})</span>}
           {plage === null && approximatif ? ' (ordre de grandeur)' : ''}
         </span>
@@ -67,7 +66,7 @@ export function TracedValue({ terme, trace, decimales = 2, unite, suffixe }: Tra
             {Object.entries(trace.inputs).map(([nom, valeurEntree]) => (
               <div key={nom}>
                 <dt>{libelleEntree(nom)}</dt>
-                <dd>{valeurEntree ?? DONNEE_MANQUANTE}</dd>
+                <dd>{valeurEntree ?? MENTION_DONNEE_MANQUANTE}</dd>
               </div>
             ))}
           </dl>
