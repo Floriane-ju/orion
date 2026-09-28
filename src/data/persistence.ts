@@ -30,6 +30,10 @@ export interface EtatStockage {
 
 const OCTETS_PAR_MO = 1024 * 1024
 
+export const AVERTISSEMENT_SANS_BASE =
+  'Stockage local indisponible : le ciel est chargé pour cette session, mais rien de ce que ' +
+  'vous saisissez ne sera mémorisé.'
+
 const AVERTISSEMENT_NON_PERSISTANT =
   'Le navigateur peut effacer vos données : installez l’application ou exportez-les.'
 

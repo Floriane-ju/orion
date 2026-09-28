@@ -116,7 +116,8 @@ export function useImageCible(
     let vivant = true
     setAffichable(null)
     const demande = portee === 'CACHE' ? imageEnCache(objet.designation) : resoudImage(objet)
-    void demande.then((image) => {
+    // Une lecture de cache qui échoue vaut une image absente : la fiche reste lisible sans elle.
+    void demande.catch(() => null).then((image) => {
       if (image === null) {
         if (portee === 'CACHE') absentesDuCache.add(objet.designation)
         return

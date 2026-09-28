@@ -13,6 +13,7 @@ import {
   chargeObjetsCielProfond,
   construitIndexEtoiles,
   demarre,
+  demarrageEchoue,
   type EtatDemarrage,
 } from '../data/bootstrap.ts'
 import { PAQUET_VIDE, type PaquetConstellations } from '../data/constellations.ts'
@@ -98,7 +99,7 @@ export function useCatalogues(): Catalogues {
       index: setIndex,
       constellations: setConstellations,
       objets: setObjets,
-    })
+    }).catch(() => setEtat(demarrageEchoue()))
   }, [])
 
   return { etat, objets, etoiles, index, constellations }
@@ -269,20 +270,31 @@ export function usePersistance(entree: EntreePersistance): Persistance {
   }, [aEcrire])
 
   async function exporte(): Promise<void> {
-    // Même raison qu'au fil de la saisie : après un import, l'écran n'est plus la référence.
-    if (!suspendues) {
-      if (site !== null) await enregistreSiteActif(site)
-      if (profil !== null) await enregistreProfilActif(profil)
+    // §12.3 — un export qui échoue doit le dire : sans message, on croirait ses données à l'abri.
+    try {
+      // Même raison qu'au fil de la saisie : après un import, l'écran n'est plus la référence.
+      if (!suspendues) {
+        if (site !== null) await enregistreSiteActif(site)
+        if (profil !== null) await enregistreProfilActif(profil)
+      }
+      const donnees = await exporteDonneesUtilisateur(poids.poids)
+      const blob = new Blob([JSON.stringify(donnees, null, 2)], { type: 'application/json' })
+      const lien = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      lien.href = url
+      lien.download = `orion-${donnees.exporteLe.slice(0, 10)}.json`
+      lien.click()
+      // Révoquée à la tâche suivante : sous Firefox, révoquer aussitôt après `click()` annule
+      // le téléchargement que le clic vient de demander.
+      setTimeout(() => URL.revokeObjectURL(url))
+      setAvis({ texte: `Export écrit dans ${lien.download}.`, echec: false })
+      await demandeLaPersistanceUneFois()
+    } catch {
+      setAvis({
+        texte: 'Export impossible : le stockage local n’a pas pu être relu.',
+        echec: true,
+      })
     }
-    const donnees = await exporteDonneesUtilisateur(poids.poids)
-    const blob = new Blob([JSON.stringify(donnees, null, 2)], { type: 'application/json' })
-    const lien = document.createElement('a')
-    lien.href = URL.createObjectURL(blob)
-    lien.download = `orion-${donnees.exporteLe.slice(0, 10)}.json`
-    lien.click()
-    URL.revokeObjectURL(lien.href)
-    setAvis({ texte: `Export écrit dans ${lien.download}.`, echec: false })
-    await demandeLaPersistanceUneFois()
   }
 
   async function importe(fichier: File): Promise<void> {

@@ -6,7 +6,7 @@
  * et une conduite à tenir — une mesure sans conduite à tenir n'est pas une vérification.
  */
 
-import { ecritPaquet, litPaquet } from './db.ts'
+import { baseDisponible, ecritPaquet, litPaquet } from './db.ts'
 import type { IntegritePaquet, ManifestePaquet } from './catalog.ts'
 import { verifieIntegrite } from './catalog.ts'
 import { decodeEtoilesPas, type Etoile } from './catalog.ts'
@@ -17,7 +17,7 @@ import {
   type PaquetConstellations,
 } from './constellations.ts'
 import { modeReseauCourant, type ModeReseau } from './degradation.ts'
-import { etatStockage, type EtatStockage } from './persistence.ts'
+import { AVERTISSEMENT_SANS_BASE, etatStockage, type EtatStockage } from './persistence.ts'
 import { parTranches } from '../core/tranches.ts'
 import { construitIndexPas, type IndexCiel } from '../core/index-ciel.ts'
 
@@ -192,10 +192,36 @@ export interface EtatDemarrage {
 }
 
 export async function demarre(): Promise<EtatDemarrage> {
-  const [catalogues, stockage] = await Promise.all([verifieCatalogues(), etatStockage()])
+  const [catalogues, stockage, base] = await Promise.all([
+    verifieCatalogues(),
+    etatStockage(),
+    baseDisponible(),
+  ])
   return {
     modeReseau: modeReseauCourant(),
     catalogues,
-    stockage,
+    stockage: base ? stockage : { ...stockage, avertissement: AVERTISSEMENT_SANS_BASE },
+  }
+}
+
+/**
+ * §12.1 — l'état posé quand le démarrage lui-même échoue : un écran qui nomme la panne et la
+ * conduite à tenir, jamais un ciel vide qui attend une promesse rejetée.
+ */
+export function demarrageEchoue(): EtatDemarrage {
+  return {
+    modeReseau: modeReseauCourant(),
+    catalogues: {
+      paquets: [],
+      manifesteLu: false,
+      cause: 'Le démarrage a échoué : rechargez la page.',
+    },
+    stockage: {
+      persistant: false,
+      supporte: false,
+      quotaMo: null,
+      usageMo: null,
+      avertissement: AVERTISSEMENT_SANS_BASE,
+    },
   }
 }

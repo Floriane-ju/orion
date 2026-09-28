@@ -133,8 +133,15 @@ interface OrionDB extends DBSchema {
 
 let instance: Promise<IDBPDatabase<OrionDB>> | null = null
 
+/**
+ * §12.5 — une ouverture qui échoue n'est pas mise en cache : la base bloquée par un autre onglet,
+ * ou refusée une fois, doit pouvoir être retentée au geste suivant plutôt que condamner la session.
+ */
 export function db(): Promise<IDBPDatabase<OrionDB>> {
-  instance ??= ouvre()
+  instance ??= ouvre().catch((erreur: unknown) => {
+    instance = null
+    throw erreur
+  })
   return instance
 }
 
@@ -197,17 +204,47 @@ async function reprendAncienneBase(base: IDBPDatabase<OrionDB>): Promise<void> {
     }
   }
   ancienne.close()
-  await deleteDB(NOM_BASE_ANCIEN)
+  // Non attendue : un autre onglet ouvert sur l'ancienne base la bloquerait, et l'ouverture de
+  // la nouvelle avec elle. Tout est déjà copié ; une suppression différée ne perd rien.
+  void deleteDB(NOM_BASE_ANCIEN).catch(() => undefined)
   await base.put('reglages', true, CLE_REPRISE)
 }
 
+/**
+ * §12.5 — les paquets sont retéléchargeables : sans IndexedDB (navigation privée, quota, base
+ * refusée), ceux que le réseau vient de servir restent en mémoire pour la session. Le ciel
+ * s'affiche ; seul le prochain démarrage hors réseau est perdu, et l'avertissement de stockage
+ * le dit.
+ */
+const paquetsEnMemoire = new Map<string, ArrayBuffer>()
+
 export async function litPaquet(nom: string): Promise<ArrayBuffer | null> {
-  const enregistrement = await (await db()).get('paquets', nom)
-  return enregistrement?.donnees ?? null
+  const enMemoire = paquetsEnMemoire.get(nom)
+  if (enMemoire !== undefined) return enMemoire
+  try {
+    const enregistrement = await (await db()).get('paquets', nom)
+    return enregistrement?.donnees ?? null
+  } catch {
+    return null
+  }
 }
 
 export async function ecritPaquet(paquet: PaquetStocke): Promise<void> {
-  await (await db()).put('paquets', paquet)
+  try {
+    await (await db()).put('paquets', paquet)
+  } catch {
+    paquetsEnMemoire.set(paquet.nom, paquet.donnees)
+  }
+}
+
+/** Vrai quand la base s'ouvre : sans elle, rien de ce qui est saisi ne survit à la session. */
+export async function baseDisponible(): Promise<boolean> {
+  try {
+    await db()
+    return true
+  } catch {
+    return false
+  }
 }
 
 /**

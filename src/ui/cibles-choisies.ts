@@ -69,7 +69,8 @@ export function basculeChoixCible(designation: string): void {
   pose(suivant)
   if (!hydrate) return
   // L'échec d'écriture ne remonte pas à l'écran : le plan de la nuit reste juste, seule sa
-  // survie au rechargement est perdue, et `usePersistance` porte déjà ce message-là.
+  // survie au rechargement est perdue. La cause ordinaire — une base qui ne s'ouvre pas — est
+  // déjà annoncée au démarrage par l'avertissement de stockage (`demarre`, §12.5).
   void ecritCiblesChoisies([...suivant]).catch(() => undefined)
 }
 
