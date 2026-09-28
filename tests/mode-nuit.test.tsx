@@ -21,6 +21,8 @@ import { Mention } from '../src/ui/Mention.tsx'
 import { K } from '../src/registry/constants.ts'
 import { etatScene } from '../src/ui/scene-etat.ts'
 import { POLICE_SCENE, palette, type PaletteCiel } from '../src/ui/couleurs.ts'
+import { LegendeCouleurs } from '../src/ui/LegendeCouleurs.tsx'
+import { teintesObjets } from '../src/ui/apparence-objets.ts'
 
 const CSS = readFileSync(join(import.meta.dirname, '..', 'src', 'ui', 'styles.css'), 'utf8')
 
@@ -543,7 +545,10 @@ describe('interface rendue', () => {
   const ecran = renderToStaticMarkup(<App />)
 
   it('n’écrit aucune couleur en ligne dans le balisage', () => {
-    expect(ecran).not.toMatch(/style="[^"]*(?:color|background)[^"]*"/)
+    // T-0332 — toute propriété qui peint, pas seulement le texte et le fond.
+    expect(ecran).not.toMatch(
+      /style="[^"]*(?:color|background|border|fill|stroke|outline|box-shadow)[^"]*"/,
+    )
   })
 
   it('expose le réglage du mode nuit et la limite des dalles LCD', () => {
@@ -646,5 +651,46 @@ describe('mouvement réduit — WCAG 2.3.3', () => {
     // §11.2 — aucune animation non sollicitée. Le défilement n'est jamais l'état de départ :
     // il ne peut donc pas démarrer de lui-même, et reste choisissable sous la préférence.
     expect(etatScene().temps.modeTemps).not.toBe('DEFILEMENT')
+  })
+})
+
+/**
+ * T-0332 — la fuite nocturne hors de la feuille de style.
+ *
+ * Le test de palette ne lit que `styles.css`. Le canevas (`couleurs.ts`, `apparence-objets.ts`)
+ * et la feuille que la légende injecte peignent pourtant le même écran : la nuit, aucune de
+ * leurs couleurs ne doit porter de vert ni de bleu.
+ */
+describe('fuite nocturne hors de la feuille — T-0332', () => {
+  /** Les canaux vert et bleu de chaque couleur écrite dans un texte : `#rrggbb` ou `rgb(r g b)`. */
+  function vertsEtBleus(texte: string): readonly number[] {
+    const hex = [...texte.matchAll(/#([0-9a-f]{6})\b/gi)].flatMap((m) => [
+      parseInt(m[1]!.slice(2, 4), 16),
+      parseInt(m[1]!.slice(4, 6), 16),
+    ])
+    const rgb = [...texte.matchAll(/rgba?\(\s*[\d.]+[\s,]+([\d.]+)[\s,]+([\d.]+)/g)].flatMap((m) => [
+      Number(m[1]),
+      Number(m[2]),
+    ])
+    return [...hex, ...rgb]
+  }
+
+  it('la palette du canevas n’a que du rouge la nuit', () => {
+    const couleurs = Object.values(palette(true)).join(' ')
+    expect(vertsEtBleus(couleurs).length).toBeGreaterThan(0)
+    expect(vertsEtBleus(couleurs).every((c) => c === 0)).toBe(true)
+  })
+
+  it('les teintes d’objets n’ont que du rouge la nuit', () => {
+    const couleurs = JSON.stringify(teintesObjets(true, false, 0))
+    expect(vertsEtBleus(couleurs).length).toBeGreaterThan(0)
+    expect(vertsEtBleus(couleurs).every((c) => c === 0)).toBe(true)
+  })
+
+  it('la feuille injectée par la légende n’a que du rouge la nuit', () => {
+    const html = renderToStaticMarkup(<LegendeCouleurs modeNuit={true} />)
+    const feuille = /<style>([\s\S]*?)<\/style>/.exec(html)?.[1] ?? ''
+    expect(vertsEtBleus(feuille).length).toBeGreaterThan(0)
+    expect(vertsEtBleus(feuille).every((c) => c === 0)).toBe(true)
   })
 })

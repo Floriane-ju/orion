@@ -43,6 +43,29 @@ describe('T-0194 — l’échelle d’espacement', () => {
     }
   })
 
+  /**
+   * T-0332 — les trous du test précédent : les propriétés logiques de fin, les décalages de
+   * position, les unités d'écran, les règles écrites sur une ligne, et l'exception `-1px`
+   * qui valait pour toute règle. `%` reste permis : `top: 50%` centre, il ne mesure pas d'air.
+   */
+  it('tient aussi les propriétés logiques, les décalages et les unités d’écran', () => {
+    const PROPRIETE =
+      /^(?:padding|margin|gap|row-gap|column-gap|inset|top|right|bottom|left|translate|scroll-padding|scroll-margin)(?:-(?:top|right|bottom|left|inline|block)(?:-(?:start|end))?)?$/
+    const UNITE = /(?<![\w.-])[0-9]*\.?[0-9]+(rem|px|em|vw|vh|dvh|svh|ch)\b/
+    const fautes: string[] = []
+    for (const [, selecteur, corps] of REGLES.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      for (const declaration of corps!.split(';')) {
+        const [propriete, ...reste] = declaration.split(':')
+        const nom = propriete?.trim() ?? ''
+        const valeur = reste.join(':').trim()
+        if (!PROPRIETE.test(nom) || !UNITE.test(valeur)) continue
+        if (valeur === '-1px' && selecteur!.trim() === '.scene-description') continue
+        fautes.push(`${selecteur!.trim()} { ${nom}: ${valeur} }`)
+      }
+    }
+    expect(fautes).toEqual([])
+  })
+
   it('garde les gabarits hors de l’échelle : ils mesurent des objets, pas de l’air', () => {
     // Un pas d'espacement qui dimensionnerait une barre ou une carte ferait dépendre la
     // hauteur de la coque du grain des marges — deux réglages qui n'ont rien à voir.
@@ -132,13 +155,21 @@ describe('T-0215 — le micro-libellé', () => {
       .map(([, sel, corps]) => [sel!.split('\n').join(' ').trim(), corps!] as const)
       .filter(
         ([, corps]) =>
-          corps.includes('font-size: var(--texte-micro)') &&
+          // T-0332 — le raccourci `font:` et le rang `--texte-mini` comptent aussi.
+          /font(?:-size)?:\s*var\(--texte-(?:micro|mini)\)/.test(corps) &&
           corps.includes('text-transform: uppercase'),
       )
   }
 
-  it('en compte cinq, et sait lesquelles', () => {
-    expect(reglesMicro()).toHaveLength(5)
+  /**
+   * Les deux micro-corps en capitales qui ne sont PAS des libellés, et restent en `--texte` :
+   * un bouton est une commande, qui doit se lire active ; la légende d'un curseur nomme le
+   * seuil où la détente accroche — c'est une lecture, pas l'étiquette d'un champ.
+   */
+  const PAS_DES_LIBELLES = ['button, .bouton-fichier', '.curseur-legende']
+
+  it('en compte sept, et sait lesquelles', () => {
+    expect(reglesMicro()).toHaveLength(7)
   })
 
   it('n’en laisse aucune oublier le suivi ni la couleur qui vont avec', () => {
@@ -147,6 +178,7 @@ describe('T-0215 — le micro-libellé', () => {
     // valeur qu'il annonce — c'est exactement la hiérarchie que §11.1 confisque par ailleurs.
     for (const [selecteur, corps] of reglesMicro()) {
       expect(corps, selecteur).toContain('letter-spacing: var(--suivi-micro)')
+      if (PAS_DES_LIBELLES.includes(selecteur.replace(/\s+/g, ' '))) continue
       expect(corps, selecteur).toContain('color: var(--attenue)')
     }
   })

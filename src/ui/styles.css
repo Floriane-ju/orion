@@ -214,6 +214,9 @@ pre {
   /* Le décalage du pointillé qui annonce « il y a quelque chose à lire » — un terme du
      glossaire, un titre de carte porteur d'aide. Cité aux deux endroits. */
   --decalage-souligne: 3px;
+  /* T-0332 — la descente d'un glyphe Material posé en tête d'une phrase : sa boîte carrée
+     déborde par le bas, ce décalage le ramène sur la ligne de base. En `em`, il suit le corps. */
+  --decalage-glyphe: 0.12em;
   /* L'ÉCHELLE D'ESPACEMENT. La feuille portait vingt et une valeurs d'écart entre 0,05 et
      2 rem : à ce grain, deux marges voisines ne se distinguent plus à l'œil mais divergent
      au pixel, et rien ne dit laquelle est la bonne quand on en ajoute une. Sept pas en
@@ -2050,7 +2053,7 @@ th {
 .mention-signe {
   font-size: var(--texte-legende);
   margin-inline-end: var(--pas-1);
-  translate: 0 0.12em;
+  translate: 0 var(--decalage-glyphe);
 }
 
 /* Un interrupteur porte la phrase qui dit ce qu'il fait, pas le nom d'un champ. */
