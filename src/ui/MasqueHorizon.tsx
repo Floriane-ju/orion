@@ -10,7 +10,7 @@
  */
 
 import { useState } from 'react'
-import { masqueDepuisPoints, type MasqueHorizon, type PointMasque } from '../core/site.ts'
+import { masqueDepuisPoints, repereCardinal, type MasqueHorizon, type PointMasque } from '../core/site.ts'
 import { SaisieRefuseeError } from '../registry/domains.ts'
 import { nombreSaisi, refusDe } from './saisie-bornee.ts'
 import { ChampDomaine } from './ChampDomaine.tsx'
@@ -23,15 +23,6 @@ export interface MasqueHorizonProps {
   readonly surPoints: (v: readonly PointMasque[]) => void
   /** Le masque effectivement en vigueur : relevés interpolés, ou repli plat [HYP]. */
   readonly masque: MasqueHorizon
-}
-
-/** L'azimut est compté depuis le nord, dans le sens des aiguilles d'une montre. */
-const CARDINAUX = ['N', 'E', 'S', 'O'] as const
-
-/** Point cardinal le plus proche d'un azimut, pour se repérer sans convertir de tête. */
-export function repereCardinal(azimutDeg: number): string {
-  const quart = Math.round(azimutDeg / 90) % CARDINAUX.length
-  return CARDINAUX[(quart + CARDINAUX.length) % CARDINAUX.length] ?? CARDINAUX[0]
 }
 
 export function MasqueHorizonSaisie(props: MasqueHorizonProps) {

@@ -8,12 +8,10 @@
 import { useMemo, useState } from 'react'
 import { faciliteCible } from '../core/facilite.ts'
 import {
-  cadrageParcours,
   cartePointage,
   etapesParcours,
   RAPPEL_MISE_EN_STATION,
   type Ancrage,
-  type EtapeParcours,
 } from '../core/pointage.ts'
 import { planEnTexte, type EnTetePlan } from '../core/plan-texte.ts'
 import type { CibleEcartee, EtapePlan, PlanSession as Plan } from '../core/session.ts'
@@ -30,20 +28,8 @@ import { Etiquette } from './Terme.tsx'
 import { heure } from './horaire.ts'
 import { Mention } from './Mention.tsx'
 import { ouvreCible } from './seance-etat.ts'
-import { bornesZoom, fovPourRayonDeg } from '../core/projection.ts'
-import { cielInstantane } from '../core/horloges.ts'
-import { fovBorne } from './planetarium-gestes.ts'
-import { viseeVersVue } from './scene-lecture.ts'
-import {
-  etatScene,
-  majVue,
-  masqueParcours,
-  montreParcours,
-  parcoursScene,
-  useTrancheScene,
-  vuePlanetarium,
-  type ParcoursScene,
-} from './scene-etat.ts'
+import { masqueParcours, parcoursScene, useTrancheScene } from './scene-etat.ts'
+import { poseParcours } from './parcours-scene.ts'
 import { LIBELLE_MODE_POINTAGE, SANS_NOM } from '../registry/libelles.ts'
 import { DEG_PAR_HEURE, POURCENT } from '../core/unites.ts'
 
@@ -295,50 +281,6 @@ export interface PointageProps {
   readonly nommees: readonly EtoileNommee[]
   /** §3.3 — il borne le champ que « Voir le parcours » demande à la scène (T-0324). */
   readonly gaiaCharge: boolean
-}
-
-/**
- * T-0324 — la scène prend le trajet, puis s'y range : elle va à l'heure du pointage, se centre
- * dessus et ouvre son champ juste assez pour le contenir.
- *
- * L'HORLOGE SAUTE, contrairement au bouton « Voir » de T-0046 qui ne bouge que la visée. Ce
- * n'est pas la même question : « Voir » demande où est cette cible en ce moment, le parcours
- * montre le trajet qu'on fera à l'heure de l'étape. Le reste de l'aide au pointage — la table,
- * le schéma, l'angle parallactique de §8.4 — est déjà calculé pour cette heure-là ; laisser la
- * scène à la sienne montrerait le ciel d'un autre moment sous des chiffres qui n'en parlent
- * pas, et le cadrage automatique raterait le trajet d'autant que les deux heures diffèrent.
- *
- * Le rayon du trajet devient un champ par `fovPourRayonDeg`, qui le fait tenir sur le bord le
- * plus proche : `fovDeg` est horizontal, et un trajet à dominante verticale sortirait d'un champ
- * dimensionné sur la largeur d'un canevas plus large que haut.
- *
- * Le champ passe ensuite par `bornesZoom` alors que `majVue` ne pose que le plafond de la
- * projection. Sans ce plancher, un trajet court laisserait la scène sous la profondeur du
- * catalogue embarqué — et l'y laisserait encore après la fermeture du parcours.
- */
-function poseParcours(props: PointageProps, etapes: readonly EtapeParcours[]): void {
-  const adCibleH = props.objet.adDeg / DEG_PAR_HEURE
-  const parcours: ParcoursScene = {
-    designation: props.objet.designation,
-    etapes,
-    adCibleH,
-    decCibleDeg: props.objet.decDeg,
-  }
-  montreParcours(parcours, props.date.getTime())
-
-  const cadrage = cadrageParcours(etapes, adCibleH, props.objet.decDeg)
-  const { matrice } = cielInstantane(props.site, props.date)
-  const { azimutDeg, hauteurDeg } = viseeVersVue(cadrage.adDeg, cadrage.decDeg, matrice)
-  const vue = etatScene().vue
-  const fovDeg = fovPourRayonDeg(
-    vuePlanetarium(vue),
-    cadrage.rayonDeg * K('MARGE_CADRAGE_PARCOURS'),
-  )
-  majVue({
-    azimutDeg,
-    hauteurDeg,
-    fovDeg: fovBorne(fovDeg, bornesZoom(props.gaiaCharge, vue.mode)),
-  })
 }
 
 export function Pointage(props: PointageProps) {

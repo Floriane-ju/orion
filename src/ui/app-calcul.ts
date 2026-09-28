@@ -53,7 +53,7 @@ import {
 import { boitierDeBase, ligneBoitier } from '../data/boitiers.ts'
 import { K } from '../registry/constants.ts'
 import type { Traced } from '../core/traced.ts'
-import { modeObjectif } from './PanneauMateriel.tsx'
+import { modeObjectif } from '../core/optics.ts'
 import type { SaisieLieu, SaisieMateriel } from './app-saisie.ts'
 import { nombreSaisi, nombreSiRenseigne } from './saisie-bornee.ts'
 import type { MaterielFile } from './planetarium-materiel.ts'

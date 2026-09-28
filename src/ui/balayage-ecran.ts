@@ -37,7 +37,7 @@ export interface FinesseBalayage {
 }
 
 /** Finesse du bord du sol : c'est une crête soulignée d'un trait, elle se voit au pixel près. */
-export const BALAYAGE_FIN: FinesseBalayage = { rayons: 240, dichotomies: 12 }
+export const BALAYAGE_FIN: FinesseBalayage = Object.freeze({ rayons: 240, dichotomies: 12 })
 
 export interface FrontiereEcran {
   readonly centreX: number

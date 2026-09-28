@@ -12,7 +12,7 @@ import type { ObjetCielProfond, TypeObjet } from '../data/deepsky.ts'
  * T-0049 — les types de §6.3 en français. Le `Record` complet fait refuser par le
  * compilateur un type ajouté sans libellé.
  */
-export const LIBELLE_TYPE_OBJET: Readonly<Record<TypeObjet, string>> = {
+export const LIBELLE_TYPE_OBJET: Readonly<Record<TypeObjet, string>> = Object.freeze({
   INCONNU: 'type inconnu',
   GALAXIE: 'galaxie',
   AMAS_OUVERT: 'amas ouvert',
@@ -23,7 +23,7 @@ export const LIBELLE_TYPE_OBJET: Readonly<Record<TypeObjet, string>> = {
   NEB_OBSCURE: 'nébuleuse obscure',
   RESTE_SUPERNOVA: 'reste de supernova',
   AUTRE: 'autre type',
-}
+})
 
 /**
  * Le premier nom commun, ou la chaîne vide : beaucoup d'entrées n'en portent aucun.

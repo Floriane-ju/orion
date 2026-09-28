@@ -7,7 +7,8 @@
 
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { MasqueHorizonSaisie, repereCardinal } from '../src/ui/MasqueHorizon.tsx'
+import { MasqueHorizonSaisie } from '../src/ui/MasqueHorizon.tsx'
+import { repereCardinal } from '../src/core/site.ts'
 import { masqueDepuisPoints, masquePlat, type PointMasque } from '../src/core/site.ts'
 import { libelleFlag } from '../src/registry/libelles.ts'
 

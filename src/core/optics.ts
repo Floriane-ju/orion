@@ -17,6 +17,7 @@ import { valide } from '../registry/domains.ts'
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
 import { DEG } from './mat3.ts'
+import type { ModeProjection } from './projection.ts'
 
 const UM_PAR_MM = 1000
 
@@ -29,6 +30,11 @@ export type DiagnosticEchantillonnage =
 
 /** §5.1 — pilote la loi du champ et la projection de §3.3, §9.2, §9.3. */
 export type TypeObjectif = 'RECTILINEAIRE' | 'FISHEYE'
+
+/** §5.1 — la projection que cet objectif impose à la scène : il la choisit, il n'ajuste pas un rendu. */
+export function modeObjectif(type: TypeObjectif): ModeProjection {
+  return type === 'FISHEYE' ? 'MODE_FISHEYE' : 'MODE_CADRE'
+}
 
 export interface EntreeOptique {
   readonly focaleMm: number

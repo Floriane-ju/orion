@@ -16,7 +16,8 @@ import { abonneModeReseau, modeReseauCourant, type ModeReseau } from './data/deg
 import { gaiaCharge } from './data/bootstrap.ts'
 import { Coque } from './ui/Coque.tsx'
 import { Planetarium } from './ui/Planetarium.tsx'
-import { PanneauMateriel, modeObjectif } from './ui/PanneauMateriel.tsx'
+import { PanneauMateriel } from './ui/PanneauMateriel.tsx'
+import { modeObjectif } from './core/optics.ts'
 import { useTrancheScene, type EtatScene } from './ui/scene-etat.ts'
 import { ouvreCible, useSeance } from './ui/seance-etat.ts'
 import { BarreHaut } from './ui/BarreHaut.tsx'
@@ -34,12 +35,8 @@ import {
 import { profilAEnregistrer, siteAEnregistrer } from './ui/saisie-persistee.ts'
 import { useChaineCalcul } from './ui/app-calcul.ts'
 import { useCiblesEnAvant } from './ui/cibles-en-avant.ts'
-import {
-  appliqueModeNuit,
-  BoutonModeNuit,
-  litEtatPersiste,
-  type EtatModeNuit,
-} from './ui/ModeNuit.tsx'
+import { appliqueModeNuit, BoutonModeNuit } from './ui/ModeNuit.tsx'
+import { litEtatPersiste, type EtatModeNuit } from './data/mode-nuit.ts'
 import { installeEchap } from './ui/gere-echap.ts'
 import { Mention } from './ui/Mention.tsx'
 

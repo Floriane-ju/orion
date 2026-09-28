@@ -10,7 +10,7 @@ import { DOMAINES, SaisieRefuseeError, valide } from '../registry/domains.ts'
 import type { Flag, Traced } from './traced.ts'
 import { trace } from './traced.ts'
 import { DEG } from './mat3.ts'
-import { ramene } from './unites.ts'
+import { ramene, TOUR_DEG } from './unites.ts'
 
 const ANGLE_DROIT_DEG = 90
 
@@ -207,4 +207,13 @@ export function masseAir(hauteurDeg: number | null): Traced<number | null> {
         }
       : {}),
   })
+}
+
+/** L'azimut est compté depuis le nord, dans le sens des aiguilles d'une montre. */
+const CARDINAUX = Object.freeze(['N', 'E', 'S', 'O'] as const)
+
+/** Point cardinal le plus proche d'un azimut, pour se repérer sans convertir de tête. */
+export function repereCardinal(azimutDeg: number): string {
+  const quart = ramene(Math.round(azimutDeg / (TOUR_DEG / CARDINAUX.length)), CARDINAUX.length)
+  return CARDINAUX[quart] ?? CARDINAUX[0]
 }

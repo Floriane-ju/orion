@@ -22,9 +22,8 @@
  * `TracedValue`, jamais des chiffres nus.
  */
 
-import type { ProfilOptique } from '../core/optics.ts'
+import type { ProfilOptique, TypeObjectif } from '../core/optics.ts'
 import type { ProfilSuivi, QualiteMiseEnStation, TypeMonture } from '../core/tracking.ts'
-import type { ModeProjection } from '../core/projection.ts'
 import type { Traced } from '../core/traced.ts'
 import type {
   CapteurMode,
@@ -40,14 +39,6 @@ import { ChampDomaine } from './ChampDomaine.tsx'
 import { Interrupteur } from './Interrupteur.tsx'
 import { LectureInconnue } from './Inconnu.tsx'
 import { Mention } from './Mention.tsx'
-
-/** §5.1 — le type d'objectif choisit la projection, il n'ajuste pas un rendu. */
-export type TypeObjectif = 'RECTILINEAIRE' | 'FISHEYE'
-
-/** La projection que cet objectif impose à la scène quand on veut voir comme lui. */
-export function modeObjectif(type: TypeObjectif): ModeProjection {
-  return type === 'FISHEYE' ? 'MODE_FISHEYE' : 'MODE_CADRE'
-}
 
 /** §5.2 — ce que la saisie décrit d'une monture : ce qu'elle suit, et comment elle est posée. */
 export type ChoixMonture =

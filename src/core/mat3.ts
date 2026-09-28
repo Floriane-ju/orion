@@ -32,7 +32,7 @@ export interface Vec3 {
  */
 export const DEG = Math.PI / 180
 
-export const IDENTITE: Mat3 = [1, 0, 0, 0, 1, 0, 0, 0, 1]
+export const IDENTITE: Mat3 = Object.freeze([1, 0, 0, 0, 1, 0, 0, 0, 1])
 
 /**
  * Produit a · b : appliquer le résultat revient à appliquer b puis a.

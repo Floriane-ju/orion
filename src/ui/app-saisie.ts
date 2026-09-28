@@ -14,7 +14,7 @@ import { ligneBoitier } from '../data/boitiers.ts'
 import type { QualiteMiseEnStation, TypeMonture } from '../core/tracking.ts'
 import { nuitDeLInstant } from '../core/nuit-datee.ts'
 import { etatScene, majVue } from './scene-etat.ts'
-import { modeObjectif, type TypeObjectif } from './PanneauMateriel.tsx'
+import { modeObjectif, type TypeObjectif } from '../core/optics.ts'
 
 /**
  * Site et configuration ciel profond de l'Annexe A. `resolutionMpx` reprend la résolution du

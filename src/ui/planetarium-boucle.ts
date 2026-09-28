@@ -45,7 +45,7 @@ import { B } from '../registry/budgets.ts'
 import { MS_PAR_S } from '../core/unites.ts'
 
 /** Noms français des corps mobiles de §3.1. */
-const NOMS_CORPS: Readonly<Record<string, string>> = {
+const NOMS_CORPS: Readonly<Record<string, string>> = Object.freeze({
   Sun: 'Soleil',
   Moon: 'Lune',
   Mercury: 'Mercure',
@@ -54,7 +54,7 @@ const NOMS_CORPS: Readonly<Record<string, string>> = {
   Jupiter: 'Jupiter',
   Saturn: 'Saturne',
   Uranus: 'Uranus',
-}
+})
 
 const PERIODE_PUBLICATION_MS = B('PUBLICATION_MS')
 const INTERVALLE_MIN_MS = MS_PAR_S / B('IMAGES_PAR_S_MAX')

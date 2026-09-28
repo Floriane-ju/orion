@@ -16,7 +16,7 @@ import { masquePlat } from '../src/core/site.ts'
 import { pointZeroSysteme } from '../src/data/equipment.ts'
 import { PanneauFile } from '../src/ui/PanneauFile.tsx'
 import { RailVue } from '../src/ui/RailVue.tsx'
-import { modeObjectif } from '../src/ui/PanneauMateriel.tsx'
+import { modeObjectif } from '../src/core/optics.ts'
 import {
   afficheInstant,
   etatScene,
