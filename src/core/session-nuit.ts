@@ -16,9 +16,8 @@ import type { CreneauCible, Intervalle } from './creneaux.ts'
 import { trace } from './traced.ts'
 import type { PlanCalibration } from './calibration.ts'
 import type { BudgetNuit, ContexteSession, EtapePlan } from './session-types.ts'
-import { MS_PAR_MINUTE } from './unites.ts'
+import { MIN_PAR_H, MS_PAR_MINUTE } from './unites.ts'
 
-const MINUTES_PAR_HEURE = 60
 
 function chevauche(a: Intervalle, b: Intervalle): boolean {
   return a.debut.getTime() < b.fin.getTime() && b.debut.getTime() < a.fin.getTime()
@@ -55,7 +54,7 @@ function intervallesLibres(
 
 /** Les minutes du créneau d'une cible que rien n'occupe encore. */
 export function minutesLibres(
-  creneau: CreneauCible,
+  creneau: Pick<CreneauCible, 'creneaux'>,
   occupes: readonly Intervalle[],
 ): number {
   const libres = creneau.creneaux.flatMap((sous) => intervallesLibres(sous, occupes))
@@ -69,7 +68,10 @@ export function minutesLibres(
  * disjoints ne se gênent pas, et les compter l'une contre l'autre ferait réserver du temps
  * que personne ne peut prendre.
  */
-export function creneauxSeChevauchent(a: CreneauCible, b: CreneauCible): boolean {
+export function creneauxSeChevauchent(
+  a: Pick<CreneauCible, 'creneaux'>,
+  b: Pick<CreneauCible, 'creneaux'>,
+): boolean {
   return a.creneaux.some((sousA) => b.creneaux.some((sousB) => chevauche(sousA, sousB)))
 }
 
@@ -79,7 +81,7 @@ export function creneauxSeChevauchent(a: CreneauCible, b: CreneauCible): boolean
  * placée, quand quatre heures restent libres ensuite, produirait un plan absurde.
  */
 export function alloueCreneau(
-  creneau: CreneauCible,
+  creneau: Pick<CreneauCible, 'creneaux'>,
   occupes: readonly Intervalle[],
   dureeMaxMin: number,
 ): Intervalle | null {
@@ -98,7 +100,7 @@ export function calculeBudget(
   etapes: readonly EtapePlan[],
   calibration: PlanCalibration | null,
 ): BudgetNuit {
-  const disponibleMin = contexte.nuit.dureeReferenceH * MINUTES_PAR_HEURE
+  const disponibleMin = contexte.nuit.dureeReferenceH * MIN_PAR_H
   const captureMin = etapes.reduce((somme, e) => somme + e.dureeAlloueeMin, 0)
   const calibrationMin = calibration === null ? 0 : calibration.surcoutTempsMin.value
   const miseEnStationMin = K('TEMPS_MISE_EN_STATION_MIN')

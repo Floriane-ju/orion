@@ -37,10 +37,8 @@ import type {
   DetailScore,
   PoidsScoring,
 } from './session-types.ts'
-import { ARCMIN_PAR_DEG, DEG_PAR_HEURE } from './unites.ts'
+import { ARCMIN_PAR_DEG, DEG_PAR_HEURE, MIN_PAR_H, S_PAR_MIN } from './unites.ts'
 
-const MINUTES_PAR_HEURE = 60
-const S_PAR_MINUTE = 60
 
 /**
  * §8.1 — la Lune est évaluée au milieu du créneau de la cible : c'est là que la dégradation
@@ -224,7 +222,7 @@ function evalue(
     readNoiseE: pose.readNoiseUtiliseE,
     snrCible: contexte.snrCible,
     tailleRawMo: contexte.tailleRawMo,
-    dureeCreneauS: creneau.dureeTotaleMin.value * S_PAR_MINUTE,
+    dureeCreneauS: creneau.dureeTotaleMin.value * S_PAR_MIN,
     eObjPlage: extinction.plageEObj,
   })
   if (integration.horsDePortee) {
@@ -235,14 +233,14 @@ function evalue(
     }
   }
 
-  const tRequisMin = integration.tRequisS.value / S_PAR_MINUTE
+  const tRequisMin = integration.tRequisS.value / S_PAR_MIN
   const detailScore: DetailScore = {
     cadrage: scoreCadrage(cadrage.remplissage.value),
     hauteur: scoreHauteur(creneau.altCulminationDeg.value),
     signal: scoreSignal(creneau.dureeTotaleMin.value, tRequisMin),
     fenetre: scoreFenetre(
       creneau.dureeTotaleMin.value,
-      contexte.nuit.dureeReferenceH * MINUTES_PAR_HEURE,
+      contexte.nuit.dureeReferenceH * MIN_PAR_H,
     ),
     lune: scoreLune(delta.value),
   }

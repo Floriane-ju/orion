@@ -13,9 +13,8 @@ import type { Site } from './ephem.ts'
 import { observateur, verifieDomaineDesSeries, versDate } from './ephem.ts'
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
-import { MS_PAR_MINUTE } from './unites.ts'
+import { MIN_PAR_H, MS_PAR_MINUTE } from './unites.ts'
 
-const MINUTES_PAR_HEURE = 60
 const JOURS_DE_RECHERCHE = 2
 
 /** Sens de recherche d'astronomy-engine : +1 en montée, −1 en descente. */
@@ -66,7 +65,7 @@ export function offsetMidiSolaireMin(
 ): Traced<number> {
   const DEG_PAR_HEURE = 360 / 24
   const valeur =
-    (longitudeDeg / DEG_PAR_HEURE) * MINUTES_PAR_HEURE - offsetFuseauH * MINUTES_PAR_HEURE
+    (longitudeDeg / DEG_PAR_HEURE) * MIN_PAR_H - offsetFuseauH * MIN_PAR_H
   return trace({
     value: valeur,
     formula: 'OFFSET_MIDI_SOLAIRE',
@@ -80,7 +79,7 @@ function milieu(debut: Date, fin: Date): Date {
 }
 
 function dureeHeures(debut: Date, fin: Date): number {
-  return (fin.getTime() - debut.getTime()) / (MS_PAR_MINUTE * MINUTES_PAR_HEURE)
+  return (fin.getTime() - debut.getTime()) / (MS_PAR_MINUTE * MIN_PAR_H)
 }
 
 /**

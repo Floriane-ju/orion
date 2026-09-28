@@ -20,8 +20,8 @@ import type { ContexteSession } from '../core/session-types.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { CaptureNuit, LuneFiche } from './fiche-cible-calcul.ts'
 import { lunePourCible } from './fiche-cible-lune.ts'
+import { S_PAR_MIN } from '../core/unites.ts'
 
-const S_PAR_MINUTE = 60
 
 export type CreneauFiche =
   | { readonly chiffre: true; readonly creneau: CreneauCible }
@@ -87,7 +87,7 @@ export function nuitFiche(
         }
       : {
           masseAir: creneau.masseAirMoyenne,
-          dureeCreneauS: creneau.dureeTotaleMin.value * S_PAR_MINUTE,
+          dureeCreneauS: creneau.dureeTotaleMin.value * S_PAR_MIN,
           plusHaut: creneau.plusHaut,
           exclusion: null,
         },

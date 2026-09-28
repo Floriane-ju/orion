@@ -21,10 +21,9 @@ import type { FenetreNocturne } from './nuit.ts'
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
 import { DEG, separationEquatorialeDeg } from './mat3.ts'
-import { MS_PAR_MINUTE } from './unites.ts'
+import { MIN_PAR_H, MS_PAR_MINUTE } from './unites.ts'
 
 const ANGLE_DROIT_DEG = 90
-const MINUTES_PAR_HEURE = 60
 const JOURS_DE_RECHERCHE = 2
 const DESCENTE = -1
 const MONTEE = 1
@@ -285,7 +284,7 @@ export interface FenetreUtile {
 }
 
 function heuresEntre(debut: Date, fin: Date): number {
-  return (fin.getTime() - debut.getTime()) / (MS_PAR_MINUTE * MINUTES_PAR_HEURE)
+  return (fin.getTime() - debut.getTime()) / (MS_PAR_MINUTE * MIN_PAR_H)
 }
 
 /**
@@ -348,7 +347,7 @@ export function fenetreUtile(site: Site, nuit: FenetreNocturne): FenetreUtile {
   }
 
   const dureeH = heuresEntre(meilleurDebut, meilleureFin)
-  const luneInterfere = dureeH < dureeNuitH - pas / (MS_PAR_MINUTE * MINUTES_PAR_HEURE)
+  const luneInterfere = dureeH < dureeNuitH - pas / (MS_PAR_MINUTE * MIN_PAR_H)
   return {
     debut: meilleurDebut,
     fin: meilleureFin,

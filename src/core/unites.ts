@@ -22,6 +22,8 @@ export const MIN_PAR_H = 60
 export const S_PAR_H = S_PAR_MIN * MIN_PAR_H
 export const MS_PAR_MINUTE = MS_PAR_S * S_PAR_MIN
 
+export const UM_PAR_MM = 1000
+
 export const POURCENT = 100
 
 /** `v` ramené dans [min ; max]. Une seule écriture, pour que tous les bornages se lisent pareil. */

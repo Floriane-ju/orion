@@ -1,5 +1,5 @@
 /**
- * T-0228 — le contenu du tiroir « info » : d'où viennent les données affichées.
+ * §12.2, T-0228 — d'où viennent les données affichées.
  *
  * Un tableau et non une liste de phrases : la question qu'on se pose ici est « celle-là, elle
  * vient d'où ? », et une colonne de données en regard d'une colonne d'amonts y répond d'un

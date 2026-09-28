@@ -1,5 +1,6 @@
 /**
- * T-0113 — l'état de la coque : ce qui est posé sur la scène, et ce qui est ouvert à côté.
+ * §11.3, T-0113 — l'état de la coque : ce qui est posé sur la scène, et ce qui est ouvert à
+ * côté.
  *
  * La coque ne pile plus trois colonnes : la scène occupe tout, et les réglages viennent
  * dessus en cartes repliables ou à côté en panneau latéral. Le repli doit être lisible de

@@ -1,5 +1,5 @@
 /**
- * Les cinq régions de l'onglet « Filé », nommées d'après ce qu'elles montrent.
+ * §9.1–§9.3 — les cinq régions de l'onglet « Filé », nommées d'après ce qu'elles montrent.
  *
  * Aucune ne calcule : elles reçoivent les lectures de `useLecturesFile` et les réglages du
  * magasin de séance. Le rendu de l'image, lui, se voit dans le cadre matériel sur la scène.

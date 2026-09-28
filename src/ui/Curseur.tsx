@@ -1,5 +1,5 @@
 /**
- * T-0169 — un rail maison, parce qu'un `range` natif ne sait pas montrer un seuil.
+ * §9.1, T-0169 — un rail maison, parce qu'un `range` natif ne sait pas montrer un seuil.
  *
  * Le seul rail de l'interface qui porte une décision — la pose unitaire — a besoin de deux
  * choses qu'aucun `input[type=range]` ne donne : un repère peint à une valeur arbitraire, et

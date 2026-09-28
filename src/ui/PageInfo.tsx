@@ -1,5 +1,6 @@
 /**
- * T-0325 — la modale « info » : l'état du socle, les réglages et la provenance des données.
+ * §12.1, §12.3, T-0325 — la modale « info » : l'état du socle, les réglages et la provenance
+ * des données.
  *
  * Elle remplace les deux tiroirs de la barre haute (T-0228 « info », T-0184 « réglages »).
  * Leurs contenus se lisent en longueur — matrice de dégradation, cinq curseurs, sources — et

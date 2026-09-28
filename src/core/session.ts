@@ -70,10 +70,8 @@ export {
   scoreLune,
   scoreSignal,
 } from './session-score.ts'
-import { MS_PAR_MINUTE } from './unites.ts'
+import { MIN_PAR_H, MS_PAR_MINUTE, S_PAR_MIN } from './unites.ts'
 
-const S_PAR_MINUTE = 60
-const MINUTES_PAR_HEURE = 60
 
 /**
  * §8.3 — l'état de départ du plan, et il dit le geste qui manque.
@@ -159,8 +157,8 @@ export function planSession(
     calibration,
     message:
       `${etapes.length} cible${etapes.length > 1 ? 's' : ''} dans l’ordre de ` +
-      `la nuit : ${dureeLisible(budget.totalMin.value * S_PAR_MINUTE)} sur ` +
-      `${dureeLisible(budget.disponibleMin * S_PAR_MINUTE)} disponibles.`,
+      `la nuit : ${dureeLisible(budget.totalMin.value * S_PAR_MIN)} sur ` +
+      `${dureeLisible(budget.disponibleMin * S_PAR_MIN)} disponibles.`,
     ...(noteCouverture(comptes) === undefined
       ? {}
       : { noteCouvertureCatalogue: noteCouverture(comptes)! }),
@@ -230,7 +228,7 @@ function alloueLaNuit(
   plafondCaptureMin: number,
 ): readonly EtapePlan[] {
   const demandeMin = (c: Candidate): number =>
-    Math.min(c.integration.tRequisS.value / S_PAR_MINUTE, c.creneau.dureeTotaleMin.value)
+    Math.min(c.integration.tRequisS.value / S_PAR_MIN, c.creneau.dureeTotaleMin.value)
   const ordre = retenues
     .slice()
     .sort((a, b) => demandeMin(a) - demandeMin(b) || b.score.value - a.score.value)
@@ -289,7 +287,7 @@ function plafondCapture(
   nCibles: number,
   calibrationMin: number,
 ): number {
-  const disponibleMin = contexte.nuit.dureeReferenceH * MINUTES_PAR_HEURE
+  const disponibleMin = contexte.nuit.dureeReferenceH * MIN_PAR_H
   const fixes =
     K('TEMPS_MISE_EN_STATION_MIN') + K('TEMPS_POINTAGE_PAR_CIBLE_MIN') * nCibles + calibrationMin
   return Math.max(0, disponibleMin - fixes)
@@ -317,11 +315,11 @@ function construitEtape(
 ): EtapePlan {
   const dureeAlloueeMin =
     (alloue.fin.getTime() - alloue.debut.getTime()) / MS_PAR_MINUTE
-  const tRequisMin = candidate.integration.tRequisS.value / S_PAR_MINUTE
+  const tRequisMin = candidate.integration.tRequisS.value / S_PAR_MIN
   const complete = dureeAlloueeMin >= tRequisMin
   const nPoses = complete
     ? candidate.integration.nPoses.value
-    : Math.floor((dureeAlloueeMin * S_PAR_MINUTE) / candidate.pose.tAfficheeS)
+    : Math.floor((dureeAlloueeMin * S_PAR_MIN) / candidate.pose.tAfficheeS)
   // T-0322 — le nombre de nuits vient de `planIntegration`, comme pour la liste du catalogue :
   // il se déduit du CRÉNEAU de la cible, pas de ce que l'allocation lui laisse ce soir. Calculé
   // ici sur la durée allouée, il annonçait quatre nuits là où la fiche en annonçait deux — deux

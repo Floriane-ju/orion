@@ -19,12 +19,12 @@ import {
   LIBELLE_VERDICT_CADRAGE,
   LIBELLE_VERDICT_DETECTABILITE,
 } from '../registry/libelles.ts'
+import { S_PAR_MIN } from './unites.ts'
 
 /** Colonne des lots de calibration : le plus long libellé, pour que les deux-points s'alignent. */
 const LARGEUR_LOT = Math.max(...Object.values(LIBELLE_LOT_CALIBRATION).map((l) => l.length))
 
 const MINUTE_DEUX_CHIFFRES = 2
-const S_PAR_MINUTE = 60
 
 function heure(date: Date): string {
   return (
@@ -147,7 +147,7 @@ export function planEnTexte(plan: PlanSession, enTete: EnTetePlan): string {
   }
   lignes.push(
     '',
-    'Durée totale de capture : ' + dureeLisible(b.captureMin * S_PAR_MINUTE) + '.',
+    'Durée totale de capture : ' + dureeLisible(b.captureMin * S_PAR_MIN) + '.',
   )
   return lignes.join('\n')
 }

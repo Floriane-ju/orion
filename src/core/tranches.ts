@@ -1,5 +1,5 @@
 /**
- * T-0296 — un long balayage, rendu par tranches.
+ * §3.2, §12.1, T-0296 — un long balayage, rendu par tranches.
  *
  * Décoder quatre-vingt mille étoiles ou en indexer la sphère tient le fil principal deux
  * cents millisecondes sur une tablette : pendant ce temps le ciel ne tourne plus, la frappe

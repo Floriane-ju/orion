@@ -1,5 +1,5 @@
 /**
- * T-0153 — la phrase qui dit où pointe la scène : la visée, le cap, le champ.
+ * §11.3, T-0153 — la phrase qui dit où pointe la scène : la visée, le cap, le champ.
  *
  * Elle tenait le centre d'une barre basse qui portait aussi le lieu et la légende. La barre
  * est démontée : la phrase et la légende montent dans la barre haute, le lieu devient la carte

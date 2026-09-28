@@ -18,8 +18,8 @@ import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
 import { DEG } from './mat3.ts'
 import type { ModeProjection } from './projection.ts'
+import { UM_PAR_MM } from './unites.ts'
 
-const UM_PAR_MM = 1000
 
 /** §5.1 — quatre régimes, pour un seeing courant de 2 à 3" (C-04). */
 export type DiagnosticEchantillonnage =

@@ -1,5 +1,5 @@
 /**
- * T-0052 — chercher un objet du catalogue par son nom.
+ * §6.4, T-0052 — chercher un objet du catalogue par son nom.
  *
  * Un catalogue de ~14 000 entrées ne se parcourt pas, il s'interroge : dérouler ses 400
  * premières entrées ne montre que des IC et met M45 hors d'atteinte. Ce module répond à la

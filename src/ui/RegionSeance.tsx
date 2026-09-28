@@ -1,5 +1,5 @@
 /**
- * Ce que la coque pose sur la scène, et ce qu'elle ouvre à côté.
+ * §11.3 — ce que la coque pose sur la scène, et ce qu'elle ouvre à côté.
  *
  * T-0113 — le panneau droit à quatre onglets est démonté. Les quatre intentions n'avaient pas
  * la même nature : deux se règlent EN regardant le ciel — la vue et la cible — et deux se

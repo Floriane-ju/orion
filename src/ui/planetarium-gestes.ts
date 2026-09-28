@@ -1,5 +1,5 @@
 /**
- * Les gestes que la scène accepte : glisser pour promener la visée, molette et pincement
+ * §3.6 — les gestes que la scène accepte : glisser pour promener la visée, molette et pincement
  * pour le champ, défilement à deux doigts pour promener aussi — et, depuis T-0069, les
  * touches, qui rejouent les mêmes gestes dans les mêmes bornes.
  *

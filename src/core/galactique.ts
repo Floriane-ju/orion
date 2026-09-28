@@ -27,10 +27,9 @@ import {
 } from './mat3.ts'
 import { poseParPixelS } from './file-etoiles.ts'
 import { trace, type Traced } from './traced.ts'
-import { DEMI_TOUR_DEG, encadre } from './unites.ts'
+import { DEMI_TOUR_DEG, encadre, UM_PAR_MM } from './unites.ts'
 
 const QUART_TOUR = 90
-const UM_PAR_MM = 1000
 
 /**
  * Rotation J2000 → galactique. Trois rotations, dans cet ordre : amener le pôle galactique
