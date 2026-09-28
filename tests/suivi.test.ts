@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { npf, profilSuivi } from '../src/core/tracking.ts'
+import { npf, profilSuivi } from '../src/core/suivi.ts'
 import { dependDUnOrdreDeGrandeur } from '../src/core/traced.ts'
 
 /** Annexe A — configuration ciel profond, 120 mm f/2,8, pitch 5,12 µm. */

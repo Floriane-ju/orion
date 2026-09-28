@@ -17,7 +17,7 @@
 
 import { Horizon } from 'astronomy-engine'
 import { K } from '../registry/constants.ts'
-import type { TypeMonture } from './tracking.ts'
+import type { TypeMonture } from './suivi.ts'
 import type { Site } from './ephem.ts'
 import { observateur } from './ephem.ts'
 import type { MasqueHorizon } from './site.ts'

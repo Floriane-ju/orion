@@ -11,7 +11,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { fenetreNocturne } from '../src/core/night.ts'
+import { fenetreNocturne } from '../src/core/nuit.ts'
 import { etatLune, fenetreUtile } from '../src/core/moon.ts'
 import { masquePlat, masseAir } from '../src/core/site.ts'
 import { PRESET_SNR_DEFAUT } from '../src/registry/verdicts.ts'

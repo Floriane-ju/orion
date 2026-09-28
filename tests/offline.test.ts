@@ -4,7 +4,7 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fenetreNocturne } from '../src/core/night.ts'
+import { fenetreNocturne } from '../src/core/nuit.ts'
 import { Body, positionCorps } from '../src/core/ephem.ts'
 import {
   MATRICE_DEGRADATION,

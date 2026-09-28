@@ -84,7 +84,7 @@ const CHAMPS_AVANCES = Object.freeze([
  * repliée aussi (T-0238) — deux libellés écrits séparément finiraient par ne plus nommer la
  * même option.
  */
-export const LIBELLES_RECADRAGE: Readonly<Record<CapteurMode, string>> = Object.freeze({
+export const LIBELLE_RECADRAGE: Readonly<Record<CapteurMode, string>> = Object.freeze({
   FULL_FRAME: 'Plein format',
   APSC_CROP: 'Recadrage APS-C',
 })
@@ -335,8 +335,8 @@ export function PanneauBoitier(props: PanneauBoitierProps) {
           valeur={props.capteurMode}
           surChangement={props.surCapteurMode}
         >
-          <option value="FULL_FRAME">{LIBELLES_RECADRAGE.FULL_FRAME}</option>
-          <option value="APSC_CROP">{LIBELLES_RECADRAGE.APSC_CROP}</option>
+          <option value="FULL_FRAME">{LIBELLE_RECADRAGE.FULL_FRAME}</option>
+          <option value="APSC_CROP">{LIBELLE_RECADRAGE.APSC_CROP}</option>
         </ChampChoix>
       </div>
       {props.noteRecadrage !== undefined && <Mention ton="cause">{props.noteRecadrage}</Mention>}

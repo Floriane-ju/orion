@@ -10,7 +10,7 @@
 import { describe, expect, it } from 'vitest'
 import { cartePoseMax, traceePx } from '../src/core/grand-champ.ts'
 import { fovDeg } from '../src/core/optics.ts'
-import { npf } from '../src/core/tracking.ts'
+import { npf } from '../src/core/suivi.ts'
 import { K } from '../src/registry/constants.ts'
 
 /** Setup grand angle de référence du PRD : 10 mm f/2,8, pitch 5,12 µm, plein format. */

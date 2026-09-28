@@ -23,7 +23,7 @@
  */
 
 import type { ProfilOptique, TypeObjectif } from '../core/optics.ts'
-import type { ProfilSuivi, QualiteMiseEnStation, TypeMonture } from '../core/tracking.ts'
+import type { ProfilSuivi, QualiteMiseEnStation, TypeMonture } from '../core/suivi.ts'
 import type { Traced } from '../core/traced.ts'
 import type {
   CapteurMode,
@@ -33,7 +33,7 @@ import type {
 } from '../data/equipment.ts'
 import { TracedValue } from './TracedValue.tsx'
 import { Carte } from './Carte.tsx'
-import { LIBELLES_RECADRAGE, PanneauBoitier } from './PanneauBoitier.tsx'
+import { LIBELLE_RECADRAGE, PanneauBoitier } from './PanneauBoitier.tsx'
 import { ChampChoix } from './ChampChoix.tsx'
 import { ChampDomaine } from './ChampDomaine.tsx'
 import { Interrupteur } from './Interrupteur.tsx'
@@ -57,7 +57,7 @@ interface ProfilMonture {
 /**
  * T-0236 — sans suivi, le type de monture n'a plus de conséquence : celui retenu est celui qui
  * n'impose rien, pas de retournement au méridien (§8.2), et la mise en station reste non
- * renseignée. `APPROX` et `INCONNUE` ne sont plus deux réponses : `modeSuivi` (core/tracking.ts)
+ * renseignée. `APPROX` et `INCONNUE` ne sont plus deux réponses : `modeSuivi` (core/suivi.ts)
  * les traite déjà comme une seule mise en station approximative, et `INCONNUE` ne survit que
  * dans les profils déjà enregistrés.
  */
@@ -171,7 +171,7 @@ function ChampsSuivi(props: PanneauMaterielProps) {
           <option value="GEM_APPROX">Équatoriale — à la boussole</option>
         </ChampChoix>
       </div>
-      {/* §5.2 — fermer le ciel profond et le justifier sont un seul geste (core/tracking.ts) :
+      {/* §5.2 — fermer le ciel profond et le justifier sont un seul geste (core/suivi.ts) :
           cette cause doit rester visible sans naviguer, qu'on suive ou non. Sans suivi, ce
           n'est pas un défaut de saisie mais le régime naturel du grand champ : `etat`, pas
           de signe d'alerte. La phrase longue (grand champ, NPF) reste dans `profilSuivi` —
@@ -204,7 +204,7 @@ export function PanneauMateriel(props: PanneauMaterielProps) {
   const lectures = props.lectures
   return (
     <div className="cartes-materiel">
-      <Carte cle="BOITIER" titre="Boîtier" resume={LIBELLES_RECADRAGE[props.capteurMode]}>
+      <Carte cle="BOITIER" titre="Boîtier" resume={LIBELLE_RECADRAGE[props.capteurMode]}>
         <PanneauBoitier
           boitierId={props.boitierId}
           surBoitierId={props.surBoitierId}

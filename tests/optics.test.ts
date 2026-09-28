@@ -7,7 +7,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { profilOptique } from '../src/core/optics.ts'
-import { npf } from '../src/core/tracking.ts'
+import { npf } from '../src/core/suivi.ts'
 import { SaisieRefuseeError } from '../src/registry/domains.ts'
 import { BOITIER_REFERENCE, capteurEffectif } from '../src/data/equipment.ts'
 import { DEG } from '../src/core/mat3.ts'

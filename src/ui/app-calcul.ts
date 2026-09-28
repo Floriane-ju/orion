@@ -8,7 +8,7 @@
  */
 
 import { useDeferredValue, useMemo, useRef } from 'react'
-import { fenetreNocturne, offsetMidiSolaireMin, type FenetreNocturne } from '../core/night.ts'
+import { fenetreNocturne, offsetMidiSolaireMin, type FenetreNocturne } from '../core/nuit.ts'
 import { midiDeLaNuit } from '../core/nuit-datee.ts'
 import { etatsCibles, type EtatCible } from '../core/cibles-liste.ts'
 import { fenetreUtile as calculeFenetreUtile, type FenetreUtile } from '../core/moon.ts'
@@ -29,12 +29,12 @@ import {
   FondDeCielIndeterminableError,
   fondDeCiel,
   type FondDeCiel,
-} from '../core/sky-background.ts'
+} from '../core/fond-ciel.ts'
 import { profilOptique, type ProfilOptique } from '../core/optics.ts'
 import { fluxCiel } from '../core/exposure.ts'
 import type { IndexCiel } from '../core/index-ciel.ts'
 import type { EntreeProfondeur } from '../core/galactique.ts'
-import { npf, profilSuivi, type ProfilSuivi } from '../core/tracking.ts'
+import { npf, profilSuivi, type ProfilSuivi } from '../core/suivi.ts'
 import { BortleHorsTableError } from '../registry/bortle.ts'
 import { SaisieRefuseeError } from '../registry/domains.ts'
 import { HorsDomaineSeriesError, type Site } from '../core/ephem.ts'

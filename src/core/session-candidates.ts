@@ -17,7 +17,7 @@ import {
   type Intervalle,
 } from './creneaux.ts'
 import { detectabilite } from './detectability.ts'
-import { ficheCadrage } from './framing.ts'
+import { ficheCadrage } from './cadrage.ts'
 import { fluxCiel, fluxObjet, fluxObjetReel, planIntegration, poseUnitaire } from './exposure.ts'
 import { cielSousLaLune } from './moon.ts'
 import { altitudeCulmination } from './site.ts'

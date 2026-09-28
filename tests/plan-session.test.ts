@@ -9,7 +9,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { fenetreNocturne } from '../src/core/night.ts'
+import { fenetreNocturne } from '../src/core/nuit.ts'
 import { fenetreUtile } from '../src/core/moon.ts'
 import { masquePlat } from '../src/core/site.ts'
 import {
@@ -19,7 +19,7 @@ import {
   type ContexteSession,
 } from '../src/core/session.ts'
 import { planEnTexte } from '../src/core/plan-texte.ts'
-import { profilSuivi } from '../src/core/tracking.ts'
+import { profilSuivi } from '../src/core/suivi.ts'
 import { etatsCibles, photographiable } from '../src/core/cibles-liste.ts'
 import { decodeObjets, type ObjetCielProfond } from '../src/data/deepsky.ts'
 import { K } from '../src/registry/constants.ts'

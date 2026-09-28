@@ -6,7 +6,7 @@
  * valeurs tracées. C'est ce qui rend la chaîne vérifiable de bout en bout.
  */
 
-import { ficheCadrage, type FicheCadrage } from '../core/framing.ts'
+import { ficheCadrage, type FicheCadrage } from '../core/cadrage.ts'
 import { detectabilite, type Detectabilite } from '../core/detectability.ts'
 import {
   attenuationBrute,

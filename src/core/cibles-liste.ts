@@ -16,7 +16,7 @@
  * existe et dit ce qui manque. C'est `filtreLignes` qui restreint, sur demande explicite.
  */
 
-import { ficheCadrage } from './framing.ts'
+import { ficheCadrage } from './cadrage.ts'
 import { detectabilite, type VerdictDetectabilite } from './detectability.ts'
 import { applique, versSpherique, versVecteur, type Mat3 } from './mat3.ts'
 import { chercheCatalogue } from './recherche-catalogue.ts'

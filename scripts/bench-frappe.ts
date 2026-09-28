@@ -36,13 +36,13 @@ import {
   resoutBoitier,
   type SaisieBoitier,
 } from '../src/data/equipment.ts'
-import { fenetreNocturne, offsetMidiSolaireMin } from '../src/core/night.ts'
+import { fenetreNocturne, offsetMidiSolaireMin } from '../src/core/nuit.ts'
 import { midiDeLaNuit } from '../src/core/nuit-datee.ts'
 import { fenetreUtile } from '../src/core/moon.ts'
-import { fondDeCiel } from '../src/core/sky-background.ts'
+import { fondDeCiel } from '../src/core/fond-ciel.ts'
 import { masquePlat, seuilsDeclinaison } from '../src/core/site.ts'
 import { profilOptique } from '../src/core/optics.ts'
-import { npf, profilSuivi, type QualiteMiseEnStation, type TypeMonture } from '../src/core/tracking.ts'
+import { npf, profilSuivi, type QualiteMiseEnStation, type TypeMonture } from '../src/core/suivi.ts'
 import { planSession, poidsParDefaut, type ContexteSession } from '../src/core/session.ts'
 import { etatsCibles, lignesInvariantes } from '../src/core/cibles-liste.ts'
 import { borne, nombreDeTexte } from '../src/registry/domains.ts'

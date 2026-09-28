@@ -6,9 +6,9 @@
  * porte sa définition au contact.
  */
 
-import type { FenetreNocturne } from '../core/night.ts'
+import type { FenetreNocturne } from '../core/nuit.ts'
 import { nomDeLaNuit } from '../core/nuit-datee.ts'
-import type { FondDeCiel } from '../core/sky-background.ts'
+import type { FondDeCiel } from '../core/fond-ciel.ts'
 import type { Traced } from '../core/traced.ts'
 import { TracedValue } from './TracedValue.tsx'
 import { Mention } from './Mention.tsx'

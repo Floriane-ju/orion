@@ -15,7 +15,7 @@ import { K } from '../registry/constants.ts'
 import { cellulesCadreJ2000, type Cadre } from '../core/cadre.ts'
 import { angleDeSinDeg, type Mat3 } from '../core/mat3.ts'
 import { pointEcran, type Projecteur } from '../core/projection.ts'
-import { npf } from '../core/tracking.ts'
+import { npf } from '../core/suivi.ts'
 import { POLICE_SCENE } from './couleurs.ts'
 import { formatePose } from './horaire.ts'
 

@@ -15,7 +15,7 @@ import {
   masseAirKS,
   nanolamberts,
 } from '../src/core/moon.ts'
-import { fenetreNocturne } from '../src/core/night.ts'
+import { fenetreNocturne } from '../src/core/nuit.ts'
 import { K } from '../src/registry/constants.ts'
 import { separationEquatorialeDeg } from '../src/core/mat3.ts'
 

@@ -12,7 +12,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../src/App.tsx'
-import { fenetreNocturne } from '../src/core/night.ts'
+import { fenetreNocturne } from '../src/core/nuit.ts'
 import {
   jourLocalIso,
   midiDeLaNuit,

@@ -28,7 +28,7 @@ import {
 import { MenuReglages } from '../src/ui/MenuReglages.tsx'
 import { BoutonInfo } from '../src/ui/PageInfo.tsx'
 import { DEFAUT } from '../src/ui/app-saisie.ts'
-import { LIBELLES_RECADRAGE } from '../src/ui/PanneauBoitier.tsx'
+import { LIBELLE_RECADRAGE } from '../src/ui/PanneauBoitier.tsx'
 import { ALERTE_VERIFICATION } from '../src/ui/Verification.tsx'
 import { SOURCES } from '../src/registry/sources.ts'
 import { CREDIT_RELEVE } from '../src/registry/imagerie.ts'
@@ -204,7 +204,7 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
       return html.slice(debut, html.indexOf('</button>', debut))
     }
     expect(entete('boitier')).toContain(
-      `<span class="carte-resume">${LIBELLES_RECADRAGE.FULL_FRAME}</span>`,
+      `<span class="carte-resume">${LIBELLE_RECADRAGE.FULL_FRAME}</span>`,
     )
     expect(entete('optique')).toMatch(/<span class="carte-resume">[^<?]+ mm f\/[^<?]+<\/span>/)
     // Le plan replié dit combien de cibles il ordonne — aucune au démarrage.

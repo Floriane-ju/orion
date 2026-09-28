@@ -7,7 +7,7 @@
  * scène — ici ne restent que les réglages et les nombres qu'ils produisent.
  *
  * Ce fichier n'assemble que les régions : les nombres viennent de `useLecturesFile`, et
- * chaque région est un composant nommé dans `PanneauFile-sections.tsx`.
+ * chaque région est un composant nommé dans `SectionsFile.tsx`.
  */
 
 import type { EntreeProfondeur } from '../core/galactique.ts'
@@ -23,7 +23,7 @@ import {
   PoseMaximale,
   ProfondeurDUnePose,
   SequenceDePrises,
-} from './PanneauFile-sections.tsx'
+} from './SectionsFile.tsx'
 
 export interface PanneauFileProps {
   readonly site: Site

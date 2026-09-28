@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { creneauCible } from '../src/core/creneaux.ts'
-import { fenetreNocturne } from '../src/core/night.ts'
+import { fenetreNocturne } from '../src/core/nuit.ts'
 import {
   masqueDepuisPoints,
   masqueDepuisRelief,

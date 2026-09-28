@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { fenetreNocturne, offsetMidiSolaireMin } from '../src/core/night.ts'
+import { fenetreNocturne, offsetMidiSolaireMin } from '../src/core/nuit.ts'
 import { seuilsDeclinaison, masseAir } from '../src/core/site.ts'
 import { HorsDomaineSeriesError, dansLeDomaineDesSeries } from '../src/core/ephem.ts'
 

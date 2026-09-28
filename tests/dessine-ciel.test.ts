@@ -522,7 +522,7 @@ describe('passe de rendu §3.3', () => {
 /**
  * T-0097, T-0098, T-0100 — la vue réaliste dans la passe de rendu.
  *
- * Le modèle lui-même est vérifié dans `fond-ciel.test.ts` ; ce qui se joue ici est l'ORDRE
+ * Le modèle lui-même est vérifié dans `fond-ciel-rendu.test.ts` ; ce qui se joue ici est l'ORDRE
  * des couches et le fait que le mode nuit ne peint rien de tout cela.
  */
 /**

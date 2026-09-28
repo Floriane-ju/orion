@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { fenetreNocturne } from '../src/core/night.ts'
+import { fenetreNocturne } from '../src/core/nuit.ts'
 import { fenetreUtile } from '../src/core/moon.ts'
 import { masqueDepuisPoints, masquePlat, type PointMasque } from '../src/core/site.ts'
 import { DOMAINES } from '../src/registry/domains.ts'

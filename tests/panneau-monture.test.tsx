@@ -15,7 +15,7 @@ import {
   PROFILS_MONTURE,
   type ChoixMonture,
 } from '../src/ui/PanneauMateriel.tsx'
-import { profilSuivi, type QualiteMiseEnStation, type TypeMonture } from '../src/core/tracking.ts'
+import { profilSuivi, type QualiteMiseEnStation, type TypeMonture } from '../src/core/suivi.ts'
 import { DEFAUT, type SaisieMateriel } from '../src/ui/app-saisie.ts'
 import { evalueMateriel, grandeursMateriel } from '../src/ui/app-calcul.ts'
 import { ouvreCarte } from '../src/ui/coque-etat.ts'

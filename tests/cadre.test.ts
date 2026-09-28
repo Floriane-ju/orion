@@ -17,7 +17,7 @@ import {
   type Cadre,
   type ProfilCadre,
 } from '../src/core/cadre.ts'
-import { ficheCadrage } from '../src/core/framing.ts'
+import { ficheCadrage } from '../src/core/cadrage.ts'
 import { vuePlanetarium } from '../src/ui/scene-etat.ts'
 import { fovDeg } from '../src/core/optics.ts'
 import { BOITIER_REFERENCE, capteurEffectif } from '../src/data/equipment.ts'

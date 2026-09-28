@@ -11,7 +11,7 @@ import {
   ficheCadrage,
   focaleIdeale,
   REFUS_RECADRAGE_LOGICIEL,
-} from '../src/core/framing.ts'
+} from '../src/core/cadrage.ts'
 import { profilOptique } from '../src/core/optics.ts'
 import { BOITIER_REFERENCE, capteurEffectif } from '../src/data/equipment.ts'
 

@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { BortleHorsTableError, interpoleBortle } from '../src/registry/bortle.ts'
-import { fondDeCiel, FondDeCielIndeterminableError } from '../src/core/sky-background.ts'
+import { fondDeCiel, FondDeCielIndeterminableError } from '../src/core/fond-ciel.ts'
 
 describe('table Bortle §2.2', () => {
   it('interpole entre les lignes 4 et 5 pour un Bortle de 4,5', () => {

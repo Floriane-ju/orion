@@ -14,7 +14,7 @@
 import { describe, expect, it } from 'vitest'
 import { Body } from 'astronomy-engine'
 import { positionCorps, type Site } from '../src/core/ephem.ts'
-import { fenetreNocturne } from '../src/core/night.ts'
+import { fenetreNocturne } from '../src/core/nuit.ts'
 import { nanolamberts } from '../src/core/moon.ts'
 import {
   brillanceCrepusculeNl,

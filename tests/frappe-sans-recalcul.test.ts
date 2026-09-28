@@ -25,7 +25,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fenetreNocturne } from '../src/core/night.ts'
+import { fenetreNocturne } from '../src/core/nuit.ts'
 import { planSession, poidsParDefaut } from '../src/core/session.ts'
 import { etatsCibles } from '../src/core/cibles-liste.ts'
 import { nuitDeLInstant } from '../src/core/nuit-datee.ts'
@@ -101,8 +101,8 @@ vi.mock('react', async (importeReel) => {
   }
 })
 
-vi.mock('../src/core/night.ts', async (importeReel) => {
-  const reel = await importeReel<typeof import('../src/core/night.ts')>()
+vi.mock('../src/core/nuit.ts', async (importeReel) => {
+  const reel = await importeReel<typeof import('../src/core/nuit.ts')>()
   return { ...reel, fenetreNocturne: vi.fn(reel.fenetreNocturne) }
 })
 
