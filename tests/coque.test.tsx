@@ -462,7 +462,7 @@ describe('§11.3 — la bascule de mode forme les onglets du panneau latéral', 
     const actif = CSS_COQUE.slice(debut, CSS_COQUE.indexOf('}', debut))
     expect(actif).toContain('background: var(--surface-haute)')
     expect(actif).toContain('border-bottom-color: var(--texte)')
-    expect(actif).toContain('font-weight: 700')
+    expect(actif).toContain('font-weight: var(--graisse-forte)')
   })
 
   it('garde les onglets au-dessus de la fiche : on en sort sans repasser par la liste', () => {
@@ -811,7 +811,7 @@ describe('T-0041 — un tiroir qui s’alerte ne le dit pas par la seule couleur
     expect(debut).toBeGreaterThan(-1)
     const corps = CSS.slice(debut, CSS.indexOf('}', debut))
     // Le rouge du mode nuit ne dit rien seul.
-    expect(corps).toContain('font-weight: 700')
+    expect(corps).toContain('font-weight: var(--graisse-forte)')
     expect(corps).toContain('border-color: var(--alerte)')
   })
 })

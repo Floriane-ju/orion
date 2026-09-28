@@ -271,13 +271,18 @@ describe('focus et couleurs du navigateur — T-0070', () => {
 
   /** Le jeton qui colore l'anneau de focus. */
   function jetonFocus(): string {
-    const cites = jetonsCites(valeurDe(regle(':focus-visible'), 'outline'))
+    // T-0331 — l'épaisseur est un jeton aussi (`--trait-focus`) : seule la COULEUR compte ici.
+    const cites = jetonsCites(valeurDe(regle(':focus-visible'), 'outline')).filter(
+      (j) => j !== 'trait-focus',
+    )
     expect(cites, 'l’anneau de focus n’est pas coloré par un jeton').toHaveLength(1)
     return cites[0]!
   }
 
   it('trace un anneau de focus explicite, et n’en supprime aucun', () => {
-    expect(valeurDe(regle(':focus-visible'), 'outline')).toMatch(/\d+px solid var\(--[a-z-]+\)/)
+    expect(valeurDe(regle(':focus-visible'), 'outline')).toMatch(
+      /^var\(--trait-focus\) solid var\(--[a-z-]+\)$/,
+    )
     // Un anneau détaché de la bordure de l'élément, sans quoi il s'y confond.
     expect(regle(':focus-visible')).toMatch(/outline-offset:/)
     // `outline: none` quelque part rendrait le parcours au clavier invisible à cet endroit.
@@ -285,7 +290,7 @@ describe('focus et couleurs du navigateur — T-0070', () => {
   })
 
   it('rentre l’anneau du canevas, que la scène rognerait', () => {
-    expect(valeurDe(regle('.planetarium:focus-visible'), 'outline-offset')).toMatch(/^-/)
+    expect(valeurDe(regle('.planetarium:focus-visible'), 'outline-offset')).toMatch(/^-|\*\s*-\d/)
   })
 
   it('donne à l’anneau ≥ 3:1 sur toutes les surfaces, à luminance nominale', () => {
@@ -381,7 +386,7 @@ describe('contraste du texte — WCAG 2.2 AA', () => {
     for (const selecteur of ['.libelle', '.etat']) {
       expect(regle(selecteur), selecteur).toMatch(/font-size: var\(--texte-[a-z]+\)/)
     }
-    expect(regle('.onglet.actif')).toMatch(/font-weight: 700/)
+    expect(regle('.onglet.actif')).toMatch(/font-weight: var\(--graisse-forte\)/)
   })
 })
 
@@ -581,7 +586,8 @@ describe('mouvement réduit — WCAG 2.3.3', () => {
     const bloc = blocMouvementReduit()
     const durees = [...bloc.matchAll(/(\d+)ms/g)].map((m) => Number(m[1]))
     expect(durees.length, 'la préférence ne redéfinit aucune durée').toBeGreaterThan(0)
-    const nominale = Number(/transition:\s*background-color\s*(\d+)ms/.exec(CSS)?.[1])
+    // T-0331 — la durée nominale est un jeton : sa première déclaration est la nominale.
+    const nominale = Number(/--fondu-nuit:\s*(\d+)ms/.exec(CSS)?.[1])
     for (const duree of durees) {
       // Zéro rendrait le basculement brutal que §11.1 interdit.
       expect(duree, `${duree}ms`).toBeGreaterThan(0)

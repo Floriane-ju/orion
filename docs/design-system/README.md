@@ -218,9 +218,26 @@ où un texte hérite du suivi d'un conteneur qui n'est pas le sien.
 
 ### Formes, durées, polices
 
-`--trait` 1px · `--trait-marque` 3px (le filet épais d'une alerte) ·
-`--decalage-souligne` 3px (le pointillé d'aide) · `--fondu-etat` 150ms (80ms sous
-`prefers-reduced-motion`)
+`--trait` 1px · `--trait-marque` 3px (le filet épais d'une alerte) · `--trait-focus`
+(deux filets : l'anneau de focus et son détachement) · `--decalage-souligne` 3px (le
+pointillé d'aide) · `--voile` et `--voile-page` (le fond translucide d'un flottant posé sur
+la scène, et celui de la page info)
+
+**Fondus** — `--fondu-etat` 150ms (retour d'état d'un contrôle, 80ms sous
+`prefers-reduced-motion`) · `--fondu-depli` 180ms (un dépli) · `--fondu-nuit` 600ms (le
+basculement de §11.1, 120ms sous la préférence : raccourci, jamais supprimé).
+
+**Interlignage** — `--interligne-serre` 1 (une ligne unique : glyphe, compteur) ·
+`--interligne-controle` 1,4 (ce qui se clique, les bulles) · `--interligne-texte` 1,6 (ce qui
+se lit).
+
+**Graisses** — `--graisse-normale` 400 · `--graisse-moyenne` 500 · `--graisse-titre` 600 ·
+`--graisse-forte` 700 : une par fichier livré. `echelles.test.ts` échoue sur une graisse, un
+interlignage ou une durée écrits en dur, et sur une graisse qu'aucun `@font-face` ne livre.
+
+**Icônes** — `.icone` est la seule déclaration de `font-variation-settings`. Un état rempli ou
+appuyé règle `--icone-remplissage` (0 ou 1) et `--icone-graisse` (300 par défaut), jamais la
+déclaration elle-même.
 
 `--police-mono` (IBM Plex Mono) · `--police-titre` (Barlow Condensed) ·
 `--police-icone` (Material Symbols Sharp). **Les trois sont livrées dans `src/fonts/`** :
@@ -237,9 +254,14 @@ Ils mesurent des **objets**, pas l'air entre eux. Un pas d'espacement qui dimens
 barre ferait dépendre la hauteur de la coque du grain des marges — deux réglages sans rapport.
 `echelles.test.ts` les tient hors de l'échelle.
 
-**Il n'y a pas de jetons de z-index ni de points de rupture.** L'empilement est déclaré une
-fois, avec son ordre en commentaire, dans le bloc de la coque. Il n'existe qu'un seul point de
-rupture (1100px) : un jeton pour une valeur unique serait une abstraction « au cas où ».
+**La pile** — du fond vers l'avant : `--plan-scene` 0 · `--plan-entete` 1 (l'en-tête collant
+d'une fenêtre qui défile) · `--plan-cartes` 2 · `--plan-panneaux` 3 (rail, colonne de droite)
+· `--plan-nuit` 4 · `--plan-barre` 5 (barre haute, fenêtre de tiroir) · `--plan-page` 6 ·
+`--plan-bulle` 7. Tout `z-index` cite un rang ; la bulle est au rang le plus haut, parce
+qu'elle nomme ce qu'on survole où que ce soit. `echelles.test.ts` tient les deux règles.
+
+**Il n'y a pas de jeton de point de rupture.** Il n'existe qu'un seul point de rupture
+(1100px) : un jeton pour une valeur unique serait une abstraction « au cas où ».
 
 ---
 
@@ -397,7 +419,6 @@ les plus proches, et demander.
 | Absent | Raison |
 |---|---|
 | Une couche de primitives sous les couleurs | Le mode nuit surcharge chaque jeton sémantique individuellement. Une primitive n'aurait aucun consommateur. |
-| Des jetons de z-index | Sept valeurs, un seul bloc, un ordre d'empilement énoncé en commentaire. |
 | Un jeton de point de rupture | Une seule valeur (1100px). |
 | Un composant `Bouton` | Le style est porté par le sélecteur d'élément `button`, appliqué aux boutons à libellé. Un composant n'ajouterait qu'une indirection. Le bouton à glyphe seul, lui, en a un (`BoutonGlyphe`) : il porte un contrat — bulle, nom accessible, cible gantée — que neuf recopies tenaient chacune à sa façon. |
 | `Modale`, `Badge`, `Toast`, `Skeleton`, `Pagination` | Aucun n'existe dans le produit. |

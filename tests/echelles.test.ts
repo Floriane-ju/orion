@@ -329,3 +329,54 @@ describe('T-0216 — le rythme vertical d’une section', () => {
     expect(pas(/\.champs \{/)).toBe(pas(/section:not\(\[class\]\) > \* \+ \*/))
   })
 })
+
+/**
+ * T-0331 — interlignage, graisse, durée et empilement ont chacun leur échelle.
+ *
+ * Même règle que les écarts et les corps : une valeur écrite en dur dans une règle est un
+ * bug. Les jetons eux-mêmes et les `@font-face` — qui DÉCRIVENT les fichiers livrés — sont
+ * les seuls endroits où un nombre s'écrit.
+ */
+describe('T-0331 — les échelles de souffle, de graisse, de durée et de pile', () => {
+  /** La feuille sans ses commentaires, sans les `@font-face` et sans les déclarations de jetons. */
+  const REGLES_SEULES = CSS.replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/@font-face\s*\{[^}]*\}/g, '')
+    .replace(/^\s*--[\w-]+:[^;]*;/gm, '')
+
+  it('aucun interlignage écrit en dur', () => {
+    const fautes = [
+      ...[...REGLES_SEULES.matchAll(/line-height:\s*([^;]+);/g)].map((m) => m[1]!),
+      ...[...REGLES_SEULES.matchAll(/font:[^;/]*\/([^\s;]+)/g)].map((m) => m[1]!),
+    ].filter((v) => !/^var\(--interligne-[a-z]+\)$/.test(v))
+    expect(fautes).toEqual([])
+  })
+
+  it('aucune graisse écrite en dur, et chaque graisse a son fichier', () => {
+    const fautes = [...REGLES_SEULES.matchAll(/font-weight:\s*([^;]+);/g)]
+      .map((m) => m[1]!)
+      .filter((v) => !/^var\(--graisse-[a-z]+\)$/.test(v))
+    expect(fautes).toEqual([])
+    const livrees = new Set(
+      [...CSS.matchAll(/@font-face\s*\{[^}]*font-weight:\s*(\d+);/g)].map((m) => Number(m[1])),
+    )
+    const graisses = [...CSS.matchAll(/--graisse-[a-z]+:\s*(\d+);/g)].map((m) => Number(m[1]))
+    expect(graisses.length).toBeGreaterThanOrEqual(4)
+    for (const g of graisses) expect({ g, livree: livrees.has(g) }).toEqual({ g, livree: true })
+  })
+
+  it('aucune durée d’animation écrite en dur', () => {
+    const fautes = [...REGLES_SEULES.matchAll(/\b\d+m?s\b/g)].map((m) => m[0])
+    expect(fautes).toEqual([])
+  })
+
+  it('tout empilement cite un rang de la pile', () => {
+    const fautes = [...REGLES_SEULES.matchAll(/z-index:\s*([^;]+);/g)]
+      .map((m) => m[1]!)
+      .filter((v) => !/^var\(--plan-[a-z]+\)$/.test(v))
+    expect(fautes).toEqual([])
+    // La bulle passe devant tout ce qui la contient : rang le plus haut de la pile.
+    const rangs = [...CSS.matchAll(/--plan-([a-z]+):\s*(\d+);/g)].map((m) => [m[1]!, Number(m[2])] as const)
+    const max = Math.max(...rangs.map(([, r]) => r))
+    expect(rangs.find(([nom]) => nom === 'bulle')?.[1]).toBe(max)
+  })
+})

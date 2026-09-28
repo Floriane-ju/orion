@@ -53,9 +53,8 @@ describe('composant Pastilles', () => {
       const debut = CSS.indexOf(`.facilite-${classe} {`)
       expect(debut, classe).toBeGreaterThan(-1)
       const regle = CSS.slice(debut, CSS.indexOf('}', debut))
-      const axe = /'FILL'\s+(\d)/.exec(regle)
-      expect(axe, classe).not.toBeNull()
-      return axe![1]!
+      // T-0331 — l'axe se règle par `--icone-remplissage` ; absent, `.icone` retombe sur 0.
+      return /--icone-remplissage:\s*(\d)/.exec(regle)?.[1] ?? '0'
     }
     expect(fill('pleine')).toBe('1')
     expect(fill('vide')).toBe('0')

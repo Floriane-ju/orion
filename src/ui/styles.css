@@ -141,7 +141,7 @@
 
 /* Passage progressif, jamais un basculement brutal ni un flash (§11.1). */
 body {
-  transition: background-color 600ms ease, color 600ms ease;
+  transition: background-color var(--fondu-nuit) ease, color var(--fondu-nuit) ease;
 }
 
 /* Arbitrage entre §11.1 et WCAG 2.3.3.
@@ -154,12 +154,8 @@ body {
 
    L'auto-activation au crépuscule (§11.1) est le cas qui justifie la règle : là, le
    basculement n'est pas demandé au moment où il se produit. */
-@media (prefers-reduced-motion: reduce) {
-  body {
-    transition: background-color 120ms ease, color 120ms ease;
-  }
-
-}
+/* La surcharge de `--fondu-nuit` sous `prefers-reduced-motion` vit avec celle de
+   `--fondu-etat`, après les jetons : posée ici, elle serait réécrite par eux. */
 
 * {
   box-sizing: border-box;
@@ -253,6 +249,42 @@ pre {
      mouvement — rien ne se déplace, c'est le même fondu de luminance que le basculement de
      §11.1, et il tombe donc sous la même règle sous `prefers-reduced-motion`. */
   --fondu-etat: 150ms;
+  /* T-0331 — les deux autres fondus, nommés par ce qu'ils accompagnent. Le basculement de
+     §11.1 est lent pour qu'un œil adapté au noir le suive ; un dépli est court pour que le
+     regard suive le contenu sans l'attendre. */
+  --fondu-nuit: 600ms;
+  --fondu-depli: 180ms;
+  /* T-0331 — L'INTERLIGNAGE, trois rangs. Il y en avait six entre 1,35 et 1,6 : une phrase
+     d'erreur et le corps du texte n'avaient pas le même souffle sans que rien ne le veuille.
+     Serré pour une ligne unique (glyphe, compteur), contrôle pour ce qui se clique et les
+     bulles, texte pour ce qui se lit. */
+  --interligne-serre: 1;
+  --interligne-controle: 1.4;
+  --interligne-texte: 1.6;
+  /* T-0331 — LES GRAISSES, une par fichier livré (voir les @font-face). Une graisse sans son
+     fichier est synthétisée par le navigateur : le dessin cesse d'être celui de la charte. */
+  --graisse-normale: 400;
+  --graisse-moyenne: 500;
+  --graisse-titre: 600;
+  --graisse-forte: 700;
+  /* T-0331 — LA PILE, du fond vers l'avant. Onze z-index dispersés en disaient la moitié ;
+     la bulle était à égalité avec les barres et c'est l'ordre du DOM qui tranchait. Tout ce
+     qui empile cite un rang d'ici, et le rang dit pourquoi il est là. */
+  --plan-scene: 0;
+  /* L'en-tête collant d'une fenêtre qui défile : au-dessus de son propre contenu. */
+  --plan-entete: 1;
+  --plan-cartes: 2;
+  --plan-panneaux: 3;
+  --plan-nuit: 4;
+  --plan-barre: 5;
+  --plan-page: 6;
+  /* La bulle nomme ce qu'on survole, où que ce soit : elle passe devant tout. */
+  --plan-bulle: 7;
+  /* T-0331 — l'anneau de focus : deux filets, détaché d'autant. */
+  --trait-focus: calc(var(--trait) * 2);
+  /* T-0331 — le voile d'un flottant posé sur la scène : la scène se devine, le texte se lit. */
+  --voile: color-mix(in srgb, var(--surface) 82%, transparent);
+  --voile-page: color-mix(in srgb, var(--fond) 75%, transparent);
   /* Les gabarits de la coque. La barre et le panneau sont posés en absolu sur la scène :
      leur encombrement doit être connu d'ailleurs — le panneau et les cartes partent sous la
      barre. Un seul endroit le déclare. */
@@ -376,15 +408,18 @@ pre {
    lignes, le bouton affiche « CLOSE ». */
 .icone {
   font-family: var(--police-icone);
-  font-weight: normal;
+  font-weight: var(--graisse-normale);
   font-style: normal;
   font-size: 1.25rem;
-  line-height: 1;
+  line-height: var(--interligne-serre);
   text-transform: none;
   letter-spacing: normal;
   white-space: nowrap;
   direction: ltr;
-  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+  /* Les états remplis ou appuyés règlent ces deux axes, jamais la déclaration : `.icone` reste
+     le seul endroit où la police d'icônes se dessine. */
+  font-variation-settings: 'FILL' var(--icone-remplissage, 0), 'wght' var(--icone-graisse, 300),
+    'GRAD' 0, 'opsz' 24;
   -webkit-font-smoothing: antialiased;
   user-select: none;
 }
@@ -405,14 +440,14 @@ pre {
    `outline-offset` détache l'anneau : sans lui, un champ déjà bordé le verrait se confondre
    avec sa propre bordure. */
 :focus-visible {
-  outline: 2px solid var(--texte);
-  outline-offset: 2px;
+  outline: var(--trait-focus) solid var(--texte);
+  outline-offset: var(--trait-focus);
 }
 
 /* La colonne centrale rogne ce qui déborde et le canevas la remplit : un anneau posé à
    l'extérieur y serait coupé. Celui-ci rentre. */
 .planetarium:focus-visible {
-  outline-offset: -4px;
+  outline-offset: calc(var(--trait-focus) * -2);
 }
 
 
@@ -424,7 +459,7 @@ body {
   margin: 0;
   background: var(--fond);
   color: var(--texte);
-  font: var(--texte-corps)/1.6 var(--police-mono);
+  font: var(--texte-corps)/var(--interligne-texte) var(--police-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -444,14 +479,14 @@ body {
   background: var(--fond);
 }
 
-/* L'empilement, du fond vers la surface : la scène, les cartes, le panneau, les barres. Les
-   barres sont au-dessus de tout parce qu'elles portent les tiroirs — une fenêtre de tiroir
-   qui passerait sous le panneau latéral serait ouverte et invisible. */
+/* Les barres sont au-dessus des panneaux (`--plan-barre`) parce qu'elles portent les
+   tiroirs — une fenêtre de tiroir qui passerait sous le panneau latéral serait ouverte et
+   invisible. La pile entière est déclarée avec les jetons. */
 .coque-topbar {
   position: absolute;
   left: var(--jour-carte);
   right: calc(var(--lateral) + 2 * var(--jour-carte));
-  z-index: 5;
+  z-index: var(--plan-barre);
   display: flex;
   flex-wrap: nowrap;
   /* Calée en haut, pas centrée ni sur la ligne de base : le cadre des champs part du même trait
@@ -480,7 +515,7 @@ body {
 .coque-topbar > h1 {
   flex: none;
   /* Interligne resserré : la marque tient dans la hauteur de la barre, sans air au-dessus. */
-  line-height: 1;
+  line-height: var(--interligne-serre);
 }
 
 /* Les champs de la visée prennent ce que la marque et les commandes laissent, et se calent au
@@ -549,8 +584,8 @@ body {
 }
 
 .compteur.en-saisie:focus-within {
-  outline: 2px solid var(--texte);
-  outline-offset: 2px;
+  outline: var(--trait-focus) solid var(--texte);
+  outline-offset: var(--trait-focus);
 }
 
 /* LA VALEUR A SA LARGEUR, PAS CELLE DE CE QU'ELLE AFFICHE. `--compteur-largeur` est posée par
@@ -623,7 +658,7 @@ body {
 .coque-scene {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: var(--plan-scene);
   min-height: 0;
   overflow: hidden;
   padding: 0;
@@ -684,7 +719,7 @@ body {
 
 .carte {
   position: absolute;
-  z-index: 2;
+  z-index: var(--plan-cartes);
   width: var(--carte-large);
   max-width: calc(100% - 2 * var(--jour-carte));
   border: var(--trait) solid var(--bordure);
@@ -726,7 +761,7 @@ body {
    qu'on fait glisser. */
 .cartes-materiel {
   position: absolute;
-  z-index: 2;
+  z-index: var(--plan-cartes);
   right: calc(var(--lateral) + 2 * var(--jour-carte));
   top: var(--sous-barre);
   bottom: var(--jour-carte);
@@ -824,7 +859,7 @@ body {
   left: var(--jour-carte);
   top: var(--sous-barre);
   bottom: var(--jour-carte);
-  z-index: 3;
+  z-index: var(--plan-panneaux);
   width: var(--rail);
   display: flex;
   flex-direction: column;
@@ -865,7 +900,8 @@ body {
    basculement. Le fond et la teinte s'y ajoutent, ils ne le remplacent pas. */
 .bouton-glyphe[aria-pressed='true'] > .icone,
 .tiroir-nuit[data-actif='true'] > summary > .icone {
-  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  --icone-remplissage: 1;
+  --icone-graisse: 400;
 }
 
 /* `cadre` — dans un panneau : un filet discret, qui ne pèse pas sur deux cents lignes. */
@@ -893,7 +929,7 @@ body {
    là où `color-mix` n'est pas connu. */
 .bouton-glyphe-flottant {
   background: var(--surface);
-  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  background: var(--voile);
   color: var(--attenue);
   border: var(--trait) solid var(--bordure);
 }
@@ -1037,7 +1073,7 @@ body {
   right: var(--jour-carte);
   top: var(--jour-carte);
   bottom: var(--jour-carte);
-  z-index: 3;
+  z-index: var(--plan-panneaux);
   width: var(--lateral);
   max-width: calc(100% - 2 * var(--jour-carte));
   display: flex;
@@ -1277,7 +1313,7 @@ body {
 .onglet.actif {
   background: var(--surface-haute);
   color: var(--texte);
-  font-weight: 700;
+  font-weight: var(--graisse-forte);
   border-bottom-color: var(--texte);
   box-shadow: none;
 }
@@ -1336,7 +1372,7 @@ body {
   border-color: var(--alerte);
   color: var(--alerte);
   background: var(--fond-alerte);
-  font-weight: 700;
+  font-weight: var(--graisse-forte);
 }
 
 /* La fenêtre est fixée à l'ÉCRAN, pas au flux : la verticale s'ancre à la barre,
@@ -1349,7 +1385,7 @@ body {
   right: var(--jour-carte);
   left: auto;
   top: calc(var(--barre-haut) + var(--jour-carte) + var(--pas-1));
-  z-index: 5;
+  z-index: var(--plan-barre);
   width: min(52rem, calc(100vw - var(--jour-ecran)));
   max-height: calc(100dvh - var(--barre-haut) - var(--jour-carte) - var(--pas-4));
   overflow-y: auto;
@@ -1368,7 +1404,7 @@ body {
   position: absolute;
   left: var(--jour-carte);
   bottom: var(--jour-carte);
-  z-index: 4;
+  z-index: var(--plan-nuit);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -1382,7 +1418,7 @@ body {
   min-width: var(--cible-clic);
   padding: 0;
   background: var(--surface);
-  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  background: var(--voile);
 }
 
 /* Au repos le filet des bascules ; le survol garde celui des tiroirs, le trait plein. */
@@ -1425,7 +1461,7 @@ body {
 
 /* T-0325 — la page info est une MODALE large : elle laisse un jour d'écran tout autour, et
    le ciel se devine derrière le voile — on sait d'où l'on vient et où l'on retourne. Elle
-   est au-dessus de tout l'empilement (barres à 5). Elle n'existe à l'écran que tant que
+   passe au-dessus des barres (`--plan-page`) ; seule la bulle la devance. Elle n'existe à l'écran que tant que
    l'ancre `#info` la vise : pas de JavaScript pour l'ouvrir, le retour du navigateur la
    referme. Pas de fermeture au clic sur le voile, comme pour les tiroirs (`gere-echap.ts`) :
    Échap et le bouton suffisent. */
@@ -1433,10 +1469,10 @@ body {
   display: none;
   position: fixed;
   inset: 0;
-  z-index: 6;
+  z-index: var(--plan-page);
   padding: var(--jour-ecran);
   background: var(--fond);
-  background: color-mix(in srgb, var(--fond) 75%, transparent);
+  background: var(--voile-page);
 }
 
 .page-info:target {
@@ -1460,7 +1496,7 @@ body {
 .page-info-entete {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: var(--plan-entete);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1574,7 +1610,7 @@ h1 {
   margin: 0;
   font-family: var(--police-titre);
   font-size: var(--texte-titre);
-  font-weight: 700;
+  font-weight: var(--graisse-forte);
   letter-spacing: var(--suivi-marque);
   text-transform: uppercase;
   color: var(--accent);
@@ -1588,7 +1624,7 @@ h2 {
   border-bottom: var(--trait) solid var(--bordure);
   font-family: var(--police-titre);
   font-size: var(--texte-appui);
-  font-weight: 600;
+  font-weight: var(--graisse-titre);
   letter-spacing: var(--suivi-titre);
   text-transform: uppercase;
   color: var(--texte);
@@ -1598,7 +1634,7 @@ h3 {
   margin: var(--pas-4) 0 var(--pas-2);
   font-family: var(--police-titre);
   font-size: var(--texte-legende);
-  font-weight: 600;
+  font-weight: var(--graisse-titre);
   letter-spacing: var(--suivi-micro);
   text-transform: uppercase;
   color: var(--texte);
@@ -1707,7 +1743,7 @@ section:not([class]) > h2:first-child,
 .accordeon > summary > h2 {
   font-family: var(--police-mono);
   font-size: var(--texte-micro);
-  font-weight: 400;
+  font-weight: var(--graisse-normale);
   letter-spacing: normal;
   text-transform: none;
 }
@@ -1805,7 +1841,7 @@ select {
   color: var(--texte);
   border: var(--trait) solid var(--bordure-controle);
   border-radius: 0;
-  font: var(--texte-appui)/1.4 var(--police-mono);
+  font: var(--texte-appui)/var(--interligne-controle) var(--police-mono);
   letter-spacing: var(--suivi-saisie);
 }
 
@@ -1979,7 +2015,7 @@ td {
 th {
   color: var(--attenue);
   font-size: var(--texte-micro);
-  font-weight: 500;
+  font-weight: var(--graisse-moyenne);
   letter-spacing: var(--suivi-micro);
   text-transform: uppercase;
 }
@@ -2002,7 +2038,7 @@ th {
   background: var(--fond-alerte);
   color: var(--alerte);
   font-size: var(--texte-legende);
-  line-height: 1.55;
+  line-height: var(--interligne-texte);
 }
 
 /* §11.1 — le rouge ne porte jamais seul une information : l'alerte se distingue aussi par
@@ -2058,7 +2094,7 @@ th {
 
 .bulle {
   position: absolute;
-  z-index: 5;
+  z-index: var(--plan-bulle);
   visibility: hidden;
   width: max-content;
   max-width: var(--bulle-large);
@@ -2066,7 +2102,7 @@ th {
   border: var(--trait) solid var(--bordure);
   background: var(--surface-haute);
   color: var(--texte);
-  font: var(--texte-micro)/1.35 var(--police-mono);
+  font: var(--texte-micro)/var(--interligne-controle) var(--police-mono);
   letter-spacing: 0;
   text-transform: none;
   text-align: left;
@@ -2334,7 +2370,7 @@ button,
   color: var(--texte);
   border: var(--trait) solid var(--bordure);
   border-radius: 0;
-  font: var(--texte-micro)/1.4 var(--police-mono);
+  font: var(--texte-micro)/var(--interligne-controle) var(--police-mono);
   letter-spacing: var(--suivi-micro);
   text-transform: uppercase;
   cursor: pointer;
@@ -2376,7 +2412,7 @@ button:disabled {
   margin: 0 0 var(--pas-1);
   font-family: var(--police-titre);
   font-size: var(--texte-corps);
-  font-weight: 600;
+  font-weight: var(--graisse-titre);
   letter-spacing: var(--suivi-etape);
   text-transform: uppercase;
   color: var(--texte);
@@ -2399,7 +2435,7 @@ button:disabled {
   color: var(--texte);
   font-family: var(--police-titre);
   font-size: var(--texte-corps);
-  font-weight: 600;
+  font-weight: var(--graisse-titre);
   letter-spacing: var(--suivi-etape);
   text-transform: uppercase;
   text-align: left;
@@ -2427,7 +2463,7 @@ button:disabled {
   color: var(--texte);
   border: var(--trait) solid var(--bordure);
   border-radius: 0;
-  font: var(--texte-micro)/1.5 var(--police-mono);
+  font: var(--texte-micro)/var(--interligne-texte) var(--police-mono);
   white-space: pre;
 }
 
@@ -2454,12 +2490,11 @@ button:disabled {
   color: var(--attenue);
   font-size: var(--texte-mini);
   letter-spacing: var(--suivi-micro);
-  line-height: 1;
+  line-height: var(--interligne-serre);
 }
 
 .schema-cible {
   color: var(--texte);
-  font-weight: 700;
 }
 /* Le zénith et le nord ne sont pas des astres : ils portent la couleur des repères. */
 .schema-repere {
@@ -2638,7 +2673,7 @@ button:disabled {
   background: var(--surface-haute);
   color: var(--texte);
   border: var(--trait) solid var(--bordure-controle);
-  font: var(--texte-appui)/1.4 var(--police-mono);
+  font: var(--texte-appui)/var(--interligne-controle) var(--police-mono);
   letter-spacing: var(--suivi-saisie);
 }
 .cibles-types > summary:hover > .cibles-types-valeur {
@@ -2743,12 +2778,13 @@ button:disabled {
    de la police qui le fait sans changer la géométrie du glyphe. */
 .facilite-pleine {
   color: var(--texte);
-  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  --icone-remplissage: 1;
+  --icone-graisse: 400;
 }
 
 .facilite-vide {
   color: var(--attenue);
-  font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+  --icone-graisse: 500;
 }
 
 /* Sur la barre de titre du panneau, les deux pastilles prennent la teinte du fond : leur
@@ -2918,6 +2954,7 @@ button:disabled {
 @media (prefers-reduced-motion: reduce) {
   :root {
     --fondu-etat: 80ms;
+    --fondu-nuit: 120ms;
   }
 }
 
@@ -2986,11 +3023,11 @@ button:not(:disabled):active,
    douceur et se rétracterait d'un coup. */
 @media (prefers-reduced-motion: no-preference) {
   .image-cible-encart {
-    transition: width 140ms ease;
+    transition: width var(--fondu-etat) ease;
   }
 
   .image-cible-encart-mention {
-    transition: opacity 140ms ease;
+    transition: opacity var(--fondu-etat) ease;
   }
 
   /* T-0325 — une rubrique de la modale info se déplie au lieu d'apparaître d'un bloc : le
@@ -3003,7 +3040,8 @@ button:not(:disabled):active,
   .accordeon::details-content {
     display: grid;
     grid-template-rows: 0fr;
-    transition: grid-template-rows 180ms ease, content-visibility 180ms allow-discrete;
+    transition: grid-template-rows var(--fondu-depli) ease,
+      content-visibility var(--fondu-depli) allow-discrete;
   }
 
   .accordeon[open]::details-content {
@@ -3011,7 +3049,7 @@ button:not(:disabled):active,
   }
 
   .accordeon > summary > .icone {
-    transition: transform 180ms ease;
+    transition: transform var(--fondu-depli) ease;
   }
 }
 

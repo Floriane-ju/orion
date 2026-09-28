@@ -64,7 +64,7 @@ describe('style des icônes §11.1', () => {
   })
 
   it('trace les glyphes à l’épaisseur 300, plus fine que le nominal de la police', () => {
-    expect(reglePointIcone()).toMatch(/font-variation-settings:[^;]*'wght'\s*300/)
+    expect(reglePointIcone()).toMatch(/font-variation-settings:[^;]*'wght'\s*var\(--icone-graisse,\s*300\)/)
   })
 
   it('nomme la famille par le jeton, jamais en dur', () => {
