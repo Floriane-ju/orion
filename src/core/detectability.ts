@@ -20,8 +20,8 @@ import type { FormulaId } from '../registry/formulas.ts'
 import type { TypeObjet } from '../data/deepsky.ts'
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
+import { ARCSEC_PAR_ARCMIN } from './unites.ts'
 
-const ARCSEC_PAR_ARCMIN = 60
 
 export type VerdictDetectabilite = 'OEIL_NU' | 'JUMELLES' | 'TELESCOPE' | 'PHOTO_SEULE'
 export type ToleranceLune = 'FORTE' | 'MOYENNE' | 'FAIBLE'

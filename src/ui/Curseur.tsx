@@ -23,8 +23,8 @@ import {
   valeurQuantifiee,
   type Rail,
 } from './curseur-glisse.ts'
+import { encadre, POURCENT } from '../core/unites.ts'
 
-const POURCENT = 100
 
 export interface AccrocheCurseur {
   readonly valeur: number
@@ -75,7 +75,7 @@ export function Curseur(props: CurseurProps) {
   function regle(e: PointerEvent<HTMLDivElement>): void {
     const boite = e.currentTarget.getBoundingClientRect()
     const fraction = boite.width <= 0 ? 0 : (e.clientX - boite.left) / boite.width
-    props.sur(valeurDuRail(Math.min(1, Math.max(0, fraction)), rail, boite.width))
+    props.sur(valeurDuRail(encadre(fraction, 0, 1), rail, boite.width))
   }
 
   function surPointerDown(e: PointerEvent<HTMLDivElement>): void {

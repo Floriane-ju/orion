@@ -10,6 +10,8 @@
  * pures : leur inverse est leur transposée, ce qui évite toute inversion numérique.
  */
 
+import { DEG_PAR_HEURE, TOUR_DEG, encadre, ramene } from './unites.ts'
+
 /** Neuf coefficients, ligne par ligne : m[0..2] est la première ligne. */
 export type Mat3 = readonly [
   number, number, number,
@@ -121,18 +123,40 @@ export function versVecteur(longitudeDeg: number, latitudeDeg: number): Vec3 {
   return { x: cosLat * Math.cos(lon), y: cosLat * Math.sin(lon), z: Math.sin(lat) }
 }
 
+/**
+ * T-0336 — l'angle d'un cosinus ou d'un sinus, en degrés. Borné d'abord : un produit scalaire
+ * de deux vecteurs unitaires sort de [−1 ; 1] d'un ulp, et `acos` en fait un NaN.
+ */
+export function angleDeCosDeg(cos: number): number {
+  return Math.acos(encadre(cos, -1, 1)) / DEG
+}
+
+export function angleDeSinDeg(sin: number): number {
+  return Math.asin(encadre(sin, -1, 1)) / DEG
+}
+
 /** Position sphérique d'une direction, longitude ramenée dans [0 ; 360[. */
 export function versSpherique(v: Vec3): { longitudeDeg: number; latitudeDeg: number } {
-  const TOUR = 360
-  const longitude = Math.atan2(v.y, v.x) / DEG
   return {
-    longitudeDeg: ((longitude % TOUR) + TOUR) % TOUR,
-    latitudeDeg: Math.asin(Math.max(-1, Math.min(1, v.z))) / DEG,
+    longitudeDeg: ramene(Math.atan2(v.y, v.x) / DEG, TOUR_DEG),
+    latitudeDeg: angleDeSinDeg(v.z),
   }
 }
 
 /** Séparation angulaire entre deux directions unitaires, en degrés. */
 export function separationDeg(a: Vec3, b: Vec3): number {
-  const produit = Math.max(-1, Math.min(1, a.x * b.x + a.y * b.y + a.z * b.z))
-  return Math.acos(produit) / DEG
+  return angleDeCosDeg(a.x * b.x + a.y * b.y + a.z * b.z)
+}
+
+/** Séparation entre deux positions équatoriales, ascensions droites en HEURES. */
+export function separationEquatorialeDeg(
+  adAH: number,
+  decADeg: number,
+  adBH: number,
+  decBDeg: number,
+): number {
+  return separationDeg(
+    versVecteur(adAH * DEG_PAR_HEURE, decADeg),
+    versVecteur(adBH * DEG_PAR_HEURE, decBDeg),
+  )
 }

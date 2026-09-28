@@ -15,7 +15,7 @@ import type { Site } from '../core/ephem.ts'
 import { cielInstantane } from '../core/horloges.ts'
 import { bornesZoom } from '../core/projection.ts'
 import { Compteur } from './Compteur.tsx'
-import { HAUTEUR_MAX_DEG, HAUTEUR_MIN_DEG, tourBorne } from './planetarium-gestes.ts'
+import { HAUTEUR_MAX_DEG, HAUTEUR_MIN_DEG } from './planetarium-gestes.ts'
 import { majVue, useScene } from './scene-etat.ts'
 import {
   courtVisee,
@@ -24,9 +24,8 @@ import {
   type ChampVisee,
   type SegmentVisee,
 } from './scene-lecture.ts'
+import { TOUR_DEG, ramene } from '../core/unites.ts'
 
-/** Un tour d'horizon : la course de l'AD, de l'azimut et de la rotation du cadre. */
-const TOUR_DEG = 360
 
 /**
  * T-0163 — ce qu'un cran de glisser ajoute à chaque lecture. C'est le pas du GESTE, pas celui
@@ -63,7 +62,7 @@ export function Visee(props: { readonly site: Site; readonly gaiaCharge: boolean
     const [ad, dec] = [segments[0]!.valeurDeg, segments[1]!.valeurDeg]
     if (champ === 'AD') return majVue(viseeVersVue(valeur, dec, ciel.matrice))
     if (champ === 'DEC') return majVue(viseeVersVue(ad, valeur, ciel.matrice))
-    if (champ === 'AZIMUT') return majVue({ azimutDeg: tourBorne(valeur) })
+    if (champ === 'AZIMUT') return majVue({ azimutDeg: ramene(valeur, TOUR_DEG) })
     if (champ === 'HAUTEUR') return majVue({ hauteurDeg: valeur })
     if (champ === 'ROTATION') return majVue({ rotationCadreDeg: valeur })
     // Le plafond est reposé par le magasin ; le plancher, lui, dépend du paquet chargé.

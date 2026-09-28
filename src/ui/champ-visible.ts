@@ -7,7 +7,7 @@
  * divergent d'un demi-degré et une couche qui s'interrompt un pas trop tôt au bord.
  */
 
-import { DEG, type Vec3 } from '../core/mat3.ts'
+import { angleDeCosDeg, type Vec3 } from '../core/mat3.ts'
 import { rayonChampDeg, type Projecteur } from '../core/projection.ts'
 
 export interface ChampVisible {
@@ -31,6 +31,6 @@ export function champVisible(projecteur: Projecteur): ChampVisible {
 export function horsDuChamp(champ: ChampVisible, centre: Vec3, demiExtensionDeg: number): boolean {
   const cos =
     champ.centre.x * centre.x + champ.centre.y * centre.y + champ.centre.z * centre.z
-  const separationDeg = Math.acos(Math.max(-1, Math.min(1, cos))) / DEG
+  const separationDeg = angleDeCosDeg(cos)
   return separationDeg > champ.rayonDeg + demiExtensionDeg
 }

@@ -16,9 +16,8 @@ import { HorsDomaineSeriesError, type Site } from '../core/ephem.ts'
 import { altitudeCulmination } from '../core/site.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { LuneFiche } from './fiche-cible-calcul.ts'
+import { DEG_PAR_HEURE } from '../core/unites.ts'
 
-const HEURES_PAR_TOUR = 24
-const DEG_PAR_HEURE = 360 / HEURES_PAR_TOUR
 
 export interface EntreeLuneCible {
   readonly site: Site

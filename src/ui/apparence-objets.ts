@@ -154,3 +154,6 @@ export function teintesObjets(
   cacheRealiste = { sb: sbCiel, teintes }
   return teintes
 }
+
+/** Sous ce rayon, l'antialiasing efface le disque : la plus faible étoile reste un point. */
+export const RAYON_MIN_ETOILE_PX = 0.7

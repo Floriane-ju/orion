@@ -9,10 +9,9 @@ import { K } from '../registry/constants.ts'
 import { trace } from './traced.ts'
 import type { Traced } from './traced.ts'
 import type { DetailScore, PoidsScoring } from './session-types.ts'
+import { encadre } from './unites.ts'
 
-function borne(valeur: number): number {
-  return Math.min(1, Math.max(0, valeur))
-}
+const borne = (valeur: number): number => encadre(valeur, 0, 1)
 
 export function scoreCadrage(remplissage: number): number {
   const cible = K('REMPLISSAGE_CADRE_CIBLE')

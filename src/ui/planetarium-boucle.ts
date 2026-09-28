@@ -42,6 +42,7 @@ import { dessineCiel, type CibleEcran, type SurvolEcran } from './dessine-ciel.t
 import type { OptiquePose } from './dessine-pose-cadre.ts'
 import type { LuneEcran } from './dessine-fond-ciel.ts'
 import { B } from '../registry/budgets.ts'
+import { MS_PAR_S } from '../core/unites.ts'
 
 /** Noms français des corps mobiles de §3.1. */
 const NOMS_CORPS: Readonly<Record<string, string>> = {
@@ -55,7 +56,6 @@ const NOMS_CORPS: Readonly<Record<string, string>> = {
   Uranus: 'Uranus',
 }
 
-const MS_PAR_S = 1000
 const PERIODE_PUBLICATION_MS = B('PUBLICATION_MS')
 const INTERVALLE_MIN_MS = MS_PAR_S / B('IMAGES_PAR_S_MAX')
 /** La plus petite dérive que l'écran sait montrer. Fait de plateforme, pas seuil de rendu. */

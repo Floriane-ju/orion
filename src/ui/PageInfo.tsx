@@ -25,7 +25,11 @@ import { LegendeCouleurs } from './LegendeCouleurs.tsx'
 import { MenuReglages } from './MenuReglages.tsx'
 import { Sources } from './Sources.tsx'
 import { ALERTE_VERIFICATION, Verification } from './Verification.tsx'
-import { useTrancheScene, type EtatScene } from './scene-etat.ts'
+import {
+  useTrancheScene,
+  type EtatScene,
+  vueRealisteScene,
+} from './scene-etat.ts'
 
 /** L'ancre de la page : le bouton de la barre y mène, Échap et « fermer » en repartent. */
 export const ANCRE_INFO = 'info'
@@ -68,10 +72,6 @@ export interface PageInfoProps {
 function fovScene(etat: EtatScene): number {
   return etat.vue.fovDeg
 }
-function vueRealisteScene(etat: EtatScene): boolean {
-  return etat.rendu.vueRealiste
-}
-
 /**
  * T-0325 — la profondeur affichée, descendue de la barre haute. Elle se lit hors des
  * rubriques, sous le titre : une ligne qu'aucun clic ne doit cacher. L'explication complète

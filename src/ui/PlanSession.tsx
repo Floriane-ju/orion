@@ -45,9 +45,8 @@ import {
   type ParcoursScene,
 } from './scene-etat.ts'
 import { LIBELLE_MODE_POINTAGE, SANS_NOM } from '../registry/libelles.ts'
+import { DEG_PAR_HEURE, POURCENT } from '../core/unites.ts'
 
-const DEG_PAR_HEURE = 15
-const POURCENT = 100
 
 /**
  * T-0287 — cinq étoiles brillantes du ciel réel n'ont aucune désignation dans les paquets

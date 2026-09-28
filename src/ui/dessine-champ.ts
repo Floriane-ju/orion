@@ -37,16 +37,12 @@ import {
 import type { IndexCiel } from '../core/index-ciel.ts'
 import { magnitudePourEffectif, selectionne } from '../core/index-ciel.ts'
 import { rayonChampDeg, rayonEtoilePx, type Projecteur } from '../core/projection.ts'
-import { separationDeg } from '../core/mat3.ts'
-import type { Vec3 } from '../core/mat3.ts'
+import { angleDeSinDeg, separationDeg, type Vec3 } from '../core/mat3.ts'
 import { TEINTES, couleurTeinteOpacite, paletteScene, teinte } from './couleurs.ts'
+import { DEMI_TOUR_DEG, encadre, S_PAR_MIN, TOUR_RAD } from '../core/unites.ts'
+import { RAYON_MIN_ETOILE_PX } from './apparence-objets.ts'
 
-const S_PAR_MIN = 60
-/** Sous ce rayon, l'antialiasing efface le disque : la plus faible étoile reste un point. */
-const RAYON_MIN_ETOILE_PX = 0.7
-const TOUR_RAD = 2 * Math.PI
 const MARQUEUR_POLE_PX = 14
-const DEMI_TOUR = 180
 const DROIT = 90
 
 /**
@@ -162,7 +158,7 @@ function enAttente(rayonMaxPx: number): EnAttente {
 function palierOpacite(opacite: number, niveaux: number): number {
   const plancher = K('OPACITE_TRACE_MIN')
   const relatif = (opacite - plancher) / (1 - plancher)
-  return Math.max(0, Math.min(niveaux - 1, Math.round(relatif * (niveaux - 1))))
+  return encadre(Math.round(relatif * (niveaux - 1)), 0, niveaux - 1)
 }
 
 function opaciteDuPalier(palier: number, niveaux: number): number {
@@ -178,7 +174,7 @@ function opaciteDuPalier(palier: number, niveaux: number): number {
 function palierRayon(rayon: number, en: EnAttente): number {
   const relatif =
     Math.log(rayon / RAYON_MIN_ETOILE_PX) / Math.log(en.rayonMaxPx / RAYON_MIN_ETOILE_PX)
-  return Math.max(0, Math.min(en.niveauxRayon - 1, Math.round(relatif * (en.niveauxRayon - 1))))
+  return encadre(Math.round(relatif * (en.niveauxRayon - 1)), 0, en.niveauxRayon - 1)
 }
 
 function rayonDuPalier(palier: number, en: EnAttente): number {
@@ -291,13 +287,13 @@ function sceneCourante(entree: EntreeDessinChamp): Scene {
   // que le rayon du champ de celui du centre de visée. Traduit en déclinaison, cela borne un
   // intervalle — donc, la déclinaison étant monotone en `z`, un intervalle de `z`.
   const coDecCentreDeg =
-    DROIT - (Math.asin(Math.max(-1, Math.min(1, centreJ2000.z))) * DEMI_TOUR) / Math.PI
+    DROIT - angleDeSinDeg(centreJ2000.z)
   const rayonTestDeg = rayonChamp + margePx * degParPx
   const borne = (coDecDeg: number): number =>
-    Math.sin(Math.max(-DROIT, Math.min(DROIT, DROIT - coDecDeg)) * (Math.PI / DEMI_TOUR))
+    Math.sin(encadre(DROIT - coDecDeg, -DROIT, DROIT) * (Math.PI / DEMI_TOUR_DEG))
   return {
     centreJ2000,
-    rayonSelectionDeg: Math.min(DEMI_TOUR, rayonChamp + longueurArcDeg(dureeMin, 0).value),
+    rayonSelectionDeg: Math.min(DEMI_TOUR_DEG, rayonChamp + longueurArcDeg(dureeMin, 0).value),
     zMin: borne(coDecCentreDeg + rayonTestDeg),
     zMax: borne(coDecCentreDeg - rayonTestDeg),
     profondeurParZ: tableProfondeurParPixel({

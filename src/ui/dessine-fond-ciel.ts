@@ -32,6 +32,7 @@ import {
 } from '../core/fond-ciel-rendu.ts'
 import { fondRealiste } from './couleurs.ts'
 import { frontiereEcran, remplitRegion, type FinesseBalayage } from './balayage-ecran.ts'
+import { DEG_PAR_HEURE } from '../core/unites.ts'
 
 /**
  * Balayage allégé pour les paliers du halo : un bord de palier sépare deux teintes voisines,
@@ -76,8 +77,6 @@ export interface LuneEcran {
 /** Crans du dégradé lunaire, de la Lune jusqu'à un quart de tour. */
 const CRANS_HALO_LUNE = 16
 const SEPARATION_MAX_DEG = 90
-const HEURES_PAR_TOUR = 24
-const DEG_PAR_HEURE = 360 / HEURES_PAR_TOUR
 
 /** Un vecteur unitaire orthogonal à `v`, choisi pour ne jamais dégénérer. */
 function perpendiculaire(v: Vec3): Vec3 {

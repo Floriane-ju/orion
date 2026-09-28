@@ -19,7 +19,8 @@ import { cielInstantane } from '../src/core/horloges.ts'
 import { cransGlisse } from '../src/ui/compteur-glisse.ts'
 import { lisSaisie, nombreDuTexte } from '../src/ui/Compteur.tsx'
 import { LARGEURS_INSTANT, dateAvec, partiesHeure, partiesJour } from '../src/ui/horaire.ts'
-import { HAUTEUR_MAX_DEG, HAUTEUR_MIN_DEG, tourBorne } from '../src/ui/planetarium-gestes.ts'
+import { HAUTEUR_MAX_DEG, HAUTEUR_MIN_DEG } from '../src/ui/planetarium-gestes.ts'
+import { TOUR_DEG, ramene } from '../src/core/unites.ts'
 import { etatScene, majVue, reinitialiseScene } from '../src/ui/scene-etat.ts'
 import {
   courtVisee,
@@ -213,8 +214,8 @@ describe('T-0163 — la visée se règle par sa réciproque', () => {
   })
 
   it('referme l’azimut sur le tour plutôt que de l’arrêter au nord', () => {
-    expect(tourBorne(-10)).toBeCloseTo(350, 9)
-    expect(tourBorne(370)).toBeCloseTo(10, 9)
+    expect(ramene(-10, TOUR_DEG)).toBeCloseTo(350, 9)
+    expect(ramene(370, TOUR_DEG)).toBeCloseTo(10, 9)
   })
 
   it('compose la phrase à partir des segments, sans la réécrire', () => {

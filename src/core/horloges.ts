@@ -24,17 +24,9 @@ import {
 } from './ephem.ts'
 import { DEG, multiplie, rotationX, rotationZ, type Mat3, type Vec3 } from './mat3.ts'
 import { trace, type Traced } from './traced.ts'
+import { DEG_PAR_HEURE, ecartCourt, encadre, HEURES_PAR_TOUR, MS_PAR_MINUTE, MS_PAR_S, ramene, TOUR_DEG } from './unites.ts'
 
-const HEURES_PAR_TOUR = 24
-const TOUR_DEG = 360
-/**
- * Conversion d'heures de temps sidéral en degrés : 24 h sidérales font exactement un tour.
- * C'est un changement d'unité, distinct du taux A-ROT de 15,041 °/h, qui est la vitesse
- * apparente du ciel par heure de temps SOLAIRE — celui que §3.2 consomme pour la lisibilité.
- */
-const DEG_PAR_HEURE_SIDERALE = TOUR_DEG / HEURES_PAR_TOUR
 
-const MS_PAR_S = 1000
 export const MS_PAR_JOUR = K('JOUR_SOLAIRE_S') * MS_PAR_S
 /** J2000,0 tombe à midi, soit une demi-journée après le début du 1er janvier 2000. */
 const EPOQUE_J2000_MS = Date.UTC(K('EPOQUE_J2000_ANNEE'), 0, 1) + MS_PAR_JOUR / 2
@@ -114,7 +106,9 @@ export function cielInstantane(site: Site, date: Date): CielInstantane {
   const annee = epoqueAnnee(date)
   const ARCSEC_PAR_DEGRE = 3600
 
-  const rotationTerre = rotationZ(-tslH.value * DEG_PAR_HEURE_SIDERALE)
+  // 24 h sidérales font exactement un tour : un changement d'unité, distinct du taux A-ROT
+  // (15,041 °/h de temps SOLAIRE) que §3.2 consomme pour la lisibilité.
+  const rotationTerre = rotationZ(-tslH.value * DEG_PAR_HEURE)
   const matrice = multiplie(
     matriceHorizon(site.latitudeDeg),
     multiplie(rotationTerre, matricePrecessionAnnee(annee)),
@@ -148,6 +142,14 @@ export function cielInstantane(site: Site, date: Date): CielInstantane {
         }
       : {}),
   }
+}
+
+/**
+ * T-0336 — la matrice du ciel à une minute ENTIÈRE (minutes depuis l'époque Unix) : c'est la
+ * granularité à laquelle les panneaux s'abonnent à l'horloge de la scène.
+ */
+export function matriceALaMinute(site: Site, minute: number): Mat3 {
+  return cielInstantane(site, new Date(minute * MS_PAR_MINUTE)).matrice
 }
 
 /**
@@ -233,11 +235,7 @@ export function avanceEphemerides(
 
 function interpoleAngle(a: number, b: number, f: number, tour: number): number {
   // L'ascension droite repasse par zéro : on interpole par le plus court chemin.
-  let delta = b - a
-  if (delta > tour / 2) delta -= tour
-  if (delta < -tour / 2) delta += tour
-  const valeur = a + delta * f
-  return ((valeur % tour) + tour) % tour
+  return ramene(a + ecartCourt(a, b, tour) * f, tour)
 }
 
 /**
@@ -250,7 +248,7 @@ export function positionsInterpolees(
   dateMs: number,
 ): readonly PositionCorps[] {
   if (etat.p0.length === 0 || etat.p1.length === 0) return []
-  const f = Math.max(0, Math.min(1, (dateMs - etat.t0Ms) / (etat.t1Ms - etat.t0Ms)))
+  const f = encadre((dateMs - etat.t0Ms) / (etat.t1Ms - etat.t0Ms), 0, 1)
   return etat.p0.map((a, i) => {
     const b = etat.p1[i] ?? a
     return {

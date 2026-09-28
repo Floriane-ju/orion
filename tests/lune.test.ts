@@ -14,10 +14,10 @@ import {
   fenetreUtile,
   masseAirKS,
   nanolamberts,
-  separationDeg,
 } from '../src/core/moon.ts'
 import { fenetreNocturne } from '../src/core/night.ts'
 import { K } from '../src/registry/constants.ts'
+import { separationEquatorialeDeg } from '../src/core/mat3.ts'
 
 const SITE_REFERENCE = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const SB_BORTLE_45 = 20.95
@@ -125,8 +125,8 @@ describe('grandeurs intermédiaires du modèle', () => {
   })
 
   it('mesure une séparation angulaire nulle sur soi-même et 180° à l’opposé', () => {
-    expect(separationDeg(3, 20, 3, 20)).toBeCloseTo(0, 6)
-    expect(separationDeg(0, 90, 0, -90)).toBeCloseTo(180, 6)
+    expect(separationEquatorialeDeg(3, 20, 3, 20)).toBeCloseTo(0, 6)
+    expect(separationEquatorialeDeg(0, 90, 0, -90)).toBeCloseTo(180, 6)
   })
 })
 

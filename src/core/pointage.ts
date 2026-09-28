@@ -34,10 +34,16 @@ import type { Site } from './ephem.ts'
 import { tempsSideralLocal } from './ephem.ts'
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
-import { DEG, separationDeg, versSpherique, versVecteur, type Vec3 } from './mat3.ts'
+import {
+  DEG,
+  separationDeg,
+  separationEquatorialeDeg,
+  versSpherique,
+  versVecteur,
+  type Vec3,
+} from './mat3.ts'
+import { DEG_PAR_HEURE } from './unites.ts'
 
-const HEURES_PAR_TOUR = 24
-const DEG_PAR_HEURE = 360 / HEURES_PAR_TOUR
 
 export type ModePointage = 'CARTE_DIRECTE' | 'CHEMINEMENT'
 
@@ -126,19 +132,6 @@ export interface EntreePointage {
 // Géométrie
 // ---------------------------------------------------------------------------
 
-/** Séparation angulaire entre deux directions équatoriales, en degrés. */
-export function separationEtoilesDeg(
-  adAH: number,
-  decADeg: number,
-  adBH: number,
-  decBDeg: number,
-): number {
-  const d1 = decADeg * DEG
-  const d2 = decBDeg * DEG
-  const dAd = (adAH - adBH) * DEG_PAR_HEURE * DEG
-  const cos = Math.sin(d1) * Math.sin(d2) + Math.cos(d1) * Math.cos(d2) * Math.cos(dAd)
-  return Math.acos(Math.min(1, Math.max(-1, cos))) / DEG
-}
 
 /**
  * Angle de position du zénith à l'instant du pointage — l'angle parallactique. C'est lui
@@ -276,7 +269,7 @@ function ancrage(
     ...surDisque(dx, dDec, rayonDisqueDeg(entree), qDeg),
     deltaAdH: entree.adCibleH - adH,
     deltaDecDeg: entree.decCibleDeg - etoile.decDeg,
-    separationDeg: separationEtoilesDeg(
+    separationDeg: separationEquatorialeDeg(
       adH,
       etoile.decDeg,
       entree.adCibleH,
@@ -365,7 +358,7 @@ function cheminement(entree: EntreePointage): CartePointage {
   const rayon = sautMax * (sautsMax + 1)
 
   const distanceCible = (e: Etoile): number =>
-    separationEtoilesDeg(
+    separationEquatorialeDeg(
       e.adDeg / DEG_PAR_HEURE,
       e.decDeg,
       entree.adCibleH,
@@ -393,7 +386,7 @@ function cheminement(entree: EntreePointage): CartePointage {
     if (noeud.profondeur >= sautsMax) continue
     for (const voisin of proches) {
       if (vus.has(voisin)) continue
-      const distance = separationEtoilesDeg(
+      const distance = separationEquatorialeDeg(
         noeud.etoile.adDeg / DEG_PAR_HEURE,
         noeud.etoile.decDeg,
         voisin.adDeg / DEG_PAR_HEURE,

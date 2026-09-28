@@ -19,8 +19,8 @@ import { HAUTEUR_LABEL_PX } from './libelles-cibles.ts'
 import { peintCroix } from './marqueur-objet.ts'
 import type { ParcoursScene } from './scene-etat.ts'
 import { SANS_NOM } from '../registry/libelles.ts'
+import { DEG_PAR_HEURE, TOUR_RAD } from '../core/unites.ts'
 
-const DEG_PAR_HEURE = 15
 
 /** Le trajet se lit comme un chemin à suivre, le cadre comme un contour : l'un tirète, l'autre non. */
 const TIRET_PX = 8
@@ -31,7 +31,6 @@ const RAYON_ETAPE_PX = 7
 /** Écart du texte au cercle, pour qu'il ne morde ni le trait ni l'étoile qu'il désigne. */
 const JOUR_TEXTE_PX = 5
 
-const TOUR_RAD = 2 * Math.PI
 
 /** T-0287 — une cellule vide se lit comme un défaut d'affichage, pas comme une étoile anonyme. */
 

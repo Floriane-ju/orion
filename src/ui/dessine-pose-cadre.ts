@@ -13,10 +13,11 @@
 
 import { K } from '../registry/constants.ts'
 import { cellulesCadreJ2000, type Cadre } from '../core/cadre.ts'
-import { DEG, type Mat3 } from '../core/mat3.ts'
+import { angleDeSinDeg, type Mat3 } from '../core/mat3.ts'
 import { pointEcran, type Projecteur } from '../core/projection.ts'
 import { npf } from '../core/tracking.ts'
 import { POLICE_SCENE } from './couleurs.ts'
+import { formatePose } from './horaire.ts'
 
 /** Ce que la NPF demande du matériel, et rien de plus (§9.1). */
 export interface OptiquePose {
@@ -34,11 +35,6 @@ const FRACTION_POLICE_DEC = 0.78
  * vide plutôt que masqué pour rien. C'est un fait d'écran, pas un seuil de §9.1.
  */
 const POLICE_MIN_PX = 5
-
-/** Une pose courte se lit à la dizaine de seconde près : l'arrondi à l'unité l'écraserait. */
-function formatePose(tS: number): string {
-  return tS < 10 ? tS.toFixed(1) : tS.toFixed(0)
-}
 
 interface CelluleEcran {
   readonly xPx: number
@@ -78,7 +74,7 @@ export function dessineCartePose(entree: {
 
   for (const cellule of cellulesCadreJ2000(cadre, matriceCiel, cote)) {
     if (!projecteur.projetteEn(cellule.dir.x, cellule.dir.y, cellule.dir.z, p)) continue
-    const decDeg = Math.asin(Math.max(-1, Math.min(1, cellule.dir.z))) / DEG
+    const decDeg = angleDeSinDeg(cellule.dir.z)
     const tNpfS = npf({ ...optique, decDeg }).value
     visibles.push({ xPx: p.xPx, yPx: p.yPx, decDeg, tNpfS })
     if (p.xPx < xMin) xMin = p.xPx

@@ -28,8 +28,8 @@ import { I } from '../registry/imagerie.ts'
 import { Icone } from './Icone.tsx'
 import { useImageCible } from './image-cible-memoire.ts'
 import { LIBELLE_TYPE_OBJET, nomCommun } from './libelles-objet.ts'
+import { POURCENT } from '../core/unites.ts'
 
-const POURCENT = 100
 
 /**
  * L'alternative textuelle décrit l'OBJET, pas le média : « image de M31 » n'apprend rien à qui

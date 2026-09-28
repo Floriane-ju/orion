@@ -10,6 +10,7 @@ import { DOMAINES, SaisieRefuseeError, valide } from '../registry/domains.ts'
 import type { Flag, Traced } from './traced.ts'
 import { trace } from './traced.ts'
 import { DEG } from './mat3.ts'
+import { ramene } from './unites.ts'
 
 const ANGLE_DROIT_DEG = 90
 
@@ -140,7 +141,7 @@ export function masqueDepuisPoints(points: readonly PointMasque[]): MasqueHorizo
 
 /** Obstruction à un azimut quelconque : l'azimut se referme sur lui-même. */
 export function obstructionDeg(masque: MasqueHorizon, azimutDeg: number): number {
-  const index = ((Math.round(azimutDeg) % NB_AZIMUTS) + NB_AZIMUTS) % NB_AZIMUTS
+  const index = ramene(Math.round(azimutDeg), NB_AZIMUTS)
   return masque.altitudesDeg[index] ?? 0
 }
 

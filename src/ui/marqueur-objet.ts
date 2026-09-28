@@ -18,9 +18,8 @@ import { pointEcran, type Projecteur } from '../core/projection.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { EPAISSEUR_BORD_PX, type TeintesObjet } from './apparence-objets.ts'
 import { MARQUEUR_OBJET_PX } from './libelles-cibles.ts'
+import { ARCMIN_PAR_DEG, TOUR_RAD } from '../core/unites.ts'
 
-const ARCMIN_PAR_DEG = 60
-const TOUR_RAD = 2 * Math.PI
 
 export interface GeometrieMarqueur {
   readonly demiGrandPx: number

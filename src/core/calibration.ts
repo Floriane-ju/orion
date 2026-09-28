@@ -17,8 +17,8 @@
 import { DITHERING_PX, PRESCRIPTIONS_CALIBRATION } from '../registry/verdicts.ts'
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
+import { S_PAR_MIN } from './unites.ts'
 
-const S_PAR_MIN = 60
 
 export interface EntreeCalibration {
   readonly tPoseS: number

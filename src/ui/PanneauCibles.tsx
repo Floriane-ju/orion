@@ -39,7 +39,7 @@ import {
   type BornesTailleCadre,
 } from '../core/session-candidates.ts'
 import { dureeLisible } from '../core/exposure.ts'
-import { cielInstantane } from '../core/horloges.ts'
+import { matriceALaMinute } from '../core/horloges.ts'
 import type { Site } from '../core/ephem.ts'
 import type { ContexteSession } from '../core/session.ts'
 import { K } from '../registry/constants.ts'
@@ -61,11 +61,11 @@ import { LIBELLE_TYPE_OBJET, nomCommun } from './libelles-objet.ts'
 import { ouvreCible, poseMode } from './seance-etat.ts'
 import { ouvreCarte } from './coque-etat.ts'
 import { majCatalogue, useCatalogue } from './catalogue-etat.ts'
-import { minuteAffichee, useTrancheScene, MS_PAR_MINUTE } from './scene-etat.ts'
+import { minuteAffichee, useTrancheScene } from './scene-etat.ts'
 import { compte } from './horaire.ts'
+import { POURCENT } from '../core/unites.ts'
 
 const DOMAINE_MAG = DOMAINES.m_int
-const POURCENT = 100
 
 /**
  * T-0281 — « Aucun objet de ce nom » affirmait l'inexistence d'objets bel et bien au
@@ -147,7 +147,7 @@ export function PanneauCibles(props: PanneauCiblesProps) {
     () =>
       ajouteCoordonnees(
         invariantes,
-        cielInstantane(site, new Date(minute * MS_PAR_MINUTE)).matrice,
+        matriceALaMinute(site, minute),
       ),
     [invariantes, site, minute],
   )

@@ -18,10 +18,8 @@ import {
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
 import { DEG } from './mat3.ts'
+import { ARCMIN_PAR_DEG, ARCSEC_PAR_ARCMIN, POURCENT } from './unites.ts'
 
-const ARCMIN_PAR_DEG = 60
-const ARCSEC_PAR_ARCMIN = 60
-const POURCENT = 100
 
 export type { VerdictCadrage }
 

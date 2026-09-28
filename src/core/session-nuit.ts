@@ -16,9 +16,9 @@ import type { CreneauCible, Intervalle } from './creneaux.ts'
 import { trace } from './traced.ts'
 import type { PlanCalibration } from './calibration.ts'
 import type { BudgetNuit, ContexteSession, EtapePlan } from './session-types.ts'
+import { MS_PAR_MINUTE } from './unites.ts'
 
 const MINUTES_PAR_HEURE = 60
-const MS_PAR_MINUTE = 60000
 
 function chevauche(a: Intervalle, b: Intervalle): boolean {
   return a.debut.getTime() < b.fin.getTime() && b.debut.getTime() < a.fin.getTime()

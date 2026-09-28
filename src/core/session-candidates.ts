@@ -37,12 +37,10 @@ import type {
   DetailScore,
   PoidsScoring,
 } from './session-types.ts'
+import { ARCMIN_PAR_DEG, DEG_PAR_HEURE } from './unites.ts'
 
 const MINUTES_PAR_HEURE = 60
 const S_PAR_MINUTE = 60
-const ARCMIN_PAR_DEG = 60
-const HEURES_PAR_TOUR = 24
-const DEG_PAR_HEURE = 360 / HEURES_PAR_TOUR
 
 /**
  * §8.1 — la Lune est évaluée au milieu du créneau de la cible : c'est là que la dégradation

@@ -21,6 +21,7 @@ import {
 import { K } from '../registry/constants.ts'
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
+import { HEURES_PAR_TOUR, ramene } from './unites.ts'
 
 export interface Site {
   readonly latitudeDeg: number
@@ -69,15 +70,13 @@ export function observateur(site: Site): Observer {
   return new Observer(site.latitudeDeg, site.longitudeDeg, site.altitudeM)
 }
 
-/** Un tour complet vaut 24 h d'angle horaire, soit 15° par heure — définitionnel. */
-const HEURES_PAR_TOUR = 24
 const DEG_PAR_HEURE_HORAIRE = 360 / HEURES_PAR_TOUR
 
 /** Temps sidéral local, en heures. */
 export function tempsSideralLocal(date: Date, longitudeDeg: number): Traced<number> {
   const tsg = SiderealTime(date)
   const brut = tsg + longitudeDeg / DEG_PAR_HEURE_HORAIRE
-  const tsl = ((brut % HEURES_PAR_TOUR) + HEURES_PAR_TOUR) % HEURES_PAR_TOUR
+  const tsl = ramene(brut, HEURES_PAR_TOUR)
   return trace({
     value: tsl,
     formula: 'TEMPS_SIDERAL_LOCAL',

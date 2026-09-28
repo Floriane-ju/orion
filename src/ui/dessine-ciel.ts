@@ -72,11 +72,13 @@ import {
 import {
   OPACITE_ETOILE_PARCOURS,
   OPACITE_OBJET_ESTOMPE,
+  RAYON_MIN_ETOILE_PX,
   teintesObjets,
 } from './apparence-objets.ts'
 import { dessineParcours } from './dessine-parcours.ts'
 import type { ParcoursScene } from './scene-etat.ts'
 import { geometrieMarqueur, peintCroix, peintEllipse } from './marqueur-objet.ts'
+import { TOUR_RAD } from '../core/unites.ts'
 
 export interface CouchesActives {
   readonly figures: boolean
@@ -210,8 +212,6 @@ export const RAYON_CLIC_PX = 10
 /* T-0107 — pas de la clé de pixel entier. Toute largeur de canevas réaliste lui est très
    inférieure, ce qui rend `y * PAS + x` injectif, y compris pour le voisinage à x = −1. */
 const PAS_CLE_PIXEL = 65536
-/** Sous ce rayon, l'antialiasing efface le disque : la plus faible étoile reste un point. */
-const RAYON_MIN_ETOILE_PX = 0.7
 
 
 
@@ -266,7 +266,6 @@ interface Passe {
   readonly candidats: CandidatLabel[]
 }
 
-const TOUR_RAD = 2 * Math.PI
 
 /** §3.7, §4.1 — le fond, les halos, la bande et le sol : ce qui se peint sous tout le reste. */
 function passeFond(passe: Passe): void {

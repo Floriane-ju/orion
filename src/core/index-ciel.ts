@@ -19,8 +19,9 @@
 
 import { K } from '../registry/constants.ts'
 import type { Etoile } from '../data/catalog.ts'
-import { DEG, versVecteur, type Vec3 } from './mat3.ts'
+import { DEG, angleDeCosDeg, versVecteur, type Vec3 } from './mat3.ts'
 import { dUnBloc, pointDeCoupe, type Decoupable } from './tranches.ts'
+import { encadre, ramene, TOUR_DEG } from './unites.ts'
 
 export interface CelluleCiel {
   readonly centre: Vec3
@@ -77,7 +78,7 @@ function rayonEnglobant(centre: Vec3, adMinDeg: number, adMaxDeg: number, decMin
     const cos = centre.x * b.x + centre.y * b.y + centre.z * b.z
     if (cos < maxCos) maxCos = cos
   }
-  return Math.acos(Math.max(-1, Math.min(1, maxCos))) / DEG
+  return angleDeCosDeg(maxCos)
 }
 
 /**
@@ -133,10 +134,10 @@ export function* construitIndexPas(etoiles: readonly Etoile[]): Decoupable<Index
     if (pointDeCoupe(i)) yield
     const e = etoiles[i]!
     if (e.magV > profondeur) profondeur = e.magV
-    const b = Math.min(bandes - 1, Math.max(0, Math.floor((e.decDeg + 90) / hauteurBande)))
+    const b = encadre(Math.floor((e.decDeg + 90) / hauteurBande), 0, bandes - 1)
     const n = colonnes[b]!
-    const ad = ((e.adDeg % 360) + 360) % 360
-    const c = Math.min(n - 1, Math.floor((ad / 360) * n))
+    const ad = ramene(e.adDeg, TOUR_DEG)
+    const c = Math.min(n - 1, Math.floor((ad / TOUR_DEG) * n))
     paniers[decalages[b]! + c]!.indices.push(i)
   }
 
@@ -218,7 +219,7 @@ function* construitCumulMag(
   for (let j = 0; j < etoiles.length; j++) {
     if (pointDeCoupe(j)) yield
     const i = Math.ceil((etoiles[j]!.magV - magMin) / pas)
-    cumul[Math.min(cases - 1, Math.max(0, i))]! += 1
+    cumul[encadre(i, 0, cases - 1)]! += 1
   }
   for (let i = 1; i < cases; i++) cumul[i]! += cumul[i - 1]!
   return cumul

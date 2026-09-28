@@ -13,9 +13,9 @@ import type { Site } from './ephem.ts'
 import { observateur, verifieDomaineDesSeries, versDate } from './ephem.ts'
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
+import { MS_PAR_MINUTE } from './unites.ts'
 
 const MINUTES_PAR_HEURE = 60
-const MS_PAR_MINUTE = 60_000
 const JOURS_DE_RECHERCHE = 2
 
 /** Sens de recherche d'astronomy-engine : +1 en montée, −1 en descente. */

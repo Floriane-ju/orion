@@ -15,14 +15,13 @@ import {
   cadrageParcours,
   cartePointage,
   etapesParcours,
-  separationEtoilesDeg,
   type Ancrage,
   type CartePointage,
   type EtapeParcours,
 } from '../src/core/pointage.ts'
 import { fovPourRayonDeg, projecteur, type Vue } from '../src/core/projection.ts'
 import { cielInstantane } from '../src/core/horloges.ts'
-import { versVecteur } from '../src/core/mat3.ts'
+import { separationEquatorialeDeg, versVecteur } from '../src/core/mat3.ts'
 import { viseeVersVue } from '../src/ui/scene-lecture.ts'
 import { K } from '../src/registry/constants.ts'
 import type { Site } from '../src/core/ephem.ts'
@@ -51,7 +50,7 @@ function rayonNecessaireDeg(
   ]
   return Math.max(
     ...points.map(([adH, decDeg]) =>
-      separationEtoilesDeg(centre.adDeg / DEG_PAR_HEURE, centre.decDeg, adH, decDeg),
+      separationEquatorialeDeg(centre.adDeg / DEG_PAR_HEURE, centre.decDeg, adH, decDeg),
     ),
   )
 }
@@ -116,14 +115,14 @@ describe('§8.4 — le centre est une direction, pas une moyenne d’angles', ()
     // arithmétique tomberait vers 12 h — à l'opposé du ciel — et sortirait tout le trajet.
     const etapes = [etape(1, 23.6, 72), etape(2, 23.9, 73), etape(3, 0.3, 74)]
     const cadrage = cadrageParcours(etapes, 0.7, 74.5)
-    expect(cadrage.rayonDeg).toBeLessThan(separationEtoilesDeg(23.6, 72, 0.7, 74.5))
+    expect(cadrage.rayonDeg).toBeLessThan(separationEquatorialeDeg(23.6, 72, 0.7, 74.5))
   })
 
   it('tombe à égale distance du départ et de la cible quand il n’y a qu’un saut', () => {
     const etapes = [etape(1, 10, 20)]
     const cadrage = cadrageParcours(etapes, 11, 20)
-    const versDepart = separationEtoilesDeg(cadrage.adDeg / DEG_PAR_HEURE, cadrage.decDeg, 10, 20)
-    const versCible = separationEtoilesDeg(cadrage.adDeg / DEG_PAR_HEURE, cadrage.decDeg, 11, 20)
+    const versDepart = separationEquatorialeDeg(cadrage.adDeg / DEG_PAR_HEURE, cadrage.decDeg, 10, 20)
+    const versCible = separationEquatorialeDeg(cadrage.adDeg / DEG_PAR_HEURE, cadrage.decDeg, 11, 20)
     expect(versDepart).toBeCloseTo(versCible, 9)
   })
 })

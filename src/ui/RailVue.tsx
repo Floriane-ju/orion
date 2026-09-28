@@ -34,6 +34,7 @@ import {
   masqueParcours,
   useTrancheScene,
   type EtatScene,
+  vueRealisteScene,
 } from './scene-etat.ts'
 import { useSeance } from './seance-etat.ts'
 
@@ -53,9 +54,6 @@ function modeScene(etat: EtatScene): ModeProjection {
 }
 function couchesScene(etat: EtatScene): CouchesActives {
   return etat.rendu.couches
-}
-function vueRealisteScene(etat: EtatScene): boolean {
-  return etat.rendu.vueRealiste
 }
 /** T-0324 — la cible du parcours, `null` quand il n'y en a pas : la bulle la nomme. */
 function cibleParcours(etat: EtatScene): string | null {

@@ -16,16 +16,10 @@
 import { cibleDominante, rotationSuggeree, type ProfilCadre } from '../core/cadre.ts'
 import { coordonneesHorizon } from '../core/cibles-liste.ts'
 import type { Site } from '../core/ephem.ts'
-import { cielInstantane } from '../core/horloges.ts'
+import { matriceALaMinute } from '../core/horloges.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { BoutonGlyphe } from './BoutonGlyphe.tsx'
-import {
-  majVue,
-  minuteAffichee,
-  useTrancheScene,
-  MS_PAR_MINUTE,
-  vueScene,
-} from './scene-etat.ts'
+import { majVue, minuteAffichee, useTrancheScene, vueScene } from './scene-etat.ts'
 
 export interface BoutonViseeProps {
   readonly designation: string
@@ -49,7 +43,7 @@ export function ViseeCible({ objet, site }: { readonly objet: ObjetCielProfond; 
   const minute = useTrancheScene(minuteAffichee)
   const { azimutDeg, hauteurDeg } = coordonneesHorizon(
     objet,
-    cielInstantane(site, new Date(minute * MS_PAR_MINUTE)).matrice,
+    matriceALaMinute(site, minute),
   )
   return <BoutonVisee designation={objet.designation} azimutDeg={azimutDeg} hauteurDeg={hauteurDeg} />
 }
@@ -66,7 +60,7 @@ export function AlignementCible({ objet, site, profil }: AlignementCibleProps) {
   const minute = useTrancheScene(minuteAffichee)
   const vue = useTrancheScene(vueScene)
   if (profil === undefined) return null
-  const matrice = cielInstantane(site, new Date(minute * MS_PAR_MINUTE)).matrice
+  const matrice = matriceALaMinute(site, minute)
   const cadre = {
     profil,
     azimutDeg: vue.azimutDeg,

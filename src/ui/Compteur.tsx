@@ -24,6 +24,7 @@
 import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react'
 import { cransGlisse } from './compteur-glisse.ts'
 import { nombreDeTexte } from '../registry/domains.ts'
+import { encadre } from '../core/unites.ts'
 
 export interface CompteurProps {
   /** Nom accessible : le compteur affiche une valeur, jamais ce qu'elle désigne. */
@@ -73,7 +74,7 @@ export function Compteur(props: CompteurProps) {
   const initiale = useRef('')
 
   function borne(valeur: number): number {
-    return Math.min(props.max ?? Infinity, Math.max(props.min ?? -Infinity, valeur))
+    return encadre(valeur, props.min ?? -Infinity, props.max ?? Infinity)
   }
 
   function regle(valeur: number): void {

@@ -19,6 +19,7 @@ import type { ModeTemps } from '../core/curseur-temps.ts'
 import type { EtapeParcours } from '../core/pointage.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { CouchesActives } from './dessine-ciel.ts'
+import { encadre, MS_PAR_MINUTE } from '../core/unites.ts'
 
 /**
  * Résolution de rendu de référence, celle du viewport de §3.2. Ce n'est plus qu'un point de
@@ -130,8 +131,8 @@ export function decalageCentreScene(
       gauche = Math.max(gauche, obstacle.right - scene.left)
     else droite = Math.max(droite, scene.right - obstacle.left)
   }
-  gauche = Math.max(0, Math.min(gauche, largeurCss))
-  droite = Math.max(0, Math.min(droite, largeurCss))
+  gauche = encadre(gauche, 0, largeurCss)
+  droite = encadre(droite, 0, largeurCss)
   // Deux surfaces qui se rejoignent ne laissent pas de ciel : le milieu du canevas vaut mieux
   // qu'un centre posé au hasard de leur recouvrement.
   if (gauche + droite >= largeurCss) return 0
@@ -428,8 +429,6 @@ export function reinitialiseScene(): void {
  * comparable par `Object.is` : c'est cette comparaison que `useSyncExternalStore` applique
  * pour décider de rendre ou non.
  */
-/** Une minute en millisecondes : la granularité des lectures datées sur l'horloge. */
-export const MS_PAR_MINUTE = 60_000
 
 /**
  * La minute affichée par la scène. Les panneaux qui datent une lecture s'abonnent à elle
@@ -457,6 +456,10 @@ export function useTrancheScene<T>(selecteur: (etat: EtatScene) => T): T {
 }
 
 /** Tranches du pointage, du temps et du rendu : leur identité ne change qu'à leur écriture. */
+export function vueRealisteScene(etat: EtatScene): boolean {
+  return etat.rendu.vueRealiste
+}
+
 export function vueScene(etat: EtatScene): VueScene {
   return etat.vue
 }

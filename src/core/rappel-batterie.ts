@@ -9,8 +9,8 @@
 
 import { K } from '../registry/constants.ts'
 import { dureeLisible } from './exposure.ts'
+import { S_PAR_MIN } from './unites.ts'
 
-const S_PAR_MIN = 60
 
 /** `null` sous le seuil : un rappel affiché sur toute séance ne serait plus un rappel. */
 export function rappelBatterie(dureeMin: number): string | null {

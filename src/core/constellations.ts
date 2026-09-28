@@ -23,6 +23,7 @@ import type {
 import { matricePrecession } from './horloges.ts'
 import { DEG, applique, transpose, versVecteur, type Mat3, type Vec3 } from './mat3.ts'
 import { trace, type Traced } from './traced.ts'
+import { ecartCourt, TOUR_DEG } from './unites.ts'
 
 /** B1875 → J2000 : l'inverse de la précession J2000 → B1875, donc sa transposée. */
 export function matriceB1875VersJ2000(): Mat3 {
@@ -33,9 +34,7 @@ export function matriceB1875VersJ2000(): Mat3 {
 export function longueurAreteDeg(arete: AreteFrontiere): number {
   if (arete.type === 'MERIDIEN') return Math.abs(arete.dec2Deg - arete.dec1Deg)
   const cos = Math.cos(((arete.dec1Deg + arete.dec2Deg) / 2) * DEG)
-  let delta = Math.abs(arete.ad2Deg - arete.ad1Deg)
-  if (delta > 180) delta = 360 - delta
-  return delta * Math.abs(cos)
+  return Math.abs(ecartCourt(arete.ad1Deg, arete.ad2Deg, TOUR_DEG)) * Math.abs(cos)
 }
 
 /**
@@ -44,9 +43,7 @@ export function longueurAreteDeg(arete: AreteFrontiere): number {
  */
 export function polyligneFrontiere(arete: AreteFrontiere, matrice: Mat3): readonly Vec3[] {
   const pas = Math.max(1, Math.ceil(longueurAreteDeg(arete) / K('SUBDIVISION_FRONTIERE_DEG')))
-  let deltaAd = arete.ad2Deg - arete.ad1Deg
-  if (deltaAd > 180) deltaAd -= 360
-  if (deltaAd < -180) deltaAd += 360
+  const deltaAd = ecartCourt(arete.ad1Deg, arete.ad2Deg, TOUR_DEG)
   const points: Vec3[] = []
   for (let i = 0; i <= pas; i++) {
     const f = i / pas

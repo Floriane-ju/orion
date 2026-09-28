@@ -7,7 +7,8 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { angleOrientation, cartePointage, separationEtoilesDeg } from '../src/core/pointage.ts'
+import { angleOrientation, cartePointage } from '../src/core/pointage.ts'
+import { separationEquatorialeDeg } from '../src/core/mat3.ts'
 import { K } from '../src/registry/constants.ts'
 import type { Etoile } from '../src/data/catalog.ts'
 import type { EtoileNommee } from '../src/data/constellations.ts'
@@ -288,9 +289,9 @@ describe('séparation angulaire', () => {
   it('est nulle sur soi-même et symétrique', () => {
     // L'arc-cosinus perd de la précision près de zéro : l'écart résiduel est de l'ordre de
     // la milliseconde d'arc, sans effet à l'échelle d'un cadre de pointage.
-    expect(separationEtoilesDeg(5, 10, 5, 10)).toBeCloseTo(0, 5)
-    expect(separationEtoilesDeg(5, 10, 6, 20)).toBeCloseTo(
-      separationEtoilesDeg(6, 20, 5, 10),
+    expect(separationEquatorialeDeg(5, 10, 5, 10)).toBeCloseTo(0, 5)
+    expect(separationEquatorialeDeg(5, 10, 6, 20)).toBeCloseTo(
+      separationEquatorialeDeg(6, 20, 5, 10),
       9,
     )
   })

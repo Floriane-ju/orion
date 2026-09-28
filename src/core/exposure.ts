@@ -21,9 +21,8 @@ import { valide, type DomaineId } from '../registry/domains.ts'
 import { VALEURS_OBTURATEUR_S } from '../registry/verdicts.ts'
 import type { Flag, Traced } from './traced.ts'
 import { trace } from './traced.ts'
+import { S_PAR_H, S_PAR_MIN } from './unites.ts'
 
-const S_PAR_MIN = 60
-const S_PAR_H = 3600
 
 // ---------------------------------------------------------------------------
 // §7.1 — estimateur de flux

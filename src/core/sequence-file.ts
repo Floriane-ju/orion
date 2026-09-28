@@ -20,9 +20,8 @@ import { K } from '../registry/constants.ts'
 import { longueurArcDeg } from './file-etoiles.ts'
 import { rappelBatterie } from './rappel-batterie.ts'
 import { trace, type Traced } from './traced.ts'
+import { S_PAR_H, S_PAR_MIN } from './unites.ts'
 
-const S_PAR_MIN = 60
-const S_PAR_H = 3600
 
 export interface EntreeSequenceFile {
   readonly dureeTotaleMin: number

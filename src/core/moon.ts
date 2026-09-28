@@ -20,15 +20,14 @@ import { observateur, positionCorps, verifieDomaineDesSeries, versDate } from '.
 import type { FenetreNocturne } from './night.ts'
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
-import { DEG } from './mat3.ts'
+import { DEG, separationEquatorialeDeg } from './mat3.ts'
+import { MS_PAR_MINUTE } from './unites.ts'
 
 const ANGLE_DROIT_DEG = 90
-const MS_PAR_MINUTE = 60000
 const MINUTES_PAR_HEURE = 60
 const JOURS_DE_RECHERCHE = 2
 const DESCENTE = -1
 const MONTEE = 1
-const HEURES_PAR_TOUR = 24
 
 // ---------------------------------------------------------------------------
 // Position et phase
@@ -67,20 +66,6 @@ export function etatLune(site: Site, date: Date): EtatLuneInstant {
   }
 }
 
-/** Séparation angulaire entre deux directions équatoriales, en degrés. */
-export function separationDeg(
-  adAH: number,
-  decADeg: number,
-  adBH: number,
-  decBDeg: number,
-): number {
-  const DEG_PAR_HEURE = 360 / HEURES_PAR_TOUR
-  const d1 = decADeg * DEG
-  const d2 = decBDeg * DEG
-  const dAd = (adAH - adBH) * DEG_PAR_HEURE * DEG
-  const cos = Math.sin(d1) * Math.sin(d2) + Math.cos(d1) * Math.cos(d2) * Math.cos(dAd)
-  return Math.acos(Math.min(1, Math.max(-1, cos))) / DEG
-}
 
 /** Position de la Lune en coordonnées équatoriales de la date, sans calcul horizontal. */
 export function positionEquatorialeLune(date: Date, site: Site): {
@@ -266,7 +251,7 @@ export interface CielSousLaLune {
 export function cielSousLaLune(entree: EntreeCielSousLaLune): CielSousLaLune {
   const lune = etatLune(entree.site, entree.instant)
   const posLune = positionEquatorialeLune(entree.instant, entree.site)
-  const separation = separationDeg(entree.adH, entree.decDeg, posLune.adH, posLune.decDeg)
+  const separation = separationEquatorialeDeg(entree.adH, entree.decDeg, posLune.adH, posLune.decDeg)
   const delta = deltaSbLune({
     sbCielNoirMag: entree.sbCielNoirMag,
     altitudeLuneDeg: lune.altitudeDeg,

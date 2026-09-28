@@ -12,7 +12,7 @@
  */
 
 import { K } from '../registry/constants.ts'
-import { DEG, applique, transpose } from './mat3.ts'
+import { DEG, angleDeSinDeg, applique, transpose } from './mat3.ts'
 import { directionDuPlan, matriceVue, rayonProjete, type ModeProjection } from './projection.ts'
 import { npf, type ToleranceNpf } from './tracking.ts'
 import { trace, type Traced } from './traced.ts'
@@ -100,7 +100,7 @@ export function cartePoseMax(entree: EntreeCartePose): CartePoseMax {
       const local = directionDuPlan(entree.modeObjectif, u, v)
       const equatorial = applique(versEquatorial, local)
       const decDeg =
-        Math.asin(Math.max(-1, Math.min(1, equatorial.z))) / DEG
+        angleDeSinDeg(equatorial.z)
       const tNpfS = npf({
         focaleMm: entree.focaleMm,
         ouvertureN: entree.ouvertureN,

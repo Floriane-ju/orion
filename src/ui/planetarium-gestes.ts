@@ -16,6 +16,7 @@ import { majLectures, majVue, type ActionsScene, type VueScene } from './scene-e
 import { decritCible } from './planetarium-selection.ts'
 import { cibleSousLeCurseur, type CibleEcran, type SurvolEcran } from './dessine-ciel.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
+import { encadre, ramene, TOUR_DEG } from '../core/unites.ts'
 
 /** Un cran de zoom — molette ou touche. Le pincement, lui, est continu : voir `deltaY`. */
 const FACTEUR_ZOOM_CRAN = K('FACTEUR_ZOOM_CRAN')
@@ -42,7 +43,6 @@ const PAS_VISEE_FRACTION = K('PAS_VISEE_CLAVIER_FRACTION')
 /** Les bornes du pointage, partagées avec les compteurs de la barre basse (T-0163). */
 export const HAUTEUR_MIN_DEG = -90
 export const HAUTEUR_MAX_DEG = 90
-const TOUR_DEG = 360
 
 /**
  * Le facteur appliqué au champ pour un `wheel`. La molette avance par crans : facteur fixe. Le
@@ -57,7 +57,7 @@ export function facteurZoom(deltaY: number, pincement: boolean): number {
 
 /** Le champ ramené dans les bornes de §3.3 — les mêmes pour la molette et pour les touches. */
 export function fovBorne(fovDeg: number, bornes: BornesZoom): number {
-  return Math.max(bornes.fovMinDeg, Math.min(bornes.fovMaxDeg, fovDeg))
+  return encadre(fovDeg, bornes.fovMinDeg, bornes.fovMaxDeg)
 }
 
 /** Ce qu'un `wheel` doit déclencher sur la scène. */
@@ -123,12 +123,10 @@ interface EvenementGeste extends Event {
 }
 
 /** Un tour complet ramené dans 0–360°, la plage de §3.5 comme celle de l'azimut. */
-export function tourBorne(deg: number): number {
-  return ((deg % TOUR_DEG) + TOUR_DEG) % TOUR_DEG
-}
+const tourBorne = (deg: number): number => ramene(deg, TOUR_DEG)
 
 function hauteurBornee(deg: number): number {
-  return Math.max(HAUTEUR_MIN_DEG, Math.min(HAUTEUR_MAX_DEG, deg))
+  return encadre(deg, HAUTEUR_MIN_DEG, HAUTEUR_MAX_DEG)
 }
 
 /** La boîte du canevas, réduite à ce dont la rotation a besoin — testable sans DOM. */

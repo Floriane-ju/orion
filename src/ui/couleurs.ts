@@ -13,6 +13,7 @@
 
 import { K } from '../registry/constants.ts'
 import { composantesFond } from '../core/fond-ciel-rendu.ts'
+import { encadre } from '../core/unites.ts'
 
 const ANCRES: readonly (readonly [number, number, number, number])[] = [
   [-0.4, 155, 176, 255],
@@ -30,9 +31,9 @@ export const TEINTES = 8
 export function teinte(bv: number): number {
   const min = ANCRES[0]![0]
   const max = ANCRES[ANCRES.length - 1]![0]
-  const borne = Math.max(min, Math.min(max, bv))
+  const borne = encadre(bv, min, max)
   const index = Math.round(((borne - min) / (max - min)) * (TEINTES - 1))
-  return Math.max(0, Math.min(TEINTES - 1, index))
+  return encadre(index, 0, TEINTES - 1)
 }
 
 function interpole(bv: number): readonly [number, number, number] {
@@ -225,7 +226,7 @@ function versLineaire(octet: number): number {
 }
 
 function versOctet(lineaire: number): number {
-  const borne = Math.min(1, Math.max(0, lineaire))
+  const borne = encadre(lineaire, 0, 1)
   const encode =
     borne <= SRGB_SEUIL_LINEAIRE
       ? borne * SRGB_PENTE

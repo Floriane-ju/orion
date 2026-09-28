@@ -25,10 +25,9 @@ import {
   I,
   RELEVE_DECOUPE,
 } from '../registry/imagerie.ts'
+import { ARCMIN_PAR_DEG, POURCENT } from '../core/unites.ts'
 
-const ARCMIN_PAR_DEG = 60
 const OCTETS_PAR_KO = 1024
-const POURCENT = 100
 const ANGLE_DROIT_DEG = 90
 
 /**

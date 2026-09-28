@@ -30,8 +30,8 @@ import {
 } from './site.ts'
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
+import { MS_PAR_MINUTE } from './unites.ts'
 
-const MS_PAR_MINUTE = 60000
 const ANGLE_DROIT_DEG = 90
 
 export type CauseExclusion = 'HAUTEUR' | 'RELIEF' | 'LUNE' | 'HORS_FENETRE' | 'JAMAIS_LEVE'

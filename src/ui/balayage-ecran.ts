@@ -24,10 +24,10 @@
 
 import type { Projecteur } from '../core/projection.ts'
 import type { TestSol } from '../core/sol.ts'
+import { TOUR_RAD } from '../core/unites.ts'
 
 /** La portée du balayage dépasse le coin du canevas : la région ne doit pas s'arrêter dans l'image. */
 const MARGE_RAYON = 1.02
-const TOUR_RAD = 2 * Math.PI
 
 export interface FinesseBalayage {
   /** Rayons du balayage. À 240, le polygone s'écarte de la courbe de moins d'un centième de pixel. */

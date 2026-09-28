@@ -19,8 +19,8 @@ import { DOMAINES } from '../registry/domains.ts'
 import { CRITERES_SCORING, type CritereScoring, type SaisiePoids } from './app-saisie.ts'
 import { Curseur } from './Curseur.tsx'
 import { Accordeon } from './Accordeon.tsx'
+import { POURCENT } from '../core/unites.ts'
 
-const POURCENT = 100
 
 /** Le curseur découpe le domaine du registre en centièmes : pas de borne réécrite ici. */
 const DOMAINE_POIDS = DOMAINES.poids_scoring

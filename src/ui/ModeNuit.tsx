@@ -25,6 +25,7 @@ import { Icone } from './Icone.tsx'
 import { Interrupteur } from './Interrupteur.tsx'
 import { Tiroir } from './Tiroir.tsx'
 import { Etiquette } from './Terme.tsx'
+import { POURCENT } from '../core/unites.ts'
 
 export interface EtatModeNuit {
   readonly actif: boolean
@@ -35,7 +36,6 @@ const CLE_STOCKAGE = 'orion.mode-nuit'
 /** Clé portée avant que le produit s'appelle Orion : relue une dernière fois, jamais réécrite. */
 const CLE_STOCKAGE_ANCIENNE = 'astrofort.mode-nuit'
 const LUMINANCE_NOMINALE = 1
-const POURCENT = 100
 
 export const ETAT_INITIAL: EtatModeNuit = Object.freeze({
   actif: false,

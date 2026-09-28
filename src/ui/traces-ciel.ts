@@ -8,7 +8,7 @@
  * ne se referme jamais en travers de l'écran.
  */
 
-import { applique, DEG, transpose, versVecteur, type Mat3, type Vec3 } from '../core/mat3.ts'
+import { angleDeCosDeg, applique, transpose, versVecteur, type Mat3, type Vec3 } from '../core/mat3.ts'
 import { contourCadreJ2000, type Cadre } from '../core/cadre.ts'
 import { pointEcran, type Projecteur } from '../core/projection.ts'
 import { horsDuChamp, type ChampVisible } from './champ-visible.ts'
@@ -45,7 +45,7 @@ export function calotte(points: readonly Vec3[]): ChampVisible | null {
   }
   return {
     centre,
-    rayonDeg: Math.acos(Math.max(-1, Math.min(1, cosMin))) / DEG,
+    rayonDeg: angleDeCosDeg(cosMin),
   }
 }
 

@@ -16,8 +16,8 @@ import { useSyncExternalStore } from 'react'
 import { K } from '../registry/constants.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { majTemps } from './scene-etat.ts'
+import { S_PAR_MIN } from '../core/unites.ts'
 
-const S_PAR_MIN = 60
 
 /** §9.2 aperçu d'une pose, §9.3 filé d'une durée accumulée : même moteur, durée différente. */
 export type ModeApercu = 'CHAMP' | 'FILE'

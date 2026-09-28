@@ -24,8 +24,8 @@ import {
 } from './seance-etat.ts'
 import type { ParametresFile } from './dessine-champ.ts'
 import type { MaterielFile } from './planetarium-materiel.ts'
+import { S_PAR_MIN } from '../core/unites.ts'
 
-const S_PAR_MIN = 60
 
 export interface EntreeParametresFile {
   readonly etoiles: readonly Etoile[]

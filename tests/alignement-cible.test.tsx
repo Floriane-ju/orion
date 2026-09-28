@@ -9,13 +9,8 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { AlignementCible } from '../src/ui/BoutonVisee.tsx'
-import {
-  etatScene,
-  majVue,
-  minuteAffichee,
-  reinitialiseScene,
-  MS_PAR_MINUTE,
-} from '../src/ui/scene-etat.ts'
+import { etatScene, majVue, minuteAffichee, reinitialiseScene } from '../src/ui/scene-etat.ts'
+import { MS_PAR_MINUTE } from '../src/core/unites.ts'
 import { cielInstantane } from '../src/core/horloges.ts'
 import { coordonneesHorizon } from '../src/core/cibles-liste.ts'
 import { segmentsVisee } from '../src/ui/scene-lecture.ts'

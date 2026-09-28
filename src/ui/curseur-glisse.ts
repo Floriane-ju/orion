@@ -11,6 +11,8 @@
  * le doigt, la détente doit avoir la même largeur partout.
  */
 
+import { encadre } from '../core/unites.ts'
+
 /**
  * Demi-largeur de la détente, en pixels CSS de rail. Assez large pour se sentir au doigt,
  * assez étroite pour que la valeur voisine reste atteignable — c'est une loi de geste, pas un
@@ -33,7 +35,7 @@ export function valeurQuantifiee(valeur: number, rail: Rail): number {
   // Le pas n'est pas toujours entier — centièmes de poids, plancher de luminance — et la somme
   // flottante laisse une poussière (0,30000000000000004) qui remonterait jusqu'au texte affiché.
   const cranee = Number((rail.min + crans * pas).toPrecision(12))
-  return Math.min(rail.max, Math.max(rail.min, cranee))
+  return encadre(cranee, rail.min, rail.max)
 }
 
 /**
@@ -50,7 +52,7 @@ export function accrocheDansLaCourse(rail: Rail): number | null {
 export function fractionDuRail(valeur: number, rail: Rail): number {
   const course = rail.max - rail.min
   if (course <= 0) return 0
-  return Math.min(1, Math.max(0, (valeur - rail.min) / course))
+  return encadre((valeur - rail.min) / course, 0, 1)
 }
 
 /** La valeur que désigne une fraction de course, crantée puis accrochée. */

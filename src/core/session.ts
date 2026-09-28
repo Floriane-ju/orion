@@ -70,8 +70,8 @@ export {
   scoreLune,
   scoreSignal,
 } from './session-score.ts'
+import { MS_PAR_MINUTE } from './unites.ts'
 
-const MS_PAR_MINUTE = 60000
 const S_PAR_MINUTE = 60
 const MINUTES_PAR_HEURE = 60
 

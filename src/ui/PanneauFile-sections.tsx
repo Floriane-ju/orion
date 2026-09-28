@@ -25,14 +25,9 @@ import { TracedValue } from './TracedValue.tsx'
 import { Etiquette } from './Terme.tsx'
 import type { LecturesFile } from './panneau-file-lectures.ts'
 import { Mention } from './Mention.tsx'
+import { POURCENT, S_PAR_MIN } from '../core/unites.ts'
+import { formatePose } from './horaire.ts'
 
-const S_PAR_MIN = 60
-const POURCENT = 100
-
-/** Une pose courte se lit à la dizaine de seconde près : l'arrondi à l'unité l'écraserait. */
-function formatePose(tS: number): string {
-  return tS < 10 ? tS.toFixed(1) : tS.toFixed(0)
-}
 
 interface CadrageProps {
   readonly lectures: LecturesFile

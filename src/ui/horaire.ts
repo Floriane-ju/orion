@@ -14,6 +14,14 @@
 /** La langue de l'interface : une seule écriture, sans quoi deux écrans dateraient différemment. */
 export const LOCALE = 'fr-FR'
 
+/** Sous dix secondes, une pose se lit au dixième : l'arrondi à l'unité l'écraserait. */
+const POSE_AU_DIXIEME_SOUS_S = 10
+
+/** Une durée de pose, sans son unité : « 2.5 », « 13 ». */
+export function formatePose(tS: number): string {
+  return tS < POSE_AU_DIXIEME_SOUS_S ? tS.toFixed(1) : tS.toFixed(0)
+}
+
 /** L'heure seule, sans la date : les deux bornes d'un créneau tombent dans la même nuit. */
 export function heure(date: Date): string {
   return date.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' })

@@ -38,7 +38,6 @@ import {
   instant,
   majVue,
   minuteAffichee,
-  MS_PAR_MINUTE,
   renduScene,
   resolutionRendu,
   tempsScene,
@@ -46,6 +45,7 @@ import {
   useTrancheScene,
   vueScene,
 } from './scene-etat.ts'
+import { MS_PAR_MINUTE } from '../core/unites.ts'
 import { useSeance } from './seance-etat.ts'
 import type { ProfilCadre } from '../core/cadre.ts'
 import { positionCorps, type Site } from '../core/ephem.ts'

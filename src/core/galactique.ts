@@ -15,20 +15,20 @@
 
 import { K } from '../registry/constants.ts'
 import {
-  DEG,
+  angleDeSinDeg,
   applique,
+  type Mat3,
   multiplie,
   rotationY,
   rotationZ,
   transpose,
-  versVecteur,
-  type Mat3,
   type Vec3,
+  versVecteur,
 } from './mat3.ts'
 import { poseParPixelS } from './file-etoiles.ts'
 import { trace, type Traced } from './traced.ts'
+import { DEMI_TOUR_DEG, encadre } from './unites.ts'
 
-const DEMI_TOUR = 180
 const QUART_TOUR = 90
 const UM_PAR_MM = 1000
 
@@ -38,7 +38,7 @@ const UM_PAR_MM = 1000
  * galactique — ce dernier calage se lit sur la longitude galactique du pôle céleste.
  */
 export const MATRICE_GALACTIQUE: Mat3 = multiplie(
-  rotationZ(K('LONGITUDE_GALACTIQUE_POLE_CELESTE_DEG') - DEMI_TOUR),
+  rotationZ(K('LONGITUDE_GALACTIQUE_POLE_CELESTE_DEG') - DEMI_TOUR_DEG),
   multiplie(
     rotationY(QUART_TOUR - K('POLE_GALACTIQUE_DEC_DEG')),
     rotationZ(-K('POLE_GALACTIQUE_AD_DEG')),
@@ -50,7 +50,7 @@ const MATRICE_DEPUIS_GALACTIQUE = transpose(MATRICE_GALACTIQUE)
 /** Latitude galactique d'une direction J2000, en degrés. */
 export function latitudeGalactiqueDeg(v: Vec3): number {
   const g = applique(MATRICE_GALACTIQUE, v)
-  return Math.asin(Math.max(-1, Math.min(1, g.z))) / DEG
+  return angleDeSinDeg(g.z)
 }
 
 /** Direction J2000 d'une position galactique — support du tracé de la bande. */
@@ -87,7 +87,7 @@ export function magnitudeSemis(u: number): number {
 
 /** §9.2 — assombrissement des coins, en diaphragmes, pour un rayon relatif au coin du cadre. */
 export function vignettageDiaph(rayonRelatif: number): Traced<number> {
-  const borne = Math.max(0, Math.min(1, rayonRelatif))
+  const borne = encadre(rayonRelatif, 0, 1)
   return trace({
     value: K('VIGNETTAGE_COINS_DIAPH') * borne * borne,
     formula: 'VIGNETTAGE',
@@ -138,7 +138,7 @@ export function tableProfondeurParPixel(entree: EntreeTableProfondeur): Float64A
   const table = new Float64Array(cases)
   for (let i = 0; i < cases; i++) {
     const z = -1 + (2 * (i + 1 / 2)) / cases
-    const decDeg = (Math.asin(z) * DEMI_TOUR) / Math.PI
+    const decDeg = (Math.asin(z) * DEMI_TOUR_DEG) / Math.PI
     table[i] = magnitudeLimitePrevisu({
       ...entree.profondeur,
       tPoseS: entree.suiviActif
@@ -152,7 +152,7 @@ export function tableProfondeurParPixel(entree: EntreeTableProfondeur): Float64A
 /** Lecture de la table : `z` est la composante polaire de la direction, dans [−1, 1]. */
 export function profondeurPourZ(table: Float64Array, z: number): number {
   const indice = ((z + 1) * table.length) / 2
-  return table[Math.max(0, Math.min(table.length - 1, indice | 0))]!
+  return table[encadre(indice | 0, 0, table.length - 1)]!
 }
 
 export interface EntreeProfondeur {

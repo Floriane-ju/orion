@@ -27,10 +27,8 @@ import { K } from '../registry/constants.ts'
 import { DEG, applique, rotationAutourDe, separationDeg, type Vec3 } from './mat3.ts'
 import { pointEcran, porteeUtilePx, type PointEcran, type Projecteur, type Vue } from './projection.ts'
 import { trace, type Traced } from './traced.ts'
+import { DEMI_TOUR_DEG, ecartCourt, encadre, MIN_PAR_H, ramene, TOUR_RAD } from './unites.ts'
 
-const MIN_PAR_H = 60
-const DEMI_TOUR = 180
-const TOUR_RAD = 2 * Math.PI
 
 export interface PositionPole {
   /** **Doit piloter l'affichage** : hors cadre, les arcs restent centrés hors du canevas. */
@@ -70,7 +68,7 @@ export function positionPole(
     xPx: point?.xPx ?? null,
     yPx: point?.yPx ?? null,
     altitudeDeg: Math.abs(latitudeDeg),
-    azimutDeg: nord ? 0 : DEMI_TOUR,
+    azimutDeg: nord ? 0 : DEMI_TOUR_DEG,
   }
 }
 
@@ -308,7 +306,7 @@ const ecartsCercle = new Float64Array(ECHANTILLONS_CERCLE - 1)
 /** Cet angle est-il traversé par le balayage ? Sert à borner l'arc, pas le cercle entier. */
 function dansBalayage(angleRad: number, debutRad: number, balayageRad: number): boolean {
   const sens = balayageRad < 0 ? -1 : 1
-  const depuisDebut = ((((angleRad - debutRad) * sens) % TOUR_RAD) + TOUR_RAD) % TOUR_RAD
+  const depuisDebut = ramene((angleRad - debutRad) * sens, TOUR_RAD)
   return depuisDebut <= Math.abs(balayageRad)
 }
 
@@ -381,9 +379,7 @@ function arcStereographique(
   let vote = 0
   for (let i = 1; i < ECHANTILLONS_CERCLE; i++) {
     const angle = Math.atan2(ysCercle[i]! - centreY, xsCercle[i]! - centreX)
-    let ecart = angle - angleAvant
-    if (ecart > Math.PI) ecart -= TOUR_RAD
-    else if (ecart < -Math.PI) ecart += TOUR_RAD
+    const ecart = ecartCourt(angleAvant, angle, TOUR_RAD)
     ecartsCercle[i - 1] = ecart
     vote += ecart > 0 ? 1 : ecart < 0 ? -1 : 0
     angleAvant = angle
@@ -451,7 +447,7 @@ export function arcEtoile(
   const pas =
     estimation === null
       ? pasFin
-      : Math.max(1, Math.min(pasFin, Math.ceil(estimation / PAS_ARC_PX)))
+      : encadre(Math.ceil(estimation / PAS_ARC_PX), 1, pasFin)
   // Rotation élémentaire autour du pôle céleste de l'époque, appliquée de proche en proche :
   // l'angle horaire croît, donc l'ascension droite apparente décroît d'autant.
   // T-0111 — la matrice est déstructurée ici et le produit écrit à la main dans la boucle :

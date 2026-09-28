@@ -26,6 +26,7 @@ import {
   type Mat3,
   type Vec3,
 } from './mat3.ts'
+import { ARCMIN_PAR_DEG, DEMI_TOUR_DEG, ramene } from './unites.ts'
 
 export interface ProfilCadre {
   readonly libelle: string
@@ -160,7 +161,6 @@ export interface CibleDansCadre {
   readonly tailleDeg: number
 }
 
-const ARCMIN_PAR_DEG = 60
 
 /**
  * Objet dominant du cadre : le plus étendu parmi ceux qui y tombent. C'est lui qui porte
@@ -200,7 +200,6 @@ export interface RotationSuggeree {
   readonly message: string
 }
 
-const DEMI_TOUR_DEG = 180
 
 /** Rapport grand axe / petit axe. `null` quand le catalogue ne donne pas le petit axe. */
 function rapportAxes(objet: ObjetCielProfond): number | null {
@@ -252,7 +251,7 @@ function angleAxeDansCadre(
   const local = applique(versCadre, applique(matriceCiel, axe))
   // Un axe n'a pas de sens : deux directions opposées décrivent la même orientation.
   const brut = Math.atan2(local.y, local.x) / DEG
-  return ((brut % DEMI_TOUR_DEG) + DEMI_TOUR_DEG) % DEMI_TOUR_DEG
+  return ramene(brut, DEMI_TOUR_DEG)
 }
 
 /**
@@ -298,7 +297,7 @@ export function rotationSuggeree(
 
   const paysage = cadre.profil.fovLDeg >= cadre.profil.fovHDeg
   const brut = paysage ? angleAxe : angleAxe - 90
-  const angleDeg = ((brut % DEMI_TOUR_DEG) + DEMI_TOUR_DEG) % DEMI_TOUR_DEG
+  const angleDeg = ramene(brut, DEMI_TOUR_DEG)
 
   return {
     angleDeg,
