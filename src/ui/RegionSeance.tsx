@@ -35,6 +35,7 @@ import { BoutonChoixCible } from './BoutonChoixCible.tsx'
 import { useCiblesChoisies } from './cibles-choisies.ts'
 import { PlanSessionVue } from './PlanSession.tsx'
 import { RegionNuit } from './RegionNuit.tsx'
+import { CarteNuit } from './CarteNuit.tsx'
 import { modeObjectif } from '../core/optics.ts'
 import { montreListeCibles, useSeance, type VueCibles } from './seance-etat.ts'
 import { AIDE_MATERIEL_INCOMPLET } from './Inconnu.tsx'
@@ -334,17 +335,26 @@ export function LateralSeance(props: RegionSeanceProps) {
              T-0291 — c'est le contexte de séance qui la monte, et non `calcul.ok && ciel.ok` :
              les deux conditions sont équivalentes, mais la première est celle dont la liste
              tire ses lectures, et c'est elle qui porte la cadence différée. */
-      chaine.contexteSession !== null ? (
-        <PanneauCibles
-          catalogue={catalogue}
-          site={chaine.site}
-          contexteSession={chaine.contexteSession}
-          etats={chaine.etatsCibles}
-          recalcul={chaine.recalculEnCours}
-          inputRef={rechercheRef}
-        />
-      ) : (
-        <p className="etat">{AIDE_MATERIEL_INCOMPLET}</p>
+      (
+        <>
+          {/* T-0346 — la nuit ne dépend que du lieu et de la date : elle se montre même quand
+              le matériel manque, et c'est elle qu'on lit avant de choisir une cible. */}
+          {chaine.ciel.ok && (
+            <CarteNuit site={chaine.site} nuit={chaine.ciel.nuit} />
+          )}
+          {chaine.contexteSession !== null ? (
+            <PanneauCibles
+              catalogue={catalogue}
+              site={chaine.site}
+              contexteSession={chaine.contexteSession}
+              etats={chaine.etatsCibles}
+              recalcul={chaine.recalculEnCours}
+              inputRef={rechercheRef}
+            />
+          ) : (
+            <p className="etat">{AIDE_MATERIEL_INCOMPLET}</p>
+          )}
+        </>
       )}
     </PanneauLateral>
   )

@@ -37,6 +37,9 @@ export interface FenetreNocturne {
   readonly finNuitAstronomique: Date | null
   readonly milieuNuitVrai: Date | null
   readonly dureeNuitH: number
+  /** Crépuscule civil (−6°) : borne de la frise de la nuit, n'entre dans aucun calcul. */
+  readonly debutCivil: Date | null
+  readonly finCivil: Date | null
   /** Crépuscule nautique (−12°) : repli de planification quand la nuit noire est nulle. */
   readonly debutNautique: Date | null
   readonly finNautique: Date | null
@@ -123,6 +126,8 @@ export function fenetreNocturne(site: Site, depart: Date): FenetreNocturne {
       finNuitAstronomique: null,
       milieuNuitVrai: null,
       dureeNuitH: 0,
+      debutCivil: null,
+      finCivil: null,
       debutNautique: null,
       finNautique: null,
       debutReference: null,
@@ -135,6 +140,7 @@ export function fenetreNocturne(site: Site, depart: Date): FenetreNocturne {
     }
   }
 
+  const civil = fenetreSousHauteur(obs, coucherSoleil, K('HAUTEUR_CREPUSCULE_CIVIL_DEG'))
   const nautique = fenetreSousHauteur(obs, coucherSoleil, K('HAUTEUR_CREPUSCULE_NAUTIQUE_DEG'))
   const { debut, fin } = fenetreSousHauteur(
     obs,
@@ -154,6 +160,8 @@ export function fenetreNocturne(site: Site, depart: Date): FenetreNocturne {
       finNuitAstronomique: null,
       milieuNuitVrai: milieu(coucherSoleil, leverSoleil),
       dureeNuitH: 0,
+      debutCivil: civil.debut,
+      finCivil: civil.fin,
       debutNautique: nautique.debut,
       finNautique: nautique.fin,
       debutReference: nautique.debut,
@@ -178,6 +186,8 @@ export function fenetreNocturne(site: Site, depart: Date): FenetreNocturne {
     finNuitAstronomique: fin,
     milieuNuitVrai: milieu(debut, fin),
     dureeNuitH: dureeHeures(debut, fin),
+    debutCivil: civil.debut,
+    finCivil: civil.fin,
     debutNautique: nautique.debut,
     finNautique: nautique.fin,
     debutReference: debut,

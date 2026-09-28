@@ -114,6 +114,18 @@ function illuminanceLune(anglePhaseDeg: number): number {
   return K('BASE_MAGNITUDE') ** (-magnitude / K('POGSON'))
 }
 
+/**
+ * T-0346 — l'éclat de la Lune vue du site, rapporté à celui d'une pleine Lune au zénith :
+ * 1 pour elle, 0 pour une Lune couchée. Même illuminance de phase et même extinction que le
+ * terme B_lune ci-dessous, sans la diffusion — qui dépend d'une direction visée, et la frise
+ * de la nuit n'en vise aucune. C'est ce que le halo de la frise représente.
+ */
+export function eclatLuneRelatif(anglePhaseDeg: number, hauteurDeg: number): number {
+  if (hauteurDeg <= 0) return 0
+  const reference = illuminanceLune(0) * extinctionV(masseAirKS(ANGLE_DROIT_DEG))
+  return (illuminanceLune(anglePhaseDeg) * extinctionV(masseAirKS(hauteurDeg))) / reference
+}
+
 /** Fonction de diffusion : Rayleigh près de la Lune, Mie au-delà. */
 export function diffusionKS(separation: number): number {
   const cos = Math.cos(separation * DEG)

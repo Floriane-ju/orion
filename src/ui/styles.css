@@ -2625,6 +2625,257 @@ button:disabled {
   color: var(--texte);
 }
 
+/* T-0346 — la carte « La nuit » (§8.1), au-dessus de la liste du catalogue.
+
+   La frise se lit au MOTIF, jamais à la teinte : §11.1 confisque la luminance, et quatre
+   gris ne s'étagent pas en rouge sur noir. Du jour à la nuit noire — aplat, puis des points
+   de plus en plus lâches, puis le vide — la densité suit le ciel qu'elle désigne.
+
+   La Lune y est incrustée heure par heure, à sa hauteur, sa phase dessinée ; son halo grandit
+   et s'affirme avec son éclat (`--eclat`, 1 pour une pleine Lune au zénith).
+
+   Les positions arrivent en propriétés personnalisées : la feuille garde la main sur le
+   placement, et aucune couleur ne passe en ligne. */
+
+.nuit-frise {
+  display: grid;
+  gap: var(--pas-1);
+}
+/* Les graduations, sous la frise : un trait par heure, plein et étiqueté une heure sur
+   deux, court et atténué entre deux. */
+.nuit-heures {
+  position: relative;
+  block-size: calc(var(--texte-mini) * var(--interligne-controle) + var(--pas-2));
+  color: var(--texte);
+  font-size: var(--texte-mini);
+  font-variant-numeric: tabular-nums;
+}
+.nuit-repere {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: var(--debut);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pas-0);
+  transform: translateX(-50%);
+}
+.nuit-repere::before {
+  content: '';
+  inline-size: calc(2 * var(--trait));
+  block-size: var(--pas-1);
+  background: var(--attenue);
+}
+.nuit-repere.majeur::before {
+  block-size: var(--pas-2);
+  background: var(--texte);
+}
+
+.nuit-frise-ciel {
+  position: relative;
+  block-size: calc(var(--cible-clic) + var(--pas-1));
+  overflow: hidden;
+  border-block: var(--trait) solid var(--texte);
+}
+.nuit-bande {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: var(--debut);
+  inline-size: var(--largeur);
+}
+.nuit-curseur {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: var(--debut);
+  border-inline-start: var(--trait) dashed var(--texte);
+}
+
+/* Le survol : un trait à l'instant pointé et, dessous, la bulle qui le lit. La bulle se pose
+   par-dessus ce qui suit la frise, au rang de toute bulle ; elle se centre sous son trait
+   et, près d'un bord, se borne pour rester dans la frise (`100cqw` est la largeur de la
+   frise). Ni l'un ni l'autre ne capte le
+   pointeur : ils suivraient la souris en se volant l'événement. */
+.nuit-frise-zone {
+  position: relative;
+  container-type: inline-size;
+}
+.nuit-survol-trait {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: var(--debut);
+  border-inline-start: var(--trait) solid var(--texte);
+  pointer-events: none;
+}
+.nuit-bulle {
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline: 0;
+  z-index: var(--plan-bulle);
+  pointer-events: none;
+}
+.nuit-bulle-trait {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: var(--debut);
+  block-size: var(--pas-3);
+  border-inline-start: var(--trait) solid var(--texte);
+}
+/* La bulle a une largeur FIXE, celle de sa plus longue ligne — « Lune à 90° sous l’horizon »,
+   25 signes, un de marge, plus le disque, son écart et les deux marges intérieures ;
+   « Crépuscule astronomique », sans disque devant, y tient aussi. La
+   police est à chasse fixe : `ch` la mesure exactement. Une largeur qui suivait le texte
+   (« Nuit noire », « Crépuscule astronomique ») déplaçait une bulle calée contre le bord
+   droit à chaque changement de ligne.
+
+   Sa position est UNE seule propriété, bornée aux deux bords de la frise. Elle était faite
+   d'un ancrage et d'un décalage relatif à sa largeur, animés séparément : contre un bord,
+   les deux devaient s'annuler au pixel, et chaque mouvement du pointeur les relançait —
+   la bulle tremblait au lieu de rester fixe. */
+.nuit-bulle-corps {
+  --bulle-nuit-largeur: calc(26ch + var(--pas-6) + 3 * var(--pas-3));
+  position: absolute;
+  inset-block-start: var(--pas-3);
+  inset-inline-start: clamp(
+    0%,
+    calc(var(--fraction) * 100cqw - var(--bulle-nuit-largeur) / 2),
+    calc(100cqw - var(--bulle-nuit-largeur))
+  );
+  box-sizing: border-box;
+  inline-size: var(--bulle-nuit-largeur);
+  display: grid;
+  padding: var(--pas-2) var(--pas-3);
+  border: var(--trait) solid var(--texte);
+  background: var(--fond);
+  color: var(--texte);
+  font-size: var(--texte-legende);
+  line-height: var(--interligne-texte);
+  white-space: nowrap;
+}
+.nuit-bulle-heure {
+  font-variant-numeric: tabular-nums;
+}
+/* La Lune, sous un filet : son disque à gauche, à la hauteur des deux lignes qu'il résume. */
+.nuit-bulle-lune {
+  display: flex;
+  align-items: center;
+  gap: var(--pas-3);
+  margin-block-start: var(--pas-2);
+  padding-block-start: var(--pas-2);
+  border-block-start: var(--trait) solid var(--bordure-controle);
+}
+.nuit-bulle-disque {
+  flex: none;
+  inline-size: var(--pas-6);
+  block-size: var(--pas-6);
+}
+.nuit-bulle-lune-lectures {
+  display: grid;
+}
+/* Accroché par l'aimant, le trait et la ligne de l'évènement passent à l'accent : c'est
+   l'instant que le trait accent de la frise désigne. */
+.nuit-survol-trait.aimante {
+  border-inline-start-color: var(--accent);
+}
+.nuit-bulle-evenement {
+  color: var(--accent);
+}
+
+/* Lever et coucher de la Lune : un trait dans la frise, à l'accent — la seule marque qui
+   désigne un instant plutôt qu'une période. Son nom n'apparaît qu'au survol, quand
+   l'aimant y accroche la bulle. */
+.nuit-marque-lune {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: var(--debut);
+  border-inline-start: var(--trait) solid var(--accent);
+}
+
+.phase-jour {
+  background: var(--texte);
+}
+.phase-civil {
+  background: radial-gradient(circle, var(--texte) 0 var(--trait), transparent 0) 0 0 /
+    var(--pas-1) var(--pas-1);
+}
+.phase-nautique {
+  background: radial-gradient(circle, var(--texte) 0 var(--trait), transparent 0) 0 0 /
+    var(--pas-2) var(--pas-2);
+}
+.phase-astronomique {
+  background: radial-gradient(circle, var(--texte) 0 var(--trait), transparent 0) 0 0 /
+    var(--pas-3) var(--pas-3);
+}
+.phase-nuit-noire {
+  background: transparent;
+}
+
+/* Le bas de la frise est l'horizon, le haut le zénith ; une marge d'un demi-disque garde la
+   Lune entière à ses deux bouts. */
+.nuit-lune-incrustee {
+  position: absolute;
+  inset-inline-start: var(--debut);
+  inset-block-end: calc(var(--pas-2) + (100% - var(--pas-4)) * var(--hauteur));
+  inline-size: var(--pas-3);
+  block-size: var(--pas-3);
+  transform: translate(-50%, 50%);
+}
+.nuit-lune-incrustee::before,
+.nuit-lune-incrustee::after {
+  content: '';
+  position: absolute;
+  border: var(--trait) solid var(--texte);
+  border-radius: 50%;
+}
+.nuit-lune-incrustee::before {
+  inset: calc(-1 * var(--eclat) * var(--pas-2));
+  opacity: var(--eclat);
+}
+.nuit-lune-incrustee::after {
+  inset: calc(-1 * var(--eclat) * var(--pas-3));
+  opacity: calc(var(--eclat) / 2);
+}
+
+
+/* Le disque de la Lune : une moitié éclairée, puis l'ellipse du terminateur centrée dessus,
+   noire sous le quartier (elle ronge la moitié claire), claire au-delà (elle mord sur la
+   moitié sombre). Sa largeur, |1 − 2k| du diamètre, vient du calcul ; sa taille, du
+   conteneur — la même forme sert la frise et la légende. */
+.lune-disque {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: hidden;
+  border: var(--trait) solid var(--bordure-controle);
+  border-radius: 50%;
+  background: var(--fond);
+}
+.lune-moitie {
+  position: absolute;
+  inset-block: 0;
+  inline-size: 50%;
+  background: var(--texte);
+}
+.lune-droite .lune-moitie {
+  inset-inline-end: 0;
+}
+.lune-gauche .lune-moitie {
+  inset-inline-start: 0;
+}
+.lune-terminateur {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 50%;
+  inline-size: var(--terminateur);
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--fond);
+}
+.lune-gibbeuse .lune-terminateur {
+  background: var(--texte);
+}
+
 /* La liste du catalogue (§6.4).
 
    La ligne est un bloc de trois rangées, pas une carte : trois cents d'entre elles se
@@ -3020,6 +3271,23 @@ button:not(:disabled):active,
    La transition porte la règle de base, pas le survol : sans quoi l'encart s'agrandirait en
    douceur et se rétracterait d'un coup. */
 @media (prefers-reduced-motion: no-preference) {
+  /* T-0346 — pendant le survol de la frise, le trait, son prolongement et la bulle GLISSENT
+     d'une position à l'autre : quand l'aimant accroche ou relâche, la position saute de
+     plusieurs pixels, et sans fondu le trait paraissait se téléporter. Le fondu d'état,
+     court, suit le pointeur sans traîner. Mouvement de position : il ne vit qu'ici. */
+  .nuit-frise-zone:hover .nuit-survol-trait {
+    transition: inset-inline-start var(--fondu-etat) ease-out,
+      border-color var(--fondu-etat) ease;
+  }
+
+  .nuit-frise-zone:hover .nuit-bulle-trait {
+    transition: inset-inline-start var(--fondu-etat) ease-out;
+  }
+
+  .nuit-frise-zone:hover .nuit-bulle-corps {
+    transition: inset-inline-start var(--fondu-etat) ease-out;
+  }
+
   .image-cible-encart {
     transition: width var(--fondu-etat) ease;
   }

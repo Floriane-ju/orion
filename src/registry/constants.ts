@@ -161,6 +161,28 @@ const EXACTES = {
     ordreDeGrandeur: false,
     sections: ['8.1'],
   }),
+  FRISE_MARGE_JOUR_MIN: entree({
+    ref: 'A-FMJ',
+    libelle: 'Jour peint de part et d’autre de la frise de la nuit',
+    valeur: 30,
+    unite: 'min',
+    source:
+      'choix d’affichage (T-0346) : une demi-heure de jour borde la frise pour situer le ' +
+      'coucher et le lever du Soleil ; n’entre dans aucun calcul',
+    tolerance: null,
+    ordreDeGrandeur: false,
+    sections: ['8.1'],
+  }),
+  HAUTEUR_CREPUSCULE_CIVIL_DEG: entree({
+    ref: 'A-CRC',
+    libelle: 'Hauteur du Soleil définissant le crépuscule civil',
+    valeur: -6,
+    unite: '°',
+    source: 'définition du crépuscule civil',
+    tolerance: null,
+    ordreDeGrandeur: false,
+    sections: ['8.1'],
+  }),
   HAUTEUR_CREPUSCULE_NAUTIQUE_DEG: entree({
     ref: 'A-CRN',
     libelle: 'Hauteur du Soleil définissant le crépuscule nautique',

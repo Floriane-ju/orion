@@ -62,7 +62,7 @@ individuellement, avec une valeur calculée — une primitive n'aurait aucun con
 
 Deux origines en tête du bloc : `--base-neutre` (`#e9e9e9`) et `--base-accent` (`#8bffef`). Chaque nuance
 est `color-mix(in srgb, var(--base-neutre) P%, var(--fond))` : changer l'origine repeint toute la
-famille. L'accent n'a pas de nuance — il ne peint que la marque et le cadre du matériel. `mode-nuit.test.tsx` résout ces
+famille. L'accent n'a pas de nuance — il ne peint que la marque, le cadre du matériel et les levers et couchers de Lune de la frise de la nuit. `mode-nuit.test.tsx` résout ces
 mélanges avant de calculer les ratios WCAG.
 
 | Jeton | Jour | Rôle |
@@ -73,7 +73,7 @@ mélanges avant de calculer les ratios WCAG.
 | `--surface-survol` | `--base-neutre` 18 % | le survol d'une commande posée seule sur le ciel (flanc gauche) |
 | `--texte` | `--base-neutre` | texte principal |
 | `--attenue` | `--base-neutre` 69 % | texte secondaire, étiquettes |
-| `--accent` | `--base-accent` | **la marque (`h1`) et le cadre du matériel, rien d'autre** |
+| `--accent` | `--base-accent` | **la marque (`h1`), le cadre du matériel et les instants de Lune de la frise (`.nuit-marque-lune`), rien d'autre** |
 | `--avertissement` | `#f4c76a` | un rail sous la main |
 | `--bordure` | `--base-neutre` 83 % | filet de conteneur |
 | `--bordure-controle` | `--base-neutre` 59,3 % | filet de contrôle — tenu à ≥ 3:1 (WCAG 1.4.11) |
@@ -95,7 +95,8 @@ nuit ne la surcharge pas une par une.
 
 **Toute l'interface est neutre** — commandes, survols, focus, réglages, états enfoncés sont des
 nuances de `--base-neutre`. L'accent est réservé à ce qu'on vise : la marque et le cadre du
-matériel (canevas et encart de l'image). Un survol se lit à l'aplat `--surface-haute` et au
+matériel (canevas et encart de l'image), et les levers et couchers de Lune de la frise de la
+nuit — des instants qu'on guette, pas des commandes. Un survol se lit à l'aplat `--surface-haute` et au
 filet qui passe au `--texte`, jamais à une teinte.
 
 **Le canevas reprend les jetons de l'interface, là où il peint de l'interface.** Le fond est
