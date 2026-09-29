@@ -754,8 +754,9 @@ body {
    première grandit dès qu'on la déplie ou qu'on passe au mode avancé, et viendrait couvrir la
    seconde. Le conteneur les met en colonne et tient la hauteur laissée par les deux barres ;
    quand elles n'y tiennent plus ensemble, chacune rétrécit et son corps défile chez lui.
-   Alignées à droite, une carte repliée reste collée à la colonne. Celle-ci est décollée du
-   bord d'un jour de carte (T-0243), d'où les deux jours.
+   Le conteneur prend la largeur de la plus large et les cartes s'y étirent : repliées, Boîtier
+   et Optique font la même boîte au lieu de deux résumés de longueurs différentes. La colonne
+   de droite est décollée du bord d'un jour de carte (T-0243), d'où les deux jours.
 
    Le conteneur laisse passer le pointeur : l'air entre les cartes et sous elles reste du ciel
    qu'on fait glisser. */
@@ -767,7 +768,7 @@ body {
   bottom: var(--jour-carte);
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: stretch;
   gap: var(--jour-carte);
   pointer-events: none;
 }
@@ -779,6 +780,12 @@ body {
   min-height: 0;
   max-width: none;
   pointer-events: auto;
+}
+
+/* Repliée, la carte cède son `max-content` à l'étirement du conteneur : sans quoi chacune
+   garde la largeur de son résumé. */
+.cartes-materiel > .carte[data-ouverte='false'] {
+  width: auto;
 }
 
 /* LE PANNEAU DU TEMPS (T-0314) : la date et l'heure, en tête de la colonne de droite.
