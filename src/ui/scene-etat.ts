@@ -20,6 +20,11 @@ import type { EtapeParcours } from '../core/pointage.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { CouchesActives } from './dessine-ciel.ts'
 import { encadre, MS_PAR_MINUTE } from '../core/unites.ts'
+import {
+  ecritScenePersistee,
+  litScenePersistee,
+  type ScenePersistee,
+} from '../data/scene-persistee.ts'
 
 /**
  * Résolution de rendu de référence, celle du viewport de §3.2. Ce n'est plus qu'un point de
@@ -269,14 +274,45 @@ const ETAT_INITIAL: EtatScene = {
       // §4.1 — la scène montre d'abord le ciel observable : le sol masque ce qui est dessous.
       sol: true,
     },
-    vueRealiste: false,
+    // T-0355 — la scène s'ouvre sur le ciel tel qu'on le voit depuis le site.
+    vueRealiste: true,
     parcours: null,
   },
   lectures: { selection: null },
   msAffiche: instant.ms,
 }
 
-let etat: EtatScene = ETAT_INITIAL
+/**
+ * T-0355 — l'état de départ, retouché par ce que le stockage a gardé du dernier passage.
+ *
+ * L'instant se rend selon le mode : figé ou en défilement, on repart de l'instant quitté ;
+ * en `MAINTENANT`, on repart de l'horloge avec le même décalage, sans quoi un rechargement
+ * rejouerait les minutes écoulées depuis. La vue repasse par `majVue` à la première écriture,
+ * qui rebornera un champ hors plafond ; il est borné ici aussi, pour le premier rendu.
+ */
+function restaure(depart: EtatScene, lu: ScenePersistee): EtatScene {
+  const temps = { ...depart.temps, ...lu.temps }
+  const vue = { ...depart.vue, ...lu.vue }
+  const ms =
+    temps.modeTemps === 'MAINTENANT' ? Date.now() + temps.decalageMs : (lu.ms ?? Date.now())
+  instant.ms = ms
+  const couches = Object.fromEntries(
+    Object.entries(depart.rendu.couches).map(([c, v]) => [c, lu.rendu?.couches?.[c] ?? v]),
+  ) as unknown as CouchesActives
+  return {
+    ...depart,
+    vue: { ...vue, fovDeg: Math.min(vue.fovDeg, fovMaxSelonMode(vue.mode)) },
+    temps,
+    rendu: {
+      ...depart.rendu,
+      couches,
+      vueRealiste: lu.rendu?.vueRealiste ?? depart.rendu.vueRealiste,
+    },
+    msAffiche: ms,
+  }
+}
+
+let etat: EtatScene = restaure(ETAT_INITIAL, litScenePersistee())
 const abonnes = new Set<() => void>()
 
 /** Instantané courant. Son identité ne change qu'à une écriture : `useSyncExternalStore` s'y fie. */
@@ -409,6 +445,33 @@ export function masqueParcours(): void {
  */
 export function reprend(): void {
   majTemps({ modeTemps: 'MAINTENANT', decalageMs: instant.ms - Date.now() })
+}
+
+/**
+ * T-0355 — ce qui se garde d'un passage à l'autre. Un parcours ouvert n'en est pas : c'est
+ * l'instant et le mode d'AVANT lui qui se gardent, ceux que `masqueParcours` aurait rendus.
+ */
+export function scenePersistee(courant: EtatScene, ms: number): ScenePersistee {
+  const { azimutDeg, hauteurDeg, rotationCadreDeg, fovDeg, mode } = courant.vue
+  const avant = courant.rendu.parcours === null ? null : avantParcours
+  return {
+    vue: { azimutDeg, hauteurDeg, rotationCadreDeg, fovDeg, mode },
+    temps: avant?.temps ?? courant.temps,
+    ms: avant?.ms ?? ms,
+    rendu: {
+      couches: { ...courant.rendu.couches } as Readonly<Record<string, boolean>>,
+      vueRealiste: courant.rendu.vueRealiste },
+  }
+}
+
+// ponytail: écrit au départ de la page seulement — un onglet tué sans `pagehide` perd sa
+// dernière retouche ; écrire à chaque `pose` si ça gêne sur le terrain.
+if (typeof window !== 'undefined') {
+  const garde = () => ecritScenePersistee(scenePersistee(etat, instant.ms))
+  window.addEventListener('pagehide', garde)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') garde()
+  })
 }
 
 /** Remet la scène dans son état de départ. Réservé aux tests : l'application n'en a pas besoin. */

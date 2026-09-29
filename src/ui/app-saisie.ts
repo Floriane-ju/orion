@@ -13,7 +13,7 @@ import type { CapteurMode, SaisieBoitier } from '../data/equipment.ts'
 import { ligneBoitier } from '../data/boitiers.ts'
 import type { QualiteMiseEnStation, TypeMonture } from '../core/suivi.ts'
 import { nuitDeLInstant } from '../core/nuit-datee.ts'
-import { etatScene, majVue } from './scene-etat.ts'
+import { etatScene, instant, majVue } from './scene-etat.ts'
 import { modeObjectif, type TypeObjectif } from '../core/optics.ts'
 
 /**
@@ -73,7 +73,12 @@ export function useSaisieLieu(depart: DepartLieu | null): SaisieLieu {
   const [sqm, surSqm] = useState(depart?.sqm ?? '')
   // T-0267 — la nuit en cours, pas le jour civil : démarrer l'application à 2 h du matin sur
   // le terrain doit ouvrir le plan qu'on est en train d'exécuter, pas celui du soir suivant.
-  const [nuitIso, surNuitIso] = useState(() => nuitDeLInstant(new Date()))
+  // T-0355 — la nuit de l'instant que la scène a relu : un instant figé au rechargement garde
+  // sa nuit. En `MAINTENANT`, l'horloge fait foi, avec le décalage que la scène a gardé.
+  const [nuitIso, surNuitIso] = useState(() => {
+    const { modeTemps, decalageMs } = etatScene().temps
+    return nuitDeLInstant(new Date(modeTemps === 'MAINTENANT' ? Date.now() + decalageMs : instant.ms))
+  })
   const [pointsMasque, surPointsMasque] = useState<readonly PointMasque[]>(
     depart?.pointsMasque ?? [],
   )

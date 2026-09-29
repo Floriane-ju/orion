@@ -6,9 +6,10 @@
  * persisté ressortirait à chaque démarrage, et rendrait l'export irréimportable puisque le
  * contrôle du réimport applique les mêmes plages du registre §2.1.
  *
- * Deux choses ne sont pas persistées, par décision : la date de séance repart d'aujourd'hui —
- * relire une date passée planifierait une nuit déjà écoulée — et la comparaison de recadrage
- * est un affichage, pas une saisie.
+ * Deux choses ne sont pas persistées ici : la date de séance se déduit de l'instant de la
+ * scène, que `scene-persistee.ts` garde (T-0355) — l'horloge en marche la ramène à ce soir,
+ * seul un instant figé garde sa nuit — et la comparaison de recadrage est un affichage, pas
+ * une saisie.
  */
 
 import type { SiteEnregistre, ProfilMateriel } from '../data/db.ts'
