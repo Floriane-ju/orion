@@ -267,7 +267,7 @@ const ETAT_INITIAL: EtatScene = {
     couches: {
       figures: true,
       frontieres: false,
-      asterismes: true,
+      asterismes: false,
       cadre: true,
       horizon: true,
       voieLactee: true,
