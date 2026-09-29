@@ -75,11 +75,12 @@ describe('modulation en longitude — le bulbe (T-0105)', () => {
   })
 
   it('deux segments de longitude voisins rendent la même couleur à un 255e près', () => {
-    // C'est ce qui fixe PAS_LONGITUDE_BANDE_DEG = 18 dans `dessine-ciel.ts` : la bande y est
+    // C'est ce qui fixe PAS_LONGITUDE_BANDE_DEG = 12 dans `voie-lactee.ts` : la bande y est
     // découpée en longitude, et une marche de couleur visible entre deux segments se lirait
     // comme une couture. Le critère est celui déjà mesuré pour le pas de latitude — et il
-    // n'est PAS satisfait à 24°, où l'écart passe à deux niveaux.
-    const PAS_SEGMENT_DEG = 18
+    // n'est PAS satisfait à 18° depuis que l'exposition a triplé (C-38), où l'écart passe à
+    // deux niveaux.
+    const PAS_SEGMENT_DEG = 12
     for (const sb of [SB_PLANCHER_NATUREL, SB_PLAFOND_TABLE]) {
       const ciel = nanolamberts(sb)
       for (let l = 0; l < 360; l += PAS_SEGMENT_DEG) {
@@ -123,16 +124,16 @@ describe('composition sur le fond de ciel', () => {
     }
   })
 
-  it('la bande est blanc-chaud, jamais rose : R ≥ V ≥ B, et le fond est bleu', () => {
+  it('la bande est blanc-bleuté, jamais rose : R ≤ V ≤ B, et moins saturée que le fond', () => {
     const [rBande, vBande, bBande] = octets(
       bandeRealiste(0, nanolamberts(SB_PLANCHER_NATUREL), false).couleur,
     )
-    expect(rBande!).toBeGreaterThanOrEqual(vBande!)
-    expect(vBande!).toBeGreaterThanOrEqual(bBande!)
-    // Le fond, lui, penche vers le bleu : c'est le contraste de teinte qui fait lire la bande
-    // comme de la lumière d'étoiles et non comme un ciel plus clair.
+    expect(rBande!).toBeLessThanOrEqual(vBande!)
+    expect(vBande!).toBeLessThanOrEqual(bBande!)
+    // Le fond penche PLUS vers le bleu que la bande : c'est l'écart de saturation qui fait lire
+    // la bande comme de la lumière d'étoiles et non comme un ciel plus clair.
     const [rFond, , bFond] = octets(fondRealiste(SB_PLANCHER_NATUREL))
-    expect(bFond!).toBeGreaterThan(rFond!)
+    expect(rBande! / bBande!).toBeGreaterThan(rFond! / bFond!)
     // Et surtout : plus jamais la teinte d'interface, qui est du magenta. Elle ne sert plus
     // qu'au réticule du centre galactique et aux labels (T-0101, décision 2).
     expect(bandeRealiste(nanolamberts(20.5), brillanceVoieLacteeNl(0, 0), false).couleur).not.toBe(

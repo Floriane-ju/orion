@@ -411,7 +411,9 @@ describe('passe de rendu §3.3', () => {
     expect(part(cielMoyen)).toBeGreaterThan(part(cielPerdu))
     // Effacée ne veut pas dire non peinte : en ville la bande est encore composée, mais sa
     // part est si faible qu'elle ne déplace plus le fond. C'est ce que l'œil constate.
-    expect(part(cielPerdu)).toBeLessThan(0.1)
+    // 0,15 et non 0,1 : la part peinte porte le gain d'affichage C-50 (T-0352). L'effacement
+    // PHYSIQUE, sur la brillance brute, est tenu par `voie-lactee.test.ts`.
+    expect(part(cielPerdu)).toBeLessThan(0.15)
     expect(part(bonCiel)).toBeGreaterThan(0.5)
     // La ligne du plan, elle, est tracée dans tous les cas.
     expect(cielPerdu.sortie.labels.some((l) => l.texte === 'Voie lactée')).toBe(true)

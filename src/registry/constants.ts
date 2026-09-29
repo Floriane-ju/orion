@@ -1367,12 +1367,13 @@ const RENDU = {
   K_EXPOSITION_FOND_CIEL: entree({
     ref: 'C-38',
     libelle: 'Exposition du fond de ciel peint',
-    valeur: 5.066e-5,
+    valeur: 1.52e-4,
     unite: 'Y/nL',
     source:
       'extension de rendu — seule constante libre du modèle, calée pour que la luminance ' +
-      'd’écran vaille 0,003 au fond de ciel le plus sombre de la table Bortle (21,9 mag/as², ' +
-      'Bortle 1), soit juste au-dessus du noir. Le RAPPORT des luminances, lui, est physique : ' +
+      'd’écran vaille 0,009 au fond de ciel le plus sombre de la table Bortle (21,9 mag/as², ' +
+      'Bortle 1). Triplée depuis 0,003 : la Voie lactée, ajoutée au fond, y restait sous les ' +
+      'dix niveaux d’octet par ciel moyen, donc à peine visible. Le RAPPORT des luminances, lui, est physique : ' +
       'Y = K × B(sb) donne 36× entre Bortle 9 et Bortle 1, exactement le rapport des brillances.',
     tolerance: 'convention produit — pilote l’apparence d’un fond, jamais un verdict',
     ordreDeGrandeur: false,
@@ -1768,22 +1769,24 @@ const GRAND_CHAMP = {
   }),
   CHROMA_VOIE_LACTEE_R: entree({
     ref: 'C-45',
-    libelle: 'Chromaticité de la lumière stellaire intégrée — canal rouge',
-    valeur: 1.0,
+    libelle: 'Chromaticité de la Voie lactée perçue — canal rouge',
+    valeur: 0.82,
     unite: '—',
     source:
-      'extension de rendu — la lumière stellaire galactique intégrée a B−V ≈ +0,9 ' +
-      '(géantes K, plus le rougissement par la poussière) : elle est blanc-chaud, jamais ' +
-      'magenta. Rapports bruts en lumière linéaire ; la normalisation qui rend la bande ' +
-      'photométriquement comparable au fond est calculée, pas écrite ici.',
+      'extension de rendu — la lumière stellaire intégrée est chaude en photo (B−V ≈ +0,9), ' +
+      'mais l’aperçu montre ce que voit l’œil : en vision scotopique (effet Purkinje), la ' +
+      'bande paraît blanc-bleuté. Blanc froid, moins saturé que le fond de ciel pour se lire ' +
+      'comme de la lumière et non comme un ciel plus clair ; jamais magenta. Rapports bruts ' +
+      'en lumière linéaire ; la normalisation qui rend la bande photométriquement comparable ' +
+      'au fond est calculée, pas écrite ici.',
     tolerance: 'ordre de grandeur',
     ordreDeGrandeur: true,
     sections: ['3.7'],
   }),
   CHROMA_VOIE_LACTEE_V: entree({
     ref: 'C-46',
-    libelle: 'Chromaticité de la lumière stellaire intégrée — canal vert',
-    valeur: 0.86,
+    libelle: 'Chromaticité de la Voie lactée perçue — canal vert',
+    valeur: 0.9,
     unite: '—',
     source: 'extension de rendu — voir CHROMA_VOIE_LACTEE_R',
     tolerance: 'ordre de grandeur',
@@ -1792,12 +1795,26 @@ const GRAND_CHAMP = {
   }),
   CHROMA_VOIE_LACTEE_B: entree({
     ref: 'C-47',
-    libelle: 'Chromaticité de la lumière stellaire intégrée — canal bleu',
-    valeur: 0.66,
+    libelle: 'Chromaticité de la Voie lactée perçue — canal bleu',
+    valeur: 1,
     unite: '—',
     source: 'extension de rendu — voir CHROMA_VOIE_LACTEE_R',
     tolerance: 'ordre de grandeur',
     ordreDeGrandeur: true,
+    sections: ['3.7'],
+  }),
+  GAIN_RENDU_VOIE_LACTEE: entree({
+    ref: 'C-50',
+    libelle: 'Gain d’affichage de la bande galactique',
+    valeur: 1.5,
+    unite: '—',
+    source:
+      'T-0352, convention produit — multiplie la brillance de la bande AU RENDU seulement. ' +
+      'Lissée en dégradé, la bande perd le sommet de son profil (les tranches b = ±1° s’y ' +
+      'moyennent), et un écran rend moins de dynamique que l’œil adapté. Les verdicts, le ' +
+      'filtre et les tests de modèle lisent la brillance brute, jamais celle-ci.',
+    tolerance: 'convention produit — pilote l’apparence de la bande, jamais un verdict',
+    ordreDeGrandeur: false,
     sections: ['3.7'],
   }),
   PORTEE_PROJECTION_DIAGONALES: entree({

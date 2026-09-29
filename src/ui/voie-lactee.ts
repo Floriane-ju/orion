@@ -19,6 +19,7 @@ import { brillanceVoieLacteeNl } from '../core/fond-ciel-rendu.ts'
 import { pointEcran, type PointEcranMut, type Projecteur } from '../core/projection.ts'
 import { bandeRealiste, fondRealiste } from './couleurs.ts'
 import { champVisible, horsDuChamp } from './champ-visible.ts'
+import { peintLisse } from './lissage.ts'
 import type { CandidatLabel } from '../core/labels.ts'
 import { altitudeCulmination } from '../core/site.ts'
 import { K } from '../registry/constants.ts'
@@ -38,8 +39,8 @@ const QUART_TOUR_DEG = 90
 /**
  * T-0103 — pas des tranches de la bande. À 2°, la marche de couleur entre deux tranches
  * voisines vaut 1/255 sur toute la table Bortle : elle est SOUS la quantification de l'écran,
- * donc invisible sans le moindre flou. C'est mesuré, pas supposé — et c'est pourquoi cette
- * couche ne floute rien, là où l'aperçu de champ doit le faire (`dessine-champ.ts`).
+ * donc invisible sans le moindre flou. C'était vrai à l'exposition d'origine ; triplée (C-38),
+ * la marche se voit, et la bande passe par le lissage de `lissage.ts` (T-0352).
  */
 const PAS_LATITUDE_BANDE_DEG = 2
 
@@ -56,16 +57,15 @@ export const PLAN_GALACTIQUE: readonly Vec3[] = Array.from(
 /**
  * T-0105 — longueur d'un segment de brillance, en longitude galactique.
  *
- * Même critère que le pas en latitude, et la même mesure : à 18°, la marche de couleur entre
+ * Même critère que le pas en latitude, et la même mesure : à 12°, la marche de couleur entre
  * deux segments voisins vaut au plus 1/255 sur toute la table Bortle — sous la quantification
- * de l'écran, donc invisible sans flou. À 24° elle passe à 2/255 et se verrait ; le calcul
- * analytique de la pente (0,00436 mag par degré) le laissait croire acceptable, la mesure dit
- * le contraire. C'est `tests/voie-lactee.test.ts` qui tient ce chiffre.
+ * de l'écran, donc invisible sans flou. À 18° elle passe à 2/255 depuis que l'exposition a
+ * triplé (C-38) et se verrait. C'est `tests/voie-lactee.test.ts` qui tient ce chiffre.
  *
  * Le pas est un multiple de l'échantillonnage géométrique : un segment reste une polyligne de
- * six cordes, pas une corde unique.
+ * quatre cordes, pas une corde unique.
  */
-const PAS_LONGITUDE_BANDE_DEG = 18
+const PAS_LONGITUDE_BANDE_DEG = 12
 const SEGMENTS_PAR_TRANCHE = 360 / PAS_LONGITUDE_BANDE_DEG
 
 /**
@@ -192,21 +192,24 @@ export function ancreVoieLactee(
  * d'autant plus de pixels que le champ est serré. L'échelle est prise au centre du champ —
  * la projection l'étire vers les bords, et un repère de lecture n'en souffre pas.
  *
- * ponytail: la brillance du site est prise au zénith pour toute la bande, alors que le halo
- * d'horizon éclaircit le bas du ciel. La tranche serait donc un peu trop contrastée près de
- * l'horizon — là où le sol la recouvre et où personne n'image. Le jour où il faudra la
- * composer par direction, c'est un champ 2D à peindre, pas un trait à moduler.
+ * ponytail: l'écart peint est calculé contre le fond du zénith et ajouté en `lighter`, donc
+ * en sRGB encodé et pas en lumière linéaire. Sur un fond relevé par les halos (Lune, horizon),
+ * la bande ressort un peu trop — jamais plus sombre que le fond, ce qui était le défaut. Le
+ * jour où il faudra la composer juste par direction, c'est un champ 2D à peindre.
  */
 interface TeinteBande {
+  /** Ce que la bande ajoute au fond, peint à l'opacité `part`. */
   readonly couleur: string
   readonly part: number
+  /** Le même ajout, déjà multiplié par `part` : peint opaque sur le canevas réduit. */
+  readonly premultipliee: string
   readonly segments: SegmentBande[]
 }
 
 /**
- * Les 1 660 segments de la bande, regroupés par teinte peinte.
+ * Les 2 700 segments de la bande, regroupés par teinte peinte.
  *
- * Un `stroke()` par segment, c'était 1 660 traits larges et translucides étalés sur le canevas
+ * Un `stroke()` par segment, c'était 2 700 traits larges et translucides étalés sur le canevas
  * à chaque image — le coût explose au dézoom, où tous tombent dans le champ. La teinte d'un
  * segment ne dépend QUE de sa position galactique et du fond de ciel du site : elle ne bouge
  * ni au zoom, ni au défilement. Le regroupement se calcule donc une fois par fond de ciel,
@@ -225,7 +228,7 @@ function teintesBande(sbCiel: number, modeNuit: boolean): readonly TeinteBande[]
     for (const segment of tranche.segments) {
       const rendu = bandeRealiste(
         brillanceCiel,
-        brillanceVoieLacteeNl(segment.lDeg, tranche.bDeg),
+        brillanceVoieLacteeNl(segment.lDeg, tranche.bDeg) * K('GAIN_RENDU_VOIE_LACTEE'),
         modeNuit,
       )
       // Peint sous le demi-niveau d'octet : la tranche recouvre le fond par sa propre
@@ -233,8 +236,15 @@ function teintesBande(sbCiel: number, modeNuit: boolean): readonly TeinteBande[]
       // opacité qui ramène l'écart sous ce que l'écran sait distinguer.
       if (rendu.couleur === fondSeul || Math.round(rendu.deltaPeintOctets) === 0) continue
       const part = Math.round(rendu.part * NIVEAUX_ALPHA) / NIVEAUX_ALPHA
-      const cle = `${rendu.couleur}|${part}`
-      const groupe = groupes.get(cle) ?? { couleur: rendu.couleur, part, segments: [] }
+      const [r, v, b] = rendu.ajoutOctets
+      const couleur = `rgb(${r} ${v} ${b})`
+      const cle = `${couleur}|${part}`
+      const groupe = groupes.get(cle) ?? {
+        couleur,
+        part,
+        premultipliee: `rgb(${Math.round(r * part)} ${Math.round(v * part)} ${Math.round(b * part)})`,
+        segments: [],
+      }
       groupe.segments.push(segment)
       groupes.set(cle, groupe)
     }
@@ -246,34 +256,23 @@ function teintesBande(sbCiel: number, modeNuit: boolean): readonly TeinteBande[]
 let bandeMemo: { readonly cle: string; readonly teintes: readonly TeinteBande[] } | null = null
 
 /**
- * T-0193 — cinquante-cinq lignes, et c'est voulu : une seule boucle sur les 1 660 segments,
- * exécutée à chaque image. La couper en deux ferait traverser une frontière d'appel au chemin
- * chaud du rendu, pour économiser cinq lignes de lecture.
+ * Trace les teintes de la bande sur `cible`, en coordonnées écran. Une seule boucle sur les
+ * 2 700 segments, exécutée à chaque image.
  */
-export function traceBandeVoieLactee(entree: EntreeDessin): void {
-  const { ctx, projecteur } = entree
-  const cle = `${entree.sbCiel}|${entree.modeNuit}`
-  if (bandeMemo === null || bandeMemo.cle !== cle) {
-    bandeMemo = { cle, teintes: teintesBande(entree.sbCiel, entree.modeNuit) }
-  }
-  const opaciteInitiale = ctx.globalAlpha
-  ctx.lineJoin = 'round'
-  // Bout franc, et pas arrondi : deux segments de longitude voisins partagent leur sommet, et
-  // un bout arrondi les ferait se recouvrir d'un demi-trait — un recouvrement translucide se
-  // compose deux fois, donc se voit comme une perle claire à chaque raccord.
-  ctx.lineCap = 'butt'
-  ctx.lineWidth = (PAS_LATITUDE_BANDE_DEG * projecteur.vue.largeurPx) / projecteur.vue.fovDeg
+function traceTeintes(
+  cible: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+  projecteur: Projecteur,
+  teintes: readonly TeinteBande[],
+  lisse: boolean,
+): void {
   // Même écart que pour les cellules d'étoiles (§3.3) : un produit scalaire par segment plutôt
   // que sept projections. Au dézoom, la moitié des segments est derrière l'observateur et ne
   // se rejetait qu'après avoir été projetée point par point.
   const champ = champVisible(projecteur)
   const p = pointEcran()
-  for (const teinte of bandeMemo.teintes) {
-    // T-0110 — le chemin se construit AVANT que la teinte ne soit posée. Une teinte dont
-    // aucun segment n'atteint le champ ne doit rien coûter : en vue serrée, la bande n'occupe
-    // qu'une fraction du ciel, et l'écrasante majorité des teintes sort vide du test
-    // hors-champ. Poser `globalAlpha`, `strokeStyle` puis `stroke()` sur un chemin vide ne
-    // peint rien — mais chacun de ces ordres traverse quand même le pilote graphique.
+  for (const teinte of teintes) {
+    // T-0110 — le chemin se construit AVANT que la teinte ne soit posée : une teinte dont
+    // aucun segment n'atteint le champ ne doit rien coûter au pilote graphique.
     let tracé = false
     for (const segment of teinte.segments) {
       if (horsDuChamp(champ, segment.centre, segment.demiExtensionDeg)) continue
@@ -283,26 +282,73 @@ export function traceBandeVoieLactee(entree: EntreeDessin): void {
           enchaine = false
           continue
         }
-        // Le chemin ne s'ouvre qu'au premier point retenu : une teinte entièrement hors du
-        // champ n'émet plus rien du tout, pas même l'ouverture.
         if (!tracé) {
-          ctx.beginPath()
+          cible.beginPath()
           tracé = true
         }
-        if (enchaine) ctx.lineTo(p.xPx, p.yPx)
-        else ctx.moveTo(p.xPx, p.yPx)
+        if (enchaine) cible.lineTo(p.xPx, p.yPx)
+        else cible.moveTo(p.xPx, p.yPx)
         enchaine = true
       }
     }
     if (!tracé) continue
-    ctx.globalAlpha = teinte.part
-    ctx.strokeStyle = teinte.couleur
-    ctx.stroke()
+    cible.globalAlpha = lisse ? 1 : teinte.part
+    cible.strokeStyle = lisse ? teinte.premultipliee : teinte.couleur
+    cible.stroke()
   }
+}
+
+/**
+ * T-0352 — la bande se peint en dégradé : ses tranches passent par le canevas réduit de
+ * `peintLisse`, à un pixel par tranche, et s'agrandissent lissées.
+ *
+ * Sur ce canevas, chaque tranche est OPAQUE, dans sa couleur déjà multipliée par sa part, et
+ * deux fois plus épaisse que son pas. L'épaisseur est mesurée au centre de l'écran, et la
+ * projection étire le ciel vers les bords : à l'épaisseur exacte, des interstices vides
+ * s'ouvraient entre tranches, et le lissage les moyennait avec la bande — elle perdait de son
+ * intensité. Doublées, les tranches se recouvrent au lieu de s'écarter, et, opaques, elles se
+ * remplacent au lieu de s'additionner : le recouvrement ne compte qu'une fois. Recopiée en
+ * `lighter`, chaque pixel ajoute au fond exactement `part × ajout`.
+ *
+ * ponytail: le double de l'épaisseur couvre l'étirement jusqu'à un facteur 2, celui de la
+ * stéréographique à 90° du centre ; au-delà, des interstices reviendraient au bord du champ.
+ *
+ * Sans `OffscreenCanvas`, les tranches se peignent directement en `lighter`, à leur part.
+ */
+export function traceBandeVoieLactee(entree: EntreeDessin): void {
+  const { ctx, projecteur } = entree
+  const cle = `${entree.sbCiel}|${entree.modeNuit}`
+  if (bandeMemo === null || bandeMemo.cle !== cle) {
+    bandeMemo = { cle, teintes: teintesBande(entree.sbCiel, entree.modeNuit) }
+  }
+  const { teintes } = bandeMemo
+  const { largeurPx, hauteurPx, fovDeg } = projecteur.vue
+  const tranchePx = (PAS_LATITUDE_BANDE_DEG * largeurPx) / fovDeg
+  const lissee = peintLisse(ctx, largeurPx, hauteurPx, tranchePx, 'lighter', (reduite) => {
+    reduite.lineJoin = 'round'
+    reduite.lineCap = 'butt'
+    reduite.lineWidth = 2 * tranchePx
+    traceTeintes(reduite, projecteur, teintes, true)
+  })
+  if (lissee) return
+
+  const opaciteInitiale = ctx.globalAlpha
+  const compositionInitiale = ctx.globalCompositeOperation
+  // La bande s'AJOUTE au fond : peinte par-dessus, elle assombrirait tout ciel plus clair que
+  // le zénith — halo lunaire, halo d'horizon.
+  ctx.globalCompositeOperation = 'lighter'
+  ctx.lineJoin = 'round'
+  // Bout franc, et pas arrondi : deux segments de longitude voisins partagent leur sommet, et
+  // un bout arrondi les ferait se recouvrir d'un demi-trait — un recouvrement translucide se
+  // compose deux fois, donc se voit comme une perle claire à chaque raccord.
+  ctx.lineCap = 'butt'
+  ctx.lineWidth = tranchePx
+  traceTeintes(ctx, projecteur, teintes, false)
   ctx.globalAlpha = opaciteInitiale
-  ctx.lineWidth = 1
+  ctx.globalCompositeOperation = compositionInitiale
   // Rendus à leurs valeurs par défaut : les repères tracés ensuite partagent ce contexte,
   // et un trait épais laissé arrondi arrondirait aussi les frontières et l'horizon.
+  ctx.lineWidth = 1
   ctx.lineJoin = 'miter'
 }
 

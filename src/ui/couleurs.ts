@@ -280,7 +280,7 @@ export const LUMINANCE_FOND_REFERENCE = luminanceRelative(composantesDeCss(PALET
  * Sans cette normalisation, bande et fond à brillance de surface ÉGALE ne rendraient pas la même
  * luminance : `K_EXPOSITION_FOND_CIEL` — seule constante libre du modèle de fond — cesserait de
  * s'appliquer aux deux, et le contraste de la bande deviendrait un artefact du choix de teinte.
- * C'est le rapport R/V/B qui porte l'information physique (B−V ≈ +0,9), pas son échelle.
+ * C'est le rapport R/V/B qui porte l'information physique (la teinte perçue, C-45 à C-47), pas son échelle.
  */
 const CHROMA_BANDE: Composantes = (() => {
   const brut: Composantes = [
@@ -324,7 +324,12 @@ export function bandeRealiste(
   brillanceCielNl: number,
   brillanceBandeNl: number,
   modeNuit: boolean,
-): { readonly couleur: string; readonly part: number; readonly deltaPeintOctets: number } {
+): {
+  readonly couleur: string
+  readonly part: number
+  readonly deltaPeintOctets: number
+  readonly ajoutOctets: readonly [number, number, number]
+} {
   const chroma = modeNuit ? CHROMA_BANDE_NUIT : CHROMA_BANDE
   const yCiel = K('K_EXPOSITION_FOND_CIEL') * brillanceCielNl
   const yBande = K('K_EXPOSITION_FOND_CIEL') * brillanceBandeNl
@@ -343,15 +348,16 @@ export function bandeRealiste(
     fond[2] + yBande * chroma[2],
   ]
   const part = brillanceBandeNl / (brillanceCielNl + brillanceBandeNl)
-  const ecartOctets = Math.max(
-    Math.abs(versOctet(composee[0]) - versOctet(fond[0])),
-    Math.abs(versOctet(composee[1]) - versOctet(fond[1])),
-    Math.abs(versOctet(composee[2]) - versOctet(fond[2])),
-  )
+  const ecart = (c: 0 | 1 | 2): number => versOctet(composee[c]) - versOctet(fond[c])
+  const ecarts = [ecart(0), ecart(1), ecart(2)] as const
   return {
     couleur: css(composee),
     part,
-    deltaPeintOctets: part * ecartOctets,
+    deltaPeintOctets: part * Math.max(...ecarts.map(Math.abs)),
+    // Ce que la bande AJOUTE au fond, en octets : peint en `lighter` à l'opacité `part`, il
+    // redonne exactement `couleur` sur le fond du zénith, et ne peut qu'éclaircir un fond
+    // déjà relevé par les halos — la lumière s'additionne, elle ne recouvre pas.
+    ajoutOctets: [Math.max(0, ecarts[0]), Math.max(0, ecarts[1]), Math.max(0, ecarts[2])],
   }
 }
 

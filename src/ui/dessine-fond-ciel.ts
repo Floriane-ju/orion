@@ -32,6 +32,7 @@ import {
 } from '../core/fond-ciel-rendu.ts'
 import { fondRealiste } from './couleurs.ts'
 import { frontiereEcran, remplitRegion, type FinesseBalayage } from './balayage-ecran.ts'
+import { peintLisse } from './lissage.ts'
 import { DEG_PAR_HEURE } from '../core/unites.ts'
 
 /**
@@ -48,6 +49,12 @@ const BALAYAGE_HALO: FinesseBalayage = { rayons: 96, dichotomies: 9 }
  * épaisseur croissante (van Rhijn 1921), atténuée par l'extinction du trajet.
  *
  * Le palier du zénith n'est pas peint : c'est le `fillRect` du fond, déjà à la bonne teinte.
+ *
+ * T-0352 — les paliers passent par le canevas réduit de `peintLisse` et s'agrandissent
+ * lissés : le halo se lit en dégradé, plus en anneaux. La réduction prend DEUX paliers par
+ * pixel au centre de l'écran, parce que la projection les étire vers le bord, là justement où
+ * le halo est vif. Sur ce canevas, le palier du zénith est peint comme les autres : la copie
+ * recouvre tout le fond. Sans `OffscreenCanvas`, les paliers se peignent directement.
  */
 export function dessineHaloHorizon(
   ctx: CanvasRenderingContext2D,
@@ -57,12 +64,23 @@ export function dessineHaloHorizon(
 ): void {
   const bornes = bornesPaliersHalo()
   const bSite = nanolamberts(sbCiel)
-  // Du plus haut palier au plus bas : les régions s'emboîtent, la dernière peinte l'emporte.
-  for (let i = bornes.length - 2; i >= 0; i--) {
-    const sb = sbDepuisNanolamberts(bSite * facteurHaloHorizon(hauteurRepresentative(i)))
-    const frontiere = frontiereEcran(projecteur, sousLaHauteur(bornes[i]!, matriceCiel), BALAYAGE_HALO)
-    remplitRegion(ctx, frontiere, fondRealiste(sb))
+  const paliers = (cible: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D) => {
+    // Du plus haut palier au plus bas : les régions s'emboîtent, la dernière peinte l'emporte.
+    for (let i = bornes.length - 2; i >= 0; i--) {
+      const sb = sbDepuisNanolamberts(bSite * facteurHaloHorizon(hauteurRepresentative(i)))
+      const frontiere = frontiereEcran(projecteur, sousLaHauteur(bornes[i]!, matriceCiel), BALAYAGE_HALO)
+      remplitRegion(cible, frontiere, fondRealiste(sb))
+    }
   }
+  const { largeurPx, hauteurPx, fovDeg } = projecteur.vue
+  const palierPx = (bornes[0]! * largeurPx) / fovDeg
+  const lisse = peintLisse(ctx, largeurPx, hauteurPx, 2 * palierPx, 'source-over', (reduite) => {
+    reduite.fillStyle = fondRealiste(sbCiel)
+    // Jusqu'au bord du canevas réduit, marge comprise : un pixel non peint serait transparent.
+    reduite.fillRect(0, 0, largeurPx + 2 * palierPx, hauteurPx + 2 * palierPx)
+    paliers(reduite)
+  })
+  if (!lisse) paliers(ctx)
 }
 
 export interface LuneEcran {

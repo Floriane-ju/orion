@@ -112,7 +112,7 @@ export function frontiereEcran(
 
 /** Peint la région, opaque. */
 export function remplitRegion(
-  ctx: CanvasRenderingContext2D,
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
   f: FrontiereEcran,
   couleur: string,
 ): void {
