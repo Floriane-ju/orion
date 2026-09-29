@@ -788,6 +788,13 @@ body {
   width: auto;
 }
 
+/* Dès qu'une carte est dépliée, la repliée ne s'aligne plus sur elle : elle reprend son
+   résumé, collée à droite, et laisse le ciel à côté. */
+.cartes-materiel:has(> .carte[data-ouverte='true']) > .carte[data-ouverte='false'] {
+  width: max-content;
+  align-self: flex-end;
+}
+
 /* LE PANNEAU DU TEMPS (T-0314) : la date et l'heure, en tête de la colonne de droite.
 
    Il porte le cadre des autres objets posés sur le ciel — filet complet, fond de surface. Il
@@ -2824,9 +2831,10 @@ button:disabled {
   background: radial-gradient(circle, var(--texte) 0 var(--trait), transparent 0) 0 0 /
     var(--pas-2) var(--pas-2);
 }
+/* Un pas plein au-delà du nautique : à `--pas-3`, les deux trames se confondaient. */
 .phase-astronomique {
   background: radial-gradient(circle, var(--texte) 0 var(--trait), transparent 0) 0 0 /
-    var(--pas-3) var(--pas-3);
+    var(--pas-4) var(--pas-4);
 }
 .phase-nuit-noire {
   background: transparent;
