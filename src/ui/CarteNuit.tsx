@@ -1,5 +1,5 @@
 /**
- * §8.1 — la nuit d'un coup d'œil, au-dessus de la liste du ciel profond.
+ * §8.1 — la nuit d'un coup d'œil, en bas à gauche de la scène.
  *
  * Avant de choisir une cible, on veut savoir quand il fera noir et ce que fera la Lune. La
  * carte « Plan de nuit » le dit en tableau, repliée sur la scène ; ici la même nuit se lit
@@ -66,8 +66,7 @@ export function CarteNuit({ site, nuit }: CarteNuitProps) {
   const minute = useTrancheScene(minuteAffichee)
 
   return (
-    <section>
-      <h2>La nuit</h2>
+    <section className="panneau-nuit" role="region" aria-label="La nuit">
       {nuit.cause !== undefined && <Mention ton="cause">{nuit.cause}</Mention>}
       {frise !== null && (
         <Frise

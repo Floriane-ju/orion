@@ -1169,7 +1169,8 @@ body {
   .panneau-temps,
   .coque-rail,
   .coque-nuit,
-  .coque-lateral {
+  .coque-lateral,
+  .panneau-nuit {
     position: static;
     inset: auto;
     width: auto;
@@ -2625,7 +2626,7 @@ button:disabled {
   color: var(--texte);
 }
 
-/* T-0346 — la carte « La nuit » (§8.1), au-dessus de la liste du catalogue.
+/* T-0346 — la carte « La nuit » (§8.1), au pied de la colonne de droite.
 
    La frise se lit au MOTIF, jamais à la teinte : §11.1 confisque la luminance, et quatre
    gris ne s'étagent pas en rouge sur noir. Du jour à la nuit noire — aplat, puis des points
@@ -2637,13 +2638,27 @@ button:disabled {
    Les positions arrivent en propriétés personnalisées : la feuille garde la main sur le
    placement, et aucune couleur ne passe en ligne. */
 
+/* Posée seule sur le ciel, sans cadre ni titre : la frise porte déjà ses filets et se nomme par
+   ses heures. En bas à gauche, à droite du mode nuit et de l'info — le même retrait que la
+   carte Site au-dessus —, à la largeur de la colonne de droite. */
+.panneau-nuit {
+  position: absolute;
+  left: calc(var(--rail) + 2 * var(--jour-carte));
+  bottom: var(--jour-carte);
+  z-index: var(--plan-panneaux);
+  width: var(--lateral);
+  max-width: calc(100% - var(--rail) - 3 * var(--jour-carte));
+}
+
 .nuit-frise {
   display: grid;
   gap: var(--pas-1);
 }
-/* Les graduations, sous la frise : un trait par heure, plein et étiqueté une heure sur
-   deux, court et atténué entre deux. */
+/* Les graduations, au-dessus de la frise : un trait par heure, plein et étiqueté une heure sur
+   deux, court et atténué entre deux. Posée au pied de l'écran, la frise se lit de haut en bas :
+   l'heure d'abord, le ciel ensuite. L'ordre du DOM ne change pas — les heures sont muettes. */
 .nuit-heures {
+  order: -1;
   position: relative;
   block-size: calc(var(--texte-mini) * var(--interligne-controle) + var(--pas-2));
   color: var(--texte);
@@ -2652,10 +2667,10 @@ button:disabled {
 }
 .nuit-repere {
   position: absolute;
-  inset-block-start: 0;
+  inset-block-end: 0;
   inset-inline-start: var(--debut);
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse;
   align-items: center;
   gap: var(--pas-0);
   transform: translateX(-50%);
@@ -2690,8 +2705,9 @@ button:disabled {
   border-inline-start: var(--trait) dashed var(--texte);
 }
 
-/* Le survol : un trait à l'instant pointé et, dessous, la bulle qui le lit. La bulle se pose
-   par-dessus ce qui suit la frise, au rang de toute bulle ; elle se centre sous son trait
+/* Le survol : un trait à l'instant pointé et, AU-DESSUS, la bulle qui le lit — la frise est au
+   pied de l'écran, rien ne tient dessous. La bulle se pose par-dessus le ciel,
+   au rang de toute bulle ; elle se centre sous son trait
    et, près d'un bord, se borne pour rester dans la frise (`100cqw` est la largeur de la
    frise). Ni l'un ni l'autre ne capte le
    pointeur : ils suivraient la souris en se volant l'événement. */
@@ -2708,14 +2724,14 @@ button:disabled {
 }
 .nuit-bulle {
   position: absolute;
-  inset-block-start: 100%;
+  inset-block-end: 100%;
   inset-inline: 0;
   z-index: var(--plan-bulle);
   pointer-events: none;
 }
 .nuit-bulle-trait {
   position: absolute;
-  inset-block-start: 0;
+  inset-block-end: 0;
   inset-inline-start: var(--debut);
   block-size: var(--pas-3);
   border-inline-start: var(--trait) solid var(--texte);
@@ -2734,7 +2750,7 @@ button:disabled {
 .nuit-bulle-corps {
   --bulle-nuit-largeur: calc(26ch + var(--pas-6) + 3 * var(--pas-3));
   position: absolute;
-  inset-block-start: var(--pas-3);
+  inset-block-end: var(--pas-3);
   inset-inline-start: clamp(
     0%,
     calc(var(--fraction) * 100cqw - var(--bulle-nuit-largeur) / 2),

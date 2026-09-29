@@ -23,7 +23,7 @@ import { ouvreCible, useSeance } from './ui/seance-etat.ts'
 import { BarreHaut } from './ui/BarreHaut.tsx'
 import { BoutonInfo, PageInfo } from './ui/PageInfo.tsx'
 import { PanneauTemps } from './ui/PanneauTemps.tsx'
-import { CartesSeance, LateralSeance } from './ui/RegionSeance.tsx'
+import { CartesSeance, LateralSeance, NuitSeance } from './ui/RegionSeance.tsx'
 import { useSaisieLieu, useSaisieMateriel, useSaisiePoids } from './ui/app-saisie.ts'
 import {
   useCatalogues,
@@ -216,6 +216,7 @@ function AppPrete({
         </>
       }
       lateral={<LateralSeance {...regions} />}
+      nuit={<NuitSeance {...regions} />}
       page={
         <PageInfo
           etat={catalogues.etat}

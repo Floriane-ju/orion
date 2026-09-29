@@ -335,27 +335,27 @@ export function LateralSeance(props: RegionSeanceProps) {
              T-0291 — c'est le contexte de séance qui la monte, et non `calcul.ok && ciel.ok` :
              les deux conditions sont équivalentes, mais la première est celle dont la liste
              tire ses lectures, et c'est elle qui porte la cadence différée. */
-      (
-        <>
-          {/* T-0346 — la nuit ne dépend que du lieu et de la date : elle se montre même quand
-              le matériel manque, et c'est elle qu'on lit avant de choisir une cible. */}
-          {chaine.ciel.ok && (
-            <CarteNuit site={chaine.site} nuit={chaine.ciel.nuit} />
-          )}
-          {chaine.contexteSession !== null ? (
-            <PanneauCibles
-              catalogue={catalogue}
-              site={chaine.site}
-              contexteSession={chaine.contexteSession}
-              etats={chaine.etatsCibles}
-              recalcul={chaine.recalculEnCours}
-              inputRef={rechercheRef}
-            />
-          ) : (
-            <p className="etat">{AIDE_MATERIEL_INCOMPLET}</p>
-          )}
-        </>
+      chaine.contexteSession !== null ? (
+        <PanneauCibles
+          catalogue={catalogue}
+          site={chaine.site}
+          contexteSession={chaine.contexteSession}
+          etats={chaine.etatsCibles}
+          recalcul={chaine.recalculEnCours}
+          inputRef={rechercheRef}
+        />
+      ) : (
+        <p className="etat">{AIDE_MATERIEL_INCOMPLET}</p>
       )}
     </PanneauLateral>
   )
+}
+
+/**
+ * T-0346 — la nuit, en bas à gauche de la scène. Elle ne dépend que du lieu et de la date :
+ * elle se montre quel que soit le mode et même quand le matériel manque. Hors du panneau de
+ * séance, elle ne défile plus avec la liste et ne la repousse plus.
+ */
+export function NuitSeance({ chaine }: RegionSeanceProps) {
+  return chaine.ciel.ok ? <CarteNuit site={chaine.site} nuit={chaine.ciel.nuit} /> : null
 }

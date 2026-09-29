@@ -14,7 +14,8 @@
  *     saisie qu'on relit le plus, dépliée au démarrage, mais repliable quand elle est réglée ;
  *   - les CARTES portent le plan de nuit, repliable ;
  *   - la COLONNE DE DROITE porte le panneau du temps (T-0314) puis le panneau de séance : la
- *     date et l'heure coiffent ce qui se lit en longueur — le catalogue, le filé.
+ *     date et l'heure coiffent ce qui se lit en longueur — le catalogue, le filé ;
+ *   - la frise de la NUIT se pose en bas à gauche, à côté du mode nuit (T-0346).
  *
  * La coque ne connaît aucun contenu : elle reçoit six régions et les place. C'est ce qui
  * permet de remplir, vider et redécouper les panneaux sans toucher à la mise en page.
@@ -50,6 +51,8 @@ export interface CoqueProps {
   readonly cartes: ReactNode
   /** Panneau de séance, sous le temps dans la même colonne. */
   readonly lateral: ReactNode
+  /** La frise de la nuit, en bas à gauche de la scène. */
+  readonly nuit: ReactNode
   /** T-0325 — la page info : dernière du DOM, elle couvre tout quand l'ancre la vise. */
   readonly page: ReactNode
 }
@@ -69,6 +72,7 @@ export function Coque(props: CoqueProps) {
         {props.temps}
         {props.lateral}
       </div>
+      {props.nuit}
       {props.page}
     </div>
   )
