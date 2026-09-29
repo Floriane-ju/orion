@@ -27,6 +27,7 @@ import {
   magnitudeLimite,
   magnitudeRendue,
   projecteur,
+  rayonEtoilePx,
   type Projecteur,
   type Vue,
 } from '../src/core/projection.ts'
@@ -56,7 +57,12 @@ import { etoileLabellisable } from '../src/core/labels.ts'
 import { palette, paletteRealiste } from '../src/ui/couleurs.ts'
 import { OPACITE_OBJET_ESTOMPE, teintesObjets } from '../src/ui/apparence-objets.ts'
 import type { LuneEcran } from '../src/ui/dessine-fond-ciel.ts'
-import { OPACITE_ETOILE_PARCOURS } from '../src/ui/apparence-objets.ts'
+import {
+  OPACITE_ETOILE_PARCOURS,
+  RAYON_MAX_ETOILE_PX,
+  rayonEtoileCielPx,
+} from '../src/ui/apparence-objets.ts'
+import { RAYON_CORPS_PX } from '../src/ui/libelles-cibles.ts'
 import type { ParcoursScene } from '../src/ui/scene-etat.ts'
 import { sousLeSol } from '../src/core/sol.ts'
 import { K } from '../src/registry/constants.ts'
@@ -300,6 +306,18 @@ const OBJET_AU_CENTRE: ObjetCielProfond = {
   bMag: null,
   surfBr: null,
 }
+
+describe('rayon d’étoile au planétarium §3.3', () => {
+  it('plafonne les plus brillantes sous la taille d’une planète', () => {
+    expect(rayonEtoileCielPx(Number.NEGATIVE_INFINITY)).toBe(RAYON_MAX_ETOILE_PX)
+    expect(RAYON_MAX_ETOILE_PX).toBeLessThan(RAYON_CORPS_PX)
+  })
+
+  it('laisse les étoiles faibles suivre la loi §3.3', () => {
+    const faible = K('MAG_REFERENCE_RAYON') + 5
+    expect(rayonEtoileCielPx(faible)).toBeCloseTo(rayonEtoilePx(faible), 9)
+  })
+})
 
 describe('passe de rendu §3.3', () => {
   it('peint le fond, les étoiles par teinte et les tracés', () => {

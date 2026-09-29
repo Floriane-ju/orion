@@ -35,7 +35,6 @@ import {
 import { applique, transpose, versVecteur, type Mat3 } from '../core/mat3.ts'
 import {
   pointEcran,
-  rayonEtoilePx,
   type PointEcranMut,
   type Projecteur,
 } from '../core/projection.ts'
@@ -74,7 +73,7 @@ import {
 import {
   OPACITE_ETOILE_PARCOURS,
   OPACITE_OBJET_ESTOMPE,
-  RAYON_MIN_ETOILE_PX,
+  rayonEtoileCielPx,
   teintesObjets,
 } from './apparence-objets.ts'
 import { dessineParcours } from './dessine-parcours.ts'
@@ -365,7 +364,7 @@ function passeEtoiles(passe: Passe): { stats: StatistiquesSelection; etoilesDess
       if (!projecteur.projetteEn(x, y, z, p)) return
       if (p.xPx < 0 || p.yPx < 0 || p.xPx > largeur || p.yPx > hauteur) return
       if (opaciteEtoiles > 0) {
-        const rayon = Math.max(RAYON_MIN_ETOILE_PX, rayonEtoilePx(magV))
+        const rayon = rayonEtoileCielPx(magV)
         const chemin = chemins[teinte(bv)]!
         chemin.moveTo(p.xPx + rayon, p.yPx)
         chemin.arc(p.xPx, p.yPx, rayon, 0, TOUR_RAD)

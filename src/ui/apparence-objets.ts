@@ -14,6 +14,7 @@
  * à la main, où une teinte oubliée passerait un vert dans le noir.
  */
 
+import { rayonEtoilePx } from '../core/projection.ts'
 import type { TypeObjet } from '../data/deepsky.ts'
 import {
   ajusteContrasteSurFond,
@@ -157,3 +158,15 @@ export function teintesObjets(
 
 /** Sous ce rayon, l'antialiasing efface le disque : la plus faible étoile reste un point. */
 export const RAYON_MIN_ETOILE_PX = 0.7
+
+/**
+ * Au-dessus, Sirius ou Véga prenaient la taille d'une planète (`RAYON_CORPS_PX`) : une étoile
+ * reste un point, même brillante. Plafond du planétarium seul — l'aperçu §9.2 garde la loi
+ * complète, parce qu'il simule un capteur, pas une carte.
+ */
+export const RAYON_MAX_ETOILE_PX = 3
+
+/** Rayon d'une étoile au planétarium : la loi §3.3 bornée par le plancher et le plafond. */
+export function rayonEtoileCielPx(magV: number): number {
+  return Math.min(RAYON_MAX_ETOILE_PX, Math.max(RAYON_MIN_ETOILE_PX, rayonEtoilePx(magV)))
+}
