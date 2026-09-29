@@ -553,7 +553,7 @@ body {
   gap: var(--pas-2);
   padding: var(--pas-0) var(--pas-2);
   background: var(--surface-haute);
-  border: var(--trait) solid var(--bordure-faible);
+  border: var(--trait) solid var(--bordure-controle);
   color: var(--texte);
   cursor: ew-resize;
   touch-action: none;
