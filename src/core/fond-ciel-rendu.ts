@@ -26,6 +26,7 @@ import { K } from '../registry/constants.ts'
 import { SB_NUIT_SITE_REFERENCE_MAG, sbCrepusculeZenith } from '../registry/crepuscule.ts'
 import {
   brillanceLuneNl,
+  diffusionKS,
   extinctionV,
   masseAirKS,
   nanolamberts,
@@ -81,18 +82,47 @@ export function hauteurRepresentative(indexPalier: number): number {
   return (ANGLE_DROIT_DEG * (2 * indexPalier + 1)) / (2 * paliers)
 }
 
-/** Luminance d'écran, en lumière linéaire, correspondant à cette brillance de surface. */
-export function luminanceEcran(sbMagArcsec2: number): number {
-  return K('K_EXPOSITION_FOND_CIEL') * nanolamberts(sbMagArcsec2)
+/**
+ * Facteur d'adaptation de l'œil à ce zénith : 1 la nuit, moins dès que le zénith dépasserait
+ * `LUMINANCE_ECRAN_ZENITH_ADAPTE`. Il multiplie l'exposition de TOUTE la scène, donc garde les
+ * rapports de brillance : le zénith reste bleu, ce qui est plus clair que lui — le Soleil et
+ * son halo — blanchit.
+ */
+export function adaptationEcran(sbZenithMag: number): number {
+  const y = K('K_EXPOSITION_FOND_CIEL') * nanolamberts(sbZenithMag)
+  return Math.min(1, K('LUMINANCE_ECRAN_ZENITH_ADAPTE') / y)
 }
 
-/** Composantes linéaires du fond : chromaticité fixe, échelonnée par la luminance. */
-export function composantesFond(sbMagArcsec2: number): readonly [number, number, number] {
-  const y = luminanceEcran(sbMagArcsec2)
+/**
+ * Luminance d'écran, en lumière linéaire, correspondant à cette brillance de surface, l'œil
+ * adapté au zénith `sbZenithMag` — par défaut la brillance elle-même.
+ */
+export function luminanceEcran(sbMagArcsec2: number, sbZenithMag = sbMagArcsec2): number {
+  return (
+    adaptationEcran(sbZenithMag) * K('K_EXPOSITION_FOND_CIEL') * nanolamberts(sbMagArcsec2)
+  )
+}
+
+/**
+ * Composantes linéaires du fond : la chromaticité passe du bleu-violet de la nuit au bleu du
+ * jour à mesure que l'œil s'adapte, et la luminance l'échelonne. La nuit, l'adaptation vaut 1 :
+ * la chromaticité reste exactement celle de C-39 à C-41.
+ *
+ * ponytail: le mélange suit le facteur d'adaptation, pas la hauteur du Soleil. Il vaut 0,02 à
+ * 5° de dépression : le crépuscule civil est déjà bleu de jour. Une teinte propre au
+ * crépuscule (orangé côté Soleil) demanderait l'azimut solaire, hors périmètre de T-0096.
+ */
+export function composantesFond(
+  sbMagArcsec2: number,
+  sbZenithMag = sbMagArcsec2,
+): readonly [number, number, number] {
+  const y = luminanceEcran(sbMagArcsec2, sbZenithMag)
+  const jour = 1 - adaptationEcran(sbZenithMag)
+  const melange = (nuit: number, diurne: number): number => y * (nuit + jour * (diurne - nuit))
   return [
-    y * K('CHROMA_FOND_CIEL_R'),
-    y * K('CHROMA_FOND_CIEL_V'),
-    y * K('CHROMA_FOND_CIEL_B'),
+    melange(K('CHROMA_FOND_CIEL_R'), K('CHROMA_CIEL_JOUR_R')),
+    melange(K('CHROMA_FOND_CIEL_V'), K('CHROMA_CIEL_JOUR_V')),
+    melange(K('CHROMA_FOND_CIEL_B'), K('CHROMA_CIEL_JOUR_B')),
   ]
 }
 
@@ -208,15 +238,51 @@ export function sbEffectifRendu(entree: EntreeFondRendu): number {
   return sbDepuisNanolamberts(brillanceFondNl(entree))
 }
 
+export interface GeometrieSoleil {
+  readonly altitudeSoleilDeg: number
+  readonly altitudeCibleDeg: number
+  readonly separationDeg: number
+}
+
 /**
- * T-0099 — fond de ciel du site AU ZÉNITH, crépuscule compris : c'est la valeur dont la scène
- * a besoin, parce que ses couches — teinte du fond, paliers de halo, contraste de la bande —
- * partent toutes du zénith et appliquent le halo d'horizon elles-mêmes.
+ * Brillance ajoutée par le Soleil dans cette direction, en nanolamberts : le terme B_lune de
+ * KS91 (`brillanceLuneNl`), la Lune remplacée par le Soleil. Même diffusion, même extinction,
+ * même règle : un Soleil couché n'éclaire rien — le crépuscule, lui, vient de Patat 2006.
  *
- * Au zénith `facteurHaloHorizon` vaut exactement 1 : cette fonction ne fait donc rien de plus
- * que `sbEffectifRendu`, elle nomme juste la direction pour que le 90° ne se réécrive pas dans
- * l'UI (§2.1).
+ * ponytail: KS91 est calibré sur la Lune. Appliqué au Soleil, il donne un zénith de jour de
+ * 4 à 5,5 mag/as², l'ordre de grandeur mesuré ; mais la diffusion multiple, qui domine le ciel
+ * de jour, n'y est pas. Assez pour peindre le ciel, pas pour un verdict.
+ */
+export function brillanceSoleilNl(entree: GeometrieSoleil): number {
+  if (entree.altitudeSoleilDeg <= 0 || entree.altitudeCibleDeg <= 0) return 0
+  const illuminance = K('BASE_MAGNITUDE') ** (-K('KS_MAGNITUDE_SOLEIL') / K('POGSON'))
+  return (
+    diffusionKS(entree.separationDeg) *
+    illuminance *
+    extinctionV(masseAirKS(entree.altitudeSoleilDeg)) *
+    (1 - extinctionV(masseAirKS(entree.altitudeCibleDeg)))
+  )
+}
+
+/** Brillance du Soleil au zénith, en nanolamberts, pour cette dépression solaire. */
+export function brillanceSoleilZenithNl(depressionSolaireDeg: number): number {
+  return brillanceSoleilNl({
+    altitudeSoleilDeg: -depressionSolaireDeg,
+    altitudeCibleDeg: ANGLE_DROIT_DEG,
+    separationDeg: ANGLE_DROIT_DEG + depressionSolaireDeg,
+  })
+}
+
+/**
+ * T-0099 — fond de ciel du site AU ZÉNITH, crépuscule et Soleil compris : c'est la valeur dont
+ * la scène a besoin, parce que ses couches — teinte du fond, paliers de halo, contraste de la
+ * bande, adaptation de l'œil — partent toutes du zénith et appliquent le halo d'horizon
+ * elles-mêmes. Le halo solaire, lui, se peint par-dessus et retire ce terme avant de
+ * s'ajouter (`dessineHaloSoleil`), comme le halo lunaire, que ce zénith n'inclut pas.
  */
 export function sbZenithAvecCrepuscule(sbSiteMag: number, depressionSolaireDeg: number): number {
-  return sbEffectifRendu({ sbSiteMag, hauteurDeg: ANGLE_DROIT_DEG, depressionSolaireDeg })
+  const bCiel = nanolamberts(
+    sbEffectifRendu({ sbSiteMag, hauteurDeg: ANGLE_DROIT_DEG, depressionSolaireDeg }),
+  )
+  return sbDepuisNanolamberts(bCiel + brillanceSoleilZenithNl(depressionSolaireDeg))
 }

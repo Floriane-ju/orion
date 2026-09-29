@@ -371,9 +371,12 @@ export function bandeRealiste(
   }
 }
 
-/** Couleur du fond de ciel pour cette brillance de surface, en vue réaliste. */
-export function fondRealiste(sbCiel: number): string {
-  return css(composantesFond(sbCiel) as Composantes)
+/**
+ * Couleur du fond de ciel pour cette brillance de surface, en vue réaliste, l'œil adapté au
+ * zénith `sbZenith` — par défaut la brillance elle-même.
+ */
+export function fondRealiste(sbCiel: number, sbZenith = sbCiel): string {
+  return css(composantesFond(sbCiel, sbZenith) as Composantes)
 }
 
 /**

@@ -28,7 +28,7 @@ import {
 import { projecteur } from '../core/projection.ts'
 import type { Cadre, ProfilCadre } from '../core/cadre.ts'
 import type { MasqueHorizon } from '../core/site.ts'
-import type { Site } from '../core/ephem.ts'
+import { Body, type Site } from '../core/ephem.ts'
 import {
   afficheInstant,
   vuePlanetarium,
@@ -40,7 +40,7 @@ import type { CouchesActives } from './dessine-ciel.ts'
 import { dessineChamp, type ParametresFile, type SortieDessinChamp } from './dessine-champ.ts'
 import { dessineCiel, type CibleEcran, type SurvolEcran } from './dessine-ciel.ts'
 import type { OptiquePose } from './dessine-pose-cadre.ts'
-import type { LuneEcran } from './dessine-fond-ciel.ts'
+import type { LuneEcran, SoleilEcran } from './dessine-fond-ciel.ts'
 import { B } from '../registry/budgets.ts'
 import { MS_PAR_S } from '../core/unites.ts'
 
@@ -74,6 +74,8 @@ export interface EtatBoucle {
   readonly asterismes: readonly CoucheTraces[]
   readonly frontieres: CoucheFrontieres
   readonly couches: CouchesActives
+  /** Vue réaliste, Soleil levé : seuls le Soleil et la Lune restent dessinés, sans ciel profond. */
+  readonly jour: boolean
   /** §4.1 — relief du site : la couche Sol y prend la hauteur du sol, azimut par azimut. */
   readonly masque: MasqueHorizon
   readonly magLimite: number
@@ -83,6 +85,8 @@ export interface EtatBoucle {
   readonly vueRealiste: boolean
   /** T-0100 — la Lune de l'instant affiché. Absente : aucun halo lunaire n'est peint. */
   readonly lune: LuneEcran | null
+  /** Le Soleil de l'instant affiché. `null` : aucun halo solaire n'est peint. */
+  readonly soleil: SoleilEcran | null
   /** §9.1 / T-0142 — l'optique quand la carte de pose est demandée dans le cadre, `null` sinon. */
   readonly poseCadre: OptiquePose | null
   /** §6.4 — les cibles retenues par les filtres du catalogue, `null` si aucun n'est actif. */
@@ -231,7 +235,9 @@ export function useBoucleRendu(entree: {
       )
       const corps = ciel.corpsMasques
         ? []
-        : positionsInterpolees(ephemerides.current, instant.ms)
+        : positionsInterpolees(ephemerides.current, instant.ms).filter(
+            (c) => !courant.jour || c.corps === Body.Sun || c.corps === Body.Moon,
+          )
 
       const vue = courant.vue
       // §3.5 — le boîtier tourne, la vue non : c'est ce qui rend le contour du cadre mobile
@@ -262,11 +268,13 @@ export function useBoucleRendu(entree: {
         matriceCiel: ciel.matrice,
         index: courant.index,
         etoiles: courant.etoiles,
-        objets: courant.objets,
+        // De jour, le ciel profond est noyé comme les étoiles : ni halo, ni marqueur.
+        objets: courant.jour ? [] : courant.objets,
         figures: courant.figures,
         asterismes: courant.asterismes,
         frontieres: courant.frontieres,
-        etoilesNommees: courant.constellations.etoilesNommees,
+        // De jour, les étoiles nommées ne sont ni peintes ni survolables.
+        etoilesNommees: courant.jour ? [] : courant.constellations.etoilesNommees,
         corps,
         nomsCorps: NOMS_CORPS,
         cadres,
@@ -279,6 +287,7 @@ export function useBoucleRendu(entree: {
         vueRealiste: courant.vueRealiste,
         // §3.1 — corps masqués : la Lune n'est ni dessinée ni comptée, donc pas de halo.
         ...(courant.lune === null || ciel.corpsMasques ? {} : { lune: courant.lune }),
+        ...(courant.soleil === null || ciel.corpsMasques ? {} : { soleil: courant.soleil }),
         latitudeDeg: courant.site.latitudeDeg,
         masque: courant.masque,
         modeNuit: courant.modeNuit,

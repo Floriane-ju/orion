@@ -26,6 +26,8 @@ import type { GeometrieLune } from '../core/moon.ts'
 import { brillanceLuneNl, nanolamberts } from '../core/moon.ts'
 import {
   bornesPaliersHalo,
+  brillanceSoleilNl,
+  brillanceSoleilZenithNl,
   facteurHaloHorizon,
   hauteurRepresentative,
   sbDepuisNanolamberts,
@@ -70,7 +72,7 @@ export function dessineHaloHorizon(
     for (let i = bornes.length - 2; i >= 0; i--) {
       const sb = sbDepuisNanolamberts(bSite * facteurHaloHorizon(hauteurRepresentative(i)))
       const frontiere = frontiereEcran(projecteur, sousLaHauteur(bornes[i]!, matriceCiel), BALAYAGE_HALO)
-      remplitRegion(cible, frontiere, fondRealiste(sb))
+      remplitRegion(cible, frontiere, fondRealiste(sb, sbCiel))
     }
   }
   const { largeurPx, hauteurPx, fovDeg } = projecteur.vue
@@ -111,38 +113,35 @@ export function perpendiculaire(v: Vec3): Vec3 {
   return { x: x / norme, y: y / norme, z: z / norme }
 }
 
+/** Un astre qui diffuse sa lumière dans le ciel : la Lune ou le Soleil. */
+interface SourceHalo {
+  readonly adH: number
+  readonly decDeg: number
+  readonly altitudeDeg: number
+}
+
 /**
- * T-0100 — la Lune éclaircit le ciel autour d'elle.
- *
- * ponytail: la hauteur retenue pour l'extinction du trajet est celle de la Lune, la même sur
- * tout le dégradé. Le vrai terme dépend de la hauteur de CHAQUE direction, qui n'est pas
- * constante sur un cercle de séparation ; mais le halo compte là où il est vif, c'est-à-dire
- * près de la Lune, où cette hauteur est justement la sienne. Le jour où le halo lunaire devra
- * être juste à 90° d'elle, c'est un champ 2D qu'il faudra peindre, pas un dégradé.
+ * T-0100 — un astre éclaircit le ciel autour de lui, radialement : `brillance(ρ)` est la
+ * brillance qu'il ajoute à la séparation ρ, `bFond` celle du ciel sous lui.
  *
  * ponytail: le rayon écran d'une séparation est mesuré dans UNE direction et appliqué au
- * cercle entier. C'est exact en stéréographique visée sur la Lune, approché ailleurs — un
+ * cercle entier. C'est exact en stéréographique visée sur l'astre, approché ailleurs — un
  * dégradé de canevas ne sait pas être une conique.
  */
-export function dessineHaloLune(
+function dessineHalo(
   ctx: CanvasRenderingContext2D,
   projecteur: Projecteur,
   sbCiel: number,
-  lune: LuneEcran,
+  source: SourceHalo,
+  bFond: number,
+  brillance: (separationDeg: number) => number,
 ): void {
-  // Règle 1 de `moon.ts` : une Lune sous l'horizon n'éclaircit rien, quelle que soit sa phase.
-  if (lune.altitudeDeg <= 0) return
-  const direction = versVecteur(lune.adH * DEG_PAR_HEURE, lune.decDeg)
+  // Règle 1 de `moon.ts` : un astre sous l'horizon n'éclaircit rien.
+  if (source.altitudeDeg <= 0) return
+  const direction = versVecteur(source.adH * DEG_PAR_HEURE, source.decDeg)
   const centre = projecteur.projette(direction)
   if (centre === null) return
   const perp = perpendiculaire(direction)
-
-  const geometrie = (separationDeg: number): GeometrieLune => ({
-    altitudeLuneDeg: lune.altitudeDeg,
-    altitudeCibleDeg: lune.altitudeDeg,
-    separationDeg,
-    anglePhaseDeg: lune.anglePhaseDeg,
-  })
 
   // Rayon écran du plus grand cran : c'est lui qui fixe l'échelle du dégradé.
   const rayonDe = (separationDeg: number): number | null => {
@@ -159,19 +158,74 @@ export function dessineHaloLune(
   const rayonMax = rayonDe(SEPARATION_MAX_DEG)
   if (rayonMax === null || !(rayonMax > 0)) return
 
-  const bSite = nanolamberts(sbCiel) * facteurHaloHorizon(lune.altitudeDeg)
   const degrade = ctx.createRadialGradient(centre.xPx, centre.yPx, 0, centre.xPx, centre.yPx, rayonMax)
   for (let k = 0; k <= CRANS_HALO_LUNE; k++) {
-    const separation = (SEPARATION_MAX_DEG * k) / CRANS_HALO_LUNE
-    const bLune = brillanceLuneNl(geometrie(separation)) * K('GAIN_RENDU_HALO_LUNE')
-    // L'opacité est la PART de la Lune dans la brillance totale : là où elle domine, le fond
-    // composé est exactement celui du modèle ; là où elle s'efface, la couche du dessous —
+    const b = brillance((SEPARATION_MAX_DEG * k) / CRANS_HALO_LUNE)
+    // L'opacité est la PART de l'astre dans la brillance totale : là où il domine, le fond
+    // composé est exactement celui du modèle ; là où il s'efface, la couche du dessous —
     // paliers d'horizon compris — reparaît intacte. Aucun seuil arbitraire n'est introduit.
-    const part = bLune / (bSite + bLune)
-    const couleur = fondRealiste(sbDepuisNanolamberts(bSite + bLune))
+    const part = b / (bFond + b)
+    const couleur = fondRealiste(sbDepuisNanolamberts(bFond + b), sbCiel)
     const rvb = couleur.slice(couleur.indexOf('(') + 1, couleur.indexOf(')'))
     degrade.addColorStop(k / CRANS_HALO_LUNE, `rgb(${rvb} / ${part})`)
   }
   ctx.fillStyle = degrade
   ctx.fillRect(0, 0, projecteur.vue.largeurPx, projecteur.vue.hauteurPx)
+}
+
+/**
+ * T-0100 — la Lune éclaircit le ciel autour d'elle.
+ *
+ * ponytail: la hauteur retenue pour l'extinction du trajet est celle de la Lune, la même sur
+ * tout le dégradé. Le vrai terme dépend de la hauteur de CHAQUE direction, qui n'est pas
+ * constante sur un cercle de séparation ; mais le halo compte là où il est vif, c'est-à-dire
+ * près de la Lune, où cette hauteur est justement la sienne. Le jour où le halo lunaire devra
+ * être juste à 90° d'elle, c'est un champ 2D qu'il faudra peindre, pas un dégradé.
+ */
+export function dessineHaloLune(
+  ctx: CanvasRenderingContext2D,
+  projecteur: Projecteur,
+  sbCiel: number,
+  lune: LuneEcran,
+): void {
+  const geometrie = (separationDeg: number): GeometrieLune => ({
+    altitudeLuneDeg: lune.altitudeDeg,
+    altitudeCibleDeg: lune.altitudeDeg,
+    separationDeg,
+    anglePhaseDeg: lune.anglePhaseDeg,
+  })
+  const bSite = nanolamberts(sbCiel) * facteurHaloHorizon(lune.altitudeDeg)
+  dessineHalo(ctx, projecteur, sbCiel, lune, bSite, (separation) =>
+    brillanceLuneNl(geometrie(separation)) * K('GAIN_RENDU_HALO_LUNE'),
+  )
+}
+
+export interface SoleilEcran {
+  /** Ascension droite du Soleil, en heures — la même que celle du corps dessiné. */
+  readonly adH: number
+  readonly decDeg: number
+  readonly altitudeDeg: number
+}
+
+/**
+ * Le Soleil éclaircit le ciel autour de lui, comme la Lune (T-0100), par le même KS91.
+ *
+ * `sbCiel` compte déjà le Soleil AU ZÉNITH (`sbZenithAvecCrepuscule`) : ce terme est retiré du
+ * fond avant d'y ajouter le halo, sans quoi le Soleil compterait deux fois. Mêmes limites que
+ * le halo lunaire : hauteur de l'astre pour l'extinction, rayon mesuré dans une direction.
+ */
+export function dessineHaloSoleil(
+  ctx: CanvasRenderingContext2D,
+  projecteur: Projecteur,
+  sbCiel: number,
+  soleil: SoleilEcran,
+): void {
+  const bFond = Math.max(0, nanolamberts(sbCiel) - brillanceSoleilZenithNl(-soleil.altitudeDeg))
+  dessineHalo(ctx, projecteur, sbCiel, soleil, bFond, (separationDeg) =>
+    brillanceSoleilNl({
+      altitudeSoleilDeg: soleil.altitudeDeg,
+      altitudeCibleDeg: soleil.altitudeDeg,
+      separationDeg,
+    }),
+  )
 }

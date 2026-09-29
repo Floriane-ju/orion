@@ -29,7 +29,7 @@ import { cielInstantane } from '../core/horloges.ts'
 import { etatLune } from '../core/moon.ts'
 import { sbEffectifRendu, sbZenithAvecCrepuscule } from '../core/fond-ciel-rendu.ts'
 import { separationDeg, versVecteur } from '../core/mat3.ts'
-import type { LuneEcran } from './dessine-fond-ciel.ts'
+import type { LuneEcran, SoleilEcran } from './dessine-fond-ciel.ts'
 import { etatProfondeur, type ModeProjection } from '../core/projection.ts'
 import {
   ACTIONS_SCENE,
@@ -210,13 +210,33 @@ export function Planetarium(props: PlanetariumProps) {
    * §12.5 — un instant hors du domaine des séries n'éteint pas la scène : le crépuscule sort
    * du calcul, le reste continue. Même règle que la Lune juste au-dessus.
    */
-  const depressionSolaireDeg = useMemo((): number | null => {
+  const soleil = useMemo((): SoleilEcran | null => {
     try {
-      return -positionCorps(Body.Sun, dateAffichee, props.site).hauteurDeg
+      const position = positionCorps(Body.Sun, dateAffichee, props.site)
+      return { adH: position.adH, decDeg: position.decDeg, altitudeDeg: position.hauteurDeg }
     } catch {
       return null
     }
   }, [props.site, dateAffichee])
+  const depressionSolaireDeg = soleil === null ? null : -soleil.altitudeDeg
+  // De jour, vue réaliste, aucune étoile : le ciel bleu les efface toutes. La table Bortle,
+  // bornée à son bord clair, en laisserait passer jusqu'à la magnitude 4.
+  const jour = rendu.vueRealiste && soleil !== null && soleil.altitudeDeg > 0
+  // De jour, les repères du ciel nocturne n'ont plus rien à relier : ils se retirent avec
+  // les étoiles. Le réglage des couches, lui, n'est pas touché et revient à la nuit.
+  const couchesScene = useMemo(
+    () =>
+      jour
+        ? {
+            ...rendu.couches,
+            figures: false,
+            frontieres: false,
+            asterismes: false,
+            voieLactee: false,
+          }
+        : rendu.couches,
+    [jour, rendu.couches],
+  )
 
   /**
    * T-0098, T-0100 — le fond de ciel EFFECTIF dans la direction visée : celui du site, majoré
@@ -292,16 +312,18 @@ export function Planetarium(props: PlanetariumProps) {
     figures,
     asterismes,
     frontieres,
-    couches: rendu.couches,
+    couches: couchesScene,
+    jour,
     // T-0142 — la carte de pose ne se peint que si elle est demandée ET chiffrable : sans
     // matériel, il n'y a pas de NPF, donc pas de cadre à masquer.
     poseCadre: file.poseDansCadre && props.file !== undefined ? props.file.optique : null,
     enAvant: props.enAvant,
     parcours: rendu.parcours,
-    magLimite: profondeur.magLimite.value,
+    magLimite: jour ? Number.NEGATIVE_INFINITY : profondeur.magLimite.value,
     sbCiel: sbCielScene,
     vueRealiste: rendu.vueRealiste,
     lune,
+    soleil: rendu.vueRealiste ? soleil : null,
     vue: pointage,
     modeTemps: temps.modeTemps,
     facteur: reglage.facteur,

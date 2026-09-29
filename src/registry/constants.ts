@@ -677,6 +677,20 @@ const LUNE = {
     ordreDeGrandeur: false,
     sections: ['8.1'],
   }),
+  KS_MAGNITUDE_SOLEIL: entree({
+    ref: 'L-07',
+    libelle: 'Magnitude du Soleil dans l’échelle I* du modèle KS91',
+    valeur: -10.17,
+    unite: 'mag',
+    source:
+      'V☉ = −26,74 (Allen, Astrophysical Quantities) décalé de +16,57, le même décalage que ' +
+      'L-01 (3,84 = −12,73 + 16,57) : I* est en footcandles, pas en flux V. Extension de rendu ' +
+      '— KS91 est calibré sur la Lune, sa diffusion appliquée au Soleil donne un zénith de jour ' +
+      'à 4–5,5 mag/as², l’ordre de grandeur mesuré d’un ciel bleu clair.',
+    tolerance: 'ordre de grandeur hors du domaine lunaire de KS91',
+    ordreDeGrandeur: true,
+    sections: ['3.3'],
+  }),
   KS_MIE_ECHELLE_DEG: entree({
     ref: 'L-02',
     libelle: 'Échelle angulaire de la diffusion de Mie',
@@ -1856,6 +1870,54 @@ const GRAND_CHAMP = {
       'blanc, là où l’œil adapté à la nuit voit un ciel clair mais encore bleu sombre. Le plan ' +
       'de séance et ΔSB_lune (§8.1) lisent la brillance brute, jamais celle-ci.',
     tolerance: 'convention produit — pilote l’apparence du halo, jamais un verdict',
+    ordreDeGrandeur: false,
+    sections: ['3.3'],
+  }),
+  LUMINANCE_ECRAN_ZENITH_ADAPTE: entree({
+    ref: 'C-52',
+    libelle: 'Luminance d’écran maximale du zénith, œil adapté',
+    valeur: 0.8,
+    unite: 'Y',
+    source:
+      'convention produit — au-delà, l’exposition K_EXPOSITION_FOND_CIEL baisse pour que le ' +
+      'zénith y reste : l’œil s’adapte au ciel du crépuscule et du jour. Sans elle, le fond ' +
+      'sature au blanc dès 8,6° de dépression solaire. Les RAPPORTS de brillance restent ' +
+      'physiques : le halo solaire blanchit, le zénith reste bleu. La nuit, le zénith est à ' +
+      '0,16 au plus (Bortle 9) : rien ne change.',
+    tolerance: 'convention produit — pilote l’apparence du fond, jamais un verdict',
+    ordreDeGrandeur: false,
+    sections: ['3.3'],
+  }),
+  CHROMA_CIEL_JOUR_R: entree({
+    ref: 'C-53',
+    libelle: 'Chromaticité du ciel de jour — canal rouge',
+    valeur: 0.3,
+    unite: '—',
+    source:
+      'extension de rendu — bleu de Rayleigh du ciel diurne, en lumière linéaire. Le fond y ' +
+      'passe à mesure que l’œil s’adapte (LUMINANCE_ECRAN_ZENITH_ADAPTE) : la nuit, la ' +
+      'chromaticité reste C-39 à C-41.',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: false,
+    sections: ['3.3'],
+  }),
+  CHROMA_CIEL_JOUR_V: entree({
+    ref: 'C-54',
+    libelle: 'Chromaticité du ciel de jour — canal vert',
+    valeur: 0.56,
+    unite: '—',
+    source: 'extension de rendu — voir CHROMA_CIEL_JOUR_R',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: false,
+    sections: ['3.3'],
+  }),
+  CHROMA_CIEL_JOUR_B: entree({
+    ref: 'C-55',
+    libelle: 'Chromaticité du ciel de jour — canal bleu',
+    valeur: 1,
+    unite: '—',
+    source: 'extension de rendu — canal de référence, voir CHROMA_CIEL_JOUR_R',
+    tolerance: 'convention produit',
     ordreDeGrandeur: false,
     sections: ['3.3'],
   }),

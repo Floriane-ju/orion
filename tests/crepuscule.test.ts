@@ -18,6 +18,7 @@ import { fenetreNocturne } from '../src/core/nuit.ts'
 import { nanolamberts } from '../src/core/moon.ts'
 import {
   brillanceCrepusculeNl,
+  adaptationEcran,
   composantesFond,
   sbEffectifRendu,
   sbZenithAvecCrepuscule,
@@ -159,17 +160,29 @@ describe('ce que l’utilisateur voit', () => {
     expect(magnitudeRendue(FOV_DEG, SB_B1, true).value).toBeGreaterThan(rendue.value)
   })
 
-  it('ne fait pas virer la teinte du fond : seule la luminance change', () => {
+  it('ne fait pas virer la teinte du fond tant que l’œil n’a pas à s’adapter', () => {
     const chroma = [
       K('CHROMA_FOND_CIEL_R'),
       K('CHROMA_FOND_CIEL_V'),
       K('CHROMA_FOND_CIEL_B'),
     ] as const
-    for (const depression of [6, 12, 20]) {
-      const composantes = composantesFond(sbZenithAvecCrepuscule(SB_B1, depression))
+    for (const depression of [12, 20]) {
+      const sb = sbZenithAvecCrepuscule(SB_B1, depression)
+      expect(adaptationEcran(sb)).toBe(1)
+      const composantes = composantesFond(sb)
       const facteur = composantes[1] / chroma[1]
       for (let i = 0; i < 3; i++) expect(composantes[i]).toBeCloseTo(facteur * chroma[i]!, 12)
     }
+  })
+
+  it('au crépuscule civil, le zénith plafonne à la luminance adaptée et bleuit', () => {
+    const sb = sbZenithAvecCrepuscule(SB_B1, 6)
+    expect(adaptationEcran(sb)).toBeLessThan(1)
+    const [r, v, b] = composantesFond(sb)
+    expect(b).toBeCloseTo(K('LUMINANCE_ECRAN_ZENITH_ADAPTE'), 12)
+    // Plus bleu que la nuit : le rouge perd sur le bleu.
+    expect(r / b).toBeLessThan(K('CHROMA_FOND_CIEL_R'))
+    expect(v / b).toBeLessThan(K('CHROMA_FOND_CIEL_V'))
   })
 
   /**

@@ -62,7 +62,13 @@ import {
   TEINTES,
   type PaletteCiel,
 } from './couleurs.ts'
-import { dessineHaloHorizon, dessineHaloLune, type LuneEcran } from './dessine-fond-ciel.ts'
+import {
+  dessineHaloHorizon,
+  dessineHaloLune,
+  dessineHaloSoleil,
+  type LuneEcran,
+  type SoleilEcran,
+} from './dessine-fond-ciel.ts'
 import { angleLimbeEclaireRad, dessineLune, rayonLunePx } from './dessine-lune.ts'
 import type { OptiquePose } from './dessine-pose-cadre.ts'
 import {
@@ -160,6 +166,8 @@ export interface EntreeDessin {
    * ce qui est le cas dès qu'elle est masquée (§3.1) ou que la vue réaliste est décochée.
    */
   readonly lune?: LuneEcran | undefined
+  /** Le Soleil de l'instant affiché. Absent : aucun halo solaire n'est peint. */
+  readonly soleil?: SoleilEcran | undefined
   readonly modeNuit: boolean
   /**
    * §9.3 / T-0116 — la passe de filé, peinte entre le sol et les repères, avec le PROJECTEUR
@@ -280,6 +288,7 @@ function passeFond(passe: Passe): void {
   // (§3.7), et le relief doit recouvrir le halo quand la visée est basse (T-0094).
   if (fondPeint) {
     dessineHaloHorizon(ctx, brut, entree.matriceCiel, entree.sbCiel)
+    if (entree.soleil !== undefined) dessineHaloSoleil(ctx, brut, entree.sbCiel, entree.soleil)
     if (entree.lune !== undefined) dessineHaloLune(ctx, brut, entree.sbCiel, entree.lune)
   }
   // §3.7 — la bande appartient au fond : elle passe sous l'aperçu de §9.5 comme
