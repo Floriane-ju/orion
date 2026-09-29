@@ -16,7 +16,13 @@ import type { ProfilAEnregistrer, SiteAExporter } from '../data/persistence.ts'
 import type { MasqueHorizon } from '../core/site.ts'
 import { borne, valide, type DomaineId } from '../registry/domains.ts'
 import { nombreSaisi, nombreSiRenseigne } from './saisie-bornee.ts'
-import type { DepartLieu, DepartMateriel, SaisieLieu, SaisieMateriel } from './app-saisie.ts'
+import {
+  DEFAUT,
+  type DepartLieu,
+  type DepartMateriel,
+  type SaisieLieu,
+  type SaisieMateriel,
+} from './app-saisie.ts'
 
 /**
  * Un champ optionnel de la saisie : absent quand il est vide, BORNÉ quand il est hors domaine.
@@ -114,9 +120,13 @@ export function departLieu(site: SiteEnregistre | null): DepartLieu | null {
     latitude: texteDe(site.latitudeDeg, 'latitude_deg'),
     longitude: texteDe(site.longitudeDeg, 'longitude_deg'),
     altitude: texteDe(site.altitudeM, 'altitude_m'),
-    // Un champ vidé volontairement le reste : sans cela, effacer le Bortle pour saisir un
-    // SQM verrait le Bortle par défaut revenir au rechargement, et le ciel changer seul.
-    bortle: texteDe(site.bortleDeclare, 'bortle_declare'),
+    // Un Bortle vidé pour un SQM le reste : sans cela, le Bortle par défaut reviendrait au
+    // rechargement et le ciel changerait seul. Sans l'un ni l'autre, le fond de ciel serait
+    // indéterminable dès le démarrage : le Bortle de l'Annexe A reprend alors sa place.
+    bortle:
+      site.bortleDeclare === undefined && site.sqmMesure === undefined
+        ? DEFAUT.bortle
+        : texteDe(site.bortleDeclare, 'bortle_declare'),
     sqm: texteDe(site.sqmMesure, 'sqm_mesure'),
     pointsMasque: site.masquePoints ?? [],
   }

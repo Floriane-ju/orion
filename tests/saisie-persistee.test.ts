@@ -23,7 +23,7 @@ import {
   profilAEnregistrer,
   siteAEnregistrer,
 } from '../src/ui/saisie-persistee.ts'
-import type { SaisieLieu, SaisieMateriel } from '../src/ui/app-saisie.ts'
+import { DEFAUT, type SaisieLieu, type SaisieMateriel } from '../src/ui/app-saisie.ts'
 import { masqueDepuisPoints } from '../src/core/site.ts'
 import { DOMAINES } from '../src/registry/domains.ts'
 import { BASE_BOITIERS } from '../src/data/boitiers.ts'
@@ -129,6 +129,14 @@ describe('T-0082 — la saisie survit au rechargement', () => {
     const releve = await rechargeLieu(saisieLieu({ bortle: '', sqm: '21.2' }))
     expect(releve?.bortle).toBe('')
     expect(releve?.sqm).toBe('21.2')
+  })
+
+  it('rend le Bortle par défaut quand aucun fond de ciel n’a été enregistré', async () => {
+    // Ni Bortle ni SQM : le fond de ciel serait indéterminable dès le démarrage, et toute la
+    // chaîne de calcul refusée pour un champ que l'utilisateur n'a jamais rempli.
+    const releve = await rechargeLieu(saisieLieu({ bortle: '', sqm: '' }))
+    expect(releve?.bortle).toBe(DEFAUT.bortle)
+    expect(releve?.sqm).toBe('')
   })
 
   it('rend le boîtier saisi à la main, grandeur par grandeur', async () => {
