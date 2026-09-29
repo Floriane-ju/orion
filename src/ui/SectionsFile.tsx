@@ -52,6 +52,8 @@ export function CadrageDuFile({
     <section>
       <h2>Grand champ et filé</h2>
 
+      <p className="etat">La monture n’est pas prise en compte.</p>
+
       <p className="etat">
         {modeApercu(file) === 'FILE' ? MENTION_PLAFOND_FILE : MENTION_PLAFOND_CHAMP}
       </p>
@@ -61,17 +63,10 @@ export function CadrageDuFile({
           ou avec Maj + glisser. Ce panneau les lit, il ne les commande pas — la visée
           courante se lit au centre de la barre basse (§11.1). */}
 
-      {mode === 'PANORAMA' && (
-        <>
-          {lectures.mentionProj !== null && (
-            <>
-              <Mention ton="cause">{lectures.mentionProj}</Mention>
-              <button type="button" onClick={() => actions.majVue({ mode: modeObjectif, fovDeg: fovLDeg })}>
-                Voir comme l’objectif
-              </button>
-            </>
-          )}
-        </>
+      {mode === 'PANORAMA' && lectures.projDifferente && (
+        <button type="button" onClick={() => actions.majVue({ mode: modeObjectif, fovDeg: fovLDeg })}>
+          Voir comme l’objectif
+        </button>
       )}
     </section>
   )
@@ -136,9 +131,7 @@ export function ProfondeurDUnePose({
       ? null
       : {
           valeur: Math.floor(carte.poseOperanteS),
-          // Avec suivi, la limite n'est plus la rotation du ciel mais la monture : la légende
-          // ne doit pas promettre des étoiles ponctuelles que la mise en station décide.
-          libelle: carte.regime === 'SUIVI' ? 'max monture' : 'max étoile comme des points',
+          libelle: 'max étoile comme des points',
         }
   return (
     <section>

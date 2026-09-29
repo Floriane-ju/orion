@@ -381,7 +381,6 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
       profondeur: profondeurFile,
       echApx: calcul.optique.echApx.value,
       sbCiel: ciel.ciel.sbCiel.value,
-      tMaxSuiviS: calcul.suivi.tMaxSuiviS.value,
     }
   }, [calcul, ciel, profondeurFile])
 
@@ -695,7 +694,6 @@ function panneauFile(
     echApx: calcul.optique.echApx.value,
     tailleRawMo: calcul.boitier.tailleRawMo,
     profondeur,
-    tMaxSuiviS: calcul.suivi.tMaxSuiviS.value,
     zeroSysteme: calcul.zeroSysteme,
     modeObjectif: modeObjectif(materiel.typeObjectif),
   }

@@ -18,7 +18,6 @@ import { projecteur, rayonProjete, type ModeProjection, type Vue } from '../core
 import type { Traced } from '../core/traced.ts'
 import type { VueScene } from './scene-etat.ts'
 import { dureeApercuMin, type ReglagesFile } from './seance-etat.ts'
-import { mentionProjection } from './scene-overlay.ts'
 
 /**
  * Définition de référence du cadre pour les diagnostics. Elle ne décrit aucun canevas :
@@ -38,7 +37,6 @@ export interface MaterielCadre {
   readonly echApx: number
   readonly tailleRawMo: number
   readonly profondeur: EntreeProfondeur
-  readonly tMaxSuiviS: number | null
   readonly modeObjectif: ModeProjection
 }
 
@@ -50,8 +48,8 @@ export interface LecturesFile {
   readonly trainee: Traced<number>
   /** Vrai quand la pose unitaire dépasse ce que le cadre tolère : les étoiles s'ovalisent. */
   readonly poseDepassee: boolean
-  /** Renseignée quand la scène ne regarde pas comme l'objectif : la mention le dit. */
-  readonly mentionProj: string | null
+  /** Vrai quand la scène ne regarde pas comme l'objectif (§5.1) : le panneau offre d'y revenir. */
+  readonly projDifferente: boolean
   readonly diagnostic: DiagnosticFile
   readonly sequence: SequenceFile
 }
@@ -101,7 +99,8 @@ export function useLecturesFile(
         centreAdDeg: visee.longitudeDeg,
         centreDecDeg: visee.latitudeDeg,
         rotationDeg,
-        tMaxSuiviS: materiel.tMaxSuiviS,
+        // En panorama, la monture est réputée coupée : la rotation du ciel seule borne la pose.
+        tMaxSuiviS: null,
       }),
     [materiel, visee, rotationDeg],
   )
@@ -139,7 +138,7 @@ export function useLecturesFile(
     profondeur: magnitudeLimitePrevisu(materiel.profondeur),
     trainee: traceePx(file.tPoseS, carte.decMinAbsDeg, materiel.echApx),
     poseDepassee: carte.poseOperanteS !== null && file.tPoseS > carte.poseOperanteS,
-    mentionProj: mentionProjection(vue.mode, mode),
+    projDifferente: vue.mode !== mode,
     diagnostic,
     sequence,
   }

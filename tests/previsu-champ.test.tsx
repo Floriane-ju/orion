@@ -172,7 +172,6 @@ const PROPS_PANNEAU: PanneauFileProps = {
   echApx: 105.6,
   tailleRawMo: 33,
   profondeur: { ...PROFONDEUR, zpEstime: true },
-  tMaxSuiviS: null,
   zeroSysteme: pointZeroSysteme(null),
   modeObjectif: 'MODE_CADRE',
 }
@@ -342,6 +341,14 @@ describe('§9 — le panneau du filé', () => {
     expect(html).not.toContain('Règle des 500')
     // Le rappel batterie remplace le budget chiffré : une durée, pas un nombre de batteries.
     expect(html).toContain('Attention à la batterie')
+  })
+
+  it('annonce que la monture est ignorée : en panorama, elle est réputée coupée', () => {
+    // Le panneau ne reçoit plus aucun plafond de monture : la note dit pourquoi la pose max
+    // reste celle de la rotation du ciel, même avec un suivi déclaré au matériel.
+    const html = renderToStaticMarkup(createElement(PanneauFile, PROPS_PANNEAU))
+    expect(html).toContain('La monture n’est pas prise en compte.')
+    expect(html).not.toContain('max monture')
   })
 })
 

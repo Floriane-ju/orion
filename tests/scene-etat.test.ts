@@ -55,7 +55,6 @@ const MATERIEL = {
     readNoiseE: 1.5,
     zpEstime: true,
   },
-  tMaxSuiviS: null,
   zeroSysteme: pointZeroSysteme(null),
   modeObjectif: 'MODE_CADRE',
 } as const

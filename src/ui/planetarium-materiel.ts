@@ -9,6 +9,4 @@ export interface MaterielFile {
   readonly profondeur: EntreeProfondeur
   readonly echApx: number
   readonly sbCiel: number
-  /** §5.2 — plafond de la monture quand le suivi est actif, `null` sinon. */
-  readonly tMaxSuiviS: number | null
 }

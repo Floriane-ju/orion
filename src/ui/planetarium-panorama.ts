@@ -78,9 +78,9 @@ export function useParametresFile(
     magLimite: magnitudeLimitePrevisu(materiel.profondeur).value,
     profondeur: materiel.profondeur,
     echApx: materiel.echApx,
-    // Un filé se fait sans suivi par construction : la bascule ne vaut que pour l'aperçu
-    // de champ, où une monture qui suit rend les étoiles ponctuelles.
-    suiviActif: apercu === 'CHAMP' && materiel.tMaxSuiviS !== null,
+    // En panorama, la monture est réputée coupée : le ciel tourne, dans le filé comme dans
+    // l'aperçu de champ, quel que soit le suivi déclaré au matériel.
+    suiviActif: false,
     dureeS: dureeApercuMin(file) * S_PAR_MIN,
     // T-0119 — deux plafonds, deux portées. La LISIBILITÉ ne concerne que le filé : l'aperçu de
     // champ montre des points, qui ne se recouvrent pas et dont aucune longueur ne se lit. Le

@@ -17,7 +17,6 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it } from 'vitest'
 import { App } from '../src/App.tsx'
 import type { ObjetCielProfond } from '../src/data/deepsky.ts'
-import { mentionProjection } from '../src/ui/scene-overlay.ts'
 import {
   HAUTEUR_SCENE_PX,
   LARGEUR_SCENE_PX,
@@ -620,14 +619,6 @@ describe('T-0116 — les compteurs du filé ne rendent pas par image', () => {
     const publies: (RenduFile | null)[] = []
     publicateurRenduFile((r) => publies.push(r))(null)
     expect(publies).toEqual([null])
-  })
-})
-
-describe('§5.1 — la scène déclare l’écart de projection avec l’objectif', () => {
-  it('annonce quand la projection de la scène n’est pas celle de l’objectif', () => {
-    expect(mentionProjection('MODE_CADRE', 'MODE_CADRE')).toBeNull()
-    expect(mentionProjection('MODE_PLANETARIUM', 'MODE_CADRE')).toMatch(/Voir comme l’objectif/)
-    expect(mentionProjection('MODE_PLANETARIUM', 'MODE_FISHEYE')).toMatch(/fisheye/)
   })
 })
 

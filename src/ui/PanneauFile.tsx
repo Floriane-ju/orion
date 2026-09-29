@@ -38,8 +38,6 @@ export interface PanneauFileProps {
   readonly tailleRawMo: number
   /** Profondeur atteinte par la pose unitaire (§9.2), assemblée une fois par l'application. */
   readonly profondeur: EntreeProfondeur
-  /** §5.2 — plafond de la monture quand le suivi est actif, `null` sinon. */
-  readonly tMaxSuiviS: number | null
   /** §7.1 — `zp_source` s'affiche partout où une pose l'est, celle du filé comprise. */
   readonly zeroSysteme: PointZeroSysteme
   /** §5.1 — la projection imposée par le type d'objectif, réglé au panneau matériel. */

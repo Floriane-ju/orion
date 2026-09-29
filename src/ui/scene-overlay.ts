@@ -7,8 +7,6 @@
  * capteur enregistrerait — un écart qui se déclare, il ne se corrige pas en douce.
  */
 
-import type { ModeProjection } from '../core/projection.ts'
-
 /**
  * §9.3 — T-0118 : le plafond du filé est déclaré, jamais silencieux. Sans cette phrase, un ciel
  * plafonné se lit comme un ciel pauvre, donc comme un bug de rendu.
@@ -29,15 +27,3 @@ export const MENTION_PLAFOND_CHAMP =
   'La photo montrera plus d’étoiles que l’aperçu. Zoomez pour en voir davantage.'
 
 export const MENTION_PLAFOND_FILE = 'La photo montrera plus de traînées que l’aperçu.'
-
-/** §5.1 — la projection de la scène n'est pas toujours celle que l'objectif produirait. */
-export function mentionProjection(
-  modeScene: ModeProjection,
-  modeObjectif: ModeProjection,
-): string | null {
-  if (modeScene === modeObjectif) return null
-  return (
-    `La photo sera déformée autrement${modeObjectif === 'MODE_FISHEYE' ? ' (fisheye)' : ''}. ` +
-    '« Voir comme l’objectif » montre le vrai rendu.'
-  )
-}
