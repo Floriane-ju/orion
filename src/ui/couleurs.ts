@@ -118,6 +118,8 @@ export interface PaletteCiel {
   readonly frontieres: string
   readonly asterismes: string
   readonly corps: string
+  /** La part éclairée de la Lune : le texte de l'interface, comme le disque de la frise de nuit. */
+  readonly lune: string
   readonly cadre: string
   readonly horizon: string
   /** §4.1 — le sol : opaque et très foncé, il se distingue du fond de ciel sans l'éclairer. */
@@ -143,6 +145,7 @@ const PALETTE_NUIT: PaletteCiel = Object.freeze({
   frontieres: 'rgb(70 0 0)',
   asterismes: 'rgb(120 0 0)',
   corps: 'rgb(190 0 0)',
+  lune: 'rgb(250 0 0)',
   cadre: 'rgb(246 0 0)',
   horizon: 'rgb(70 0 0)',
   sol: 'rgb(18 0 0)',
@@ -156,7 +159,7 @@ const PALETTE_NUIT: PaletteCiel = Object.freeze({
  *
  * Le canevas et la feuille de style peignent le même écran : deux familles de teintes y
  * font deux applications superposées. Ce que la scène EMPRUNTE à l'interface reprend donc son
- * jeton : le fond (`--fond`), le cadre visé (`--accent`), le parcours (`--texte`), et de jour
+ * jeton : le fond (`--fond`), le cadre visé (`--accent`), le parcours et la Lune (`--texte`), et de jour
  * les corps du système solaire (`--avertissement`, l'ambre).
  *
  * T-0330 — le reste est une GRADUATION PROPRE À LA SCÈNE, et le dit : figures, frontières,
@@ -187,6 +190,7 @@ const PALETTE_JOUR: PaletteCiel = Object.freeze({
   frontieres: avecOpacite(BLANC, 0.282),
   asterismes: avecOpacite(BLANC, 0.392),
   corps: 'rgb(244 199 106)',
+  lune: 'rgb(233 233 233)',
   cadre: 'rgb(139 255 239)',
   horizon: avecOpacite(BLANC, 0.588),
   sol: 'rgb(5 5 5)',
@@ -453,6 +457,7 @@ export function paletteRealiste(sbCiel: number): PaletteCiel {
     frontieres: compense(PALETTE_JOUR.frontieres),
     asterismes: compense(PALETTE_JOUR.asterismes),
     corps: compense(PALETTE_JOUR.corps),
+    lune: compense(PALETTE_JOUR.lune),
     cadre: compense(PALETTE_JOUR.cadre),
     horizon: compense(PALETTE_JOUR.horizon),
     voieLactee: compense(PALETTE_JOUR.voieLactee),

@@ -738,6 +738,16 @@ const LUNE = {
     ordreDeGrandeur: false,
     sections: ['8.1'],
   }),
+  RAYON_MOYEN_LUNE_KM: entree({
+    ref: 'L-06',
+    libelle: 'Rayon moyen de la Lune',
+    valeur: 1737.4,
+    unite: 'km',
+    source: 'IAU WGCCRE 2015 (Archinal et al. 2018), rayon moyen de la Lune',
+    tolerance: null,
+    ordreDeGrandeur: false,
+    sections: ['3.3'],
+  }),
   PENALITE_SB_CREPUSCULE_NAUTIQUE_MAG: entree({
     ref: 'C-18',
     libelle: 'Pénalité de fond de ciel du crépuscule nautique',

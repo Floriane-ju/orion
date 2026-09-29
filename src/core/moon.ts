@@ -13,7 +13,7 @@
  * aucun appel réseau, aucune table externe.
  */
 
-import { Body, Equator, Illumination, SearchRiseSet } from 'astronomy-engine'
+import { Body, Equator, Illumination, KM_PER_AU, SearchRiseSet } from 'astronomy-engine'
 import { K } from '../registry/constants.ts'
 import type { Site } from './ephem.ts'
 import { observateur, positionCorps, verifieDomaineDesSeries, versDate } from './ephem.ts'
@@ -41,6 +41,11 @@ export interface EtatLuneInstant {
   readonly illumination: number
   /** Angle de phase, en degrés : 0 à la pleine Lune, 180 à la nouvelle. */
   readonly anglePhaseDeg: number
+  /**
+   * Demi-diamètre apparent, en degrés, vu du SITE : la distance topocentrique, pas la
+   * géocentrique — la Lune est 1 à 2 % plus grosse au zénith qu'à l'horizon.
+   */
+  readonly demiDiametreDeg: number
   readonly lever: Date | null
   readonly coucher: Date | null
   /** Vrai quand la Lune est sous l'horizon : elle n'entre alors dans aucun calcul. */
@@ -59,12 +64,18 @@ export function etatLune(site: Site, date: Date): EtatLuneInstant {
     decDeg: position.decDeg,
     illumination: eclairement.phase_fraction,
     anglePhaseDeg: eclairement.phase_angle,
+    demiDiametreDeg: demiDiametreLuneDeg(date, site),
     lever: versDate(SearchRiseSet(Body.Moon, obs, MONTEE, date, JOURS_DE_RECHERCHE)),
     coucher: versDate(SearchRiseSet(Body.Moon, obs, DESCENTE, date, JOURS_DE_RECHERCHE)),
     sousHorizon: position.hauteurDeg <= 0,
   }
 }
 
+
+function demiDiametreLuneDeg(date: Date, site: Site): number {
+  const distanceKm = Equator(Body.Moon, date, observateur(site), true, true).dist * KM_PER_AU
+  return Math.asin(K('RAYON_MOYEN_LUNE_KM') / distanceKm) / DEG
+}
 
 /** Position de la Lune en coordonnées équatoriales de la date, sans calcul horizontal. */
 function positionEquatorialeLune(date: Date, site: Site): {

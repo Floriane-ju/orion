@@ -361,6 +361,8 @@ describe('halo lunaire — Krisciunas & Schaefer (T-0100)', () => {
       altitudeDeg: 60,
       azimutDeg: 180,
       anglePhaseDeg: PLEINE_LUNE_DEG,
+      // Le halo ne dépend pas de la taille du disque.
+      demiDiametreDeg: 0,
       ...options,
     }
   }

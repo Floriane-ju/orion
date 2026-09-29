@@ -16,6 +16,7 @@
  * label. L'ancre, elle, dépend du marqueur que le label longe.
  */
 
+import { Body } from 'astronomy-engine'
 import type { BoiteLabel } from '../core/labels.ts'
 import { nomComplet } from '../data/constellations.ts'
 import type { CibleEcran } from './dessine-ciel.ts'
@@ -28,6 +29,8 @@ export const HAUTEUR_LABEL_PX = 18
 export const LARGEUR_CARACTERE_PX = 10
 export const MARQUEUR_OBJET_PX = 4
 export const RAYON_CORPS_PX = 5
+/** La Lune porte sa phase : à la taille d'une planète, son croissant ne se lisait pas. */
+export const RAYON_LUNE_PX = 10
 
 /**
  * T-0107 — cinq étoiles brillantes du ciel réel n'ont ni Bayer, ni Flamsteed, ni nom propre
@@ -70,7 +73,10 @@ export function ancreLabel(cible: CibleEcran): { readonly xPx: number; readonly 
   if (cible.type === 'OBJET') {
     return { xPx: cible.xPx + (cible.rayonPx ?? MARQUEUR_OBJET_PX) + marge, yPx: cible.yPx }
   }
-  if (cible.type === 'CORPS') return { xPx: cible.xPx + RAYON_CORPS_PX + marge, yPx: cible.yPx }
+  if (cible.type === 'CORPS') {
+    const rayon = cible.rayonPx ?? (cible.corps?.corps === Body.Moon ? RAYON_LUNE_PX : RAYON_CORPS_PX)
+    return { xPx: cible.xPx + rayon + marge, yPx: cible.yPx }
+  }
   // L'étoile n'a pas de marqueur de taille fixe à contourner — son disque suit sa magnitude.
   // Le nom se pose en diagonale, seul décalage qui ne recouvre jamais l'astre qu'il nomme.
   return { xPx: cible.xPx + marge, yPx: cible.yPx - marge }

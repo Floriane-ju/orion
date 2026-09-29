@@ -191,6 +191,7 @@ export function Planetarium(props: PlanetariumProps) {
         altitudeDeg: etat.altitudeDeg,
         anglePhaseDeg: etat.anglePhaseDeg,
         azimutDeg: etat.azimutDeg,
+        demiDiametreDeg: etat.demiDiametreDeg,
       }
     } catch {
       return null

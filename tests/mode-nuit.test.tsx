@@ -207,6 +207,7 @@ describe('la scène reprend les jetons de l’interface', () => {
     ['fond', 'fond'],
     ['cadre', 'accent'],
     ['parcours', 'texte'],
+    ['lune', 'texte'],
   ]
   /** T-0330 — de jour seulement : la nuit, la scène abaisse les corps sous l'interface. */
   const liensDeJour: readonly (readonly [keyof PaletteCiel, string])[] = [['corps', 'avertissement']]

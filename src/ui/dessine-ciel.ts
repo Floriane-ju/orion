@@ -41,6 +41,7 @@ import {
 } from '../core/projection.ts'
 import type { Cadre } from '../core/cadre.ts'
 import type { PositionCorps } from '../core/ephem.ts'
+import { Body } from 'astronomy-engine'
 import type { MasqueHorizon } from '../core/site.ts'
 import { projecteurSansSol } from '../core/sol.ts'
 import { dessineSol } from './dessine-sol.ts'
@@ -63,6 +64,7 @@ import {
   type PaletteCiel,
 } from './couleurs.ts'
 import { dessineHaloHorizon, dessineHaloLune, type LuneEcran } from './dessine-fond-ciel.ts'
+import { angleLimbeEclaireRad, dessineLune, rayonLunePx } from './dessine-lune.ts'
 import type { OptiquePose } from './dessine-pose-cadre.ts'
 import {
   dessineCarteDansCadre,
@@ -485,14 +487,23 @@ function passeCorps(passe: Passe): void {
   const { ctx, projecteur } = passe.entree
   // --- Corps mobiles -------------------------------------------------------
   const versJ2000 = transpose(entree.matriceCiel)
+  const versCiel = (c: PositionCorps) => applique(versJ2000, versVecteur(c.azimutDeg, c.hauteurDeg))
+  const soleil = entree.corps.find((c) => c.corps === Body.Sun)
   for (const corps of entree.corps) {
-    const v = applique(versJ2000, versVecteur(corps.azimutDeg, corps.hauteurDeg))
+    const v = versCiel(corps)
     if (!projecteur.projetteEn(v.x, v.y, v.z, p)) continue
     // Hors canevas comme partout ailleurs : un corps derrière l'observateur reste projetable,
     // et son label part avec la priorité la plus haute de la scène. Sans ce test, une planète
     // qu'on ne voit pas prenait la place d'un nom qu'on voit (§3.4).
     if (p.xPx < 0 || p.yPx < 0 || p.xPx > largeur || p.yPx > hauteur) continue
-    if (peintReperes) {
+    const rayonLune =
+      corps.corps === Body.Moon
+        ? rayonLunePx(projecteur, v, p, entree.lune?.demiDiametreDeg ?? null)
+        : undefined
+    if (peintReperes && rayonLune !== undefined) {
+      const angle = soleil === undefined ? null : angleLimbeEclaireRad(projecteur, v, versCiel(soleil), p)
+      dessineLune(ctx, p, rayonLune, angle, entree.lune?.anglePhaseDeg ?? null, teintes)
+    } else if (peintReperes) {
       // T-0324 — la teinte se pose au moment de peindre, pas avant la boucle : une couleur
       // déposée sur le contexte par une passe qui ne peint rien annonce une couche absente.
       ctx.fillStyle = teintes.corps
@@ -501,7 +512,15 @@ function passeCorps(passe: Passe): void {
       ctx.fill()
     }
     const nom = entree.nomsCorps[corps.corps] ?? String(corps.corps)
-    const cible: CibleEcran = { type: 'CORPS', xPx: p.xPx, yPx: p.yPx, nom, corps }
+    // Le nom et le clic suivent le disque peint, comme pour un objet (T-0144).
+    const cible: CibleEcran = {
+      type: 'CORPS',
+      xPx: p.xPx,
+      yPx: p.yPx,
+      nom,
+      corps,
+      ...(rayonLune === undefined ? {} : { rayonPx: rayonLune }),
+    }
     cibles.push(cible)
     const texte = peintReperes ? libelleCible(cible) : null
     if (texte !== null) {

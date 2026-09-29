@@ -90,6 +90,8 @@ export interface LuneEcran {
   readonly altitudeDeg: number
   readonly azimutDeg: number
   readonly anglePhaseDeg: number
+  /** Demi-diamètre apparent, en degrés : la taille réelle du disque sur le ciel. */
+  readonly demiDiametreDeg: number
 }
 
 /** Crans du dégradé lunaire, de la Lune jusqu'à un quart de tour. */
@@ -97,7 +99,7 @@ const CRANS_HALO_LUNE = 16
 const SEPARATION_MAX_DEG = 90
 
 /** Un vecteur unitaire orthogonal à `v`, choisi pour ne jamais dégénérer. */
-function perpendiculaire(v: Vec3): Vec3 {
+export function perpendiculaire(v: Vec3): Vec3 {
   // Le produit vectoriel avec l'axe le MOINS aligné : sa norme ne descend jamais sous 1/√2.
   const axe: Vec3 =
     Math.abs(v.z) < Math.abs(v.x) ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 }
