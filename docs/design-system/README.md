@@ -77,7 +77,7 @@ mélanges avant de calculer les ratios WCAG.
 | `--avertissement` | `#f4c76a` | un rail sous la main |
 | `--bordure` | `--base-neutre` 83 % | filet de conteneur |
 | `--bordure-controle` | `--base-neutre` 59,3 % | filet de contrôle — tenu à ≥ 3:1 (WCAG 1.4.11) |
-| `--bordure-faible` | `--base-neutre` 13,1 % | séparateur de ligne |
+| `--bordure-faible` | `--base-neutre` 21 % | séparateur de ligne |
 | `--alerte` | `#ff6f5e` | erreur, cause d'écart |
 | `--fond-alerte` | `#1a0f0d` | aplat d'alerte |
 | `--barre-fond` | `--texte` | aplat d'une barre de titre (nuit : noir) |

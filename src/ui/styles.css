@@ -59,7 +59,7 @@
   --avertissement: #f4c76a;
   --bordure: color-mix(in srgb, var(--base-neutre) 83%, var(--fond));
   --bordure-controle: color-mix(in srgb, var(--base-neutre) 59.3%, var(--fond));
-  --bordure-faible: color-mix(in srgb, var(--base-neutre) 13.1%, var(--fond));
+  --bordure-faible: color-mix(in srgb, var(--base-neutre) 21%, var(--fond));
   --alerte: #ff6f5e;
   --fond-alerte: #1a0f0d;
   /* LA BARRE DE TITRE — sections, cartes, panneau, modale. Le jour, un aplat de texte sous un
@@ -130,7 +130,7 @@
   --avertissement: rgb(calc(var(--luminance-nuit) * 250) 0 0);
   --bordure: rgb(calc(var(--luminance-nuit) * 90) 0 0);
   --bordure-controle: rgb(calc(var(--luminance-nuit) * 188) 0 0);
-  --bordure-faible: rgb(calc(var(--luminance-nuit) * 45) 0 0);
+  --bordure-faible: rgb(calc(var(--luminance-nuit) * 65) 0 0);
   --alerte: rgb(calc(var(--luminance-nuit) * 255) 0 0);
   --fond-alerte: rgb(calc(var(--luminance-nuit) * 26) 0 0);
   --barre-fond: #000000;
