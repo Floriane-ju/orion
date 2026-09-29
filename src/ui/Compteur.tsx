@@ -71,6 +71,8 @@ export function Compteur(props: CompteurProps) {
   const depart = useRef<Depart | null>(null)
   /** Le texte en cours de frappe ; `null` hors saisie. */
   const [saisie, setSaisie] = useState<string | null>(null)
+  /** Vrai du premier appui au relâchement, que le geste devienne un clic ou un glisser. */
+  const [appuye, setAppuye] = useState(false)
   const initiale = useRef('')
 
   function borne(valeur: number): number {
@@ -101,6 +103,7 @@ export function Compteur(props: CompteurProps) {
     if (e.button !== 0) return
     e.currentTarget.setPointerCapture(e.pointerId)
     depart.current = { xPx: e.clientX, valeur: props.valeur, bouge: false }
+    setAppuye(true)
     props.surDebut?.()
   }
 
@@ -118,6 +121,7 @@ export function Compteur(props: CompteurProps) {
   function surPointerUp(e: PointerEvent<HTMLSpanElement>): void {
     const d = depart.current
     depart.current = null
+    setAppuye(false)
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId)
     }
@@ -187,12 +191,13 @@ export function Compteur(props: CompteurProps) {
       aria-valuetext={props.texte}
       {...(props.min === undefined ? {} : { 'aria-valuemin': props.min })}
       {...(props.max === undefined ? {} : { 'aria-valuemax': props.max })}
-      className={classes}
+      className={appuye ? `${classes} appuye` : classes}
       onPointerDown={surPointerDown}
       onPointerMove={surPointerMove}
       onPointerUp={surPointerUp}
       onPointerCancel={() => {
         depart.current = null
+        setAppuye(false)
       }}
       onKeyDown={surClavier}
     >

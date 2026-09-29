@@ -135,6 +135,16 @@ describe('T-0162 — la loi du glisser latéral', () => {
     expect(debut).toBeGreaterThan(-1)
     expect(CSS.slice(debut, CSS.indexOf('}', debut))).toContain('cursor: ew-resize')
   })
+
+  it('T-0351 — dès l’appui et en saisie, double son filet en accent sans changer de taille', () => {
+    const debut = CSS.indexOf('.compteur.appuye,')
+    expect(debut).toBeGreaterThan(-1)
+    const regle = CSS.slice(debut, CSS.indexOf('}', debut))
+    expect(regle).toContain('border-color: var(--accent)')
+    // L'épaisseur ajoutée est une ombre intérieure : une bordure plus large pousserait les voisins.
+    expect(regle).toMatch(/box-shadow: inset 0 0 0 var\(--trait\) var\(--accent\)/)
+    expect(regle).not.toMatch(/border-width|border:/)
+  })
 })
 
 describe('T-0162 — un champ de l’instant réécrit', () => {

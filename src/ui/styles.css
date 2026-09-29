@@ -576,6 +576,17 @@ body {
   cursor: text;
 }
 
+/* Dès l'appui, le filet double et prend l'accent : clic ou glisser, c'est ce champ qu'on a en
+   main, et il se distingue du survol. La saisie qu'ouvre le clic garde ce filet tant qu'on
+   tape. L'épaisseur ajoutée est une ombre intérieure, pas une bordure : le champ garde sa
+   taille, ses voisins ne bougent pas. `:active` ne suffit pas : Safari iOS ne le pose pas
+   au doigt sans écouteur `touchstart`, d'où la classe posée au `pointerdown`. */
+.compteur.appuye,
+.compteur.en-saisie {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 var(--trait) var(--accent);
+}
+
 .compteur-prefixe {
   color: var(--attenue);
 }
