@@ -29,6 +29,7 @@ import {
   composeLabels,
   etoileLabellisable,
   labelSurvol,
+  type CategorieLabel,
 } from '../src/core/labels.ts'
 import { K } from '../src/registry/constants.ts'
 
@@ -156,7 +157,7 @@ describe('couches de tracés §3.4', () => {
 })
 
 describe('labels §3.4', () => {
-  const candidat = (texte: string, categorie: 'CONSTELLATION' | 'ETOILE' | 'OBJET', x: number, y: number, priorite: number) => ({
+  const candidat = (texte: string, categorie: CategorieLabel, x: number, y: number, priorite: number) => ({
     texte,
     categorie,
     xPx: x,
@@ -167,11 +168,20 @@ describe('labels §3.4', () => {
   })
 
   it('suit la hiérarchie de zoom', () => {
-    expect([...categoriesActives(60)]).toEqual(['CONSTELLATION'])
-    expect([...categoriesActives(30)]).toEqual(['CONSTELLATION', 'ETOILE'])
-    expect([...categoriesActives(5)]).toEqual(['CONSTELLATION', 'ETOILE', 'OBJET'])
+    expect([...categoriesActives(60)]).toEqual(['CORPS', 'CONSTELLATION'])
+    expect([...categoriesActives(30)]).toEqual(['CORPS', 'CONSTELLATION', 'ETOILE'])
+    expect([...categoriesActives(5)]).toEqual(['CORPS', 'CONSTELLATION', 'ETOILE', 'OBJET'])
+    expect([...categoriesActives(K('FOV_LABELS_CORPS_SEULS_DEG'))]).toContain('CONSTELLATION')
     expect(etoileLabellisable(3.4)).toBe(true)
     expect(etoileLabellisable(3.6)).toBe(false)
+  })
+
+  it('ne nomme que la Lune et les planètes au plus large', () => {
+    const retenus = composeLabels(
+      [candidat('Orion', 'CONSTELLATION', 10, 10, 0), candidat('Mars', 'CORPS', 200, 10, -Infinity)],
+      K('FOV_MAX_STEREOGRAPHIQUE_DEG'),
+    )
+    expect(retenus.map((l) => l.texte)).toEqual(['Mars'])
   })
 
   it('plafonne à 25 labels, priorité aux plus brillants', () => {

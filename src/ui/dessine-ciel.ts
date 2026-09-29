@@ -526,7 +526,7 @@ function passeCorps(passe: Passe): void {
     if (texte !== null) {
       candidats.push({
         ...boiteLabel(cible, texte),
-        categorie: 'CONSTELLATION',
+        categorie: 'CORPS',
         priorite: -Infinity,
       })
     }

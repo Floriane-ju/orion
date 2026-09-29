@@ -2,6 +2,7 @@
  * §3.4 — Composition des labels.
  *
  * HIÉRARCHIE PAR ZOOM
+ *   fov > 180°  Lune et planètes uniquement (convention produit, FOV_LABELS_CORPS_SEULS_DEG)
  *   fov > 40°   noms de constellations uniquement
  *   10° à 40°   + désignations Bayer des étoiles de mag ≤ 3,5
  *   fov < 10°   + noms propres et désignations des objets du ciel profond
@@ -13,7 +14,7 @@
 
 import { K } from '../registry/constants.ts'
 
-export type CategorieLabel = 'CONSTELLATION' | 'ETOILE' | 'OBJET'
+export type CategorieLabel = 'CORPS' | 'CONSTELLATION' | 'ETOILE' | 'OBJET'
 
 /** Un texte et la place qu'il occupe : tout ce dont l'anti-chevauchement a besoin. */
 export interface BoiteLabel {
@@ -34,7 +35,8 @@ export interface CandidatLabel extends BoiteLabel {
 
 /** Catégories admises au champ donné. */
 export function categoriesActives(fovDeg: number): ReadonlySet<CategorieLabel> {
-  const actives: CategorieLabel[] = ['CONSTELLATION']
+  if (fovDeg > K('FOV_LABELS_CORPS_SEULS_DEG')) return new Set(['CORPS'])
+  const actives: CategorieLabel[] = ['CORPS', 'CONSTELLATION']
   if (fovDeg <= K('FOV_LABELS_CONSTELLATIONS_DEG')) actives.push('ETOILE')
   if (fovDeg < K('FOV_LABELS_OBJETS_DEG')) actives.push('OBJET')
   return new Set(actives)

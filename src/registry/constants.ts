@@ -1325,6 +1325,20 @@ const RENDU = {
     ordreDeGrandeur: false,
     sections: ['3.4'],
   }),
+  FOV_LABELS_CORPS_SEULS_DEG: entree({
+    ref: 'C-29',
+    libelle: 'Champ au-delà duquel seuls la Lune et les planètes sont nommées',
+    valeur: 180,
+    unite: '°',
+    source:
+      '§3.4 — convention produit : au-delà de 180°, les noms de constellations et de la ' +
+      'Voie lactée couvrent le ciel entier et ne se lisent plus. Au plus large, on cherche ' +
+      'ce qui bouge ; les autres noms reviennent au premier cran de zoom. Écart assumé à la ' +
+      'hiérarchie par zoom, qui nomme les constellations à tout champ.',
+    tolerance: 'convention produit — pilote la lisibilité d’une vue, jamais un verdict.',
+    ordreDeGrandeur: false,
+    sections: ['3.4'],
+  }),
   MAG_LABEL_BAYER_MAX: entree({
     ref: 'C-29',
     libelle: 'Magnitude maximale d’une étoile portant sa désignation Bayer',
