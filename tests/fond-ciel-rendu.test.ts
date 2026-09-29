@@ -221,11 +221,12 @@ describe('palette de vue réaliste (T-0097)', () => {
       const luminanceFond = luminanceRelative(composantesFond(sb))
       for (const repere of reperes) {
         const attendu = rapportContraste(
-          luminanceRelative(lineaire(palette(false)[repere])),
+          luminanceRelative(lineaire(surFond(palette(false)[repere], 'rgb(0 0 0)'))),
           LUMINANCE_FOND_REFERENCE,
         )
-        const obtenu = rapportContraste(luminanceRelative(lineaire(realiste[repere])), luminanceFond)
-        const sature = canaux(realiste[repere]).some((c) => c === 255)
+        const peint = surFond(realiste[repere], realiste.fond)
+        const obtenu = rapportContraste(luminanceRelative(lineaire(peint)), luminanceFond)
+        const sature = opacite(realiste[repere]) === 1 || canaux(peint).some((c) => c === 255)
         // Soit le rapport est tenu à 2 % près, soit l'écran est à bout de gamut et le dit.
         expect(obtenu >= attendu * 0.98 || sature, `${repere} @ B${bortle}`).toBe(true)
       }
@@ -236,6 +237,21 @@ describe('palette de vue réaliste (T-0097)', () => {
     expect(paletteRealiste(interpoleBortle(9).sb).sol).toBe(palette(false).sol)
   })
 })
+
+/** Opacité d'une couleur `rgb(r v b / a)` ; 1 pour une couleur opaque. */
+function opacite(couleur: string): number {
+  const m = / \/ ([\d.]+)\)$/.exec(couleur)
+  return m === null ? 1 : Number(m[1])
+}
+
+/** La couleur telle que le canevas la compose sur ce fond — en sRGB encodé, octet par octet. */
+function surFond(couleur: string, fond: string): string {
+  const a = opacite(couleur)
+  const t = canaux(couleur)
+  const f = canaux(fond)
+  const c = [0, 1, 2].map((i) => Math.round(f[i]! + a * (t[i]! - f[i]!)))
+  return `rgb(${c[0]} ${c[1]} ${c[2]})`
+}
 
 /** Composantes linéaires d'une couleur `rgb(r v b)`, pour le calcul de contraste du test. */
 function lineaire(couleur: string): readonly [number, number, number] {

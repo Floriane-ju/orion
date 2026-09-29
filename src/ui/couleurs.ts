@@ -160,8 +160,11 @@ const PALETTE_NUIT: PaletteCiel = Object.freeze({
  * les corps du système solaire (`--avertissement`, l'ambre).
  *
  * T-0330 — le reste est une GRADUATION PROPRE À LA SCÈNE, et le dit : figures, frontières,
- * astérismes et horizon sont des gris filaires étagés entre eux pour se hiérarchiser sur le
- * ciel, pas des nuances de `--base-neutre` ; les noms peints (`texte`) restent sous le texte de
+ * astérismes et horizon sont des traits filaires étagés entre eux pour se hiérarchiser sur le
+ * ciel, pas des nuances de `--base-neutre`. Ce sont des VOILES de blanc, pas des gris : un gris
+ * opaque tranche sur un fond de ciel relevé (halo d'horizon, Lune) comme une découpe plus sombre
+ * que lui, là où un voile s'y ajoute et reste un trait plus clair que ce qu'il traverse. Sur le
+ * noir, chaque opacité redonne le gris qu'elle remplace ; les noms peints (`texte`) restent sous le texte de
  * l'interface pour ne pas lutter avec lui ; la nuit, les corps descendent sous l'ambre-rouge de
  * l'interface pour la même raison que tout le reste de la scène. La Voie lactée garde une teinte
  * froide : c'est la seule structure peinte qui ne soit ni un tracé de l'instrument ni un objet
@@ -176,14 +179,16 @@ const PALETTE_NUIT: PaletteCiel = Object.freeze({
  * origine changée dans `styles.css` sans être reportée ici fait échouer `pnpm test`. Le cadre
  * avait dérivé de l'accent sans que rien ne le dise.
  */
+const BLANC = 'rgb(255 255 255)'
+
 const PALETTE_JOUR: PaletteCiel = Object.freeze({
   fond: '#000000',
-  figures: 'rgb(100 100 100)',
-  frontieres: 'rgb(72 72 72)',
-  asterismes: 'rgb(100 100 100)',
+  figures: avecOpacite(BLANC, 0.392),
+  frontieres: avecOpacite(BLANC, 0.282),
+  asterismes: avecOpacite(BLANC, 0.392),
   corps: 'rgb(244 199 106)',
   cadre: 'rgb(139 255 239)',
-  horizon: 'rgb(150 150 150)',
+  horizon: avecOpacite(BLANC, 0.588),
   sol: 'rgb(5 5 5)',
   voieLactee: 'rgb(150 186 205)',
   parcours: 'rgb(233 233 233)',
@@ -236,6 +241,7 @@ function versOctet(lineaire: number): number {
 
 const HEXA = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i
 const RVB = /^rgb\((\d+) (\d+) (\d+)\)$/
+const VOILE = /^(rgb\((\d+) (\d+) (\d+)) \/ ([\d.]+)\)$/
 
 /** Composantes linéaires d'une couleur CSS de la palette — `#rrggbb` ou `rgb(r v b)`. */
 export function composantesDeCss(css: string): Composantes {
@@ -396,6 +402,28 @@ export function ajusteContrasteSurFond(
 }
 
 /**
+ * Même retenue pour un voile (`rgb(r v b / a)`) : on compense le gris qu'il donne sur le fond
+ * de référence (noir), puis on relève l'OPACITÉ jusqu'à ce que le voile posé sur `fond` atteigne
+ * ce gris sur chaque canal. Le canevas compose en sRGB encodé : `f + a·(t − f)` par octet. Le
+ * trait reste un voile, donc reste plus clair que les halos qu'il traverse.
+ */
+function compenseVoile(teinte: string, fond: Composantes, luminanceFond: number): string {
+  const voile = VOILE.exec(teinte)
+  if (voile === null) return ajusteContrasteSurFond(teinte, luminanceFond).couleur
+  const opacite = Number(voile[5])
+  const trait = [Number(voile[2]), Number(voile[3]), Number(voile[4])] as const
+  const surNoir = trait.map((octet) => versLineaire(octet * opacite)) as unknown as Composantes
+  const cible = composantesDeCss(ajusteContrasteSurFond(css(surNoir), luminanceFond).couleur)
+  let requise = opacite
+  for (let c = 0; c < trait.length; c++) {
+    const f = versOctet(fond[c]!)
+    const ecart = trait[c]! - f
+    if (ecart > 0) requise = Math.max(requise, (versOctet(cible[c]!) - f) / ecart)
+  }
+  return avecOpacite(voile[1]! + ')', Math.min(requise, 1))
+}
+
+/**
  * Palette de vue réaliste : le fond prend la luminance du site, les repères la compensent.
  *
  * `sol` n'est pas compensé — le sol masque, il n'oriente pas, et l'éclaircir défait T-0094.
@@ -414,10 +442,10 @@ export function luminanceFondRealiste(sbCiel: number): number {
 
 export function paletteRealiste(sbCiel: number): PaletteCiel {
   if (cacheRealiste !== null && cacheRealiste.sb === sbCiel) return cacheRealiste.palette
-  const fond = fondRealiste(sbCiel)
-  const luminanceFond = luminanceFondRealiste(sbCiel)
-  const compense = (teinte: string): string =>
-    ajusteContrasteSurFond(teinte, luminanceFond).couleur
+  const composantes = composantesFond(sbCiel) as Composantes
+  const fond = css(composantes)
+  const luminanceFond = luminanceRelative(composantes)
+  const compense = (teinte: string): string => compenseVoile(teinte, composantes, luminanceFond)
   const composee: PaletteCiel = Object.freeze({
     ...PALETTE_JOUR,
     fond,

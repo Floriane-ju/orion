@@ -105,8 +105,9 @@ système solaire `--avertissement` de jour, les textes de la scène `--police-mo
 `couleurs.ts` les recopie (le canevas ne lit pas la feuille) et `mode-nuit.test.tsx` échoue si
 l'un dérive.
 
-Le reste est **hors kit, et déclaré** : les gris filaires des figures, frontières, astérismes et
-de l'horizon sont une graduation propre à la scène ; les noms peints restent sous `--texte`
+Le reste est **hors kit, et déclaré** : les traits filaires des figures, frontières, astérismes et
+de l'horizon sont une graduation propre à la scène, en voiles de blanc (`rgb(255 255 255 / a)`)
+plutôt qu'en gris opaques, pour rester plus clairs que le ciel qu'ils traversent ; les noms peints restent sous `--texte`
 pour ne pas lutter avec l'interface ; la nuit, les corps descendent sous l'ambre-rouge. Une
 teinte ajoutée à la palette de la scène sans être liée ni déclarée fait échouer le test. Les
 étoiles, objets et fonds de ciel restent hors du kit : ce sont des mesures.
