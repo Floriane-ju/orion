@@ -34,6 +34,7 @@ import { fondRealiste } from './couleurs.ts'
 import { frontiereEcran, remplitRegion, type FinesseBalayage } from './balayage-ecran.ts'
 import { peintLisse } from './lissage.ts'
 import { DEG_PAR_HEURE } from '../core/unites.ts'
+import { K } from '../registry/constants.ts'
 
 /**
  * Balayage allégé pour les paliers du halo : un bord de palier sépare deux teintes voisines,
@@ -162,7 +163,7 @@ export function dessineHaloLune(
   const degrade = ctx.createRadialGradient(centre.xPx, centre.yPx, 0, centre.xPx, centre.yPx, rayonMax)
   for (let k = 0; k <= CRANS_HALO_LUNE; k++) {
     const separation = (SEPARATION_MAX_DEG * k) / CRANS_HALO_LUNE
-    const bLune = brillanceLuneNl(geometrie(separation))
+    const bLune = brillanceLuneNl(geometrie(separation)) * K('GAIN_RENDU_HALO_LUNE')
     // L'opacité est la PART de la Lune dans la brillance totale : là où elle domine, le fond
     // composé est exactement celui du modèle ; là où elle s'efface, la couche du dessous —
     // paliers d'horizon compris — reparaît intacte. Aucun seuil arbitraire n'est introduit.

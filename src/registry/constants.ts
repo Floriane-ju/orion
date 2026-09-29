@@ -1377,13 +1377,14 @@ const RENDU = {
   K_EXPOSITION_FOND_CIEL: entree({
     ref: 'C-38',
     libelle: 'Exposition du fond de ciel peint',
-    valeur: 1.52e-4,
+    valeur: 7.6e-5,
     unite: 'Y/nL',
     source:
       'extension de rendu — seule constante libre du modèle, calée pour que la luminance ' +
-      'd’écran vaille 0,009 au fond de ciel le plus sombre de la table Bortle (21,9 mag/as², ' +
-      'Bortle 1). Triplée depuis 0,003 : la Voie lactée, ajoutée au fond, y restait sous les ' +
-      'dix niveaux d’octet par ciel moyen, donc à peine visible. Le RAPPORT des luminances, lui, est physique : ' +
+      'd’écran vaille 0,0045 au fond de ciel le plus sombre de la table Bortle (21,9 mag/as², ' +
+      'Bortle 1). Divisée par deux depuis 0,009 : le fond de nuit se lisait gris-bleu clair. ' +
+      'La Voie lactée garde son éclat par GAIN_RENDU_VOIE_LACTEE. ' +
+      'Le RAPPORT des luminances, lui, est physique : ' +
       'Y = K × B(sb) donne 36× entre Bortle 9 et Bortle 1, exactement le rapport des brillances.',
     tolerance: 'convention produit — pilote l’apparence d’un fond, jamais un verdict',
     ordreDeGrandeur: false,
@@ -1816,16 +1817,33 @@ const GRAND_CHAMP = {
   GAIN_RENDU_VOIE_LACTEE: entree({
     ref: 'C-50',
     libelle: 'Gain d’affichage de la bande galactique',
-    valeur: 1.5,
+    valeur: 2,
     unite: '—',
     source:
       'T-0352, convention produit — multiplie la brillance de la bande AU RENDU seulement. ' +
+      'Relevé de 1,5 à 2 quand K_EXPOSITION_FOND_CIEL a été divisée par deux : fond et ajout ' +
+      'divisés d’autant, le gamma sRGB ne retire à l’écart peint qu’un quart (0,5^0,42), ' +
+      'que ce gain rend. ' +
       'Lissée en dégradé, la bande perd le sommet de son profil (les tranches b = ±1° s’y ' +
       'moyennent), et un écran rend moins de dynamique que l’œil adapté. Les verdicts, le ' +
       'filtre et les tests de modèle lisent la brillance brute, jamais celle-ci.',
     tolerance: 'convention produit — pilote l’apparence de la bande, jamais un verdict',
     ordreDeGrandeur: false,
     sections: ['3.7'],
+  }),
+  GAIN_RENDU_HALO_LUNE: entree({
+    ref: 'C-51',
+    libelle: 'Gain d’affichage du halo lunaire',
+    valeur: 0.5,
+    unite: '—',
+    source:
+      'convention produit — multiplie la brillance KS91 du halo lunaire AU RENDU seulement. ' +
+      'Brute, elle porte le ciel près d’une Lune gibbeuse à une luminance d’écran proche du ' +
+      'blanc, là où l’œil adapté à la nuit voit un ciel clair mais encore bleu sombre. Le plan ' +
+      'de séance et ΔSB_lune (§8.1) lisent la brillance brute, jamais celle-ci.',
+    tolerance: 'convention produit — pilote l’apparence du halo, jamais un verdict',
+    ordreDeGrandeur: false,
+    sections: ['3.3'],
   }),
   PORTEE_PROJECTION_DIAGONALES: entree({
     ref: 'C-34',

@@ -178,11 +178,11 @@ describe('modèle du fond de ciel §3.3 (T-0097)', () => {
    */
   it('rend la table de couleurs annoncée, à 1/255 près par canal', () => {
     const attendus: Readonly<Record<number, string>> = {
-      1: '#111318',
-      4: '#191b22',
-      6: '#353943',
-      8: '#646b7d',
-      9: '#7c859b',
+      1: '#090b0e',
+      4: '#0f1116',
+      6: '#24272f',
+      8: '#484d5a',
+      9: '#5a6070',
     }
     for (const [bortle, attendu] of Object.entries(attendus)) {
       expect(hexa(fondRealiste(interpoleBortle(Number(bortle)).sb)), `Bortle ${bortle}`).toBe(
