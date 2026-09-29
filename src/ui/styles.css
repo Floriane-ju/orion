@@ -312,6 +312,9 @@ pre {
      son propre gabarit. */
   --carte-plan: 29rem;
   --jour-carte: var(--pas-3);
+  /* La hauteur de la frise de la nuit, publiée par elle (`CarteNuit`) ; nulle tant qu'elle
+     n'est pas montée. */
+  --nuit-haut: 0rem;
   /* L'écart entre deux éléments d'une barre. Nommé parce que la bande de commandes l'annule
      par marge négative : la valeur doit être lue au même endroit des deux côtés. */
   --jour-barre: var(--pas-2);
@@ -756,6 +759,16 @@ body {
 .carte-site {
   left: calc(var(--rail) + 2 * var(--jour-carte));
   top: var(--sous-barre);
+  display: flex;
+  flex-direction: column;
+  /* Elle partage le flanc gauche avec la frise de la nuit : elle s'arrête un jour de carte
+     au-dessus, et son corps défile chez lui. `--nuit-haut` est publiée par la frise. */
+  max-height: calc(100dvh - var(--sous-barre) - var(--nuit-haut) - 2 * var(--jour-carte));
+}
+
+.carte-site > .carte-corps {
+  min-height: 0;
+  max-height: none;
 }
 
 /* LES CARTES DU MATÉRIEL : Boîtier au-dessus d'Optique, en haut à droite, contre la colonne
@@ -1260,6 +1273,10 @@ body {
 
   .carte[data-ouverte='false'] {
     width: auto;
+  }
+
+  .carte-site {
+    max-height: none;
   }
 
   .carte-corps,

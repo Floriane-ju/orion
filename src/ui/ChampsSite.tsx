@@ -52,7 +52,9 @@ export interface ChampsSiteProps {
 export function ChampsSite(props: ChampsSiteProps) {
   return (
     <>
-      <div className="champs">
+      {/* Latitude et longitude se lisent d'un seul mot — un lieu — et se règlent ensemble :
+          la paire les pose côte à côte, comme la focale et l'ouverture (T-0234). */}
+      <div className="champs paire">
         <ChampDomaine
           domaine="latitude_deg"
           cle="latitude"
@@ -67,6 +69,8 @@ export function ChampsSite(props: ChampsSiteProps) {
           surValeur={props.surLongitude}
           requis
         />
+      </div>
+      <div className="champs">
         <ChampDomaine
           domaine="altitude_m"
           cle="altitude_site"

@@ -9,7 +9,14 @@
  * survol le dit à l'instant pointé. Tout texte posé à demeure repoussait la liste d'autant.
  */
 
-import { useMemo, useState, type CSSProperties, type PointerEvent } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent,
+} from 'react'
 import {
   friseNuit,
   lectureFrise,
@@ -64,9 +71,10 @@ function enPourcent(fraction: number): string {
 export function CarteNuit({ site, nuit }: CarteNuitProps) {
   const frise = useMemo(() => friseNuit(site, nuit), [site, nuit])
   const minute = useTrancheScene(minuteAffichee)
+  const cadre = useHauteurPubliee()
 
   return (
-    <section className="panneau-nuit" role="region" aria-label="La nuit">
+    <section ref={cadre} className="panneau-nuit" role="region" aria-label="La nuit">
       {nuit.cause !== undefined && <Mention ton="cause">{nuit.cause}</Mention>}
       {frise !== null && (
         <Frise
@@ -77,6 +85,29 @@ export function CarteNuit({ site, nuit }: CarteNuitProps) {
       )}
     </section>
   )
+}
+
+/**
+ * La carte Site s'arrête au-dessus de la frise : les deux partagent le flanc gauche, et la
+ * frise a une hauteur que la feuille ne connaît pas — une cause de nuit polaire s'y ajoute.
+ * Elle la publie donc sur la racine, où la carte la lit ; démontée, elle ne réserve plus rien.
+ */
+function useHauteurPubliee() {
+  const cadre = useRef<HTMLElement | null>(null)
+  useEffect(() => {
+    const element = cadre.current
+    if (element === null || typeof ResizeObserver === 'undefined') return
+    const racine = document.documentElement
+    const observateur = new ResizeObserver(() => {
+      racine.style.setProperty('--nuit-haut', `${element.offsetHeight}px`)
+    })
+    observateur.observe(element)
+    return () => {
+      observateur.disconnect()
+      racine.style.removeProperty('--nuit-haut')
+    }
+  }, [])
+  return cadre
 }
 
 interface Survol {
