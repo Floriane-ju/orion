@@ -90,7 +90,7 @@ export default defineConfig({
         // chercher ailleurs). Hors précache, un démarrage hors réseau afficherait le nom des
         // ligatures en clair à la place des glyphes (T-0122) et perdrait le dessin des deux
         // familles de texte (T-0191).
-        globPatterns: ['**/*.{js,css,html,woff2,ttf,png}', 'data/**/*.{bin,json}'],
+        globPatterns: ['**/*.{js,css,html,woff2,ttf,png,svg}', 'data/**/*.{bin,json}'],
         // Les paquets binaires dépassent la limite par défaut de 2 Mo (§12.2 : HYG ≈ 1,7 Mo,
         // OpenNGC ≈ 1,2 Mo, paquet Gaia différé ≈ 12 Mo).
         maximumFileSizeToCacheInBytes: 16 * 1024 * 1024,
