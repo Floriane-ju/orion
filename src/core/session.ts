@@ -30,7 +30,8 @@ import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { Intervalle } from './creneaux.ts'
 import { planCalibration } from './calibration.ts'
 import { rappelBatterie } from './rappel-batterie.ts'
-import { evalueCandidate, preFiltre } from './session-candidates.ts'
+import { evaluation } from './cibles-liste.ts'
+import { preFiltre } from './session-candidates.ts'
 import {
   alloueCreneau,
   calculeBudget,
@@ -117,13 +118,12 @@ export function planSession(
     return planVide(contexte, poids, [], new Map(), null, null, AUCUNE_CIBLE_CHOISIE)
   }
 
-  const sbCielBase = contexte.sbCielNoir - contexte.nuit.penaliteSbMag
   // Aucun plafond : C-20 bornait le coût d'un balayage de catalogue. Sur une sélection, il
   // écarterait en SILENCE une cible explicitement demandée — la règle 4 l'interdit.
   const prefiltre = preFiltre(contexte, choisies, choisies.length, choisies.length)
   const ecartees: CibleEcartee[] = [...prefiltre.ecartees]
   const comptes = new Map(prefiltre.comptes)
-  const retenues = evalueCandidates(contexte, prefiltre.candidates, { debut, fin }, sbCielBase, poids, ecartees, comptes)
+  const retenues = evalueCandidates(contexte, prefiltre.candidates, ecartees, comptes)
 
   if (retenues.length === 0) {
     return planVide(contexte, poids, ecartees, comptes, null)
@@ -171,20 +171,20 @@ export function planSession(
  * Les candidates du pré-filtrage passées aux moteurs, triées en retenues et écartées.
  *
  * Le refus de domaine est absorbé par `evalueCandidate` lui-même (§12.5) : chaque appelant
- * de ce moteur en a besoin, pas seulement le plan.
+ * de ce moteur en a besoin, pas seulement le plan. T-0294 — l'évaluation passe par celle que
+ * la liste a déjà faite sur le même contexte : une cible n'est chiffrée qu'une fois.
  */
 function evalueCandidates(
   contexte: ContexteSession,
   candidates: readonly ObjetCielProfond[],
-  fenetre: Intervalle,
-  sbCielBase: number,
-  poids: PoidsScoring,
   ecartees: CibleEcartee[],
   comptes: Map<CauseEcart, number>,
 ): readonly Candidate[] {
   const retenues: Candidate[] = []
   for (const objet of candidates) {
-    const resultat = evalueCandidate(contexte, objet, fenetre, sbCielBase, poids)
+    const resultat = evaluation(contexte, objet)
+    // La nuit a déjà été vérifiée chiffrable par l'appelant : `null` ne peut pas sortir ici.
+    if (resultat === null) continue
     if ('code' in resultat) {
       ecartees.push(resultat)
       comptes.set(resultat.code, (comptes.get(resultat.code) ?? 0) + 1)

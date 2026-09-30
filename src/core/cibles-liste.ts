@@ -324,6 +324,50 @@ export function prepareEvaluation(contexte: ContexteSession): EntreeEvaluation |
   }
 }
 
+/**
+ * T-0294 — les évaluations déjà faites, par contexte puis par objet.
+ *
+ * Le plan et la liste partent du MÊME contexte (`app-calcul.ts` leur passe le même objet) et
+ * évaluaient chacun ses candidates : deux fois le même calcul à chaque changement de contexte.
+ * Le partage vit ici, dans le moteur, et non dans un mémo de l'UI : c'est la garantie que le
+ * plan et la liste lisent le même résultat, pas seulement le même calcul — la source du
+ * désaccord de T-0268.
+ *
+ * Clé par IDENTITÉ : un contexte est immuable, un objet du catalogue aussi. Deux `WeakMap`
+ * laissent partir le tout avec le contexte remplacé, sans éviction à écrire. La désignation
+ * aurait servi de clé à tort — deux objets distincts peuvent la porter, les tests le font.
+ */
+const evaluations = new WeakMap<
+  ContexteSession,
+  {
+    readonly entree: EntreeEvaluation
+    readonly parObjet: WeakMap<ObjetCielProfond, Candidate | CibleEcartee>
+  }
+>()
+
+/**
+ * §8.3 — l'évaluation complète d'une candidate, faite une fois par contexte quel que soit
+ * l'appelant. `null` quand la nuit n'est pas chiffrable, comme `prepareEvaluation`.
+ */
+export function evaluation(
+  contexte: ContexteSession,
+  objet: ObjetCielProfond,
+): Candidate | CibleEcartee | null {
+  let memo = evaluations.get(contexte)
+  if (memo === undefined) {
+    const entree = prepareEvaluation(contexte)
+    if (entree === null) return null
+    memo = { entree, parObjet: new WeakMap() }
+    evaluations.set(contexte, memo)
+  }
+  const deja = memo.parObjet.get(objet)
+  if (deja !== undefined) return deja
+  const { fenetre, sbCielBase, poids } = memo.entree
+  const resultat = evalueCandidate(contexte, objet, fenetre, sbCielBase, poids)
+  memo.parObjet.set(objet, resultat)
+  return resultat
+}
+
 function etat(r: Candidate | CibleEcartee): EtatCible | null {
   // Une écartée du PRÉ-filtrage arrive ici par le même chemin qu'une écartée de l'évaluation
   // complète : les deux sont des `CibleEcartee`, portent le même code et la même cause. C'est
@@ -375,8 +419,7 @@ export function etatsCibles(
   catalogue: readonly ObjetCielProfond[],
 ): ReadonlyMap<string, EtatCible> {
   const etats = new Map<string, EtatCible>()
-  const entree = prepareEvaluation(contexte)
-  if (entree === null) return etats
+  if (prepareEvaluation(contexte) === null) return etats
 
   // Toutes les causes, mais pas tous les créneaux : nommer une écartée ne coûte qu'une chaîne.
   const { candidates, ecartees } = preFiltre(
@@ -391,7 +434,8 @@ export function etatsCibles(
     if (e !== null) etats.set(ecartee.designation, e)
   }
   for (const objet of candidates) {
-    const e = etat(evalueCandidate(contexte, objet, entree.fenetre, entree.sbCielBase, entree.poids))
+    const resultat = evaluation(contexte, objet)
+    const e = resultat === null ? null : etat(resultat)
     if (e !== null) etats.set(objet.designation, e)
   }
   return etats

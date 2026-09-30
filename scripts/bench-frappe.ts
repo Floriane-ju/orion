@@ -231,11 +231,18 @@ console.log(
 
 for (const config of CONFIGURATIONS) {
   const reference = contexte(config, LATITUDE)
-  const photographiables = [...etatsCibles(reference, CATALOGUE).values()].filter(
-    (etat) => etat.pose !== null,
-  ).length
+  const designations = new Set(
+    [...etatsCibles(reference, CATALOGUE)]
+      .filter(([, etat]) => etat.pose !== null)
+      .map(([designation]) => designation),
+  )
+  /**
+   * Le plan n'ordonne que la sélection (§8.3), jamais le catalogue : `app-calcul.ts` le lui
+   * filtre. Le pire cas réaliste est d'avoir tout choisi de ce que la liste dit photographiable.
+   */
+  const choisies = CATALOGUE.filter((objet) => designations.has(objet.designation))
 
-  console.log(`${config.nom} — ${photographiables} cible(s) photographiable(s)`)
+  console.log(`${config.nom} — ${choisies.length} cible(s) photographiable(s)`)
 
   /**
    * Le chemin de frappe mesuré d'un bloc : c'est le chiffre qui décide. Les étages ci-dessous
@@ -275,8 +282,16 @@ for (const config of CONFIGURATIONS) {
   ]
 
   const differe: readonly Etage[] = [
-    { nom: 'plan de la nuit', ms: chrono(() => { planSession(reference, CATALOGUE) }) },
-    { nom: 'notes du catalogue', ms: chrono(() => { etatsCibles(reference, CATALOGUE) }) },
+    {
+      // T-0294 — les deux partagent leurs évaluations par contexte : un contexte NEUF à chaque
+      // tour, sinon le banc ne mesurerait que le mémo. Chiffrés ensemble, comme la chaîne les paie.
+      nom: 'notes du catalogue et plan de la nuit',
+      ms: chrono(() => {
+        const neuf = { ...reference }
+        etatsCibles(neuf, CATALOGUE)
+        planSession(neuf, choisies)
+      }),
+    },
     {
       nom: 'lectures de la liste',
       ms: chrono(() => {

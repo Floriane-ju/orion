@@ -13,9 +13,9 @@
  * `pose === null`, jamais `has() === false` : l'absence d'entrée veut dire « pas évaluée ».
  */
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { etatsCibles } from '../src/core/cibles-liste.ts'
-import { preFiltre } from '../src/core/session-candidates.ts'
+import { evalueCandidate, preFiltre } from '../src/core/session-candidates.ts'
 import { detectabilite } from '../src/core/detectability.ts'
 import { DOMAINES } from '../src/registry/domains.ts'
 import { fenetreNocturne } from '../src/core/nuit.ts'
@@ -25,6 +25,12 @@ import { planSession, type ContexteSession } from '../src/core/session.ts'
 import { profilSuivi } from '../src/core/suivi.ts'
 import { K } from '../src/registry/constants.ts'
 import type { ObjetCielProfond } from '../src/data/deepsky.ts'
+
+// T-0294 — un espion traversant : le moteur reste le vrai, seuls ses appels se comptent.
+vi.mock('../src/core/session-candidates.ts', async (importeReel) => {
+  const reel = await importeReel<typeof import('../src/core/session-candidates.ts')>()
+  return { ...reel, evalueCandidate: vi.fn(reel.evalueCandidate) }
+})
 
 const SITE = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const NUIT = fenetreNocturne(SITE, new Date('2026-08-14T12:00:00Z'))
@@ -294,5 +300,35 @@ describe('§5.2 — sans suivi, aucune cible ciel profond n’est photographiabl
     const fermes = etatsCibles({ ...CONTEXTE, domaineCpFerme: altaz.cause }, CATALOGUE)
     expect(altaz.domaineCpOuvert).toBe(false)
     expect([...fermes.values()].every((e) => e.pose === null)).toBe(true)
+  })
+})
+
+/**
+ * T-0294 — le plan et la liste partent du même contexte : une cible n'est chiffrée qu'une fois.
+ *
+ * Avant, `planSession` et `etatsCibles` évaluaient chacun leurs candidates, et un changement de
+ * contexte payait deux fois la même éphéméride par cible.
+ */
+describe('etatsCibles et planSession — une seule évaluation par candidate et par contexte', () => {
+  it('n’appelle evalueCandidate qu’une fois par cible pour les deux surfaces réunies', () => {
+    // Un contexte neuf : ce qu'un changement de saisie livre à la chaîne.
+    const contexte: ContexteSession = { ...CONTEXTE }
+    const espion = vi.mocked(evalueCandidate)
+    espion.mockClear()
+
+    etatsCibles(contexte, CATALOGUE)
+    planSession(contexte, CATALOGUE)
+
+    const evaluees = espion.mock.calls.map(([, objet]) => objet)
+    expect(evaluees.length).toBeGreaterThan(0)
+    expect(new Set(evaluees).size).toBe(evaluees.length)
+  })
+
+  it('réévalue sous un contexte nouveau : le partage ne survit pas au contexte', () => {
+    const espion = vi.mocked(evalueCandidate)
+    etatsCibles({ ...CONTEXTE }, CATALOGUE)
+    espion.mockClear()
+    etatsCibles({ ...CONTEXTE }, CATALOGUE)
+    expect(espion).toHaveBeenCalled()
   })
 })
