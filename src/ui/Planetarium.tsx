@@ -30,6 +30,7 @@ import { etatLune } from '../core/moon.ts'
 import { sbEffectifRendu, sbZenithAvecCrepuscule } from '../core/fond-ciel-rendu.ts'
 import { separationDeg, versVecteur } from '../core/mat3.ts'
 import type { LuneEcran, SoleilEcran } from './dessine-fond-ciel.ts'
+import { apparitionReperes } from './apparence-objets.ts'
 import { etatProfondeur, type ModeProjection } from '../core/projection.ts'
 import {
   ACTIONS_SCENE,
@@ -320,6 +321,8 @@ export function Planetarium(props: PlanetariumProps) {
     enAvant: props.enAvant,
     parcours: rendu.parcours,
     magLimite: jour ? Number.NEGATIVE_INFINITY : profondeur.magLimite.value,
+    apparition:
+      rendu.vueRealiste && soleil !== null ? apparitionReperes(soleil.altitudeDeg) : 1,
     sbCiel: sbCielScene,
     vueRealiste: rendu.vueRealiste,
     lune,

@@ -79,6 +79,8 @@ export interface EtatBoucle {
   /** §4.1 — relief du site : la couche Sol y prend la hauteur du sol, azimut par azimut. */
   readonly masque: MasqueHorizon
   readonly magLimite: number
+  /** T-0357 — part visible des étoiles et des repères nocturnes, 0 de jour, 1 la nuit. */
+  readonly apparition: number
   /** §3.7 — fond de ciel du site : il module le contraste de la bande de la Voie lactée. */
   readonly sbCiel: number
   /** §3.3 — vue réaliste : le fond du ciel prend la luminance du site (T-0097). */
@@ -283,6 +285,7 @@ export function useBoucleRendu(entree: {
         ...(courant.parcours === null ? {} : { parcours: courant.parcours }),
         couches: courant.couches,
         magLimite: courant.magLimite,
+        apparition: courant.apparition,
         sbCiel: courant.sbCiel,
         vueRealiste: courant.vueRealiste,
         // §3.1 — corps masqués : la Lune n'est ni dessinée ni comptée, donc pas de halo.

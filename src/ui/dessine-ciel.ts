@@ -148,6 +148,11 @@ export interface EntreeDessin {
   readonly couches: CouchesActives
   readonly magLimite: number
   /**
+   * T-0357 — part visible des étoiles et des repères nocturnes (`apparitionReperes`) : ils
+   * reviennent en fondu après le coucher. La Lune et les planètes n'y passent pas. Absente : 1.
+   */
+  readonly apparition?: number | undefined
+  /**
    * §3.7 — fond de ciel du site : c'est lui qui module le contraste de la bande. La scène
    * montre ce que L'UTILISATEUR verra, pas une carte de référence idéale.
    */
@@ -268,6 +273,8 @@ interface Passe {
    */
   readonly opaciteEtoiles: number
   readonly fondPeint: boolean
+  /** T-0357 — opacité des repères nocturnes : figures, marqueurs, noms autres que ceux des corps. */
+  readonly apparition: number
   readonly largeur: number
   readonly hauteur: number
   /** Point de travail unique pour toute l'image : aucune passe n'alloue par élément (T-0065). */
@@ -322,6 +329,7 @@ function passeTraces(passe: Passe): CandidatLabel | null {
   // T-0110 — le champ se prend sur le projecteur BRUT : c'est une propriété de la vue, pas du
   // filtrage par le sol. La calotte obtenue englobe donc ce que le projecteur filtré montrera.
   const champScene = champVisible(brut)
+  ctx.globalAlpha = passe.apparition
   if (couches.frontieres) {
     ctx.strokeStyle = teintes.frontieres
     ctx.lineWidth = 1
@@ -342,6 +350,8 @@ function passeTraces(passe: Passe): CandidatLabel | null {
     traceSegments(ctx, projecteur, entree.asterismes, champScene)
     ctx.lineWidth = 1
   }
+  // L'horizon cadre la vue, de jour comme de nuit : il ne passe pas au fondu.
+  ctx.globalAlpha = 1
   if (couches.horizon) traceHorizon(entree, teintes.horizon, brut)
   // T-0173 — le TRAIT du plan galactique survit à l'aperçu : sur une prise de vue où la Voie
   // lactée se voit, c'est la seule ligne qui dise où elle passe. Il cadre comme l'horizon
@@ -351,7 +361,9 @@ function passeTraces(passe: Passe): CandidatLabel | null {
   if (entree.couches.voieLactee && !passe.modeParcours) {
     ctx.strokeStyle = teintes.voieLactee
     ctx.lineWidth = 1
+    ctx.globalAlpha = passe.apparition
     traceLignes(ctx, projecteur, [PLAN_GALACTIQUE])
+    ctx.globalAlpha = 1
   }
   if (!couches.voieLactee) return null
   return repereCentreGalactique(entree, teintes.voieLactee, pointEcran())
@@ -464,7 +476,7 @@ function passeObjets(passe: Passe): void {
     const estompe = entree.enAvant !== undefined && !entree.enAvant.has(objet.designation)
     // La géométrie se calcule même sans peinture : c'est elle qui donne au clic son rayon.
     if (peintReperes) {
-      ctx.globalAlpha = estompe ? OPACITE_OBJET_ESTOMPE : 1
+      ctx.globalAlpha = (estompe ? OPACITE_OBJET_ESTOMPE : 1) * passe.apparition
       if (geo === null) peintCroix(ctx, p.xPx, p.yPx, teintesObjet.bord)
       else peintEllipse(ctx, p.xPx, p.yPx, geo, teintesObjet)
       ctx.globalAlpha = 1
@@ -623,9 +635,11 @@ function passeLabels(passe: Passe): {
   // --- Labels --------------------------------------------------------------
   const labels = composeLabels(candidats, projecteur.vue.fovDeg)
   for (const label of labels) {
+    ctx.globalAlpha = label.categorie === 'CORPS' ? 1 : passe.apparition
     ctx.fillStyle = label.couleur ?? teintes.texte
     ctx.fillText(label.texte, label.xPx, label.yPx)
   }
+  ctx.globalAlpha = 1
 
   // T-0085 — le nom masqué par le seuil de zoom, révélé le temps du survol. Il est peint
   // après les labels retenus et n'entre pas dans leur budget : `labelSurvol` le loge entre
@@ -714,6 +728,7 @@ export function dessineCiel(entreeBrute: EntreeDessin): SortieDessin {
   // §11.1 — le mode nuit protège l'adaptation à l'obscurité : éclaircir tout le canevas le
   // rendrait inutile. La vue réaliste n'y change donc que la magnitude limite.
   const fondPeint = entree.vueRealiste && !entree.modeNuit
+  const apparition = entree.apparition ?? 1
   const largeur = projecteur.vue.largeurPx
   const hauteur = projecteur.vue.hauteurPx
 
@@ -724,8 +739,9 @@ export function dessineCiel(entreeBrute: EntreeDessin): SortieDessin {
     teintes,
     peintReperes,
     modeParcours,
-    opaciteEtoiles: modeParcours ? OPACITE_ETOILE_PARCOURS : peintReperes ? 1 : 0,
+    opaciteEtoiles: (modeParcours ? OPACITE_ETOILE_PARCOURS : peintReperes ? 1 : 0) * apparition,
     fondPeint,
+    apparition,
     largeur,
     hauteur,
     p: pointEcran(),

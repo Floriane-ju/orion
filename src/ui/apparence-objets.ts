@@ -15,6 +15,8 @@
  */
 
 import { rayonEtoilePx } from '../core/projection.ts'
+import { encadre } from '../core/unites.ts'
+import { K } from '../registry/constants.ts'
 import type { TypeObjet } from '../data/deepsky.ts'
 import {
   ajusteContrasteSurFond,
@@ -75,6 +77,19 @@ export const EPAISSEUR_BORD_PX = 1.5
  * écarté a encore à dire, et le clic la rend toujours.
  */
 export const OPACITE_OBJET_ESTOMPE = 0.1
+
+/**
+ * T-0357 — part visible des étoiles et des repères du ciel nocturne, selon la hauteur du Soleil.
+ *
+ * Nulle Soleil levé, pleine à la fin du crépuscule civil : c'est là que l'œil voit les
+ * premières étoiles de figure, et que les lignes qui les relient redeviennent utiles. Le
+ * NOMBRE d'étoiles, lui, reste l'affaire de la magnitude limite (`seuil-oeil.ts`) ; ce fondu
+ * n'évite que le basculement d'un coup, sur un fond que le modèle de crépuscule fige de 0 à
+ * −5° (bord de la table de Patat). La Lune et les planètes, visibles de jour, n'y passent pas.
+ */
+export function apparitionReperes(altitudeSoleilDeg: number): number {
+  return encadre(altitudeSoleilDeg / K('HAUTEUR_CREPUSCULE_CIVIL_DEG'), 0, 1)
+}
 
 /**
  * §8.4 / T-0324 — opacité des étoiles de fond sous un parcours de pointage.

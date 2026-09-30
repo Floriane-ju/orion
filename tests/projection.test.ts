@@ -226,12 +226,13 @@ describe('profondeur asservie au zoom §3.3', () => {
    * T-0100 — non-régression du bug corrigé : un fond de ciel HORS TABLE ne suspend plus le
    * plafond. Sous la Lune, `sb_effectif` descend sous la dernière ligne de la table ; la
    * version fautive rendait alors la magnitude du zoom, donc PLUS d'étoiles qu'un ciel de
-   * banlieue. Le plafond se pose maintenant au bord de table, et le déclare.
+   * banlieue. Le plafond se pose au-delà du bord de table — T-0357 : au seuil de Schaefer,
+   * sous la magnitude du bord —, et le déclare.
    */
   it('plafonne encore quand le fond de ciel sort de la table Bortle', () => {
     const horsTableClair = SB_PLAFOND_TABLE - 1
     const sousLaLune = magnitudeRendue(60, horsTableClair, true)
-    expect(sousLaLune.value).toBeCloseTo(M_LIM_OEIL_PLANCHER, 9)
+    expect(sousLaLune.value).toBeLessThan(M_LIM_OEIL_PLANCHER)
     expect(sousLaLune.value).toBeLessThan(magnitudeRendue(60, interpoleBortle(9).sb, true).value + 1e-9)
     expect(sousLaLune.note).toMatch(/plus clair que Bortle 9/)
     expect(sousLaLune.flags).toContain('HORS_DOMAINE')

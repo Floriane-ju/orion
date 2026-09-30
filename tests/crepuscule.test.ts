@@ -146,14 +146,14 @@ describe('la contribution du crépuscule', () => {
 describe('ce que l’utilisateur voit', () => {
   /**
    * Le critère du ticket : à Soleil −6°, la vue réaliste ne montre qu'une poignée d'étoiles.
-   * Le fond effectif sort alors par le bas de la table Bortle — la magnitude limite se borne
-   * au bord de table et le DIT, elle ne cesse pas de plafonner (précédent T-0100).
+   * Le fond effectif sort alors par le bas de la table Bortle — T-0357 : la magnitude limite
+   * suit le seuil de Schaefer, SOUS le bord de table, et le DIT (précédent T-0100).
    */
-  it('à Soleil −6°, plafonne la magnitude limite au bord de table et le déclare', () => {
+  it('à Soleil −6°, plafonne la magnitude limite sous le bord de table et le déclare', () => {
     const sb = sbZenithAvecCrepuscule(SB_B1, 6)
     expect(sb).toBeLessThan(interpoleBortle(9).sb)
     const rendue = magnitudeRendue(FOV_DEG, sb, true)
-    expect(rendue.value).toBe(M_LIM_OEIL_PLANCHER)
+    expect(rendue.value).toBeLessThan(M_LIM_OEIL_PLANCHER)
     expect(rendue.flags).toContain('HORS_DOMAINE')
     expect(rendue.note).toContain('plus clair que Bortle 9')
     // Et en pleine nuit sur le même site, la scène montre bien plus d'étoiles.

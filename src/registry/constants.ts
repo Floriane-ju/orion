@@ -1555,6 +1555,78 @@ const RENDU = {
     ordreDeGrandeur: false,
     sections: ['3.5'],
   }),
+  SCHAEFER_LOG_C1_SCOTOPIQUE: entree({
+    ref: 'L-10',
+    libelle: 'Seuil de Schaefer, log10 c1, vision nocturne',
+    valeur: -9.8,
+    unite: 'log10 ft-cd',
+    source:
+      'Schaefer (1990), PASP 102, 212 — seuil de détection d’un point sur fond B : ' +
+      'I = c1 (1 + √(c2 B))², B en nL, I en foot-candles [À VÉRIFIER contre la publication]',
+    tolerance: 'ordre de grandeur',
+    ordreDeGrandeur: true,
+    sections: ['3.3'],
+  }),
+  SCHAEFER_LOG_C2_SCOTOPIQUE: entree({
+    ref: 'L-11',
+    libelle: 'Seuil de Schaefer, log10 c2, vision nocturne',
+    valeur: -1.9,
+    unite: 'log10 1/nL',
+    source:
+      'Schaefer (1990), PASP 102, 212 — seuil de détection d’un point sur fond B : ' +
+      'I = c1 (1 + √(c2 B))², B en nL, I en foot-candles [À VÉRIFIER contre la publication]',
+    tolerance: 'ordre de grandeur',
+    ordreDeGrandeur: true,
+    sections: ['3.3'],
+  }),
+  SCHAEFER_LOG_C1_PHOTOPIQUE: entree({
+    ref: 'L-12',
+    libelle: 'Seuil de Schaefer, log10 c1, vision diurne',
+    valeur: -8.35,
+    unite: 'log10 ft-cd',
+    source:
+      'Schaefer (1990), PASP 102, 212 — seuil de détection d’un point sur fond B : ' +
+      'I = c1 (1 + √(c2 B))², B en nL, I en foot-candles [À VÉRIFIER contre la publication]',
+    tolerance: 'ordre de grandeur',
+    ordreDeGrandeur: true,
+    sections: ['3.3'],
+  }),
+  SCHAEFER_LOG_C2_PHOTOPIQUE: entree({
+    ref: 'L-13',
+    libelle: 'Seuil de Schaefer, log10 c2, vision diurne',
+    valeur: -5.9,
+    unite: 'log10 1/nL',
+    source:
+      'Schaefer (1990), PASP 102, 212 — seuil de détection d’un point sur fond B : ' +
+      'I = c1 (1 + √(c2 B))², B en nL, I en foot-candles [À VÉRIFIER contre la publication]',
+    tolerance: 'ordre de grandeur',
+    ordreDeGrandeur: true,
+    sections: ['3.3'],
+  }),
+  SCHAEFER_BASCULE_PHOTOPIQUE_NL: entree({
+    ref: 'L-14',
+    libelle: 'Fond au-delà duquel l’œil passe en vision diurne',
+    valeur: 1479,
+    unite: 'nL',
+    source:
+      'Schaefer (1990), PASP 102, 212 — seuil de détection d’un point sur fond B : ' +
+      'I = c1 (1 + √(c2 B))², B en nL, I en foot-candles [À VÉRIFIER contre la publication]',
+    tolerance: 'ordre de grandeur',
+    ordreDeGrandeur: true,
+    sections: ['3.3'],
+  }),
+  SCHAEFER_ZERO_MAG: entree({
+    ref: 'L-15',
+    libelle: 'Magnitude d’un éclairement d’un foot-candle',
+    valeur: -16.57,
+    unite: 'mag',
+    source:
+      'Schaefer (1990), PASP 102, 212 — seuil de détection d’un point sur fond B : ' +
+      'I = c1 (1 + √(c2 B))², B en nL, I en foot-candles [À VÉRIFIER contre la publication]',
+    tolerance: 'ordre de grandeur',
+    ordreDeGrandeur: true,
+    sections: ['3.3'],
+  }),
 } as const
 
 /** §9.1 à §9.4 — grand champ, prévisualisation et filé d'étoiles. */

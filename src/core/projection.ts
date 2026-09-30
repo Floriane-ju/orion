@@ -18,6 +18,7 @@
 
 import { K } from '../registry/constants.ts'
 import { mLimOeilBorne } from '../registry/bortle.ts'
+import { mLimOeilCielClair } from './seuil-oeil.ts'
 import { DEG, multiplie, transpose, type Mat3, type Vec3 } from './mat3.ts'
 import { trace, type Traced } from './traced.ts'
 
@@ -371,12 +372,20 @@ export function magnitudeRendue(
 ): Traced<number> {
   const zoom = magnitudeLimite(fovDeg)
   if (!vueRealiste || sbEffectif === null) return zoom
-  const oeil = mLimOeilBorne(sbEffectif)
+  const borne = mLimOeilBorne(sbEffectif)
+  // T-0357 — plus clair que la table, c'est le crépuscule ou la Lune : le seuil de Schaefer
+  // prend le relais au lieu de figer la limite au bord, sans quoi le coucher du Soleil
+  // allumait d'un coup toutes les étoiles jusqu'à la magnitude 4.
+  const oeil =
+    borne.borne === 'CIEL_PLUS_CLAIR' && Number.isFinite(sbEffectif)
+      ? { ...borne, value: mLimOeilCielClair(sbEffectif) }
+      : borne
   const horsTable =
     oeil.borne === 'AUCUNE'
       ? ''
-      : ` Ciel ${oeil.borne === 'CIEL_PLUS_CLAIR' ? 'plus clair que Bortle 9' : 'plus noir que Bortle 1'} : ` +
-        `limite fixée à ${oeil.value.toFixed(1)}.`
+      : oeil.borne === 'CIEL_PLUS_CLAIR'
+        ? ` Ciel plus clair que Bortle 9 : seuil de Schaefer, limite ${oeil.value.toFixed(1)}.`
+        : ` Ciel plus noir que Bortle 1 : limite fixée à ${oeil.value.toFixed(1)}.`
   return trace({
     value: Math.min(zoom.value, oeil.value),
     formula: 'MAGNITUDE_LIMITE_RENDUE',
