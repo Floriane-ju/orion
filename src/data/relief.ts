@@ -107,21 +107,39 @@ export const chargeTuileReseau: ChargeTuile = async (z, x, y) => {
   return altitudes
 }
 
-/** L'altimètre des tuiles chargées : le pixel le plus proche, au pas d'un pixel. */
-function altimetre(tuiles: ReadonlyMap<string, Float32Array>): Altimetre {
+/**
+ * L'altimètre des tuiles chargées, interpolé entre les quatre pixels voisins.
+ *
+ * T-0359 — au pixel le plus proche, un même sommet dominait plusieurs azimuts de suite, et le
+ * masque montait par plateaux. L'interpolation bilinéaire ne crée aucun sommet : elle reste
+ * entre les altitudes des pixels qui l'entourent.
+ */
+export function altimetre(tuiles: ReadonlyMap<string, Float32Array>): Altimetre {
   const z = R('ZOOM_TUILE_RELIEF')
   const cote = R('COTE_TUILE_PX')
   const nb = 2 ** z
-  return (latDeg, lonDeg) => {
-    const p = pixelMonde(latDeg, lonDeg, z)
-    const px = Math.floor(p.x)
-    const py = Math.floor(p.y)
+  const pixel = (px: number, py: number): number | null => {
     const tx = ((Math.floor(px / cote) % nb) + nb) % nb
     const ty = Math.floor(py / cote)
     const tuile = tuiles.get(`${tx}/${ty}`)
     if (tuile === undefined) return null
-    const i = (py - ty * cote) * cote + (((px % cote) + cote) % cote)
-    return tuile[i] ?? null
+    return tuile[(py - ty * cote) * cote + (((px % cote) + cote) % cote)] ?? null
+  }
+  return (latDeg, lonDeg) => {
+    const p = pixelMonde(latDeg, lonDeg, z)
+    // Les altitudes sont celles des CENTRES de pixels.
+    const gx = p.x - 1 / 2
+    const gy = p.y - 1 / 2
+    const x0 = Math.floor(gx)
+    const y0 = Math.floor(gy)
+    const fx = gx - x0
+    const fy = gy - y0
+    const a = pixel(x0, y0)
+    const b = pixel(x0 + 1, y0)
+    const c = pixel(x0, y0 + 1)
+    const d = pixel(x0 + 1, y0 + 1)
+    if (a === null || b === null || c === null || d === null) return null
+    return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy
   }
 }
 

@@ -289,7 +289,7 @@ const MILLIEMES = 1000
  * elle, un calcul corrigé ne s'appliquerait jamais aux sites déjà visités. À monter à chaque
  * changement de `profilRelief` ou de ses constantes.
  */
-const VERSION_PROFIL = 2
+const VERSION_PROFIL = 3
 
 export function cleRelief(latDeg: number, lonDeg: number): string {
   return `relief:v${VERSION_PROFIL}:${Math.round(latDeg * MILLIEMES)},${Math.round(lonDeg * MILLIEMES)}`

@@ -10,6 +10,7 @@ import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleRelief, db, ecritRelief } from '../src/data/db.ts'
 import {
+  altimetre,
   altitudeTerrarium,
   pixelMonde,
   resoudRelief,
@@ -45,6 +46,17 @@ describe('format Terrarium et tuiles', () => {
   it('décode l’altitude depuis les trois canaux', () => {
     expect(altitudeTerrarium(R('DECALAGE_TERRARIUM_M') / cote, 0, 0)).toBe(0)
     expect(altitudeTerrarium(R('DECALAGE_TERRARIUM_M') / cote, 1, cote / 2)).toBe(1.5)
+  })
+
+  it('interpole l’altitude entre les centres de pixels, sans dépasser leurs valeurs', () => {
+    // Une tuile dont l'altitude croît d'un mètre par colonne de pixels.
+    const p = pixelMonde(LAT, LON, R('ZOOM_TUILE_RELIEF'))
+    const tx = Math.floor(p.x / cote)
+    const ty = Math.floor(p.y / cote)
+    const pente = Float32Array.from({ length: cote * cote }, (_, i) => i % cote)
+    const lit = altimetre(new Map([[`${tx}/${ty}`, pente]]))
+    const attendue = p.x - 1 / 2 - tx * cote
+    expect(lit(LAT, LON)).toBeCloseTo(attendue, 3)
   })
 
   it('place le site dans une des tuiles couvrantes, sous le plafond', () => {

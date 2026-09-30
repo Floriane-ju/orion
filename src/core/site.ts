@@ -158,10 +158,19 @@ export function composeMasques(relief: MasqueHorizon, manuel: MasqueHorizon): Ma
   })
 }
 
-/** Obstruction à un azimut quelconque : l'azimut se referme sur lui-même. */
+/**
+ * Obstruction à un azimut quelconque : l'azimut se referme sur lui-même.
+ *
+ * T-0359 — linéaire d'un degré entier au suivant, et non au degré le plus proche : arrondi, le
+ * masque était un escalier de 360 marches, que le sol dessinait telles quelles. L'interpolation
+ * n'abaisse aucun sommet — elle ne passe que par les valeurs relevées.
+ */
 export function obstructionDeg(masque: MasqueHorizon, azimutDeg: number): number {
-  const index = ramene(Math.round(azimutDeg), NB_AZIMUTS)
-  return masque.altitudesDeg[index] ?? 0
+  const a = ramene(azimutDeg, NB_AZIMUTS)
+  const i = Math.floor(a)
+  const avant = masque.altitudesDeg[i % NB_AZIMUTS] ?? 0
+  const apres = masque.altitudesDeg[(i + 1) % NB_AZIMUTS] ?? 0
+  return avant + (apres - avant) * (a - i)
 }
 
 /** Hauteur atteinte par une cible à sa culmination, depuis ce site. */

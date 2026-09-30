@@ -146,3 +146,24 @@ describe('relevés manuels « par-dessus » le relief (§4.1)', () => {
     expect(composeMasques(masquePlat(), masquePlat()).estHypothese).toBe(true)
   })
 })
+
+describe('obstruction entre deux azimuts entiers (T-0359)', () => {
+  const masque = masqueDepuisRelief(
+    Array.from({ length: NB_AZIMUTS }, (_, az) => (az === 10 ? 8 : az === 11 ? 12 : 0)),
+  )
+
+  it('se relie linéairement d’un degré au suivant : pas de marche à l’écran', () => {
+    expect(obstructionDeg(masque, 10)).toBe(8)
+    expect(obstructionDeg(masque, 10.25)).toBeCloseTo(9, 10)
+    expect(obstructionDeg(masque, 10.75)).toBeCloseTo(11, 10)
+  })
+
+  it('se referme entre 359° et 0°', () => {
+    const tour = masqueDepuisRelief(
+      Array.from({ length: NB_AZIMUTS }, (_, az) => (az === 359 ? 4 : az === 0 ? 6 : 0)),
+    )
+    expect(obstructionDeg(tour, 359.5)).toBeCloseTo(5, 10)
+    expect(obstructionDeg(tour, -0.5)).toBeCloseTo(5, 10)
+  })
+})
+
