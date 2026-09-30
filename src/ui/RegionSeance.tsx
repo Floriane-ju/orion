@@ -140,7 +140,6 @@ export function CartesSeance(props: RegionSeanceProps) {
           longitude={lieu.longitude}
           surLongitude={lieu.surLongitude}
           altitude={lieu.altitude}
-          surAltitude={lieu.surAltitude}
           bortle={lieu.bortle}
           surBortle={lieu.surBortle}
           sqm={lieu.sqm}

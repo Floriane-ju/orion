@@ -870,6 +870,7 @@ body {
 .carte-site > .carte-corps {
   min-height: 0;
   max-height: none;
+  padding-top: var(--pas-2);
 }
 
 /* LES CARTES DU MATÉRIEL : Boîtier au-dessus d'Optique, en haut à droite, contre la colonne
@@ -1125,6 +1126,12 @@ body {
     linear-gradient(var(--texte) 0 0) 0 var(--barre-titre) / 100% var(--trait) no-repeat;
   color: var(--barre-encre);
   text-align: start;
+}
+
+/* Dépliée, l'en-tête n'est plus que sa barre : la cible tactile laissait sous le trait un vide
+   que le corps ajoutait à son propre écart, et la carte du lieu flottait plus bas que large. */
+.carte-site[data-ouverte='true'] > .carte-entete {
+  min-height: 0;
 }
 
 /* L'en-tête n'a pas l'allure d'un bouton — c'est une barre de titre —, donc c'est le contrôle

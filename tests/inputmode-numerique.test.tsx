@@ -32,7 +32,6 @@ const ECRAN_SITE = renderToStaticMarkup(
     longitude="5"
     surLongitude={rien}
     altitude="200"
-    surAltitude={rien}
     bortle="4"
     surBortle={rien}
     sqm=""
@@ -85,9 +84,9 @@ describe('inputMode des champs numériques §4.1 + §5.1 (T-0192)', () => {
   const champsSite = champsSaisie(ECRAN_SITE)
   const champsMateriel = champsSaisie(ECRAN_MATERIEL)
 
-  it('l’écran Site expose bien les cinq champs numériques attendus', () => {
-    // latitude, longitude, altitude, bortle, sqm.
-    expect(champsSite.length).toBe(5)
+  it('l’écran Site expose bien les quatre champs numériques attendus', () => {
+    // latitude, longitude, bortle, sqm — l'altitude se lit sur le relief, elle ne se saisit pas.
+    expect(champsSite.length).toBe(4)
   })
 
   it('l’écran Matériel expose bien les champs numériques attendus', () => {

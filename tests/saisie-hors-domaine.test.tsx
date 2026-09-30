@@ -172,7 +172,6 @@ describe('le champ qui a borné le dit à son pied', () => {
         longitude={saisie.longitude}
         surLongitude={rien}
         altitude={saisie.altitude}
-        surAltitude={rien}
         bortle={saisie.bortle}
         surBortle={rien}
         sqm={saisie.sqm}
@@ -186,7 +185,6 @@ describe('le champ qui a borné le dit à son pied', () => {
   it.each([
     ['latitude', 'latitude_deg'],
     ['longitude', 'longitude_deg'],
-    ['altitude', 'altitude_m'],
     ['bortle', 'bortle_declare'],
     ['sqm', 'sqm_mesure'],
   ] as const)('%s : le rendu aboutit et nomme la valeur retenue', (champ, domaine) => {

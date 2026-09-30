@@ -1,11 +1,8 @@
 /**
  * §4.1 — la carte où l'on pose le site d'un clic, en tête de la carte « Site » (T-0363).
  *
- * Elle écrit dans les mêmes champs que la saisie chiffrée : le relief, la nuit et le ciel
- * suivent la latitude et la longitude comme si on les avait tapées. Un clic écrit aussi
- * l'altitude du sol, lue sur le relief (T-0365) ; une coordonnée tapée n'y touche pas — une
- * altitude saisie à la main n'est pas écrasée pour une décimale retouchée. Les
- * champs restent la vérité — la carte n'a pas d'état du lieu à elle, seulement sa vue.
+ * Elle écrit dans les mêmes champs que la saisie chiffrée : le relief, la nuit, l'altitude et le
+ * ciel suivent la latitude et la longitude comme si on les avait tapées. Les champs restent la vérité — la carte n'a pas d'état du lieu à elle, seulement sa vue.
  *
  * Elle s'ouvre centrée sur le site saisi, et ne le suit pas ensuite : taper une coordonnée
  * pendant qu'on regarde ailleurs ne doit pas arracher la vue sous la souris.
@@ -18,8 +15,6 @@ import { abonneModeReseau, modeReseauCourant } from '../data/degradation.ts'
 import { chargeFondCarte } from '../data/bootstrap.ts'
 import { FOND_VIDE, type FondCarte } from '../data/fond-carte.ts'
 import { TUILES_OSM } from '../data/tuiles-carte.ts'
-import { resoudRelief } from '../data/relief.ts'
-import { altitudeDuRelief } from './relief-site.ts'
 import { nombreDeTexte } from '../registry/domains.ts'
 import { C, CREDIT_CARTE } from '../registry/lieu-carte.ts'
 import { ecritLieu, lieuSous, vueCentreeSur, type VueCarte } from './choix-lieu-calcul.ts'
@@ -32,8 +27,6 @@ export interface ChoixLieuProps {
   readonly latitude: string
   readonly longitude: string
   readonly surLieu: (latitude: string, longitude: string) => void
-  /** T-0365 — l'altitude du sol au lieu posé, dès que son relief est résolu. */
-  readonly surAltitude: (altitude: string) => void
 }
 
 /** Le fond se décode une fois par session : replier et rouvrir la carte ne le relit pas. */
@@ -129,11 +122,9 @@ export function ChoixLieu(props: ChoixLieuProps) {
   }, [vue, fond, taille, arrivees, latSite, lonSite])
 
   const majVue = useCallback((maj: (v: VueCarte) => VueCarte) => surVue(maj), [])
-  const { surLieu, surAltitude } = props
+  const { surLieu } = props
   const vueCourante = useRef(vue)
   vueCourante.current = vue
-  // T-0365 — seul le dernier clic écrit l'altitude : un relief lent ne l'écrase pas après coup.
-  const derniere = useRef(0)
   const pose = useCallback(
     (px: number, py: number) => {
       const element = toile.current
@@ -142,15 +133,8 @@ export function ChoixLieu(props: ChoixLieuProps) {
       const v = vueCourante.current
       const ecrit = ecritLieu(lieuSous(v, px, py, width, height), v.zoom)
       surLieu(ecrit.latitude, ecrit.longitude)
-      // Les coordonnées RELUES du champ : ce sont elles qui nomment le relief en cache, et
-      // `useReliefSite` demande le même — la requête en vol est partagée.
-      const rang = ++derniere.current
-      void resoudRelief(nombreDeTexte(ecrit.latitude), nombreDeTexte(ecrit.longitude)).then((relief) => {
-        const altitude = altitudeDuRelief(relief)
-        if (rang === derniere.current && altitude !== null) surAltitude(altitude)
-      })
     },
-    [surLieu, surAltitude],
+    [surLieu],
   )
   useGestesCarteLieu(toile, majVue, pose)
 

@@ -23,7 +23,9 @@
 
 import type { MasqueHorizon } from '../core/site.ts'
 import { libelleFlag } from '../registry/libelles.ts'
+import { DOMAINES } from '../registry/domains.ts'
 import { ChampDomaine } from './ChampDomaine.tsx'
+import { Etiquette } from './Terme.tsx'
 import { Mention } from './Mention.tsx'
 import { ChoixLieu } from './ChoixLieu.tsx'
 
@@ -32,8 +34,8 @@ export interface ChampsSiteProps {
   readonly surLatitude: (v: string) => void
   readonly longitude: string
   readonly surLongitude: (v: string) => void
+  /** Lecture seule : le sol du relief au lieu saisi, écrit par la chaîne de calcul. */
   readonly altitude: string
-  readonly surAltitude: (v: string) => void
   readonly bortle: string
   readonly surBortle: (v: string) => void
   readonly sqm: string
@@ -59,7 +61,6 @@ export function ChampsSite(props: ChampsSiteProps) {
           props.surLatitude(latitude)
           props.surLongitude(longitude)
         }}
-        surAltitude={props.surAltitude}
       />
       {/* Le relief se lit sur le planétarium ; son absence, elle, ne s'y voit pas. Pendant un
           chargement, le masque n'a pas de note : rien ne s'affiche. */}
@@ -89,15 +90,17 @@ export function ChampsSite(props: ChampsSiteProps) {
           requis
         />
       </div>
+      {/* L'altitude ne se saisit plus : c'est le sol du relief au lieu posé. Une lecture,
+          pas un champ — rien n'y invite au clic. */}
+      <p className="tracee tracee-vide">
+        <span>
+          <Etiquette cle="altitude_site" />
+        </span>
+        <span className="tracee-valeur">
+          {props.altitude} {DOMAINES.altitude_m.unite}
+        </span>
+      </p>
       <div className="champs">
-        <ChampDomaine
-          domaine="altitude_m"
-          glisse
-          cle="altitude_site"
-          valeur={props.altitude}
-          surValeur={props.surAltitude}
-          requis
-        />
         {/* Bortle est un indice ENTIER (1 à 9, DOMAINES.bortle_declare) : le pavé numérique
             sans séparateur décimal évite une saisie qu'aucune valeur du domaine
             n'accepterait. */}

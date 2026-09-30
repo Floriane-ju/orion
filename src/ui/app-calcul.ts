@@ -7,7 +7,7 @@
  * l'application (§12.5).
  */
 
-import { useDeferredValue, useMemo, useRef } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef } from 'react'
 import { nombreLibre } from '../registry/ecriture.ts'
 import { fenetreNocturne, offsetMidiSolaireMin, type FenetreNocturne } from '../core/nuit.ts'
 import { midiDeLaNuit } from '../core/nuit-datee.ts'
@@ -56,7 +56,7 @@ import { modeObjectif } from '../core/optics.ts'
 import type { SaisieLieu, SaisieMateriel } from './app-saisie.ts'
 import { nombreSaisi, nombreSiRenseigne } from './saisie-bornee.ts'
 import type { MaterielFile } from './planetarium-materiel.ts'
-import { masqueDuRelief, useReliefSite } from './relief-site.ts'
+import { altitudeDuRelief, masqueDuRelief, useReliefSite } from './relief-site.ts'
 import { PRESET_SNR_DEFAUT } from '../registry/verdicts.ts'
 import type { ContexteFiche } from './fiche-cible-calcul.ts'
 import { useCiblesChoisies } from './cibles-choisies.ts'
@@ -282,6 +282,18 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
    */
   const { relief, enCharge: horizonEnAttente } = useReliefSite(site.latitudeDeg, site.longitudeDeg)
   const masque: MasqueHorizon = useMemo(() => masqueDuRelief(relief), [relief])
+
+  /**
+   * L'altitude n'est plus saisie : c'est le sol du relief au lieu posé, quelle que soit la
+   * façon dont les coordonnées ont changé (carte, frappe, glisser). Sans relief exploitable,
+   * le champ garde sa dernière valeur.
+   */
+  const { altitude, surAltitude } = lieu
+  useEffect(() => {
+    if (relief === null || horizonEnAttente) return
+    const sol = altitudeDuRelief(relief)
+    if (sol !== null && sol !== altitude) surAltitude(sol)
+  }, [relief, horizonEnAttente, altitude, surAltitude])
 
   const cielSaisi = useMemo(
     () => evalueCiel(site, lieuBorne),
