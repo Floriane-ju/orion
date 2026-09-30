@@ -1990,6 +1990,11 @@ select:hover {
   border-color: var(--texte);
 }
 
+/* Un champ qui se tire le dit au survol ; en frappe, il redevient un champ de texte. */
+input.champ-glisse:not(:focus) {
+  cursor: ew-resize;
+}
+
 /* §11.1 — la case est DESSINÉE, pas laissée au navigateur. La case native ne prend de la
    palette que son `accent-color`, et encore à moitié : son fond, sa coche et son filet restent
    ceux du système — blancs, en pleine interface de nuit. Dessinée avec les jetons, elle bascule

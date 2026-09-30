@@ -13,6 +13,9 @@
  * premiers pixels donnent le cran et l'éloignement donne la course, sans mode à basculer.
  */
 
+import { encadre } from '../core/unites.ts'
+import { nombre } from '../registry/ecriture.ts'
+
 /** Pixels du premier cran. Sous ce seuil le geste ne change rien : c'est un clic. */
 const PX_PAR_CRAN = 6
 /**
@@ -30,4 +33,22 @@ export function cransGlisse(dxPx: number): number {
   // Le signe n'est posé qu'après : `Math.sign(-1) * 0` rendrait -0, et un zéro négatif se
   // propagerait jusque dans la valeur affichée.
   return crans === 0 ? 0 : Math.sign(dxPx) * crans
+}
+
+/** Les décimales qu'un pas porte : « 0.01 » en a deux, « 10 » aucune. */
+function decimalesDuPas(pas: number): number {
+  return (String(pas).split('.')[1] ?? '').length
+}
+
+/**
+ * Le texte d'un champ tiré de `dxPx` depuis `depart` : bornée au domaine et arrondie au pas,
+ * sans quoi 0,1 + 0,2 écrirait ses dix-sept chiffres dans le champ.
+ */
+export function texteGlisse(
+  depart: number,
+  dxPx: number,
+  d: { readonly min: number; readonly max: number; readonly pas: number },
+): string {
+  const valeur = encadre(depart + cransGlisse(dxPx) * d.pas, d.min, d.max)
+  return nombre(valeur, decimalesDuPas(d.pas))
 }

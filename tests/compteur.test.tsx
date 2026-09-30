@@ -16,7 +16,9 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { App } from '../src/App.tsx'
 import type { Site } from '../src/core/ephem.ts'
 import { cielInstantane } from '../src/core/horloges.ts'
-import { cransGlisse } from '../src/ui/compteur-glisse.ts'
+import { cransGlisse, texteGlisse } from '../src/ui/compteur-glisse.ts'
+import { DOMAINES } from '../src/registry/domains.ts'
+import { nombre } from '../src/registry/ecriture.ts'
 import { lisSaisie, nombreDuTexte } from '../src/ui/Compteur.tsx'
 import {
   LARGEURS_INSTANT,
@@ -278,5 +280,30 @@ describe('T-0163 — la visée se règle par sa réciproque', () => {
         expect(balise, libelle).toContain(borne)
       }
     }
+  })
+})
+
+describe('texteGlisse — un champ du lieu tiré au pas de son domaine', () => {
+  const lat = { min: DOMAINES.latitude_deg.min, max: DOMAINES.latitude_deg.max, pas: DOMAINES.latitude_deg.pas }
+
+  it('sous le premier cran, rend la valeur de départ écrite au pas', () => {
+    expect(texteGlisse(45, 1, lat)).toBe(nombre(45, 2))
+  })
+
+  it('avance d’autant de pas que de crans, sans bruit flottant', () => {
+    const dx = 60
+    const attendu = 0.1 + cransGlisse(dx) * lat.pas
+    expect(texteGlisse(0.1, dx, lat)).toBe(nombre(attendu, 2))
+    expect(texteGlisse(0.1, dx, lat)).not.toMatch(/\d{3,}$/)
+  })
+
+  it('bute sur les bornes du domaine', () => {
+    expect(texteGlisse(lat.max, 1000, lat)).toBe(nombre(lat.max, 2))
+    expect(texteGlisse(lat.min, -1000, lat)).toBe(nombre(lat.min, 2))
+  })
+
+  it('un indice entier reste entier', () => {
+    const b = DOMAINES.bortle_declare
+    expect(texteGlisse(b.min, 12, b)).toMatch(/^\d$/)
   })
 })

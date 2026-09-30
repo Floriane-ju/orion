@@ -34,11 +34,13 @@ export const DOMAINES = Object.freeze({
   annee_affichee: domaine({ champ: 'l’année affichée', min: 1900, max: 2100, unite: 'an', section: '3.2' }),
 
   // §4.1 — profil Lieu
-  latitude_deg: domaine({ champ: 'la latitude', min: -90, max: 90, unite: '°', section: '4.1' }),
-  longitude_deg: domaine({ champ: 'la longitude', min: -180, max: 180, unite: '°', section: '4.1' }),
-  altitude_m: domaine({ champ: 'l’altitude', min: -400, max: 6000, unite: 'm', section: '4.1' }),
+  // Les pas du lieu sont ceux du glisser de la carte « Site » : un centième de degré (~1 km)
+  // pour une coordonnée, dix mètres d'altitude — le cran qu'un relevé à la main distingue.
+  latitude_deg: domaine({ champ: 'la latitude', min: -90, max: 90, pas: 0.01, unite: '°', section: '4.1' }),
+  longitude_deg: domaine({ champ: 'la longitude', min: -180, max: 180, pas: 0.01, unite: '°', section: '4.1' }),
+  altitude_m: domaine({ champ: 'l’altitude', min: -400, max: 6000, pas: 10, unite: 'm', section: '4.1' }),
   sqm_mesure: domaine({ champ: 'le SQM mesuré', min: 16, max: 22, unite: 'mag/as²', section: '4.1' }),
-  bortle_declare: domaine({ champ: 'le Bortle déclaré', min: 1, max: 9, unite: '—', section: '4.1' }),
+  bortle_declare: domaine({ champ: 'le Bortle déclaré', min: 1, max: 9, pas: 1, unite: '—', section: '4.1' }),
   masque_horizon_deg: domaine({
     champ: 'le masque d’horizon',
     min: 0,

@@ -74,6 +74,7 @@ export function ChampsSite(props: ChampsSiteProps) {
       <div className="champs paire">
         <ChampDomaine
           domaine="latitude_deg"
+          glisse
           cle="latitude"
           valeur={props.latitude}
           surValeur={props.surLatitude}
@@ -81,6 +82,7 @@ export function ChampsSite(props: ChampsSiteProps) {
         />
         <ChampDomaine
           domaine="longitude_deg"
+          glisse
           cle="longitude"
           valeur={props.longitude}
           surValeur={props.surLongitude}
@@ -90,6 +92,7 @@ export function ChampsSite(props: ChampsSiteProps) {
       <div className="champs">
         <ChampDomaine
           domaine="altitude_m"
+          glisse
           cle="altitude_site"
           valeur={props.altitude}
           surValeur={props.surAltitude}
@@ -100,6 +103,7 @@ export function ChampsSite(props: ChampsSiteProps) {
             n'accepterait. */}
         <ChampDomaine
           domaine="bortle_declare"
+          glisse
           cle="bortle"
           valeur={props.bortle}
           surValeur={props.surBortle}
