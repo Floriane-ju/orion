@@ -170,6 +170,7 @@ function AppPrete({
     <Planetarium
       site={chaine.site}
       masque={chaine.masque}
+      horizonEnAttente={chaine.horizonEnAttente}
       etoiles={catalogues.etoiles}
       index={catalogues.index}
       objets={catalogues.objets}

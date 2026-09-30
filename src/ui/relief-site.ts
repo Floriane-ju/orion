@@ -15,11 +15,18 @@ import { DOMAINES } from '../registry/domains.ts'
 
 /**
  * Le dernier relief résolu, ou null avant le tout premier. Pendant qu'un nouveau site se
- * charge, celui de l'ancien reste affiché : il se remplace en moins d'une seconde, et un
- * horizon plat intercalé clignoterait à chaque frappe.
+ * charge, celui de l'ancien reste celui des calculs : il se remplace en moins d'une seconde.
+ * `enCharge` dit qu'il n'est plus celui du lieu saisi — le planétarium l'aplatit (T-0369).
  */
-export function useReliefSite(latDeg: number, lonDeg: number): ReliefSite | null {
-  const [relief, surRelief] = useState<ReliefSite | null>(null)
+export function useReliefSite(
+  latDeg: number,
+  lonDeg: number,
+): { readonly relief: ReliefSite | null; readonly enCharge: boolean } {
+  const [resolu, surResolu] = useState<{
+    readonly lieu: string
+    readonly relief: ReliefSite
+  } | null>(null)
+  const lieu = `${latDeg},${lonDeg}`
   const monte = useRef(false)
   // Un relief refusé hors réseau, ou par un service muet, se redemande au retour du réseau.
   const [retours, surRetours] = useState(0)
@@ -34,8 +41,8 @@ export function useReliefSite(latDeg: number, lonDeg: number): ReliefSite | null
     const delai = monte.current ? R('DELAI_RELIEF_MS') : 0
     monte.current = true
     const attente = setTimeout(() => {
-      void resoudRelief(latDeg, lonDeg).then((resolu) => {
-        if (actif) surRelief(resolu)
+      void resoudRelief(latDeg, lonDeg).then((relief) => {
+        if (actif) surResolu({ lieu: `${latDeg},${lonDeg}`, relief })
       })
     }, delai)
     return () => {
@@ -44,7 +51,7 @@ export function useReliefSite(latDeg: number, lonDeg: number): ReliefSite | null
     }
   }, [latDeg, lonDeg, retours])
 
-  return relief
+  return { relief: resolu?.relief ?? null, enCharge: resolu !== null && resolu.lieu !== lieu }
 }
 
 /**

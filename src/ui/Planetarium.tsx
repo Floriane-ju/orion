@@ -83,6 +83,8 @@ export interface PlanetariumProps {
   readonly site: Site
   /** §4.1 — relief relevé du site : c'est lui que la couche Sol masque, pas un horizon plat. */
   readonly masque: MasqueHorizon
+  /** T-0369 — le relief du lieu saisi se charge : la couche Sol s'aplatit en l'attendant. */
+  readonly horizonEnAttente: boolean
   readonly etoiles: readonly Etoile[]
   /** Index de sélection du catalogue, construit une fois par l'application. */
   readonly index: IndexCiel
@@ -298,6 +300,7 @@ export function Planetarium(props: PlanetariumProps) {
   etatBoucle.current = {
     site: props.site,
     masque: props.masque,
+    horizonEnAttente: props.horizonEnAttente,
     etoiles: props.etoiles,
     objets: props.objets,
     constellations: props.constellations,

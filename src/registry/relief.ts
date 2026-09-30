@@ -167,6 +167,18 @@ const RELIEF = Object.freeze({
     source: 'convention d’interaction — au-dessus de la cadence de frappe soutenue',
     tolerance: 'sans objet — temporisation d’interface',
   }),
+
+  /**
+   * T-0369 — durée du passage d'un horizon dessiné à l'autre : l'ancien relief qui s'aplatit
+   * au changement de lieu, puis le nouveau qui monte. Assez longue pour se suivre des yeux,
+   * assez courte pour qu'un relief en cache ne fasse pas attendre.
+   */
+  DUREE_TRANSITION_RELIEF_MS: valeur({
+    valeur: 600,
+    unite: 'ms',
+    source: 'convention d’interaction — transition d’interface perceptible sans retarder',
+    tolerance: 'sans objet — animation d’affichage, aucun calcul n’en dépend',
+  }),
 } satisfies Record<string, ValeurRelief>)
 
 export type IdRelief = keyof typeof RELIEF

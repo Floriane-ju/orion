@@ -105,7 +105,7 @@ vi.mock('react', async (importeReel) => {
 // la FRAPPE relance, et le crochet qui l'attend n'a ni état ni effet à simuler ici.
 vi.mock('../src/ui/relief-site.ts', async (importeReel) => ({
   ...(await importeReel<typeof import('../src/ui/relief-site.ts')>()),
-  useReliefSite: () => null,
+  useReliefSite: () => ({ relief: null, enCharge: false }),
 }))
 
 vi.mock('../src/core/nuit.ts', async (importeReel) => {

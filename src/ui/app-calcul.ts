@@ -130,6 +130,8 @@ export interface ChaineCalcul {
   readonly cielRefus: string | null
   readonly site: Site
   readonly masque: MasqueHorizon
+  /** T-0369 — le lieu a changé et son relief n'est pas encore là : le planétarium l'aplatit. */
+  readonly horizonEnAttente: boolean
   readonly fenetreUtile: FenetreUtile | null
   /** Index de sélection : construit une fois, lu par la scène et par l'onglet Explorer. */
   readonly index: IndexCiel
@@ -278,7 +280,7 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
    * §4.1 — le relief du terrain. Sans lui (hors réseau sur un site inconnu, service muet), le
    * masque plat [HYP] reste le repli de la matrice de dégradation §12.5.
    */
-  const relief = useReliefSite(site.latitudeDeg, site.longitudeDeg)
+  const { relief, enCharge: horizonEnAttente } = useReliefSite(site.latitudeDeg, site.longitudeDeg)
   const masque: MasqueHorizon = useMemo(() => masqueDuRelief(relief), [relief])
 
   const cielSaisi = useMemo(
@@ -471,6 +473,7 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
     cielRefus,
     site,
     masque,
+    horizonEnAttente,
     fenetreUtile,
     index,
     profilsCadre,

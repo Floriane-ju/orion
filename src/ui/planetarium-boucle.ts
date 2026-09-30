@@ -44,6 +44,8 @@ import type { OptiquePose } from './dessine-pose-cadre.ts'
 import type { LuneEcran, SoleilEcran } from './dessine-fond-ciel.ts'
 import { B } from '../registry/budgets.ts'
 import { MS_PAR_S } from '../core/unites.ts'
+import { R } from '../registry/relief.ts'
+import { HORIZON_PLAT, horizonA, versHorizon, type TransitionHorizon } from './horizon-transition.ts'
 
 /** Noms français des corps mobiles de §3.1. */
 const NOMS_CORPS: Readonly<Record<string, string>> = Object.freeze({
@@ -79,6 +81,8 @@ export interface EtatBoucle {
   readonly jour: boolean
   /** §4.1 — relief du site : la couche Sol y prend la hauteur du sol, azimut par azimut. */
   readonly masque: MasqueHorizon
+  /** T-0369 — le relief du lieu saisi se charge : la couche Sol s'aplatit en l'attendant. */
+  readonly horizonEnAttente: boolean
   readonly magLimite: number
   /** T-0357 — part visible des étoiles et des repères nocturnes, 0 de jour, 1 la nuit. */
   readonly apparition: number
@@ -201,6 +205,11 @@ export function useBoucleRendu(entree: {
     // T-0065 — une seule `Date`, réécrite par image. `cielInstantane` la lit sans la
     // garder : rien ne survit à l'appel, donc rien ne justifie d'en allouer une neuve.
     const instantDate = new Date(0)
+    // T-0369 — la couche Sol glisse d'un relief à l'autre ; sans mouvement demandé, elle saute.
+    const dureeHorizonMs = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? 0
+      : R('DUREE_TRANSITION_RELIEF_MS')
+    let transitionHorizon: TransitionHorizon | null = null
 
     const image = (ts: number): void => {
       if (!actif) return
@@ -220,9 +229,15 @@ export function useBoucleRendu(entree: {
         hauteurPx: contexte.canvas.height,
         instantMs: instant.ms,
       }
-      if (doitDessiner(peinte, courante)) {
-        dessine(courant)
-        peinte = courante
+      const cibleHorizon = courant.horizonEnAttente ? HORIZON_PLAT : courant.masque.altitudesDeg
+      transitionHorizon = versHorizon(transitionHorizon, cibleHorizon, ts, dureeHorizonMs)
+      const horizon = horizonA(transitionHorizon, ts, dureeHorizonMs)
+      const enTransition = horizon !== transitionHorizon.cible
+      if (enTransition || doitDessiner(peinte, courante)) {
+        dessine(courant, horizon)
+        // Pendant la transition, aucune image n'est définitive : la suivante se peint aussi,
+        // y compris celle qui pose la cible.
+        peinte = enTransition ? null : courante
       }
 
       // L'horloge d'affichage avance même quand rien ne se peint : la barre de temps compte
@@ -236,7 +251,7 @@ export function useBoucleRendu(entree: {
       }
     }
 
-    const dessine = (courant: EtatBoucle): void => {
+    const dessine = (courant: EtatBoucle, horizon: readonly number[]): void => {
       instantDate.setTime(instant.ms)
       const ciel = cielInstantane(courant.site, instantDate)
       ephemerides.current = avanceEphemerides(
@@ -302,7 +317,10 @@ export function useBoucleRendu(entree: {
         ...(courant.lune === null || ciel.corpsMasques ? {} : { lune: courant.lune }),
         ...(courant.soleil === null || ciel.corpsMasques ? {} : { soleil: courant.soleil }),
         latitudeDeg: courant.site.latitudeDeg,
-        masque: courant.masque,
+        masque:
+          horizon === courant.masque.altitudesDeg
+            ? courant.masque
+            : { ...courant.masque, altitudesDeg: horizon },
         modeNuit: courant.modeNuit,
         survol: survol.current ?? undefined,
         passeFile:
