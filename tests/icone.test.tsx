@@ -9,7 +9,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { Icone } from '../src/ui/Icone.tsx'
+import { Icone, attendsPoliceIcones } from '../src/ui/Icone.tsx'
 
 const CSS = readFileSync(join(import.meta.dirname, '..', 'src', 'ui', 'styles.css'), 'utf8')
 
@@ -188,5 +188,39 @@ describe('T-0215 — une seule façon d’afficher une icône', () => {
         expect(source, fichier.name).not.toMatch(/<p[^>]*className=\{[^}]*'(cause|erreur)'/)
       }
     }
+  })
+})
+
+/**
+ * T-0300 — `font-display: block` ne cache le texte que pendant ~3 s. La police d'icônes pèse
+ * 8,8 Mo : sur un premier lancement lent, elle arrive bien après, et la barre affichait
+ * « light_mode MODE NUIT » dix-huit secondes durant. Le glyphe reste donc masqué tant que la
+ * police n'est pas chargée, sans limite de durée.
+ */
+describe('T-0300 — une ligature ne s’affiche jamais en clair', () => {
+  it('masque `.icone` tant que la racine ne porte pas `icones-pretes`', () => {
+    const REGLES = CSS.replace(/\/\*[\s\S]*?\*\//g, '')
+    expect(REGLES).toMatch(/:root:not\(\.icones-pretes\)\s+\.icone\s*\{\s*visibility:\s*hidden;?\s*\}/)
+  })
+
+  it('pose `icones-pretes` une fois la police chargée, et pas avant', async () => {
+    let charge: () => void = () => {}
+    const demandes: string[] = []
+    const classes = new Set<string>()
+    const doc = {
+      documentElement: { classList: { add: (c: string) => classes.add(c) } },
+      fonts: {
+        load: (police: string) => {
+          demandes.push(police)
+          return new Promise<void>((resoudre) => (charge = resoudre))
+        },
+      },
+    }
+    const attente = attendsPoliceIcones(doc, "'Material Symbols Sharp'")
+    expect(demandes).toEqual(["1em 'Material Symbols Sharp'"])
+    expect(classes.has('icones-pretes')).toBe(false)
+    charge()
+    await attente
+    expect(classes.has('icones-pretes')).toBe(true)
   })
 })

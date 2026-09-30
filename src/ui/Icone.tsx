@@ -35,3 +35,21 @@ export function Icone({ nom, libelle, classe }: IconeProps) {
     </span>
   )
 }
+
+/** Ce qu'il faut du `document` : le chargeur de polices et la classe de la racine. */
+interface DocumentPolices {
+  readonly documentElement: { readonly classList: { add(classe: string): unknown } }
+  readonly fonts: { load(police: string): Promise<unknown> }
+}
+
+/**
+ * T-0300 — `.icone` reste masquée (`styles.css`) jusqu'à ce que la racine porte
+ * `icones-pretes`. `font-display: block` ne cache le texte que ~3 s ; la police d'icônes
+ * arrive bien après sur un premier lancement lent, et la ligature s'affichait en clair.
+ * Un échec de chargement laisse les glyphes masqués : les contrôles gardent leur
+ * `aria-label`, un vide vaut mieux qu'un nom de code anglais.
+ */
+export async function attendsPoliceIcones(doc: DocumentPolices, famille: string): Promise<void> {
+  await doc.fonts.load(`1em ${famille}`)
+  doc.documentElement.classList.add('icones-pretes')
+}

@@ -467,6 +467,13 @@ pre {
   user-select: none;
 }
 
+/* T-0300 — le blocage de `font-display` dure ~3 s, la police d'icônes peut mettre vingt
+   secondes à arriver : au-delà, la ligature s'écrivait en clair. Le glyphe attend donc la
+   police sans limite de durée ; `attendsPoliceIcones` (`Icone.tsx`) lève le masque. */
+:root:not(.icones-pretes) .icone {
+  visibility: hidden;
+}
+
 ::selection {
   background: var(--texte);
   color: var(--fond);
