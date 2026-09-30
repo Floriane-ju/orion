@@ -26,13 +26,14 @@ import type { GeometrieLune } from '../core/moon.ts'
 import { brillanceLuneNl, nanolamberts } from '../core/moon.ts'
 import {
   bornesPaliersHalo,
-  brillanceSoleilNl,
   brillanceSoleilZenithNl,
   facteurHaloHorizon,
   hauteurRepresentative,
+  lueurSoleil,
+  rougissement,
   sbDepuisNanolamberts,
 } from '../core/fond-ciel-rendu.ts'
-import { fondRealiste } from './couleurs.ts'
+import { fondRealiste, fondRealisteSoleil } from './couleurs.ts'
 import { frontiereEcran, remplitRegion, type FinesseBalayage } from './balayage-ecran.ts'
 import { peintLisse } from './lissage.ts'
 import { DEG_PAR_HEURE } from '../core/unites.ts'
@@ -113,6 +114,20 @@ export function perpendiculaire(v: Vec3): Vec3 {
   return { x: x / norme, y: y / norme, z: z / norme }
 }
 
+/**
+ * La direction de `cible` vue depuis `v`, dans le plan tangent en `v` : unitaire, orthogonale à
+ * `v`. Si `cible` est `v` (ou son opposé), n'importe quelle orthogonale fait l'affaire.
+ */
+function versLeCentre(v: Vec3, cible: Vec3): Vec3 {
+  const cos = v.x * cible.x + v.y * cible.y + v.z * cible.z
+  const x = cible.x - cos * v.x
+  const y = cible.y - cos * v.y
+  const z = cible.z - cos * v.z
+  const norme = Math.hypot(x, y, z)
+  if (!(norme > Number.EPSILON)) return perpendiculaire(v)
+  return { x: x / norme, y: y / norme, z: z / norme }
+}
+
 /** Un astre qui diffuse sa lumière dans le ciel : la Lune ou le Soleil. */
 interface SourceHalo {
   readonly adH: number
@@ -122,7 +137,8 @@ interface SourceHalo {
 
 /**
  * T-0100 — un astre éclaircit le ciel autour de lui, radialement : `brillance(ρ)` est la
- * brillance qu'il ajoute à la séparation ρ, `bFond` celle du ciel sous lui.
+ * brillance qu'il ajoute à la séparation ρ, `bFond` celle du ciel sous lui, `teinte(b)` la
+ * couleur du fond relevé de `b`.
  *
  * ponytail: le rayon écran d'une séparation est mesuré dans UNE direction et appliqué au
  * cercle entier. C'est exact en stéréographique visée sur l'astre, approché ailleurs — un
@@ -131,17 +147,18 @@ interface SourceHalo {
 function dessineHalo(
   ctx: CanvasRenderingContext2D,
   projecteur: Projecteur,
-  sbCiel: number,
   source: SourceHalo,
   bFond: number,
   brillance: (separationDeg: number) => number,
+  teinte: (b: number, separationDeg: number) => string,
 ): void {
-  // Règle 1 de `moon.ts` : un astre sous l'horizon n'éclaircit rien.
-  if (source.altitudeDeg <= 0) return
   const direction = versVecteur(source.adH * DEG_PAR_HEURE, source.decDeg)
   const centre = projecteur.projette(direction)
   if (centre === null) return
-  const perp = perpendiculaire(direction)
+  // T-0356 — le rayon se mesure VERS le centre de visée : c'est le côté du halo que l'écran
+  // montre. Pris dans une direction quelconque, un astre au bord d'un grand champ donnait un
+  // rayon démesuré, et le cœur du halo couvrait tout l'écran.
+  const perp = versLeCentre(direction, projecteur.inverse(projecteur.centreXPx, projecteur.centreYPx))
 
   // Rayon écran du plus grand cran : c'est lui qui fixe l'échelle du dégradé.
   const rayonDe = (separationDeg: number): number | null => {
@@ -160,12 +177,13 @@ function dessineHalo(
 
   const degrade = ctx.createRadialGradient(centre.xPx, centre.yPx, 0, centre.xPx, centre.yPx, rayonMax)
   for (let k = 0; k <= CRANS_HALO_LUNE; k++) {
-    const b = brillance((SEPARATION_MAX_DEG * k) / CRANS_HALO_LUNE)
+    const separation = (SEPARATION_MAX_DEG * k) / CRANS_HALO_LUNE
+    const b = brillance(separation)
     // L'opacité est la PART de l'astre dans la brillance totale : là où il domine, le fond
     // composé est exactement celui du modèle ; là où il s'efface, la couche du dessous —
     // paliers d'horizon compris — reparaît intacte. Aucun seuil arbitraire n'est introduit.
     const part = b / (bFond + b)
-    const couleur = fondRealiste(sbDepuisNanolamberts(bFond + b), sbCiel)
+    const couleur = teinte(b, separation)
     const rvb = couleur.slice(couleur.indexOf('(') + 1, couleur.indexOf(')'))
     degrade.addColorStop(k / CRANS_HALO_LUNE, `rgb(${rvb} / ${part})`)
   }
@@ -194,9 +212,16 @@ export function dessineHaloLune(
     separationDeg,
     anglePhaseDeg: lune.anglePhaseDeg,
   })
+  // Règle 1 de `moon.ts` : une Lune sous l'horizon n'éclaircit rien.
+  if (lune.altitudeDeg <= 0) return
   const bSite = nanolamberts(sbCiel) * facteurHaloHorizon(lune.altitudeDeg)
-  dessineHalo(ctx, projecteur, sbCiel, lune, bSite, (separation) =>
-    brillanceLuneNl(geometrie(separation)) * K('GAIN_RENDU_HALO_LUNE'),
+  dessineHalo(
+    ctx,
+    projecteur,
+    lune,
+    bSite,
+    (separation) => brillanceLuneNl(geometrie(separation)) * K('GAIN_RENDU_HALO_LUNE'),
+    (b) => fondRealiste(sbDepuisNanolamberts(bSite + b), sbCiel),
   )
 }
 
@@ -213,6 +238,10 @@ export interface SoleilEcran {
  * `sbCiel` compte déjà le Soleil AU ZÉNITH (`sbZenithAvecCrepuscule`) : ce terme est retiré du
  * fond avant d'y ajouter le halo, sans quoi le Soleil compterait deux fois. Mêmes limites que
  * le halo lunaire : hauteur de l'astre pour l'extinction, rayon mesuré dans une direction.
+ *
+ * T-0356 — repli seulement : la scène peint le ciel du Soleil direction par direction
+ * (`dessineCielSoleil`), et ce dégradé radial ne sert que sans `OffscreenCanvas`. Il n'en
+ * donne qu'un disque, rougi par la masse d'air du Soleil, pas les bandes du couchant.
  */
 export function dessineHaloSoleil(
   ctx: CanvasRenderingContext2D,
@@ -221,11 +250,17 @@ export function dessineHaloSoleil(
   soleil: SoleilEcran,
 ): void {
   const bFond = Math.max(0, nanolamberts(sbCiel) - brillanceSoleilZenithNl(-soleil.altitudeDeg))
-  dessineHalo(ctx, projecteur, sbCiel, soleil, bFond, (separationDeg) =>
-    brillanceSoleilNl({
-      altitudeSoleilDeg: soleil.altitudeDeg,
-      altitudeCibleDeg: soleil.altitudeDeg,
-      separationDeg,
-    }),
+  const rougi = rougissement(soleil.altitudeDeg)
+  const lueur = (separationDeg: number) => lueurSoleil(soleil.altitudeDeg, separationDeg)
+  dessineHalo(
+    ctx,
+    projecteur,
+    soleil,
+    bFond,
+    (separationDeg) => {
+      const l = lueur(separationDeg)
+      return l.rayleighNl + l.mieNl
+    },
+    (_b, separationDeg) => fondRealisteSoleil(bFond, lueur(separationDeg), rougi, sbCiel),
   )
 }

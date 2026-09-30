@@ -722,6 +722,61 @@ const LUNE = {
     plage: [0.15, 0.3],
     sections: ['7.6', '8.1'],
   }),
+  EXTINCTION_R_MAG_PAR_MASSE_AIR: entree({
+    ref: 'L-08',
+    libelle: 'Coefficient d’extinction atmosphérique, canal rouge du rendu',
+    valeur: 0.08,
+    unite: 'mag/masse d’air',
+    source:
+      'ordre de grandeur en bande R (≈ 0,5 × k_V) : la diffusion de Rayleigh épargne le ' +
+      'rouge. Écart B − R de 0,26 mag, celui d’un ciel de plaine un soir de couchant plutôt ' +
+      'que d’un site de montagne : la bande chaude s’étage sur une dizaine de degrés. Sert ' +
+      'seulement à rougir la lumière du Soleil bas — rendu.',
+    tolerance: 'ordre de grandeur',
+    ordreDeGrandeur: true,
+    sections: ['3.3'],
+  }),
+  EXTINCTION_B_MAG_PAR_MASSE_AIR: entree({
+    ref: 'L-08',
+    libelle: 'Coefficient d’extinction atmosphérique, canal bleu du rendu',
+    valeur: 0.34,
+    unite: 'mag/masse d’air',
+    source:
+      'ordre de grandeur en bande B (≈ 2 × k_V). Voir EXTINCTION_R_MAG_PAR_MASSE_AIR.',
+    tolerance: 'ordre de grandeur',
+    ordreDeGrandeur: true,
+    sections: ['3.3'],
+  }),
+  KASTEN_YOUNG_A: entree({
+    ref: 'L-09',
+    libelle: 'Masse d’air de Kasten & Young — coefficient',
+    valeur: 0.50572,
+    unite: '—',
+    source: 'Kasten & Young (1989), X(h) = 1 / (sin h + 0,50572 (h + 6,07995°)^−1,6364)',
+    tolerance: null,
+    ordreDeGrandeur: false,
+    sections: ['3.3'],
+  }),
+  KASTEN_YOUNG_DECALAGE_DEG: entree({
+    ref: 'L-09',
+    libelle: 'Masse d’air de Kasten & Young — décalage de hauteur',
+    valeur: 6.07995,
+    unite: '°',
+    source: 'Kasten & Young (1989), voir KASTEN_YOUNG_A',
+    tolerance: null,
+    ordreDeGrandeur: false,
+    sections: ['3.3'],
+  }),
+  KASTEN_YOUNG_EXPOSANT: entree({
+    ref: 'L-09',
+    libelle: 'Masse d’air de Kasten & Young — exposant',
+    valeur: 1.6364,
+    unite: '—',
+    source: 'Kasten & Young (1989), voir KASTEN_YOUNG_A',
+    tolerance: null,
+    ordreDeGrandeur: false,
+    sections: ['3.3'],
+  }),
   NANOLAMBERT_ECHELLE: entree({
     ref: 'L-05',
     libelle: 'Échelle de conversion brillance de surface → nanolamberts',
@@ -1918,6 +1973,86 @@ const GRAND_CHAMP = {
     unite: '—',
     source: 'extension de rendu — canal de référence, voir CHROMA_CIEL_JOUR_R',
     tolerance: 'convention produit',
+    ordreDeGrandeur: false,
+    sections: ['3.3'],
+  }),
+  LUEUR_COUCHANT_MAG_PAR_DEG: entree({
+    ref: 'C-57',
+    libelle: 'Affaiblissement propre de la lueur du couchant par degré de dépression',
+    valeur: 0.25,
+    unite: 'mag/°',
+    source:
+      'extension de rendu — en plus de la chute de Patat 2006 au zénith : plus le Soleil ' +
+      'descend, plus la couche d’atmosphère qu’il éclaire encore côté couchant s’amincit. À ' +
+      '0,25 mag/°, la lueur domine le fond jusqu’à ≈ 6° de dépression, se lit rosée jusque ' +
+      'vers 10–12°, et s’efface à la fin du crépuscule nautique. Réglée à l’œil.',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: true,
+    sections: ['3.3'],
+  }),
+  CELLULE_CIEL_SOLEIL_PX: entree({
+    ref: 'C-58',
+    libelle: 'Pas de la grille du ciel éclairé par le Soleil',
+    valeur: 16,
+    unite: 'px',
+    source:
+      'convention produit — le ciel du Soleil se calcule direction par direction sur une ' +
+      'grille de ce pas, puis s’agrandit lissé. Le dégradé du couchant varie à l’échelle du ' +
+      'degré : 16 px de rendu suffisent, et gardent le calcul à quelques milliers de cellules.',
+    tolerance: 'convention produit — coût contre finesse, jamais un verdict',
+    ordreDeGrandeur: false,
+    sections: ['3.3'],
+  }),
+  LUEUR_CIBLE_EXPOSITION: entree({
+    ref: 'C-59',
+    libelle: 'Luminance d’écran visée pour la lueur du Soleil',
+    valeur: 0.4,
+    unite: 'Y',
+    source:
+      'convention produit — la lueur de Mie à SEPARATION_REFERENCE_LUEUR_DEG du Soleil est ' +
+      'exposée à ce niveau, comme un boîtier qui mesure sur le couchant : le rouge y sature, ' +
+      'le vert suit en approchant du Soleil — orangé, jaune, crème. Réglée à l’œil sur une ' +
+      'photographie de couchant.',
+    tolerance: 'convention produit — pilote l’apparence du fond, jamais un verdict',
+    ordreDeGrandeur: false,
+    sections: ['3.3'],
+  }),
+  SEPARATION_REFERENCE_LUEUR_DEG: entree({
+    ref: 'C-60',
+    libelle: 'Séparation au Soleil où se mesure l’exposition de la lueur',
+    valeur: 10,
+    unite: '°',
+    source:
+      'convention produit — assez loin du disque pour ne pas exposer sur le Soleil lui-même, ' +
+      'assez près pour mesurer la lueur là où elle est vive.',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: false,
+    sections: ['3.3'],
+  }),
+  EXPOSANT_POIDS_COUCHANT: entree({
+    ref: 'C-61',
+    libelle: 'Exposant du poids du rougissement de visée',
+    valeur: 2,
+    unite: '—',
+    source:
+      'convention produit — le ciel bas se rougit selon (1 − T_bleu du Soleil)^n : n = 2 ' +
+      'éteint l’effet dès que le Soleil monte (≈ 3 % à 45°), le garde entier au couchant. ' +
+      'Remplace la diffusion multiple, qui garde blanc l’horizon de jour et que KS91 ignore.',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: false,
+    sections: ['3.3'],
+  }),
+  GENOU_HAUTES_LUMIERES: entree({
+    ref: 'C-56',
+    libelle: 'Genou de la compression des hautes lumières du fond',
+    valeur: 0.8,
+    unite: 'Y',
+    source:
+      'convention produit — sous ce niveau linéaire, un canal passe tel quel ; au-dessus, il ' +
+      'tend vers 1 sans l’atteindre (pente continue au genou). Écrêté net, le halo du Soleil ' +
+      'bas sur l’horizon passait au blanc sur tout l’écran. Égal à LUMINANCE_ECRAN_ZENITH_ADAPTE : ' +
+      'le zénith adapté n’est jamais compressé ; la nuit (0,16 au plus) non plus.',
+    tolerance: 'convention produit — pilote l’apparence du fond, jamais un verdict',
     ordreDeGrandeur: false,
     sections: ['3.3'],
   }),

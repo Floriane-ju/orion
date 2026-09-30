@@ -62,6 +62,7 @@ import {
   TEINTES,
   type PaletteCiel,
 } from './couleurs.ts'
+import { dessineCielSoleil } from './dessine-ciel-soleil.ts'
 import {
   dessineHaloHorizon,
   dessineHaloLune,
@@ -288,7 +289,12 @@ function passeFond(passe: Passe): void {
   // (§3.7), et le relief doit recouvrir le halo quand la visée est basse (T-0094).
   if (fondPeint) {
     dessineHaloHorizon(ctx, brut, entree.matriceCiel, entree.sbCiel)
-    if (entree.soleil !== undefined) dessineHaloSoleil(ctx, brut, entree.sbCiel, entree.soleil)
+    if (
+      entree.soleil !== undefined &&
+      !dessineCielSoleil(ctx, brut, entree.matriceCiel, entree.sbCiel, entree.soleil)
+    ) {
+      dessineHaloSoleil(ctx, brut, entree.sbCiel, entree.soleil)
+    }
     if (entree.lune !== undefined) dessineHaloLune(ctx, brut, entree.sbCiel, entree.lune)
   }
   // §3.7 — la bande appartient au fond : elle passe sous l'aperçu de §9.5 comme

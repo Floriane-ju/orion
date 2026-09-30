@@ -12,7 +12,14 @@
  */
 
 import { K } from '../registry/constants.ts'
-import { composantesFond } from '../core/fond-ciel-rendu.ts'
+import {
+  composantesFond,
+  compresseHautesLumieres,
+  compresseTeinte,
+  luminanceEcran,
+  sbDepuisNanolamberts,
+  type LueurSoleil,
+} from '../core/fond-ciel-rendu.ts'
 import { encadre } from '../core/unites.ts'
 
 const ANCRES: readonly (readonly [number, number, number, number])[] = [
@@ -376,7 +383,54 @@ export function bandeRealiste(
  * zénith `sbZenith` — par défaut la brillance elle-même.
  */
 export function fondRealiste(sbCiel: number, sbZenith = sbCiel): string {
-  return css(composantesFond(sbCiel, sbZenith) as Composantes)
+  return cssFond(composantesFond(sbCiel, sbZenith))
+}
+
+/**
+ * Écrit une couleur linéaire déjà ramenée dans [0, 1] en octets sRGB opaques à `out[i..i+3]`.
+ * Pour les couches peintes pixel par pixel : rien n'est alloué, pas même la chaîne CSS.
+ */
+export function ecritOctets(
+  c: readonly [number, number, number],
+  out: Uint8ClampedArray,
+  i: number,
+): void {
+  out[i] = versOctet(c[0])
+  out[i + 1] = versOctet(c[1])
+  out[i + 2] = versOctet(c[2])
+  out[i + 3] = OCTET_MAX
+}
+
+/** Hautes lumières compressées à teinte constante (`GENOU_HAUTES_LUMIERES`), pas écrêtées. */
+function cssCompresse(c: readonly [number, number, number]): string {
+  return css(compresseHautesLumieres(c) as Composantes)
+}
+
+/** Le fond seul : compressé à teinte constante, un horizon clair reste bleu pâle. */
+function cssFond(c: readonly [number, number, number]): string {
+  return css(compresseTeinte(c) as Composantes)
+}
+
+/**
+ * T-0356 — fond relevé par la lumière du Soleil. Le fond `bFondNl` et le terme de Rayleigh
+ * gardent la teinte du ciel ; celui de Mie, neutre, passe par le `rougissement` du trajet
+ * solaire (`rougissement`). Soleil bas : Mie orangé autour de lui, rosé là où il se
+ * mêle au bleu — le couchant sort de là, sans teinte choisie à la main.
+ *
+ * ponytail: le Rayleigh n'est pas rougi, sinon le zénith du couchant virerait à l'orange ; il
+ * reste bleu dans la réalité par l'absorption de Chappuis de l'ozone, que rien ne modélise ici.
+ */
+export function fondRealisteSoleil(
+  bFondNl: number,
+  lueur: LueurSoleil,
+  rougissement: readonly [number, number, number],
+  sbZenith: number,
+): string {
+  const fond = composantesFond(sbDepuisNanolamberts(bFondNl), sbZenith)
+  const rayleigh = composantesFond(sbDepuisNanolamberts(lueur.rayleighNl), sbZenith)
+  const mie = luminanceEcran(sbDepuisNanolamberts(lueur.mieNl), sbZenith)
+  const canal = (c: 0 | 1 | 2): number => fond[c] + rayleigh[c] + mie * rougissement[c]
+  return cssCompresse([canal(0), canal(1), canal(2)])
 }
 
 /**

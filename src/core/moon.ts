@@ -137,13 +137,20 @@ export function eclatLuneRelatif(anglePhaseDeg: number, hauteurDeg: number): num
   return (illuminanceLune(anglePhaseDeg) * extinctionV(masseAirKS(hauteurDeg))) / reference
 }
 
+/** Terme de Rayleigh de la diffusion KS91 : large, bleu. */
+export function diffusionRayleighKS(separation: number): number {
+  const cos = Math.cos(separation * DEG)
+  return K('BASE_MAGNITUDE') ** K('KS_RAYLEIGH_LOG') * (K('KS_RAYLEIGH_CONSTANTE') + cos * cos)
+}
+
+/** Terme de Mie de la diffusion KS91 : serré autour de l'astre, neutre. */
+export function diffusionMieKS(separation: number): number {
+  return K('BASE_MAGNITUDE') ** (K('KS_MIE_LOG') - separation / K('KS_MIE_ECHELLE_DEG'))
+}
+
 /** Fonction de diffusion : Rayleigh près de la Lune, Mie au-delà. */
 export function diffusionKS(separation: number): number {
-  const cos = Math.cos(separation * DEG)
-  return (
-    K('BASE_MAGNITUDE') ** K('KS_RAYLEIGH_LOG') * (K('KS_RAYLEIGH_CONSTANTE') + cos * cos) +
-    K('BASE_MAGNITUDE') ** (K('KS_MIE_LOG') - separation / K('KS_MIE_ECHELLE_DEG'))
-  )
+  return diffusionRayleighKS(separation) + diffusionMieKS(separation)
 }
 
 export interface GeometrieLune {
