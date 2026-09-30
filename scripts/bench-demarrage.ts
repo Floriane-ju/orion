@@ -29,27 +29,16 @@
  * Usage : `pnpm bench:demarrage`. Sortie non nulle au-delà du seuil.
  */
 
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
 import { decodeEtoilesPas, type Etoile } from '../src/data/catalog.ts'
 import { decodeObjetsPas } from '../src/data/deepsky.ts'
 import { construitIndexPas } from '../src/core/index-ciel.ts'
 import { parTranches, type Decoupable, type Tranchage } from '../src/core/tranches.ts'
 import { B, BUDGETS } from '../src/registry/budgets.ts'
+import { lit } from './bench-commun.ts'
 
-const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 /** Les deux classes de machine que T-0255 a mesurées au navigateur. */
 const BRIDAGES: readonly number[] = [B('BRIDAGE_CPU'), 6]
-
-function lit(nom: string): ArrayBuffer {
-  const octets = readFileSync(join(RACINE, 'public/data', nom))
-  return octets.buffer.slice(
-    octets.byteOffset,
-    octets.byteOffset + octets.byteLength,
-  ) as ArrayBuffer
-}
 
 interface Etage {
   readonly nom: string

@@ -20,7 +20,7 @@ import type {
   PaquetConstellations,
   Segment,
 } from '../data/constellations.ts'
-import { matricePrecession } from './horloges.ts'
+import { decalagePrecessionDeg, matricePrecession } from './horloges.ts'
 import { DEG, applique, transpose, versVecteur, type Mat3, type Vec3 } from './mat3.ts'
 import { trace, type Traced } from './traced.ts'
 import { ecartCourt, TOUR_DEG } from './unites.ts'
@@ -74,10 +74,9 @@ export function coucheFrontieres(paquet: PaquetConstellations): CoucheFrontieres
 
 /** Écart introduit par la précession entre l'époque des frontières et l'époque affichée. */
 export function ecartFrontieresDeg(anneeEpoque: number): Traced<number> {
-  const ARCSEC_PAR_DEGRE = 3600
   const annees = anneeEpoque - K('EPOQUE_FRONTIERES_IAU')
   return trace({
-    value: (K('PRECESSION_ARCSEC_AN') * annees) / ARCSEC_PAR_DEGRE,
+    value: decalagePrecessionDeg(annees),
     formula: 'PRECESSION',
     inputs: { n_annees: annees },
     constants: ['PRECESSION_ARCSEC_AN', 'EPOQUE_FRONTIERES_IAU'],

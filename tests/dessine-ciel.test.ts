@@ -32,7 +32,7 @@ import {
   type Projecteur,
   type Vue,
 } from '../src/core/projection.ts'
-import type { PositionCorps, Site } from '../src/core/ephem.ts'
+import type { PositionCorps } from '../src/core/ephem.ts'
 import { applique, transpose, versSpherique, versVecteur } from '../src/core/mat3.ts'
 import { depuisGalactique } from '../src/core/galactique.ts'
 import {
@@ -68,8 +68,8 @@ import type { ParcoursScene } from '../src/ui/scene-etat.ts'
 import { sousLeSol } from '../src/core/sol.ts'
 import { K } from '../src/registry/constants.ts'
 import { SB_PLAFOND_TABLE, SB_PLANCHER_NATUREL } from '../src/registry/bortle.ts'
+import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
-const SITE: Site = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const DATE = new Date('2026-08-15T22:00:00Z')
 const LARGEUR = 960
 const HAUTEUR = 540

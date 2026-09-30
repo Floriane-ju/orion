@@ -18,9 +18,6 @@
  * passe sans aucun plafond, comme avant T-0119.
  */
 
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
 import { K } from '../src/registry/constants.ts'
 import { decodeEtoiles, type Etoile } from '../src/data/catalog.ts'
 import { semisGeneratif } from '../src/data/semis.ts'
@@ -35,11 +32,9 @@ import {
   type Projecteur,
   type Vue,
 } from '../src/core/projection.ts'
-import type { Site } from '../src/core/ephem.ts'
 import { dessineChamp } from '../src/ui/dessine-champ.ts'
+import { lit, mediane, SITE } from './bench-commun.ts'
 
-const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..')
-const SITE: Site = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const DATE = new Date('2026-08-15T22:00:00Z')
 const LARGEUR = 1920
 const HAUTEUR = 1080
@@ -227,10 +222,7 @@ function projecteurCompte(base: Projecteur): { proj: Projecteur; projections: ()
 }
 
 function etoilesReelles(): readonly Etoile[] {
-  const buffer = readFileSync(join(RACINE, 'public/data/hyg-1.bin'))
-  const brut = decodeEtoiles(
-    buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer,
-  )
+  const brut = decodeEtoiles(lit('hyg-1.bin'))
   return brut.filter((e) => e.magV <= K('SEUIL_MAG_ETOILES_REELLES'))
 }
 
@@ -285,11 +277,6 @@ const CAS: readonly Cas[] = [
     profil: PROFIL_10MM,
   },
 ]
-
-function mediane(valeurs: readonly number[]): number {
-  const tri = [...valeurs].sort((a, b) => a - b)
-  return tri[Math.floor(tri.length / 2)]!
-}
 
 function mesure(cas: Cas, indexReel: IndexCiel, indexSemis: IndexCiel): void {
   const ciel = cielInstantane(SITE, DATE)

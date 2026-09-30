@@ -31,7 +31,7 @@ import { sbEffectifRendu, sbZenithAvecCrepuscule } from '../core/fond-ciel-rendu
 import { separationDeg, versVecteur } from '../core/mat3.ts'
 import type { LuneEcran, SoleilEcran } from './dessine-fond-ciel.ts'
 import { apparitionReperes } from './apparence-objets.ts'
-import { etatProfondeur, type ModeProjection } from '../core/projection.ts'
+import { etatProfondeur } from '../core/projection.ts'
 import {
   ACTIONS_SCENE,
   BORDURES_SCENE,
@@ -95,13 +95,7 @@ export interface PlanetariumProps {
   readonly constellations: PaquetConstellations
   /** Profils de cadre à superposer (§3.5). Vide : l'app demande le profil, sans en inventer. */
   readonly profils: readonly ProfilCadre[]
-  readonly mLimOeil: number | null
   readonly gaiaCharge: boolean
-  /**
-   * §5.1 — la projection de l'objectif déclaré au panneau matériel. C'est elle, et pas un
-   * réglage de rendu, qui décide ce que « voir comme l'objectif » veut dire ici.
-   */
-  readonly modeObjectif: ModeProjection
   /**
    * §3.7 — fond de ciel du site (§2.2). C'est lui qui décide du contraste de la bande de la
    * Voie lactée : la scène montre le ciel de CE site, pas une carte de référence idéale.

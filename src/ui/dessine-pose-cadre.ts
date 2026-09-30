@@ -12,7 +12,7 @@
  */
 
 import { K } from '../registry/constants.ts'
-import { formatePose, nombre } from '../registry/ecriture.ts'
+import { degres, formatePose } from '../registry/ecriture.ts'
 import { cellulesCadreJ2000, type Cadre } from '../core/cadre.ts'
 import { angleDeSinDeg, type Mat3 } from '../core/mat3.ts'
 import { pointEcran, type Projecteur } from '../core/projection.ts'
@@ -108,7 +108,7 @@ export function dessineCartePose(entree: {
     const pose = cellule.tNpfS === null ? '∞' : `${formatePose(cellule.tNpfS)} s`
     ctx.fillText(pose, cellule.xPx, cellule.yPx - policeDec / 2)
     ctx.font = `${policeDec}px ${POLICE_SCENE}`
-    ctx.fillText(`δ ${nombre(cellule.decDeg, 0)}°`, cellule.xPx, cellule.yPx + police / 2)
+    ctx.fillText(`δ ${degres(cellule.decDeg, 0)}`, cellule.xPx, cellule.yPx + police / 2)
   }
   ctx.font = ancienneFonte
   ctx.textAlign = ancienAlignement

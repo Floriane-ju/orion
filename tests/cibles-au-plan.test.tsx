@@ -17,13 +17,12 @@ import { fenetreUtile } from '../src/core/moon.ts'
 import { masquePlat } from '../src/core/site.ts'
 import { etatsCibles, photographiable } from '../src/core/cibles-liste.ts'
 import type { ContexteSession } from '../src/core/session.ts'
-import type { ObjetCielProfond } from '../src/data/deepsky.ts'
 import { PanneauCibles } from '../src/ui/PanneauCibles.tsx'
 import { basculeChoixCible, reinitialiseCiblesChoisies } from '../src/ui/cibles-choisies.ts'
 import { majCatalogue, reinitialiseCatalogue } from '../src/ui/catalogue-etat.ts'
 import { reinitialiseScene, vaA } from '../src/ui/scene-etat.ts'
+import { objetNebuleuse as objet, SITE_REFERENCE as SITE } from './fixtures.ts'
 
-const SITE = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const NUIT = fenetreNocturne(SITE, new Date('2026-08-14T12:00:00Z'))
 
 /** Setup ciel profond de l'Annexe A : 120 mm f/2,8 sur plein format. */
@@ -49,23 +48,6 @@ const CONTEXTE: ContexteSession = {
   domaineCpFerme: null,
   snrCible: 10,
   typeMonture: 'TRACKER',
-}
-
-function objet(surcharge: Partial<ObjetCielProfond>): ObjetCielProfond {
-  return {
-    designation: 'TEST',
-    nomsCommuns: '',
-    adDeg: 315,
-    decDeg: 40,
-    type: 'EMISSION',
-    majAxArcmin: 280,
-    minAxArcmin: 220,
-    posAngDeg: null,
-    vMag: 5,
-    bMag: null,
-    surfBr: null,
-    ...surcharge,
-  }
 }
 
 /** Une cible que ce setup photographie, et une que son cadre ne tient pas. */

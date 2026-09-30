@@ -9,18 +9,21 @@
 
 export const TOUR_DEG = 360
 export const DEMI_TOUR_DEG = 180
+export const QUART_TOUR_DEG = 90
 export const TOUR_RAD = 2 * Math.PI
 export const HEURES_PAR_TOUR = 24
 /** Heures d'angle horaire en degrés : un changement d'unité, pas le taux A-ROT (§3.1). */
 export const DEG_PAR_HEURE = TOUR_DEG / HEURES_PAR_TOUR
 export const ARCMIN_PAR_DEG = 60
 export const ARCSEC_PAR_ARCMIN = 60
+export const ARCSEC_PAR_DEG = ARCMIN_PAR_DEG * ARCSEC_PAR_ARCMIN
 
 export const MS_PAR_S = 1000
 export const S_PAR_MIN = 60
 export const MIN_PAR_H = 60
 export const S_PAR_H = S_PAR_MIN * MIN_PAR_H
 export const MS_PAR_MINUTE = MS_PAR_S * S_PAR_MIN
+export const MS_PAR_H = MS_PAR_MINUTE * MIN_PAR_H
 
 export const UM_PAR_MM = 1000
 

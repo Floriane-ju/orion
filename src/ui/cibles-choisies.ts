@@ -17,9 +17,10 @@
 
 import { useSyncExternalStore } from 'react'
 import { ecritCiblesChoisies } from '../data/db.ts'
+import { creeAbonnes } from './abonnes.ts'
 
 let etat: ReadonlySet<string> = Object.freeze(new Set<string>())
-const abonnes = new Set<() => void>()
+const { abonne, notifie } = creeAbonnes()
 
 /**
  * §12.3 — rien ne s'écrit tant que la relecture du démarrage n'a pas abouti.
@@ -35,16 +36,9 @@ export function ciblesChoisies(): ReadonlySet<string> {
   return etat
 }
 
-function abonne(notifie: () => void): () => void {
-  abonnes.add(notifie)
-  return () => {
-    abonnes.delete(notifie)
-  }
-}
-
 function pose(suivant: ReadonlySet<string>): void {
   etat = Object.freeze(suivant)
-  for (const notifie of abonnes) notifie()
+  notifie()
 }
 
 /**

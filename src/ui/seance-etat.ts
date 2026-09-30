@@ -17,6 +17,7 @@ import { K } from '../registry/constants.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { majTemps } from './scene-etat.ts'
 import { S_PAR_MIN } from '../core/unites.ts'
+import { creeAbonnes } from './abonnes.ts'
 
 
 /** §9.2 aperçu d'une pose, §9.3 filé d'une durée accumulée : même moteur, durée différente. */
@@ -79,22 +80,15 @@ const ETAT_INITIAL: EtatSeance = {
 }
 
 let etat: EtatSeance = ETAT_INITIAL
-const abonnes = new Set<() => void>()
+const { abonne, notifie } = creeAbonnes()
 
 export function etatSeance(): EtatSeance {
   return etat
 }
 
-function abonne(notifie: () => void): () => void {
-  abonnes.add(notifie)
-  return () => {
-    abonnes.delete(notifie)
-  }
-}
-
 function pose(suivant: EtatSeance): void {
   etat = suivant
-  for (const notifie of abonnes) notifie()
+  notifie()
 }
 
 /**

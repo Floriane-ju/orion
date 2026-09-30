@@ -25,9 +25,6 @@
  * Usage : `pnpm bench:frappe`. Sortie non nulle au-delà du budget.
  */
 
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
 import { decodeObjets, type ObjetCielProfond } from '../src/data/deepsky.ts'
 import {
   capteurEffectif,
@@ -48,8 +45,8 @@ import { etatsCibles, lignesInvariantes } from '../src/core/cibles-liste.ts'
 import { borne, nombreDeTexte } from '../src/registry/domains.ts'
 import { PRESET_SNR_DEFAUT } from '../src/registry/verdicts.ts'
 import { B, BUDGETS } from '../src/registry/budgets.ts'
+import { lit, mediane } from './bench-commun.ts'
 
-const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 /** Le budget du chemin de frappe sur CETTE machine : celui de la tablette, débridé. */
 const BUDGET_MS = B('FRAPPE_MS') / B('BRIDAGE_CPU')
@@ -89,14 +86,6 @@ const BOITIER: SaisieBoitier = {
   tailleRawMo: '',
 }
 
-function lit(nom: string): ArrayBuffer {
-  const octets = readFileSync(join(RACINE, 'public/data', nom))
-  return octets.buffer.slice(
-    octets.byteOffset,
-    octets.byteOffset + octets.byteLength,
-  ) as ArrayBuffer
-}
-
 const CATALOGUE: readonly ObjetCielProfond[] = decodeObjets({
   enregistrements: lit('openngc-1.bin'),
   chaines: lit('openngc-noms-1.bin'),
@@ -113,15 +102,6 @@ const FRAPPES: readonly string[] = Array.from(
   { length: 12 },
   (_, i) => (Number(LATITUDE) + i * 0.001).toFixed(3),
 )
-
-/** Une mesure : la médiane des frappes, parce qu'une moyenne suit le premier échauffement. */
-function mediane(valeurs: readonly number[]): number {
-  const triees = [...valeurs].sort((a, b) => a - b)
-  const milieu = Math.floor(triees.length / 2)
-  return triees.length % 2 === 0
-    ? ((triees[milieu - 1] ?? 0) + (triees[milieu] ?? 0)) / 2
-    : (triees[milieu] ?? 0)
-}
 
 /** Le temps d'un étage, en millisecondes, mesuré sur toute la série de frappes. */
 function chrono(travail: (latitude: string) => void): number {

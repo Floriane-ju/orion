@@ -16,8 +16,7 @@ import { valide } from '../registry/domains.ts'
 import type { Traced } from './traced.ts'
 import { plageOrdreDeGrandeur, trace } from './traced.ts'
 import { DEG } from './mat3.ts'
-
-const POLE_DEG = 90
+import { QUART_TOUR_DEG as POLE_DEG } from './unites.ts'
 
 export type ModeSuivi = 'AUCUN' | 'SUIVI_APPROX' | 'SUIVI_SOIGNE'
 export type QualiteMiseEnStation = 'SOIGNEE' | 'APPROX' | 'INCONNUE'

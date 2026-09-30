@@ -18,7 +18,7 @@
  */
 
 import type { Mat3 } from '../core/mat3.ts'
-import { DEG, versVecteur } from '../core/mat3.ts'
+import { angleDeCosDeg, angleDeSinDeg, versVecteur } from '../core/mat3.ts'
 import type { Projecteur } from '../core/projection.ts'
 import { nanolamberts } from '../core/moon.ts'
 import {
@@ -142,8 +142,8 @@ function calculeGrille(
       const cosRho = (s.x * v.x + s.y * v.y + s.z * v.z) / norme
       const couleur = composantesCielSoleil(
         eclairage,
-        Math.asin(Math.max(-1, Math.min(1, sinH))) / DEG,
-        Math.acos(Math.max(-1, Math.min(1, cosRho))) / DEG,
+        angleDeSinDeg(sinH),
+        angleDeCosDeg(cosRho),
       )
       ecritOctets(couleur, image.data, 4 * (j * colonnes + i))
     }

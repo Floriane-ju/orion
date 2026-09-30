@@ -12,8 +12,8 @@ import { separationEquatorialeDeg } from '../src/core/mat3.ts'
 import { K } from '../src/registry/constants.ts'
 import type { Etoile } from '../src/data/catalog.ts'
 import type { EtoileNommee } from '../src/data/constellations.ts'
+import { SITE_REFERENCE } from './fixtures.ts'
 
-const SITE_REFERENCE = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const DATE = new Date('2026-08-14T22:30:00Z')
 
 /** Cible arbitraire du Cygne, et un semis d'étoiles autour d'elle. */

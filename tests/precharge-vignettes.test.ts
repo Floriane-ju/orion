@@ -17,8 +17,6 @@
  */
 
 import 'fake-indexeddb/auto'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { decodeObjets, type ObjetCielProfond } from '../src/data/deepsky.ts'
 import { db } from '../src/data/db.ts'
@@ -28,14 +26,7 @@ import {
   oublieImages,
   prechargeVignettes,
 } from '../src/ui/image-cible-memoire.ts'
-
-function paquet(nom: string): ArrayBuffer {
-  const octets = readFileSync(join(import.meta.dirname, '..', 'public', 'data', nom))
-  return octets.buffer.slice(
-    octets.byteOffset,
-    octets.byteOffset + octets.byteLength,
-  ) as ArrayBuffer
-}
+import { paquet } from './fixtures.ts'
 
 const CATALOGUE: readonly ObjetCielProfond[] = decodeObjets({
   enregistrements: paquet('openngc-1.bin'),

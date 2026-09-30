@@ -14,12 +14,13 @@
 
 import type { Projecteur } from '../core/projection.ts'
 import { versVecteur } from '../core/mat3.ts'
-import { POLICE_SCENE, type PaletteCiel } from './couleurs.ts'
-import { HAUTEUR_LABEL_PX } from './libelles-cibles.ts'
+import { type PaletteCiel } from './couleurs.ts'
+import { HAUTEUR_LABEL_PX, POLICE_LABEL } from './libelles-cibles.ts'
 import { peintCroix } from './marqueur-objet.ts'
 import type { ParcoursScene } from './scene-etat.ts'
 import { SANS_NOM } from '../registry/libelles.ts'
 import { DEG_PAR_HEURE, TOUR_RAD } from '../core/unites.ts'
+import { horsCanevas } from './champ-visible.ts'
 
 
 /** Le trajet se lit comme un chemin à suivre, le cadre comme un contour : l'un tirète, l'autre non. */
@@ -80,12 +81,12 @@ export function dessineParcours(
   ctx.setLineDash([])
 
   // --- Les étapes : un cercle, son rang et son nom --------------------------
-  ctx.font = `${HAUTEUR_LABEL_PX}px ${POLICE_SCENE}`
+  ctx.font = POLICE_LABEL
   const largeur = projecteur.vue.largeurPx
   const hauteur = projecteur.vue.hauteurPx
   for (const [index, point] of points.entries()) {
     if (point === null) continue
-    if (point.xPx < 0 || point.yPx < 0 || point.xPx > largeur || point.yPx > hauteur) continue
+    if (horsCanevas(point, largeur, hauteur)) continue
     const etape = parcours.etapes[index]!
     ctx.beginPath()
     ctx.arc(point.xPx, point.yPx, RAYON_ETAPE_PX, 0, TOUR_RAD)

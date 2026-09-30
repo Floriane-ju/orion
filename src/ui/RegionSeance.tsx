@@ -16,7 +16,7 @@
  */
 
 import { useRef, useEffect } from 'react'
-import { nombre, saisieLue } from '../registry/ecriture.ts'
+import { degres, saisieLue } from '../registry/ecriture.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { photographiable, type EtatCible } from '../core/cibles-liste.ts'
 import type { Etoile } from '../data/catalog.ts'
@@ -58,7 +58,6 @@ export interface RegionSeanceProps {
   readonly cibleDuCiel: ObjetCielProfond | null
   readonly gaiaCharge: boolean
   readonly epoqueAnnee: number
-  readonly modeNuitActif: boolean
 }
 
 /**
@@ -68,7 +67,7 @@ export interface RegionSeanceProps {
 export function resumeSite(latitude: string, longitude: string): string {
   const arrondi = (v: string) => {
     const n = nombreDeTexte(v)
-    return v.trim() === '' || !Number.isFinite(n) ? '?' : `${nombre(n, 1)}°`
+    return v.trim() === '' || !Number.isFinite(n) ? '?' : degres(n, 1)
   }
   return `${arrondi(latitude)} / ${arrondi(longitude)}`
 }
@@ -102,7 +101,6 @@ export function CartesSeance(props: RegionSeanceProps) {
     calcul.ok && ciel.ok && chaine.plan !== null && chaine.fenetreUtile !== null ? (
       <PlanSessionVue
         plan={chaine.plan}
-        fenetreUtile={chaine.fenetreUtile}
         site={chaine.site}
         fovHDeg={calcul.optique.fovHDeg.value}
         fovLDeg={calcul.optique.fovLDeg.value}

@@ -11,7 +11,7 @@
  * comme `libelles.ts`, pas un calcul.
  */
 
-import { MIN_PAR_H, S_PAR_MIN } from '../core/unites.ts'
+import { MIN_PAR_H, POURCENT, S_PAR_MIN } from '../core/unites.ts'
 
 /** La langue de l'interface : une seule écriture, sans quoi deux écrans dateraient différemment. */
 export const LOCALE = 'fr-FR'
@@ -45,6 +45,11 @@ export function nombre(n: number, decimales = 0): string {
 /** Un angle : le degré se colle au nombre, partout (« 39,5° »), jamais « 39,5 ° ». */
 export function degres(n: number, decimales = 0): string {
   return `${nombre(n, decimales)}°`
+}
+
+/** Une fraction lue en pour cent, l'espace avant le signe (« 42 % »). */
+export function pourcentage(fraction: number, decimales = 0): string {
+  return `${nombre(fraction * POURCENT, decimales)} %`
 }
 
 /** Six chiffres significatifs : assez pour ne rien tronquer d'une constante du registre. */

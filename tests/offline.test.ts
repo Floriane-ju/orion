@@ -9,13 +9,12 @@ import { Body, positionCorps } from '../src/core/ephem.ts'
 import {
   MATRICE_DEGRADATION,
   abonneModeReseau,
-  fonctionsIndisponibles,
   modeReseauCourant,
-  noyauHorsLigne,
 } from '../src/data/degradation.ts'
+import { SITE_REFERENCE } from './fixtures.ts'
 
-const SITE_REFERENCE = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const DEPART = new Date('2026-08-14T12:00:00Z')
+const horsReseau = (etat: string) => MATRICE_DEGRADATION.filter((l) => l.horsReseau === etat)
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -89,7 +88,7 @@ describe('mode réseau §12.5', () => {
 
 describe('matrice de dégradation §12.5', () => {
   it('distingue le noyau hors-ligne de ce qui tombe', () => {
-    expect(noyauHorsLigne().length).toBeGreaterThan(fonctionsIndisponibles().length)
+    expect(horsReseau('COMPLET').length).toBeGreaterThan(horsReseau('TOMBE').length)
     // Le physique est calculable donc hors-ligne ; le probabiliste dépend d'un service.
     const meteo = MATRICE_DEGRADATION.find((l) => l.fonction.startsWith('Météo'))
     expect(meteo?.horsReseau).toBe('TOMBE')
@@ -99,7 +98,7 @@ describe('matrice de dégradation §12.5', () => {
   })
 
   it('donne une dégradation nommée à chaque fonction qui tombe', () => {
-    for (const ligne of fonctionsIndisponibles()) {
+    for (const ligne of horsReseau('TOMBE')) {
       expect(ligne.degradation, ligne.fonction).not.toBe('')
     }
   })

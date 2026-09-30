@@ -17,7 +17,7 @@
  */
 
 import { K } from '../registry/constants.ts'
-import { formatePose, nombre, nombreLibre } from '../registry/ecriture.ts'
+import { degres, formatePose, nombre, nombreLibre } from '../registry/ecriture.ts'
 import { longueurArcDeg } from './file-etoiles.ts'
 import { rappelBatterie } from './rappel-batterie.ts'
 import { trace, type Traced } from './traced.ts'
@@ -101,7 +101,7 @@ export function sequenceFile(entree: EntreeSequenceFile): SequenceFile {
   }
   messages.push(
     `${nPosesValeur} poses de ${formatePose(entree.tPoseS)} s empilées en mode éclaircir, ` +
-      `${nombre(volume, 1)} Go, traînées de ${nombre(arcObtenuDeg.value, 2)}°.`,
+      `${nombre(volume, 1)} Go, traînées de ${degres(arcObtenuDeg.value, 2)}.`,
   )
   const rappel = rappelBatterie(entree.dureeTotaleMin)
   if (rappel !== null) messages.push(rappel)

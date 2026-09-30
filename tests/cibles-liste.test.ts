@@ -20,6 +20,7 @@ import { applique, versSpherique, versVecteur } from '../src/core/mat3.ts'
 import { DOMAINES } from '../src/registry/domains.ts'
 import type { Site } from '../src/core/ephem.ts'
 import { decodeObjets, TYPES_OBJET, type ObjetCielProfond } from '../src/data/deepsky.ts'
+import { objetGalaxie as objet } from './fixtures.ts'
 
 /** Annexe A : Bordeaux, 45° N. */
 const SITE: Site = { latitudeDeg: 44.84, longitudeDeg: -0.58, altitudeM: 20 }
@@ -35,22 +36,6 @@ const SANS_FILTRE = { types: new Set(TYPES_OBJET), magMax: DOMAINES.m_int.max, r
 
 function hauteurDe(adDeg: number, decDeg: number): number {
   return versSpherique(applique(MATRICE, versVecteur(adDeg, decDeg))).latitudeDeg
-}
-
-function objet(partiel: Partial<ObjetCielProfond> & { designation: string }): ObjetCielProfond {
-  return {
-    nomsCommuns: '',
-    adDeg: 0,
-    decDeg: 0,
-    type: 'GALAXIE',
-    majAxArcmin: 10,
-    minAxArcmin: 6,
-    posAngDeg: null,
-    vMag: 8,
-    bMag: null,
-    surfBr: null,
-    ...partiel,
-  }
 }
 
 // Le pôle nord céleste ne se couche jamais depuis 44,84° N ; le pôle sud ne se lève jamais.

@@ -38,13 +38,18 @@ export interface EntreeFlux {
   readonly zpEstime?: boolean
 }
 
+/** Rapport de flux entre deux sources séparées de `deltaMag` magnitudes : loi de Pogson. */
+export function rapportDeFlux(deltaMag: number): number {
+  return K('BASE_MAGNITUDE') ** (-deltaMag / K('POGSON'))
+}
+
 /**
  * Conversion brute d'une brillance de surface en flux, sans garde de domaine. Réservée aux
  * usages où la valeur est déjà validée : notamment le calcul de sensibilité de §10.2, qui
  * perturbe légèrement chaque entrée et ne doit pas buter sur une borne.
  */
 export function fluxE(sb: number, zpSys: number, pitchUm: number, ouvertureN: number): number {
-  return K('BASE_MAGNITUDE') ** (-(sb - zpSys) / K('POGSON')) * (pitchUm / ouvertureN) ** 2
+  return rapportDeFlux(sb - zpSys) * (pitchUm / ouvertureN) ** 2
 }
 
 function flux(entree: EntreeFlux, champ: DomaineId, formula: 'FLUX_CIEL' | 'FLUX_OBJET'): Traced<number> {
@@ -88,7 +93,7 @@ export function fluxObjet(entree: EntreeFlux): Traced<number> {
  * comme les autres entrées et ne doit pas buter sur une garde de domaine.
  */
 export function attenuationBrute(masseAirX: number, kExtinction = K('EXTINCTION_V_MAG_PAR_MASSE_AIR')): number {
-  return K('BASE_MAGNITUDE') ** (-(kExtinction * masseAirX) / K('POGSON'))
+  return rapportDeFlux(kExtinction * masseAirX)
 }
 
 export interface FluxObjetReel {
@@ -363,15 +368,6 @@ export interface PlanIntegration {
   readonly horsDePortee: boolean
   readonly loiFondamentale: string
   readonly messages: readonly string[]
-}
-
-/** Rapport signal sur bruit atteint après un temps d'intégration total (§7.3). */
-export function snrApres(entree: Omit<EntreeIntegration, 'snrCible' | 'tailleRawMo'>, tS: number): number {
-  const { eObj, eCiel, tPoseS, readNoiseE } = entree
-  return (
-    (eObj * tS) /
-    Math.sqrt((eObj + eCiel) * tS + (tS / tPoseS) * readNoiseE ** 2)
-  )
 }
 
 /** Temps d'intégration total requis pour un rapport signal sur bruit visé (§7.3). */

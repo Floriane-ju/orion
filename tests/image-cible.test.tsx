@@ -17,16 +17,9 @@ import { describe, expect, it } from 'vitest'
 import { decodeObjets, type ObjetCielProfond } from '../src/data/deepsky.ts'
 import { ImageCible, VignetteCible, alternativeCible } from '../src/ui/ImageCible.tsx'
 import { LIBELLE_TYPE_OBJET, nomCommun } from '../src/ui/libelles-objet.ts'
+import { paquet } from './fixtures.ts'
 
 const CSS = readFileSync(join(import.meta.dirname, '..', 'src', 'ui', 'styles.css'), 'utf8')
-
-function paquet(nom: string): ArrayBuffer {
-  const octets = readFileSync(join(import.meta.dirname, '..', 'public', 'data', nom))
-  return octets.buffer.slice(
-    octets.byteOffset,
-    octets.byteOffset + octets.byteLength,
-  ) as ArrayBuffer
-}
 
 const CATALOGUE: readonly ObjetCielProfond[] = decodeObjets({
   enregistrements: paquet('openngc-1.bin'),

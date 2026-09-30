@@ -24,9 +24,8 @@ import { cielInstantane } from '../src/core/horloges.ts'
 import { separationEquatorialeDeg, versVecteur } from '../src/core/mat3.ts'
 import { viseeVersVue } from '../src/ui/scene-lecture.ts'
 import { K } from '../src/registry/constants.ts'
-import type { Site } from '../src/core/ephem.ts'
+import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
-const SITE: Site = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const DATE = new Date('2026-08-15T22:00:00Z')
 const DEG_PAR_HEURE = 15
 /** Un canevas large, comme la scène de §3.2 : c'est lui qui rend le piège du champ vertical réel. */

@@ -27,9 +27,8 @@ import {
 } from './mat3.ts'
 import { poseParPixelS } from './file-etoiles.ts'
 import { trace, type Traced } from './traced.ts'
-import { DEMI_TOUR_DEG, encadre, UM_PAR_MM } from './unites.ts'
-
-const QUART_TOUR = 90
+import { rapportDeFlux } from './exposure.ts'
+import { DEMI_TOUR_DEG, encadre, QUART_TOUR_DEG as QUART_TOUR, UM_PAR_MM } from './unites.ts'
 
 /**
  * Rotation J2000 → galactique. Trois rotations, dans cet ordre : amener le pôle galactique
@@ -66,16 +65,6 @@ export function densite(
   echelleDeg: number = K('ECHELLE_LATITUDE_GALACTIQUE_DEG'),
 ): number {
   return Math.exp(-Math.abs(bDeg) / echelleDeg)
-}
-
-/** La même densité, tracée jusqu'à sa formule. */
-export function densiteRelative(bDeg: number): Traced<number> {
-  return trace({
-    value: densite(bDeg),
-    formula: 'DENSITE_GALACTIQUE',
-    inputs: { b_deg: bDeg },
-    constants: ['ECHELLE_LATITUDE_GALACTIQUE_DEG'],
-  })
 }
 
 /**
@@ -118,7 +107,7 @@ export function vignettageDiaph(rayonRelatif: number): Traced<number> {
  * que la même durée en poses fixes empilées en montrerait des milliers.
  */
 export function opaciteEtoile(magV: number, magLimite: number): number {
-  const snr = K('SNR_DETECTION_PREVISU') * K('BASE_MAGNITUDE') ** (-(magV - magLimite) / K('POGSON'))
+  const snr = K('SNR_DETECTION_PREVISU') * rapportDeFlux(magV - magLimite)
   return Math.min(1, Math.sqrt(snr / K('SNR_RENDU_SATURATION')))
 }
 

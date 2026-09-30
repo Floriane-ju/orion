@@ -26,9 +26,6 @@
  * Usage : `pnpm bench:ciel [--empreinte] [--realiste]`.
  */
 
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
 import { PerformanceObserver } from 'node:perf_hooks'
 import { decodeEtoiles, type Etoile } from '../src/data/catalog.ts'
 import { decodeObjets } from '../src/data/deepsky.ts'
@@ -37,13 +34,11 @@ import { coucheAsterismes, coucheFigures, coucheFrontieres } from '../src/core/c
 import { construitIndex } from '../src/core/index-ciel.ts'
 import { cielInstantane } from '../src/core/horloges.ts'
 import { magnitudeRendue, projecteur, type Projecteur, type Vue } from '../src/core/projection.ts'
-import type { Site } from '../src/core/ephem.ts'
 import { masquePlat } from '../src/core/site.ts'
 import { dessineCiel, type CouchesActives } from '../src/ui/dessine-ciel.ts'
 import { SB_PLANCHER_NATUREL } from '../src/registry/bortle.ts'
+import { lit, SITE } from './bench-commun.ts'
 
-const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..')
-const SITE: Site = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const DATE = new Date('2026-08-15T22:00:00Z')
 const LARGEUR = 1920
 const HAUTEUR = 1080
@@ -113,14 +108,6 @@ class Path2DMuet {
   closePath(): void {}
 }
 ;(globalThis as unknown as { Path2D: unknown }).Path2D = Path2DMuet
-
-function lit(nom: string): ArrayBuffer {
-  const buffer = readFileSync(join(RACINE, 'public/data', nom))
-  return buffer.buffer.slice(
-    buffer.byteOffset,
-    buffer.byteOffset + buffer.byteLength,
-  ) as ArrayBuffer
-}
 
 function empreinteur(): { ctx: CanvasRenderingContext2D; valeur: () => string } {
   let h = 0x811c9dc5

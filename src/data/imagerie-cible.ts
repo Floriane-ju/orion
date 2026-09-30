@@ -25,10 +25,9 @@ import {
   I,
   RELEVE_DECOUPE,
 } from '../registry/imagerie.ts'
-import { ARCMIN_PAR_DEG, POURCENT } from '../core/unites.ts'
+import { ARCMIN_PAR_DEG, POURCENT, QUART_TOUR_DEG as ANGLE_DROIT_DEG } from '../core/unites.ts'
 
 const OCTETS_PAR_KO = 1024
-const ANGLE_DROIT_DEG = 90
 
 /**
  * §6.4 — le champ de la découpe : la taille de l'objet, élargie par la marge du registre.

@@ -10,7 +10,7 @@
  */
 
 import { K } from '../registry/constants.ts'
-import { champVisible } from './champ-visible.ts'
+import { champVisible, horsCanevas } from './champ-visible.ts'
 import { traceHorizon, traceLignes, traceSegments } from './traces-ciel.ts'
 import {
   ancreVoieLactee,
@@ -46,18 +46,18 @@ import { projecteurSansSol } from '../core/sol.ts'
 import { dessineSol } from './dessine-sol.ts'
 import {
   boiteLabel,
-  libelleCible,
-  titreCible,
   HAUTEUR_LABEL_PX,
   LARGEUR_CARACTERE_PX,
+  libelleCible,
   MARQUEUR_OBJET_PX,
+  POLICE_LABEL,
   RAYON_CORPS_PX,
+  titreCible,
 } from './libelles-cibles.ts'
 import {
   avecOpacite,
   couleurTeinte,
   paletteScene,
-  POLICE_SCENE,
   teinte,
   TEINTES,
   type PaletteCiel,
@@ -323,7 +323,7 @@ function passeFond(passe: Passe): void {
 function passeTraces(passe: Passe): CandidatLabel | null {
   const { entree, brut, couches, teintes } = passe
   const { ctx, projecteur } = passe.entree
-  ctx.font = `${HAUTEUR_LABEL_PX}px ${POLICE_SCENE}`
+  ctx.font = POLICE_LABEL
   ctx.textBaseline = 'middle'
 
   // T-0110 — le champ se prend sur le projecteur BRUT : c'est une propriété de la vue, pas du
@@ -389,7 +389,7 @@ function passeEtoiles(passe: Passe): { stats: StatistiquesSelection; etoilesDess
     entree.magLimite,
     (x, y, z, magV, bv, source) => {
       if (!projecteur.projetteEn(x, y, z, p)) return
-      if (p.xPx < 0 || p.yPx < 0 || p.xPx > largeur || p.yPx > hauteur) return
+      if (horsCanevas(p, largeur, hauteur)) return
       if (opaciteEtoiles > 0) {
         const rayon = rayonEtoileCielPx(magV)
         const chemin = chemins[teinte(bv)]!
@@ -425,7 +425,7 @@ function passeEtoilesNommees(passe: Passe): ReadonlySet<number> {
     if (!etoileLabellisable(nommee.magV)) continue
     const v = versVecteur(nommee.adDeg, nommee.decDeg)
     if (!projecteur.projetteEn(v.x, v.y, v.z, p)) continue
-    if (p.xPx < 0 || p.yPx < 0 || p.xPx > largeur || p.yPx > hauteur) continue
+    if (horsCanevas(p, largeur, hauteur)) continue
     pixelsNommes.add(Math.round(p.yPx) * PAS_CLE_PIXEL + Math.round(p.xPx))
     // T-0109 — `nom` ne porte plus le libellé : le nom d'une étoile se demande à
     // `libelleCible`, seule source du vocabulaire de la scène.
@@ -466,7 +466,7 @@ function passeObjets(passe: Passe): void {
     if (objet.vMag === null || objet.vMag > magObjets) continue
     const v = versVecteur(objet.adDeg, objet.decDeg)
     if (!projecteur.projetteEn(v.x, v.y, v.z, p)) continue
-    if (p.xPx < 0 || p.yPx < 0 || p.xPx > largeur || p.yPx > hauteur) continue
+    if (horsCanevas(p, largeur, hauteur)) continue
     // La géométrie vient APRÈS les trois rejets : ses deux projections auxiliaires ne se paient
     // que pour ce qui se voit.
     const teintesObjet = teintesParType[objet.type]
@@ -521,7 +521,7 @@ function passeCorps(passe: Passe): void {
     // Hors canevas comme partout ailleurs : un corps derrière l'observateur reste projetable,
     // et son label part avec la priorité la plus haute de la scène. Sans ce test, une planète
     // qu'on ne voit pas prenait la place d'un nom qu'on voit (§3.4).
-    if (p.xPx < 0 || p.yPx < 0 || p.xPx > largeur || p.yPx > hauteur) continue
+    if (horsCanevas(p, largeur, hauteur)) continue
     const rayonLune =
       corps.corps === Body.Moon
         ? rayonLunePx(projecteur, v, p, entree.lune?.demiDiametreDeg ?? null)
@@ -595,7 +595,7 @@ function passeNomsConstellations(passe: Passe): void {
   for (const figure of peintReperes ? entree.figures : []) {
     if (figure.centre === null) continue
     if (!projecteur.projetteEn(figure.centre.x, figure.centre.y, figure.centre.z, p)) continue
-    if (p.xPx < 0 || p.yPx < 0 || p.xPx > largeur || p.yPx > hauteur) continue
+    if (horsCanevas(p, largeur, hauteur)) continue
     candidats.push({
       texte: figure.nom,
       categorie: 'CONSTELLATION',
@@ -611,7 +611,7 @@ function passeNomsConstellations(passe: Passe): void {
       if (asterisme.centre === null) continue
       const c = asterisme.centre
       if (!projecteur.projetteEn(c.x, c.y, c.z, p)) continue
-      if (p.xPx < 0 || p.yPx < 0 || p.xPx > largeur || p.yPx > hauteur) continue
+      if (horsCanevas(p, largeur, hauteur)) continue
       candidats.push({
         texte: asterisme.nom,
         categorie: 'CONSTELLATION',

@@ -13,19 +13,20 @@
  */
 
 import { applique, DEG, versSpherique, type Vec3 } from '../core/mat3.ts'
-import { nombre } from '../registry/ecriture.ts'
+import { degres } from '../registry/ecriture.ts'
 import { depuisGalactique } from '../core/galactique.ts'
 import { nanolamberts } from '../core/moon.ts'
 import { brillanceVoieLacteeNl } from '../core/fond-ciel-rendu.ts'
 import { pointEcran, type PointEcranMut, type Projecteur } from '../core/projection.ts'
 import { bandeRealiste, fondRealiste } from './couleurs.ts'
-import { champVisible, horsDuChamp } from './champ-visible.ts'
+import { champVisible, horsCanevas, horsDuChamp } from './champ-visible.ts'
 import { peintLisse } from './lissage.ts'
 import type { CandidatLabel } from '../core/labels.ts'
 import { altitudeCulmination } from '../core/site.ts'
 import { K } from '../registry/constants.ts'
 import { HAUTEUR_LABEL_PX, LARGEUR_CARACTERE_PX, RAYON_CORPS_PX } from './libelles-cibles.ts'
 import type { EntreeDessin } from './dessine-ciel.ts'
+import { QUART_TOUR_DEG, TOUR_DEG, TOUR_RAD } from '../core/unites.ts'
 
 /* Niveaux d'opacité distincts que le canevas sait composer : sa couche alpha tient sur un
    octet. Deux tracés dont les opacités tombent dans le même niveau peignent le même pixel —
@@ -35,8 +36,6 @@ const NIVEAUX_ALPHA = 2 ** 8 - 1
 export const NOM_VOIE_LACTEE = 'Voie lactée'
 
 const PAS_LONGITUDE_GALACTIQUE_DEG = 3
-/** Du plan galactique au pôle : seule borne de l'échantillonnage en latitude. */
-const QUART_TOUR_DEG = 90
 /**
  * T-0103 — pas des tranches de la bande. À 2°, la marche de couleur entre deux tranches
  * voisines vaut 1/255 sur toute la table Bortle : elle est SOUS la quantification de l'écran,
@@ -51,7 +50,7 @@ const PAS_LATITUDE_BANDE_DEG = 2
  * jamais par image. Seule sa projection dépend de l'instant et du zoom.
  */
 export const PLAN_GALACTIQUE: readonly Vec3[] = Array.from(
-  { length: 360 / PAS_LONGITUDE_GALACTIQUE_DEG + 1 },
+  { length: TOUR_DEG / PAS_LONGITUDE_GALACTIQUE_DEG + 1 },
   (_, i) => depuisGalactique(i * PAS_LONGITUDE_GALACTIQUE_DEG, 0),
 )
 
@@ -67,7 +66,7 @@ export const PLAN_GALACTIQUE: readonly Vec3[] = Array.from(
  * quatre cordes, pas une corde unique.
  */
 const PAS_LONGITUDE_BANDE_DEG = 12
-const SEGMENTS_PAR_TRANCHE = 360 / PAS_LONGITUDE_BANDE_DEG
+const SEGMENTS_PAR_TRANCHE = TOUR_DEG / PAS_LONGITUDE_BANDE_DEG
 
 /**
  * T-0091, T-0103, T-0105 — la bande, en tranches de latitude, chacune coupée en segments de
@@ -160,7 +159,7 @@ export function ancreVoieLactee(
   let meilleureDistance = Infinity
   for (const point of PLAN_GALACTIQUE) {
     if (!projecteur.projetteEn(point.x, point.y, point.z, p)) continue
-    if (p.xPx < 0 || p.yPx < 0 || p.xPx > largeur || p.yPx > hauteur) continue
+    if (horsCanevas(p, largeur, hauteur)) continue
     // T-0258 — l'ancre se rapproche du centre de VISÉE : posée au milieu du canevas, l'étiquette
     // se serait rangée sous le panneau de séance, illisible là où elle nomme la bande.
     const distance = Math.hypot(p.xPx - projecteur.centreXPx, p.yPx - projecteur.centreYPx)
@@ -376,12 +375,12 @@ export function repereCentreGalactique(
   }
   const largeur = projecteur.vue.largeurPx
   const hauteur = projecteur.vue.hauteurPx
-  if (p.xPx < 0 || p.yPx < 0 || p.xPx > largeur || p.yPx > hauteur) return null
+  if (horsCanevas(p, largeur, hauteur)) return null
 
   ctx.strokeStyle = couleur
   ctx.beginPath()
   ctx.moveTo(p.xPx + RAYON_CORPS_PX, p.yPx)
-  ctx.arc(p.xPx, p.yPx, RAYON_CORPS_PX, 0, 2 * Math.PI)
+  ctx.arc(p.xPx, p.yPx, RAYON_CORPS_PX, 0, TOUR_RAD)
   ctx.moveTo(p.xPx - RAYON_CORPS_PX * 2, p.yPx)
   ctx.lineTo(p.xPx + RAYON_CORPS_PX * 2, p.yPx)
   ctx.moveTo(p.xPx, p.yPx - RAYON_CORPS_PX * 2)
@@ -395,8 +394,8 @@ export function repereCentreGalactique(
   const seuil = K('SEUIL_HAUTEUR_IMAGERIE_DEG')
   const texte =
     culmination <= seuil
-      ? `${NOM_CENTRE_GALACTIQUE} ${nombre(hauteurCouranteDeg, 0)}° — trop bas pour la photo d’ici`
-      : `${NOM_CENTRE_GALACTIQUE} ${nombre(hauteurCouranteDeg, 0)}°`
+      ? `${NOM_CENTRE_GALACTIQUE} ${degres(hauteurCouranteDeg, 0)} — trop bas pour la photo d’ici`
+      : `${NOM_CENTRE_GALACTIQUE} ${degres(hauteurCouranteDeg, 0)}`
   return {
     texte,
     categorie: 'CONSTELLATION',

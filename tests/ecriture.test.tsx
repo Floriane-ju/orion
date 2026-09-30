@@ -19,7 +19,6 @@ const SRC = join(import.meta.dirname, '..', 'src')
 /** Les seuls `toFixed` admis : ils écrivent une valeur CSS ou une couleur, pas un texte lu. */
 const TOFIXED_MACHINE = new Set([
   'ui/CarteNuit.tsx',
-  'ui/Curseur.tsx',
   'ui/carte-nuit-calcul.ts',
   'ui/couleurs.ts',
 ])

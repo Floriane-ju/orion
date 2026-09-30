@@ -25,8 +25,7 @@ import {
   LIBELLE_INTEGRITE_PAQUET,
   LIBELLE_MODE_RESEAU,
 } from '../registry/libelles.ts'
-
-const OCTETS_PAR_MO = 1024 * 1024
+import { OCTETS_PAR_MO } from '../data/persistence.ts'
 
 /** T-0184 — ce que le tiroir fermé dit de lui-même quand cette section s'alerte. */
 export const ALERTE_VERIFICATION = 'Vérification : données non enregistrées'

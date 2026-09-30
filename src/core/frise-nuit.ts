@@ -17,7 +17,7 @@ import { observateur, positionCorps, versDate } from './ephem.ts'
 import type { FenetreNocturne } from './nuit.ts'
 import { MS_PAR_JOUR } from './horloges.ts'
 import { eclatLuneRelatif } from './moon.ts'
-import { MIN_PAR_H, MS_PAR_MINUTE } from './unites.ts'
+import { encadre, MS_PAR_H, MS_PAR_MINUTE } from './unites.ts'
 
 const DESCENTE = -1
 const MONTEE = +1
@@ -139,8 +139,6 @@ function intervallesLevee(
   return intervalles
 }
 
-const MS_PAR_H = MS_PAR_MINUTE * MIN_PAR_H
-
 function positionsLune(site: Site, debut: Date, fin: Date): readonly PositionLune[] {
   const positions: PositionLune[] = []
   const premiere = Math.ceil(debut.getTime() / MS_PAR_H) * MS_PAR_H
@@ -214,7 +212,7 @@ export interface LectureFrise {
  * segment peint à cet endroit : la bulle ne peut pas contredire le motif qu'elle commente.
  */
 export function lectureFrise(site: Site, frise: FriseNuit, fraction: number): LectureFrise {
-  const borne = Math.min(1, Math.max(0, fraction))
+  const borne = encadre(fraction, 0, 1)
   const t = frise.debut.getTime() + borne * (frise.fin.getTime() - frise.debut.getTime())
   const instant = new Date(t)
   const segment =

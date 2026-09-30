@@ -23,7 +23,8 @@ import {
   valeurQuantifiee,
   type Rail,
 } from './curseur-glisse.ts'
-import { encadre, POURCENT } from '../core/unites.ts'
+import { encadre } from '../core/unites.ts'
+import { pourcentCss } from './carte-nuit-calcul.ts'
 
 
 export interface AccrocheCurseur {
@@ -49,17 +50,13 @@ export interface CurseurProps {
   readonly sur: (valeur: number) => void
 }
 
-function pourcent(fraction: number): string {
-  return `${(fraction * POURCENT).toFixed(2)}%`
-}
-
 function position(fraction: number): CSSProperties {
-  return { left: pourcent(fraction) }
+  return { left: pourcentCss(fraction) }
 }
 
 /** L'abscisse du repère, donnée à la feuille de style : c'est elle qui répartit les entretoises. */
 function abscisse(fraction: number): CSSProperties {
-  return { '--curseur-x': pourcent(fraction) } as CSSProperties
+  return { '--curseur-x': pourcentCss(fraction) } as CSSProperties
 }
 
 export function Curseur(props: CurseurProps) {

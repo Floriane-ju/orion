@@ -107,14 +107,6 @@ export const MATRICE_DEGRADATION: readonly LigneDegradation[] = Object.freeze([
   },
 ].map(Object.freeze) as LigneDegradation[])
 
-export function fonctionsIndisponibles(): readonly LigneDegradation[] {
-  return MATRICE_DEGRADATION.filter((ligne) => ligne.horsReseau === 'TOMBE')
-}
-
-export function noyauHorsLigne(): readonly LigneDegradation[] {
-  return MATRICE_DEGRADATION.filter((ligne) => ligne.horsReseau === 'COMPLET')
-}
-
 export function modeReseauCourant(): ModeReseau {
   // Hors navigateur — tests, rendu serveur — `onLine` n'existe pas : ne pas confondre
   // « information indisponible » avec « hors ligne », sous peine de bloquer les

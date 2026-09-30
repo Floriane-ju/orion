@@ -10,7 +10,6 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { K } from '../src/registry/constants.ts'
-import type { Site } from '../src/core/ephem.ts'
 import { fovMaxSelonMode } from '../src/core/projection.ts'
 import { masquePlat } from '../src/core/site.ts'
 import { pointZeroSysteme } from '../src/data/equipment.ts'
@@ -33,8 +32,8 @@ import {
   type ParcoursScene,
 } from '../src/ui/scene-etat.ts'
 import { epoqueAffichee } from '../src/App.tsx'
+import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
-const SITE: Site = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 
 const MATERIEL = {
   site: SITE,

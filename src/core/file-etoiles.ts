@@ -30,7 +30,6 @@ import { pointEcran, porteeUtilePx, type PointEcran, type Projecteur, type Vue }
 import { trace, type Traced } from './traced.ts'
 import { DEMI_TOUR_DEG, ecartCourt, encadre, MIN_PAR_H, ramene, TOUR_RAD } from './unites.ts'
 
-
 export interface PositionPole {
   /** **Doit piloter l'affichage** : hors cadre, les arcs restent centrés hors du canevas. */
   readonly dansCadre: boolean
@@ -198,9 +197,7 @@ export function arcsVisibles(
   // les tours multiples s'y résorbent, et le tri suffit ensuite.
   const coupures: number[] = [0, etendue]
   const ajoute = (angleRad: number): void => {
-    let t = ((angleRad - debutRad) * sens) % TOUR_RAD
-    if (t < 0) t += TOUR_RAD
-    for (; t < etendue; t += TOUR_RAD) coupures.push(t)
+    for (let t = ramene((angleRad - debutRad) * sens, TOUR_RAD); t < etendue; t += TOUR_RAD) coupures.push(t)
   }
   for (const x of [-margePx, vue.largeurPx + margePx]) {
     const cos = (x - cx) / r

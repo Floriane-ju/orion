@@ -8,7 +8,6 @@
 
 import { describe, expect, it } from 'vitest'
 import {
-  REFUS_SANS_PROFIL,
   angleGrandAxeDansCadre,
   cibleDominante,
   contourCadreJ2000,
@@ -315,14 +314,6 @@ describe('remplissage orienté §6.2 après rotation du boîtier §3.5', () => {
     const droit = ficheCadrage(ronde).remplissage.value
     const tourne = ficheCadrage({ ...ronde, angleGrandAxeDeg: 45 }).remplissage.value
     expect(tourne).toBeCloseTo(droit, 9)
-  })
-})
-
-describe('garde-fous du cadre §3.5', () => {
-  // T-0153 — le refus n'a plus d'écran : le menu d'information qui le portait est démonté.
-  // Reste la règle elle-même, qui interdit au moteur d'inventer un cadre sans profil.
-  it('refuse d’inventer un cadre sans profil déclaré', () => {
-    expect(REFUS_SANS_PROFIL).toMatch(/Pas de cadre/)
   })
 })
 

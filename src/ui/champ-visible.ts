@@ -8,7 +8,7 @@
  */
 
 import { angleDeCosDeg, type Vec3 } from '../core/mat3.ts'
-import { rayonChampDeg, type Projecteur } from '../core/projection.ts'
+import { type PointEcran, type Projecteur, rayonChampDeg } from '../core/projection.ts'
 
 export interface ChampVisible {
   readonly centre: Vec3
@@ -33,4 +33,9 @@ export function horsDuChamp(champ: ChampVisible, centre: Vec3, demiExtensionDeg:
     champ.centre.x * centre.x + champ.centre.y * centre.y + champ.centre.z * centre.z
   const separationDeg = angleDeCosDeg(cos)
   return separationDeg > champ.rayonDeg + demiExtensionDeg
+}
+
+/** Vrai quand un point projeté tombe hors du canevas : il ne se peint pas. */
+export function horsCanevas(p: PointEcran, largeur: number, hauteur: number): boolean {
+  return p.xPx < 0 || p.yPx < 0 || p.xPx > largeur || p.yPx > hauteur
 }

@@ -22,10 +22,13 @@ import { nomComplet } from '../data/constellations.ts'
 import type { CibleEcran } from './dessine-ciel.ts'
 import { SANS_NOM } from '../registry/libelles.ts'
 import { nomCommun } from './libelles-objet.ts'
+import { POLICE_SCENE } from './couleurs.ts'
 
 /* T-0027 — noms des éléments trop petits à l'écran une fois le canevas 1920×1080 réduit à
    la taille d'affichage réelle (object-fit: contain). */
 export const HAUTEUR_LABEL_PX = 18
+/** La police des noms peints sur la scène : une écriture, pour que tous les labels se mesurent pareil. */
+export const POLICE_LABEL = `${HAUTEUR_LABEL_PX}px ${POLICE_SCENE}`
 export const LARGEUR_CARACTERE_PX = 10
 export const MARQUEUR_OBJET_PX = 4
 export const RAYON_CORPS_PX = 5

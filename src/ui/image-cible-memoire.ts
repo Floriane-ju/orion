@@ -31,6 +31,7 @@ import type { ImageStockee } from '../data/db.ts'
 import { modeReseauCourant } from '../data/degradation.ts'
 import { imageEnCache, resoudImage } from '../data/imagerie-cible.ts'
 import { I } from '../registry/imagerie.ts'
+import { creeAbonnes } from './abonnes.ts'
 
 export interface ImageAffichable {
   readonly image: ImageStockee
@@ -57,15 +58,10 @@ const absentesDuCache = new Set<string>()
  * a constaté l'absence s'est inscrite dans `absentesDuCache` et ne redemande plus jamais.
  * Même patron que [[seance-etat]] — un magasin de module, lisible sans DOM.
  */
-const abonnes = new Set<() => void>()
+const abonnes = creeAbonnes()
 
 /** L'abonnement du magasin : le rendu React l'emploie, les tests aussi — sans DOM. */
-export function abonneImages(notifie: () => void): () => void {
-  abonnes.add(notifie)
-  return () => {
-    abonnes.delete(notifie)
-  }
-}
+export const abonneImages = abonnes.abonne
 
 function retient(image: ImageStockee): ImageAffichable {
   const connue = trouvees.get(image.designation)
@@ -74,7 +70,7 @@ function retient(image: ImageStockee): ImageAffichable {
   trouvees.set(image.designation, affichable)
   absentesDuCache.delete(image.designation)
   // Après l'écriture, jamais avant : un abonné réveillé relit la mémoire.
-  for (const notifie of abonnes) notifie()
+  abonnes.notifie()
   return affichable
 }
 
@@ -208,7 +204,7 @@ export function oublieImages(): void {
   for (const { url } of trouvees.values()) URL.revokeObjectURL(url)
   trouvees.clear()
   absentesDuCache.clear()
-  abonnes.clear()
+  abonnes.vide()
   enAttente.length = 0
   dernierJeu = null
   generation += 1

@@ -25,6 +25,7 @@ import {
   litScenePersistee,
   type ScenePersistee,
 } from '../data/scene-persistee.ts'
+import { creeAbonnes } from './abonnes.ts'
 
 /**
  * Résolution de rendu de référence, celle du viewport de §3.2. Ce n'est plus qu'un point de
@@ -313,18 +314,11 @@ function restaure(depart: EtatScene, lu: ScenePersistee): EtatScene {
 }
 
 let etat: EtatScene = restaure(ETAT_INITIAL, litScenePersistee())
-const abonnes = new Set<() => void>()
+const { abonne, notifie } = creeAbonnes()
 
 /** Instantané courant. Son identité ne change qu'à une écriture : `useSyncExternalStore` s'y fie. */
 export function etatScene(): EtatScene {
   return etat
-}
-
-function abonne(notifie: () => void): () => void {
-  abonnes.add(notifie)
-  return () => {
-    abonnes.delete(notifie)
-  }
 }
 
 type Retouche<T> = Partial<T> | ((precedent: T) => Partial<T>)
@@ -338,7 +332,7 @@ function applique<T extends object>(precedent: T, retouche: Retouche<T>): T {
 
 function pose(suivant: EtatScene): void {
   etat = suivant
-  for (const notifie of abonnes) notifie()
+  notifie()
 }
 
 /**

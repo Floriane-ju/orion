@@ -26,7 +26,6 @@ import {
   pointZeroSysteme,
 } from '../src/data/equipment.ts'
 import type { ObjetCielProfond, TypeObjet } from '../src/data/deepsky.ts'
-import type { Site } from '../src/core/ephem.ts'
 import {
   conseilsCible,
   evalue,
@@ -36,6 +35,7 @@ import {
 } from '../src/ui/fiche-cible-calcul.ts'
 import { nuitFiche } from '../src/ui/fiche-cible-creneau.ts'
 import { lunePourCible } from '../src/ui/fiche-cible-lune.ts'
+import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
 /**
  * Pas de nuit chiffrable : la fiche n'a alors ni créneau ni masse d'air, et `fluxObjetReel`
@@ -49,7 +49,6 @@ const SANS_CRENEAU: CaptureNuit = {
 }
 
 /** Annexe A : site de référence, et le setup grand champ 120 mm f/2,8 sur plein format. */
-const SITE: Site = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const CAPTEUR = capteurEffectif(BOITIER_REFERENCE, 'FULL_FRAME')
 const OPTIQUE = profilOptique({ focaleMm: 120, ouvertureN: 2.8, ...CAPTEUR })
 const ZERO = pointZeroSysteme(BOITIER_REFERENCE)

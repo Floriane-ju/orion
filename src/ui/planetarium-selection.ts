@@ -10,7 +10,7 @@
  */
 
 import { titreCible } from './libelles-cibles.ts'
-import { nombre } from '../registry/ecriture.ts'
+import { degres, nombre } from '../registry/ecriture.ts'
 import type { SelectionScene } from './scene-etat.ts'
 import type { CibleEcran } from './dessine-ciel.ts'
 import { LIBELLE_TYPE_OBJET } from './libelles-objet.ts'
@@ -33,8 +33,8 @@ export function decritCible(cible: CibleEcran): SelectionScene {
     return {
       titre: titreCible(cible),
       lignes: [
-        `ascension droite ${nombre(c.adH, 3)} h · déclinaison ${nombre(c.decDeg, 2)}°`,
-        `azimut ${nombre(c.azimutDeg, 1)}° · hauteur ${nombre(c.hauteurDeg, 1)}°`,
+        `ascension droite ${nombre(c.adH, 3)} h · déclinaison ${degres(c.decDeg, 2)}`,
+        `azimut ${degres(c.azimutDeg, 1)} · hauteur ${degres(c.hauteurDeg, 1)}`,
       ],
       objet: null,
     }

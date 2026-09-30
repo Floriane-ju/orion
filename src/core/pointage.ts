@@ -28,7 +28,7 @@
  */
 
 import { K } from '../registry/constants.ts'
-import { nombre, nombreLibre } from '../registry/ecriture.ts'
+import { degres, nombre, nombreLibre } from '../registry/ecriture.ts'
 import type { Etoile } from '../data/catalog.ts'
 import { nomComplet, type EtoileNommee } from '../data/constellations.ts'
 import type { Site } from './ephem.ts'
@@ -234,7 +234,7 @@ function directionNord(qDeg: number): { readonly xNord: number; readonly yNord: 
 function phraseOrientation(qDeg: number): string {
   return (
     'Schéma orienté zénith en haut : le nord céleste, marqué dessus, fait ' +
-    `${nombre(Math.abs(qDeg), 0)}° avec la verticale.`
+    `${degres(Math.abs(qDeg), 0)} avec la verticale.`
   )
 }
 
@@ -336,7 +336,7 @@ function carteDirecte(entree: EntreePointage): CartePointage {
         ? ', toutes assez faibles : repérage délicat sous un ciel voilé.'
         : `, la plus brillante : ${designe(premier)}.`) +
       ` Écart : ${nombre(premier.deltaAdH, 3)} h en ascension droite, ` +
-      `${nombre(premier.deltaDecDeg, 2)}° en déclinaison. ${phraseOrientation(orientation.value)}`,
+      `${degres(premier.deltaDecDeg, 2)} en déclinaison. ${phraseOrientation(orientation.value)}`,
   }
 }
 
@@ -419,7 +419,7 @@ function cheminement(entree: EntreePointage): CartePointage {
       deltaDecDeg: 0,
       message: 'Aucun chemin d’étoile en étoile trouvé.',
       cause:
-        `Aucun chemin en ${sautsMax} sauts au plus, de ${nombre(sautMax, 1)}° maximum chacun, ` +
+        `Aucun chemin en ${sautsMax} sauts au plus, de ${degres(sautMax, 1)} maximum chacun, ` +
         `depuis une étoile de magnitude ${nombreLibre(K('MAG_DEPART_CHEMINEMENT_MAX'))}.`,
       contraintesARelacher: [
         `Partir d’une étoile plus faible que magnitude ${nombreLibre(K('MAG_DEPART_CHEMINEMENT_MAX'))}.`,
@@ -451,7 +451,7 @@ function cheminement(entree: EntreePointage): CartePointage {
       `${sauts.length} saut${sauts.length > 1 ? 's' : ''} d’étoile en étoile, depuis ` +
       `${designe(depart)}. Écart total : ` +
       `${nombre(entree.adCibleH - depart.adH, 3)} h en ascension droite, ` +
-      `${nombre(entree.decCibleDeg - depart.decDeg, 2)}° en déclinaison. ` +
+      `${degres(entree.decCibleDeg - depart.decDeg, 2)} en déclinaison. ` +
       phraseOrientation(orientation.value),
   }
 }

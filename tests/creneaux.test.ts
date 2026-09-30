@@ -16,8 +16,8 @@ import {
   NB_AZIMUTS,
   obstructionDeg,
 } from '../src/core/site.ts'
+import { SITE_REFERENCE } from './fixtures.ts'
 
-const SITE_REFERENCE = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const NUIT = fenetreNocturne(SITE_REFERENCE, new Date('2026-08-14T12:00:00Z'))
 const FENETRE = { debut: NUIT.debutNuitAstronomique!, fin: NUIT.finNuitAstronomique! }
 

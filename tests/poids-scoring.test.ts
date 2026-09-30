@@ -20,26 +20,9 @@ import {
 import { scoreGlobal } from '../src/core/session-score.ts'
 import type { ObjetCielProfond } from '../src/data/deepsky.ts'
 import { DOMAINES } from '../src/registry/domains.ts'
+import { objetNebuleuse as objet, SITE_REFERENCE } from './fixtures.ts'
 
-const SITE_REFERENCE = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const NUIT = fenetreNocturne(SITE_REFERENCE, new Date('2026-08-14T12:00:00Z'))
-
-function objet(surcharge: Partial<ObjetCielProfond>): ObjetCielProfond {
-  return {
-    designation: 'TEST',
-    nomsCommuns: '',
-    adDeg: 315,
-    decDeg: 40,
-    type: 'EMISSION',
-    majAxArcmin: 280,
-    minAxArcmin: 220,
-    posAngDeg: null,
-    vMag: 5,
-    bMag: null,
-    surfBr: null,
-    ...surcharge,
-  }
-}
 
 /** Trois cibles cadrables par ce setup, comme dans `plan-session.test.ts`. */
 const CATALOGUE: readonly ObjetCielProfond[] = [

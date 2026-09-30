@@ -12,8 +12,6 @@
  */
 
 import 'fake-indexeddb/auto'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { decodeObjets, type ObjetCielProfond } from '../src/data/deepsky.ts'
 import { db, ecritImage } from '../src/data/db.ts'
@@ -27,17 +25,10 @@ import {
 import { fovDeg } from '../src/core/optics.ts'
 import { DOMAINES } from '../src/registry/domains.ts'
 import { CREDIT_RELEVE, HOTE_DECOUPE, I } from '../src/registry/imagerie.ts'
+import { paquet } from './fixtures.ts'
 
 const ARCMIN_PAR_DEG = 60
 const OCTETS_PAR_KO = 1024
-
-function paquet(nom: string): ArrayBuffer {
-  const octets = readFileSync(join(import.meta.dirname, '..', 'public', 'data', nom))
-  return octets.buffer.slice(
-    octets.byteOffset,
-    octets.byteOffset + octets.byteLength,
-  ) as ArrayBuffer
-}
 
 const CATALOGUE: readonly ObjetCielProfond[] = [
   ...decodeObjets({ enregistrements: paquet('openngc-1.bin'), chaines: paquet('openngc-noms-1.bin') }),

@@ -7,7 +7,7 @@
  *
  * UNE SEULE RÈGLE DE COMPOSITION : les brillances s'additionnent en nanolamberts, jamais en
  * magnitudes. C'est déjà celle de ΔSB_lune (§8.1), et le module la réemploie au lieu de la
- * réécrire : `brillanceLuneNl` et `extinctionV` viennent de `moon.ts`.
+ * réécrire : `brillanceLuneNl` vient de `moon.ts`, `attenuationBrute` d'`exposure.ts`.
  *
  *   B_total(direction) = (B_site + B_crepuscule(φ)) × facteurHaloHorizon(h) + B_lune(ρ, h_lune, α)
  *   Y_ecran            = K_exposition × B_total
@@ -29,14 +29,13 @@ import {
   diffusionKS,
   diffusionMieKS,
   diffusionRayleighKS,
-  extinctionV,
   masseAirKS,
   nanolamberts,
   type GeometrieLune,
 } from './moon.ts'
 import { DEG } from './mat3.ts'
-
-const ANGLE_DROIT_DEG = 90
+import { QUART_TOUR_DEG as ANGLE_DROIT_DEG } from './unites.ts'
+import { attenuationBrute, rapportDeFlux } from './exposure.ts'
 
 /**
  * van Rhijn (1921) — épaisseur relative de la couche émissive vue à la hauteur `h`, rapportée
@@ -61,7 +60,7 @@ export function vanRhijn(hauteurDeg: number): number {
 export function facteurHaloHorizon(hauteurDeg: number): number {
   const masseAir = masseAirKS(hauteurDeg)
   return (
-    (vanRhijn(hauteurDeg) * extinctionV(masseAir)) / extinctionV(masseAirKS(ANGLE_DROIT_DEG))
+    (vanRhijn(hauteurDeg) * attenuationBrute(masseAir)) / attenuationBrute(masseAirKS(ANGLE_DROIT_DEG))
   )
 }
 
@@ -263,21 +262,21 @@ export function masseAirKastenYoung(hauteurDeg: number): number {
 /**
  * Transmission par canal (R, V, B) d'un trajet atmosphérique à cette hauteur, rapportée au
  * ROUGE, le canal le moins éteint : le rougissement retire du vert et du bleu, il n'ajoute
- * jamais de rouge — l'extinction commune, elle, est déjà dans `extinctionV`. Vaut ≈ (1, 1, 1)
+ * jamais de rouge — l'extinction commune, elle, est déjà dans `attenuationBrute`. Vaut ≈ (1, 1, 1)
  * au zénith, vire à l'orangé au ras de l'horizon — c'est tout le couchant.
  */
 export function rougissement(hauteurDeg: number): readonly [number, number, number] {
   const x = masseAirKastenYoung(hauteurDeg)
   const kR = K('EXTINCTION_R_MAG_PAR_MASSE_AIR')
-  const relative = (k: number): number => K('BASE_MAGNITUDE') ** (-((k - kR) * x) / K('POGSON'))
+  const relative = (k: number): number => rapportDeFlux((k - kR) * x)
   return [1, relative(K('EXTINCTION_V_MAG_PAR_MASSE_AIR')), relative(K('EXTINCTION_B_MAG_PAR_MASSE_AIR'))]
 }
 
 /** Éclairement du Soleil éteint par sa masse d'air, sans la règle de l'horizon. */
 function eclairementSoleil(altitudeSoleilDeg: number): number {
   return (
-    K('BASE_MAGNITUDE') ** (-K('KS_MAGNITUDE_SOLEIL') / K('POGSON')) *
-    extinctionV(masseAirKastenYoung(altitudeSoleilDeg))
+    rapportDeFlux(K('KS_MAGNITUDE_SOLEIL')) *
+    attenuationBrute(masseAirKastenYoung(altitudeSoleilDeg))
   )
 }
 
@@ -296,7 +295,7 @@ export function brillanceSoleilNl(entree: GeometrieSoleil): number {
   return (
     diffusionKS(entree.separationDeg) *
     eclairementSoleil(entree.altitudeSoleilDeg) *
-    (1 - extinctionV(masseAirKS(entree.altitudeCibleDeg)))
+    (1 - attenuationBrute(masseAirKS(entree.altitudeCibleDeg)))
   )
 }
 
@@ -332,11 +331,11 @@ export function lueurSoleil(
       ? 0
       : eclairement *
         diffusionRayleighKS(separationDeg) *
-        (1 - extinctionV(masseAirKS(ANGLE_DROIT_DEG))),
+        (1 - attenuationBrute(masseAirKS(ANGLE_DROIT_DEG))),
     mieNl:
       eclairement *
       diffusionMieKS(separationDeg) *
-      (1 - extinctionV(masseAirKS(Math.max(0, hauteurCibleDeg)))) *
+      (1 - attenuationBrute(masseAirKS(Math.max(0, hauteurCibleDeg)))) *
       affaiblissementCrepuscule(-altitudeSoleilDeg),
   }
 }
@@ -351,8 +350,7 @@ function affaiblissementCrepuscule(depressionSolaireDeg: number): number {
   const ici = sbCrepusculeZenith(depressionSolaireDeg)
   if (horizon === null || ici === null) return 0
   const propre =
-    K('BASE_MAGNITUDE') **
-    (-(K('LUEUR_COUCHANT_MAG_PAR_DEG') * depressionSolaireDeg) / K('POGSON'))
+    rapportDeFlux(K('LUEUR_COUCHANT_MAG_PAR_DEG') * depressionSolaireDeg)
   return (propre * nanolamberts(ici.value)) / nanolamberts(horizon.value)
 }
 

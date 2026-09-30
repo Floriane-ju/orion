@@ -15,7 +15,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it } from 'vitest'
 import { App } from '../src/App.tsx'
-import { REFUS_SANS_PROFIL } from '../src/core/cadre.ts'
 import { bornesZoom, etatProfondeur } from '../src/core/projection.ts'
 import { AIDE_MATERIEL_INCOMPLET } from '../src/ui/Inconnu.tsx'
 import { majCatalogue, reinitialiseCatalogue } from '../src/ui/catalogue-etat.ts'
@@ -110,7 +109,6 @@ describe('T-0278 — les surfaces rendues ne promettent rien de faux', () => {
 
   it('les refus de matériel incomplet, qui ne passent par aucun composant', () => {
     verifie(AIDE_MATERIEL_INCOMPLET, 'aide matériel incomplet')
-    verifie(REFUS_SANS_PROFIL, 'refus sans profil')
   })
 
   it('les causes de la projection, affichées en bulle et en survol', () => {

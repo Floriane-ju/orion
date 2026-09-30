@@ -12,9 +12,8 @@ import { applique, transpose, versSpherique, versVecteur, type Vec3 } from '../s
 import { pointEcran, projecteur, type Vue } from '../src/core/projection.ts'
 import { masqueDepuisPoints, masquePlat, obstructionDeg } from '../src/core/site.ts'
 import { projecteurSansSol, sousLeSol } from '../src/core/sol.ts'
-import type { Site } from '../src/core/ephem.ts'
+import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
-const SITE: Site = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const DATE = new Date('2026-08-15T22:00:00Z')
 
 const ciel = cielInstantane(SITE, DATE)

@@ -21,7 +21,7 @@ import {
 import { K } from '../registry/constants.ts'
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
-import { HEURES_PAR_TOUR, ramene } from './unites.ts'
+import { DEG_PAR_HEURE, HEURES_PAR_TOUR, ramene } from './unites.ts'
 
 export interface Site {
   readonly latitudeDeg: number
@@ -70,28 +70,15 @@ export function observateur(site: Site): Observer {
   return new Observer(site.latitudeDeg, site.longitudeDeg, site.altitudeM)
 }
 
-const DEG_PAR_HEURE_HORAIRE = 360 / HEURES_PAR_TOUR
-
 /** Temps sidéral local, en heures. */
 export function tempsSideralLocal(date: Date, longitudeDeg: number): Traced<number> {
   const tsg = SiderealTime(date)
-  const brut = tsg + longitudeDeg / DEG_PAR_HEURE_HORAIRE
+  const brut = tsg + longitudeDeg / DEG_PAR_HEURE
   const tsl = ramene(brut, HEURES_PAR_TOUR)
   return trace({
     value: tsl,
     formula: 'TEMPS_SIDERAL_LOCAL',
     inputs: { tsg_h: tsg, longitude_deg: longitudeDeg },
-  })
-}
-
-/** Décalage angulaire dû à la précession générale, en degrés (§3.1, §3.4). */
-export function precessionDeg(nombreAnnees: number): Traced<number> {
-  const ARCSEC_PAR_DEGRE = 3600
-  return trace({
-    value: (K('PRECESSION_ARCSEC_AN') * nombreAnnees) / ARCSEC_PAR_DEGRE,
-    formula: 'PRECESSION',
-    inputs: { n_annees: nombreAnnees },
-    constants: ['PRECESSION_ARCSEC_AN'],
   })
 }
 

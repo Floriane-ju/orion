@@ -21,10 +21,10 @@ import { observateur, positionCorps, verifieDomaineDesSeries, versDate } from '.
 import type { FenetreNocturne } from './nuit.ts'
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
+import { attenuationBrute, rapportDeFlux } from './exposure.ts'
 import { DEG, separationEquatorialeDeg } from './mat3.ts'
-import { MIN_PAR_H, MS_PAR_MINUTE } from './unites.ts'
+import { MIN_PAR_H, MS_PAR_MINUTE, QUART_TOUR_DEG as ANGLE_DROIT_DEG } from './unites.ts'
 
-const ANGLE_DROIT_DEG = 90
 const JOURS_DE_RECHERCHE = 2
 const DESCENTE = -1
 const MONTEE = 1
@@ -106,24 +106,12 @@ export function nanolamberts(sbMagArcsec2: number): number {
   )
 }
 
-/**
- * Transmission atmosphérique en bande V sur une masse d'air donnée : 10^(−0,4 k X).
- *
- * Exportée parce que le rendu du fond de ciel (T-0098) applique la MÊME extinction au halo
- * du site. Deux écritures de la même atténuation finiraient par diverger d'un facteur 0,4.
- */
-export function extinctionV(masseAir: number): number {
-  return (
-    K('BASE_MAGNITUDE') ** (-(K('EXTINCTION_V_MAG_PAR_MASSE_AIR') * masseAir) / K('POGSON'))
-  )
-}
-
 /** Illuminance hors atmosphère de la Lune à l'angle de phase donné. */
 function illuminanceLune(anglePhaseDeg: number): number {
   const a = Math.abs(anglePhaseDeg)
   const magnitude =
     K('KS_MAGNITUDE_LUNE_PLEINE') + K('KS_COEF_PHASE') * a + K('KS_COEF_PHASE_4') * (a * a) ** 2
-  return K('BASE_MAGNITUDE') ** (-magnitude / K('POGSON'))
+  return rapportDeFlux(magnitude)
 }
 
 /**
@@ -134,8 +122,8 @@ function illuminanceLune(anglePhaseDeg: number): number {
  */
 export function eclatLuneRelatif(anglePhaseDeg: number, hauteurDeg: number): number {
   if (hauteurDeg <= 0) return 0
-  const reference = illuminanceLune(0) * extinctionV(masseAirKS(ANGLE_DROIT_DEG))
-  return (illuminanceLune(anglePhaseDeg) * extinctionV(masseAirKS(hauteurDeg))) / reference
+  const reference = illuminanceLune(0) * attenuationBrute(masseAirKS(ANGLE_DROIT_DEG))
+  return (illuminanceLune(anglePhaseDeg) * attenuationBrute(masseAirKS(hauteurDeg))) / reference
 }
 
 /** Terme de Rayleigh de la diffusion KS91 : large, bleu. */
@@ -179,8 +167,8 @@ export function brillanceLuneNl(entree: GeometrieLune): number {
   return (
     diffusionKS(entree.separationDeg) *
     illuminanceLune(entree.anglePhaseDeg) *
-    extinctionV(masseAirKS(entree.altitudeLuneDeg)) *
-    (1 - extinctionV(masseAirKS(entree.altitudeCibleDeg)))
+    attenuationBrute(masseAirKS(entree.altitudeLuneDeg)) *
+    (1 - attenuationBrute(masseAirKS(entree.altitudeCibleDeg)))
   )
 }
 

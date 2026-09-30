@@ -13,6 +13,7 @@
 
 import type { ModeProjection } from '../core/projection.ts'
 import type { ModeTemps } from '../core/curseur-temps.ts'
+import { QUART_TOUR_DEG as ZENITH_DEG } from '../core/unites.ts'
 
 export interface ScenePersistee {
   readonly vue?: {
@@ -42,9 +43,6 @@ const MODES_PROJECTION: readonly string[] = Object.freeze([
   'MODE_FISHEYE',
 ])
 const MODES_TEMPS: readonly string[] = Object.freeze(['MAINTENANT', 'FIGE', 'DEFILEMENT'])
-/** La hauteur ne dépasse pas le zénith, ni le nadir en négatif. */
-const ZENITH_DEG = 90
-
 type Brut = Record<string, unknown>
 type Test = (v: unknown) => boolean
 

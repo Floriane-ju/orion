@@ -28,7 +28,7 @@ export interface EtatStockage {
   readonly avertissement?: string
 }
 
-const OCTETS_PAR_MO = 1024 * 1024
+export const OCTETS_PAR_MO = 1024 * 1024
 
 export const AVERTISSEMENT_SANS_BASE =
   'Stockage local indisponible : le ciel est chargé pour cette session, mais rien de ce que ' +

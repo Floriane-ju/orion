@@ -11,7 +11,7 @@
  * d'une CONSTANTE reste au contact, dépliée sous sa valeur : c'est §10.2, pas une bibliographie.
  */
 
-import { dureeLisible, nombre, nombreLibre } from '../registry/ecriture.ts'
+import { degres, dureeLisible, nombre, nombreLibre } from '../registry/ecriture.ts'
 import { PRESETS_SNR } from '../registry/verdicts.ts'
 import { libelleZpSource, type PointZeroSysteme } from '../data/equipment.ts'
 import { MANQUANTE } from './ChampsCible.tsx'
@@ -308,7 +308,7 @@ function Plancher({ plancher }: { readonly plancher: Resultat['plancher'] }) {
   const { plusHaut, integration } = plancher
   return (
     <p className="etat">
-      Au plus haut du créneau — {nombre(plusHaut.altitudeDeg, 1)}°
+      Au plus haut du créneau — {degres(plusHaut.altitudeDeg, 1)}
       {plusHaut.instant === null ? '' : `, vers ${heure(plusHaut.instant)}`} :{' '}
       {dureeLisible(integration.tRequisS.value)} et {integration.nPoses.value} poses. Un
       plancher, atteint en ne posant qu’autour de la culmination.

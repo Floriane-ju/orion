@@ -521,6 +521,7 @@ export const FORMULES = Object.freeze({
     section: '3.3',
   },
   DENSITE_GALACTIQUE: {
+    documentaire: true,
     expression: 'densite(b) = d0 × exp( −|b| / 20° )',
     unite: 'étoiles/deg²',
     section: '9.2',

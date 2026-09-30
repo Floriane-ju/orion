@@ -10,8 +10,8 @@ import { friseNuit, lectureFrise } from '../src/core/frise-nuit.ts'
 import { positionCorps } from '../src/core/ephem.ts'
 import { eclatLuneRelatif } from '../src/core/moon.ts'
 import { K } from '../src/registry/constants.ts'
+import { SITE_REFERENCE } from './fixtures.ts'
 
-const SITE_REFERENCE = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const MS_PAR_MINUTE = 60_000
 
 function frise(site: typeof SITE_REFERENCE, dateIso: string) {

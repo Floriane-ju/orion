@@ -22,7 +22,7 @@
  */
 
 import { useEffect, useMemo } from 'react'
-import { dureeLisible, nombre } from '../registry/ecriture.ts'
+import { dureeLisible, nombre, pourcentage } from '../registry/ecriture.ts'
 import {
   ajouteCoordonnees,
   filtreLignes,
@@ -63,7 +63,6 @@ import { ouvreCarte } from './coque-etat.ts'
 import { majCatalogue, useCatalogue } from './catalogue-etat.ts'
 import { minuteAffichee, useTrancheScene } from './scene-etat.ts'
 import { compte } from './horaire.ts'
-import { POURCENT } from '../core/unites.ts'
 
 const DOMAINE_MAG = DOMAINES.m_int
 
@@ -419,5 +418,5 @@ function libellePose(pose: PoseCible): string {
 function libelleEncombrement(ligne: LigneCible): string {
   const { remplissage } = ligne
   if (remplissage === null) return 'dimensions absentes'
-  return `${nombre(remplissage * POURCENT, 0)} % du cadre`
+  return `${pourcentage(remplissage)} du cadre`
 }

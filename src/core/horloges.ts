@@ -24,8 +24,7 @@ import {
 } from './ephem.ts'
 import { DEG, multiplie, rotationX, rotationZ, type Mat3, type Vec3 } from './mat3.ts'
 import { trace, type Traced } from './traced.ts'
-import { DEG_PAR_HEURE, ecartCourt, encadre, HEURES_PAR_TOUR, MS_PAR_MINUTE, MS_PAR_S, ramene, TOUR_DEG } from './unites.ts'
-
+import { ARCSEC_PAR_DEG, DEG_PAR_HEURE, ecartCourt, encadre, HEURES_PAR_TOUR, MS_PAR_MINUTE, MS_PAR_S, ramene, TOUR_DEG } from './unites.ts'
 
 export const MS_PAR_JOUR = K('JOUR_SOLAIRE_S') * MS_PAR_S
 /** J2000,0 tombe à midi, soit une demi-journée après le début du 1er janvier 2000. */
@@ -39,14 +38,18 @@ export function epoqueAnnee(date: Date): number {
   )
 }
 
+/** Décalage angulaire dû à la précession générale sur `annees`, en degrés (§3.1, §3.4). */
+export function decalagePrecessionDeg(annees: number): number {
+  return (K('PRECESSION_ARCSEC_AN') * annees) / ARCSEC_PAR_DEG
+}
+
 /**
  * Précession générale de J2000 vers l'époque donnée, en rotation autour du pôle de
  * l'écliptique. Recalculée à chaque changement d'année entière, jamais à chaque image :
  * en un an, le décalage vaut 50,29", très en dessous du pixel.
  */
 export function matricePrecession(anneeEpoque: number): Mat3 {
-  const ARCSEC_PAR_DEGRE = 3600
-  const psiDeg = (K('PRECESSION_ARCSEC_AN') * (anneeEpoque - K('EPOQUE_J2000_ANNEE'))) / ARCSEC_PAR_DEGRE
+  const psiDeg = decalagePrecessionDeg(anneeEpoque - K('EPOQUE_J2000_ANNEE'))
   const obliquite = K('OBLIQUITE_J2000_DEG')
   return multiplie(rotationX(-obliquite), multiplie(rotationZ(psiDeg), rotationX(obliquite)))
 }
@@ -104,7 +107,7 @@ export interface CielInstantane {
 export function cielInstantane(site: Site, date: Date): CielInstantane {
   const tslH = tempsSideralLocal(date, site.longitudeDeg)
   const annee = epoqueAnnee(date)
-  const ARCSEC_PAR_DEGRE = 3600
+  const anneesPrecession = Math.round(annee) - K('EPOQUE_J2000_ANNEE')
 
   // 24 h sidérales font exactement un tour : un changement d'unité, distinct du taux A-ROT
   // (15,041 °/h de temps SOLAIRE) que §3.2 consomme pour la lisibilité.
@@ -127,9 +130,9 @@ export function cielInstantane(site: Site, date: Date): CielInstantane {
     }),
     epoqueAnnee: annee,
     precessionDeg: trace({
-      value: (K('PRECESSION_ARCSEC_AN') * (Math.round(annee) - K('EPOQUE_J2000_ANNEE'))) / ARCSEC_PAR_DEGRE,
+      value: decalagePrecessionDeg(anneesPrecession),
       formula: 'PRECESSION',
-      inputs: { n_annees: Math.round(annee) - K('EPOQUE_J2000_ANNEE') },
+      inputs: { n_annees: anneesPrecession },
       constants: ['PRECESSION_ARCSEC_AN'],
       note: 'Positions des étoiles corrigées pour la date affichée.',
     }),

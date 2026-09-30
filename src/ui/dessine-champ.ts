@@ -37,13 +37,12 @@ import {
 import type { IndexCiel } from '../core/index-ciel.ts'
 import { magnitudePourEffectif, selectionne } from '../core/index-ciel.ts'
 import { rayonChampDeg, rayonEtoilePx, type Projecteur } from '../core/projection.ts'
-import { angleDeSinDeg, separationDeg, type Vec3 } from '../core/mat3.ts'
+import { angleDeSinDeg, DEG, separationDeg, type Vec3 } from '../core/mat3.ts'
 import { TEINTES, couleurTeinteOpacite, paletteScene, teinte } from './couleurs.ts'
-import { DEMI_TOUR_DEG, encadre, S_PAR_MIN, TOUR_RAD } from '../core/unites.ts'
+import { DEMI_TOUR_DEG, encadre, QUART_TOUR_DEG as DROIT, S_PAR_MIN, TOUR_RAD } from '../core/unites.ts'
 import { RAYON_MIN_ETOILE_PX } from './apparence-objets.ts'
 
 const MARQUEUR_POLE_PX = 14
-const DROIT = 90
 
 /**
  * Ce que la passe tient du matériel et des réglages de §9 — tout ce qui NE dépend PAS de
@@ -290,7 +289,7 @@ function sceneCourante(entree: EntreeDessinChamp): Scene {
     DROIT - angleDeSinDeg(centreJ2000.z)
   const rayonTestDeg = rayonChamp + margePx * degParPx
   const borne = (coDecDeg: number): number =>
-    Math.sin(encadre(DROIT - coDecDeg, -DROIT, DROIT) * (Math.PI / DEMI_TOUR_DEG))
+    Math.sin(encadre(DROIT - coDecDeg, -DROIT, DROIT) * DEG)
   return {
     centreJ2000,
     rayonSelectionDeg: Math.min(DEMI_TOUR_DEG, rayonChamp + longueurArcDeg(dureeMin, 0).value),

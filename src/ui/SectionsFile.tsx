@@ -6,7 +6,7 @@
  */
 
 import { DOMAINES } from '../registry/domains.ts'
-import { formatePose, nombre, nombreLibre } from '../registry/ecriture.ts'
+import { degres, formatePose, nombre, nombreLibre, pourcentage } from '../registry/ecriture.ts'
 import { vignettageDiaph } from '../core/galactique.ts'
 import { libelleZpSource, type PointZeroSysteme } from '../data/equipment.ts'
 import type { ModeProjection } from '../core/projection.ts'
@@ -26,7 +26,7 @@ import { TracedValue } from './TracedValue.tsx'
 import { Etiquette } from './Terme.tsx'
 import type { LecturesFile } from './panneau-file-lectures.ts'
 import { Mention } from './Mention.tsx'
-import { POURCENT, S_PAR_MIN } from '../core/unites.ts'
+import { S_PAR_MIN } from '../core/unites.ts'
 
 
 interface CadrageProps {
@@ -246,8 +246,8 @@ export function ArcsDuFile({
       <p className="etat">
         <Etiquette cle="pole_celeste" /> :{' '}
         {diagnostic.pole.dansCadre ? 'dans le cadre' : 'hors du cadre'} · hauteur{' '}
-        {nombre(diagnostic.pole.altitudeDeg, 1)}° · azimut {nombreLibre(diagnostic.pole.azimutDeg)}° ·{' '}
-        {nombre(diagnostic.fractionHauteurCadre * POURCENT, 0)} % de la hauteur du cadre
+        {degres(diagnostic.pole.altitudeDeg, 1)} · azimut {nombreLibre(diagnostic.pole.azimutDeg)}° ·{' '}
+        {pourcentage(diagnostic.fractionHauteurCadre)} de la hauteur du cadre
       </p>
       {diagnostic.messages.map((message) => (
         <Mention ton="cause" key={message}>

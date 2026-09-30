@@ -15,7 +15,7 @@
  */
 
 import { K } from '../registry/constants.ts'
-import { nombre } from '../registry/ecriture.ts'
+import { degres } from '../registry/ecriture.ts'
 import { RAPPORT_AXES_ORIENTATION } from '../registry/verdicts.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { directionDuPlan, matriceVue, rayonProjete, type ModeProjection } from './projection.ts'
@@ -139,11 +139,6 @@ export function cellulesCadreJ2000(
   }
   return cellules
 }
-
-/** §3.5 — le refus de fabriquer un cadre en l'absence de profil déclaré. */
-export const REFUS_SANS_PROFIL =
-  'Pas de cadre : renseignez le capteur dans la carte Boîtier, la focale et l’ouverture ' +
-  'dans la carte Optique.'
 
 // ---------------------------------------------------------------------------
 // Cible dominante et rotation suggérée
@@ -296,7 +291,7 @@ export function rotationSuggeree(
   return {
     angleDeg,
     message:
-      `Tournez de ${nombre(angleDeg, 0)}° pour aligner ${cible.objet.designation} sur la ` +
+      `Tournez de ${degres(angleDeg, 0)} pour aligner ${cible.objet.designation} sur la ` +
       'longueur du capteur. Valable à cette heure seulement.',
   }
 }

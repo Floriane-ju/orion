@@ -17,7 +17,6 @@ import { gaiaCharge } from './data/bootstrap.ts'
 import { Coque } from './ui/Coque.tsx'
 import { Planetarium } from './ui/Planetarium.tsx'
 import { PanneauMateriel } from './ui/PanneauMateriel.tsx'
-import { modeObjectif } from './core/optics.ts'
 import { useTrancheScene, type EtatScene } from './ui/scene-etat.ts'
 import { ouvreCible, useSeance } from './ui/seance-etat.ts'
 import { BarreHaut } from './ui/BarreHaut.tsx'
@@ -176,10 +175,8 @@ function AppPrete({
       enAvant={enAvant}
       constellations={catalogues.constellations}
       profils={chaine.profilsCadre}
-      mLimOeil={ciel.ciel.mLimOeil.value}
       sbCiel={ciel.ciel.sbCiel.value}
       gaiaCharge={gaia}
-      modeObjectif={modeObjectif(materiel.typeObjectif)}
       modeNuit={modeNuit.actif}
       {...(chaine.materielFile === null ? {} : { file: chaine.materielFile })}
       surSelectionObjet={ouvreCible}
@@ -198,7 +195,6 @@ function AppPrete({
     cibleDuCiel: cibleDuCiel ?? null,
     gaiaCharge: gaia,
     epoqueAnnee: anneeEpoque,
-    modeNuitActif: modeNuit.actif,
   }
 
   return (

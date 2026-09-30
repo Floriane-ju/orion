@@ -14,6 +14,7 @@
 import { K } from '../registry/constants.ts'
 import { nombre } from '../registry/ecriture.ts'
 import { trace, type Traced } from './traced.ts'
+import { S_PAR_H } from './unites.ts'
 
 export type ModeTemps = 'MAINTENANT' | 'FIGE' | 'DEFILEMENT'
 
@@ -34,7 +35,6 @@ export function pxParDegre(largeurPx: number, fovDeg: number): number {
 
 /** v_ecran = 15,041 × facteur × px_par_degre / 3600. */
 export function vitesseEcran(facteurVitesse: number, pxParDeg: number): Traced<number> {
-  const S_PAR_H = 3600
   return trace({
     value: (K('ROTATION_CIEL_DEG_H') * facteurVitesse * pxParDeg) / S_PAR_H,
     formula: 'VITESSE_ECRAN',
@@ -45,7 +45,6 @@ export function vitesseEcran(facteurVitesse: number, pxParDeg: number): Traced<n
 
 /** facteur_max = 600 × 3600 / (15,041 × px_par_degre) — recalculé à chaque zoom. */
 export function facteurMax(pxParDeg: number): Traced<number> {
-  const S_PAR_H = 3600
   return trace({
     value: (K('V_ECRAN_REPLIEMENT_PX_S') * S_PAR_H) / (K('ROTATION_CIEL_DEG_H') * pxParDeg),
     formula: 'FACTEUR_VITESSE_MAX',

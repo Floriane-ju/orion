@@ -14,7 +14,7 @@
  */
 
 import type { Mat3 } from '../core/mat3.ts'
-import { nombre } from '../registry/ecriture.ts'
+import { degres } from '../registry/ecriture.ts'
 import { applique, versSpherique, versVecteur } from '../core/mat3.ts'
 import { projecteur } from '../core/projection.ts'
 import { vuePlanetarium, type VueScene } from './scene-etat.ts'
@@ -83,7 +83,7 @@ const DECIMALES_COURT: Readonly<Record<ChampVisee, number>> = Object.freeze({
 
 /** La valeur d'un champ de la barre haute, telle qu'elle s'y écrit. */
 export function courtVisee(champ: ChampVisee, valeurDeg: number): string {
-  return `${nombre(valeurDeg, DECIMALES_COURT[champ])}°`
+  return `${degres(valeurDeg, DECIMALES_COURT[champ])}`
 }
 
 export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly SegmentVisee[] {
@@ -93,7 +93,7 @@ export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly Segmen
       champ: 'AD',
       libelle: 'Ascension droite visée',
       valeurDeg: visee.longitudeDeg,
-      texte: `${nombre(visee.longitudeDeg, DECIMALES_VISEE)}° AD`,
+      texte: `${degres(visee.longitudeDeg, DECIMALES_VISEE)} AD`,
       avant: 'visée ',
       prefixe: 'AD',
       court: courtVisee('AD', visee.longitudeDeg),
@@ -102,7 +102,7 @@ export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly Segmen
       champ: 'DEC',
       libelle: 'Déclinaison visée',
       valeurDeg: visee.latitudeDeg,
-      texte: `${nombre(visee.latitudeDeg, DECIMALES_VISEE)}° δ`,
+      texte: `${degres(visee.latitudeDeg, DECIMALES_VISEE)} δ`,
       avant: ' / ',
       prefixe: 'δ',
       court: courtVisee('DEC', visee.latitudeDeg),
@@ -111,7 +111,7 @@ export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly Segmen
       champ: 'AZIMUT',
       libelle: 'Azimut',
       valeurDeg: vue.azimutDeg,
-      texte: `${nombre(vue.azimutDeg, DECIMALES_POINTAGE)}°`,
+      texte: `${degres(vue.azimutDeg, DECIMALES_POINTAGE)}`,
       avant: ' · azimut ',
       prefixe: 'AZ',
       court: courtVisee('AZIMUT', vue.azimutDeg),
@@ -120,7 +120,7 @@ export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly Segmen
       champ: 'HAUTEUR',
       libelle: 'Hauteur',
       valeurDeg: vue.hauteurDeg,
-      texte: `${nombre(vue.hauteurDeg, DECIMALES_POINTAGE)}°`,
+      texte: `${degres(vue.hauteurDeg, DECIMALES_POINTAGE)}`,
       avant: ', hauteur ',
       prefixe: 'H',
       court: courtVisee('HAUTEUR', vue.hauteurDeg),
@@ -129,7 +129,7 @@ export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly Segmen
       champ: 'FOV',
       libelle: 'Champ de vision',
       valeurDeg: vue.fovDeg,
-      texte: `${nombre(vue.fovDeg, DECIMALES_CHAMP)}°`,
+      texte: `${degres(vue.fovDeg, DECIMALES_CHAMP)}`,
       avant: ' · champ ',
       prefixe: 'CH',
       court: courtVisee('FOV', vue.fovDeg),
@@ -138,7 +138,7 @@ export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly Segmen
       champ: 'ROTATION',
       libelle: 'Rotation du cadre',
       valeurDeg: vue.rotationCadreDeg,
-      texte: `${nombre(vue.rotationCadreDeg, DECIMALES_POINTAGE)}°`,
+      texte: `${degres(vue.rotationCadreDeg, DECIMALES_POINTAGE)}`,
       avant: ' · rotation ',
       prefixe: 'ROT',
       court: courtVisee('ROTATION', vue.rotationCadreDeg),

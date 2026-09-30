@@ -14,8 +14,8 @@ import { DOMAINES } from '../src/registry/domains.ts'
 import { planSession, type ContexteSession } from '../src/core/session.ts'
 import type { ObjetCielProfond } from '../src/data/deepsky.ts'
 import { CAUSE_NUIT_NON_CHIFFREE, nuitFiche } from '../src/ui/fiche-cible-creneau.ts'
+import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
-const SITE = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const NUIT = fenetreNocturne(SITE, new Date('2026-08-14T12:00:00Z'))
 
 const CONTEXTE: ContexteSession = {

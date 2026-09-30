@@ -17,7 +17,6 @@ import {
   type Vue,
 } from '../src/core/projection.ts'
 import { versSpherique } from '../src/core/mat3.ts'
-import type { Site } from '../src/core/ephem.ts'
 import { TYPES_OBJET, type ObjetCielProfond } from '../src/data/deepsky.ts'
 import { interpoleBortle } from '../src/registry/bortle.ts'
 import { APPARENCE_OBJET, teintesObjets } from '../src/ui/apparence-objets.ts'
@@ -30,8 +29,8 @@ import {
   luminanceRelative,
   rapportContraste,
 } from '../src/ui/couleurs.ts'
+import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
-const SITE: Site = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const DATE = new Date('2026-08-15T22:00:00Z')
 const LARGEUR = 960
 const HAUTEUR = 540

@@ -17,9 +17,8 @@ import type { Etoile } from '../src/data/catalog.ts'
 import { construitIndex, selectionne } from '../src/core/index-ciel.ts'
 import { cielInstantane } from '../src/core/horloges.ts'
 import { magnitudeLimite, projecteur, type Vue } from '../src/core/projection.ts'
-import type { Site } from '../src/core/ephem.ts'
+import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
-const SITE: Site = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 
 /** Générateur congruentiel : le catalogue de test doit être reproductible d'un run à l'autre. */
 function alea(graine: number): () => number {

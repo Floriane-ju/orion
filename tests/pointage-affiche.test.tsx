@@ -17,8 +17,8 @@ import { K } from '../src/registry/constants.ts'
 import type { Etoile } from '../src/data/catalog.ts'
 import type { EtoileNommee } from '../src/data/constellations.ts'
 import type { ObjetCielProfond } from '../src/data/deepsky.ts'
+import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
-const SITE = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const DATE = new Date('2026-08-14T22:30:00Z')
 const DEG_PAR_HEURE = 15
 const POURCENT = 100

@@ -18,12 +18,12 @@ import {
   pasEphemeridesMs,
   positionsInterpolees,
 } from '../src/core/horloges.ts'
-import { Body, positionCorps, type Site } from '../src/core/ephem.ts'
+import { Body, positionCorps } from '../src/core/ephem.ts'
 import { applique, separationDeg, versSpherique, versVecteur } from '../src/core/mat3.ts'
 import { K } from '../src/registry/constants.ts'
+import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
 /** Site de référence de l'Annexe A. */
-const SITE: Site = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 
 describe('rotation du ciel §3.1', () => {
   it('place le zénith et les points cardinaux dans le repère du site', () => {

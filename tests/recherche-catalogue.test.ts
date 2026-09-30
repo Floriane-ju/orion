@@ -6,28 +6,11 @@
  * qui touche le vrai catalogue est la portée : elle ne s'arrête pas au plafond de rendu.
  */
 
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { chercheCatalogue } from '../src/core/recherche-catalogue.ts'
 import { decodeObjets, type ObjetCielProfond } from '../src/data/deepsky.ts'
 import { NOMS_FR } from '../src/registry/noms-fr.ts'
-
-function objet(partiel: Partial<ObjetCielProfond> & { designation: string }): ObjetCielProfond {
-  return {
-    nomsCommuns: '',
-    adDeg: 0,
-    decDeg: 0,
-    type: 'GALAXIE',
-    majAxArcmin: 10,
-    minAxArcmin: 6,
-    posAngDeg: null,
-    vMag: 8,
-    bMag: null,
-    surfBr: null,
-    ...partiel,
-  }
-}
+import { objetGalaxie as objet, paquet } from './fixtures.ts'
 
 const M45 = objet({
   designation: 'M45',
@@ -121,14 +104,6 @@ describe('chercheCatalogue — la portée n’est pas le rendu', () => {
  * « andromède » contre « Andromeda Galaxy ». Un catalogue forgé ne peut pas le montrer —
  * il porterait déjà l'orthographe qu'on veut vérifier.
  */
-function paquet(nom: string): ArrayBuffer {
-  const octets = readFileSync(join(import.meta.dirname, '..', 'public', 'data', nom))
-  return octets.buffer.slice(
-    octets.byteOffset,
-    octets.byteOffset + octets.byteLength,
-  ) as ArrayBuffer
-}
-
 const REEL: readonly ObjetCielProfond[] = [
   ...decodeObjets({
     enregistrements: paquet('openngc-1.bin'),

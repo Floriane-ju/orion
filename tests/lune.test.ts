@@ -18,8 +18,8 @@ import {
 import { fenetreNocturne } from '../src/core/nuit.ts'
 import { K } from '../src/registry/constants.ts'
 import { separationEquatorialeDeg } from '../src/core/mat3.ts'
+import { SITE_REFERENCE } from './fixtures.ts'
 
-const SITE_REFERENCE = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const SB_BORTLE_45 = 20.95
 
 function midiUtc(dateIso: string): Date {

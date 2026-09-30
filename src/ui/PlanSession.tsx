@@ -6,7 +6,7 @@
  */
 
 import { useMemo, useState } from 'react'
-import { dureeMinLisible, nombre } from '../registry/ecriture.ts'
+import { degres, dureeMinLisible, nombre } from '../registry/ecriture.ts'
 import { faciliteCible } from '../core/facilite.ts'
 import {
   cartePointage,
@@ -19,7 +19,6 @@ import { manqueIntegration, retournementDansEtape } from '../core/session-nuit.t
 import type { CibleEcartee, EtapePlan, PlanSession as Plan } from '../core/session.ts'
 import type { Site } from '../core/ephem.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
-import type { FenetreUtile } from '../core/moon.ts'
 import type { Etoile } from '../data/catalog.ts'
 import type { EtoileNommee } from '../data/constellations.ts'
 import { K } from '../registry/constants.ts'
@@ -45,7 +44,6 @@ import { DEG_PAR_HEURE, POURCENT } from '../core/unites.ts'
 
 export interface PlanSessionProps {
   readonly plan: Plan
-  readonly fenetreUtile: FenetreUtile
   readonly site: Site
   readonly fovHDeg: number
   readonly fovLDeg: number
@@ -251,9 +249,9 @@ function TableAncrages({ ancrages }: { readonly ancrages: readonly Ancrage[] }) 
               {ancrage.nom === '' ? SANS_NOM : ancrage.nom}
             </td>
             <td>{nombre(ancrage.magV, 1)} mag</td>
-            <td>{nombre(ancrage.separationDeg, 2)}°</td>
+            <td>{degres(ancrage.separationDeg, 2)}</td>
             <td>{nombre(ancrage.deltaAdH, 3)} h</td>
-            <td>{nombre(ancrage.deltaDecDeg, 2)}°</td>
+            <td>{degres(ancrage.deltaDecDeg, 2)}</td>
           </tr>
         ))}
       </tbody>
@@ -429,7 +427,7 @@ export function Pointage(props: PointageProps) {
                 <td>{saut.ordre}</td>
                 <td>{saut.nom === '' ? SANS_NOM : saut.nom}</td>
                 <td>{nombre(saut.magV, 1)} mag</td>
-                <td>{nombre(saut.distanceDeg, 2)}°</td>
+                <td>{degres(saut.distanceDeg, 2)}</td>
               </tr>
             ))}
           </tbody>
@@ -438,7 +436,7 @@ export function Pointage(props: PointageProps) {
 
       <p className="etat">
         <Etiquette cle="decalage_pointage" /> : {nombre(carte.deltaAdH, 3)} h et{' '}
-        {nombre(carte.deltaDecDeg, 2)}°
+        {degres(carte.deltaDecDeg, 2)}
       </p>
       <p className="etat">{RAPPEL_MISE_EN_STATION}</p>
     </>

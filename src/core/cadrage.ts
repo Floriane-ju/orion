@@ -10,7 +10,7 @@
  */
 
 import { K } from '../registry/constants.ts'
-import { nombre } from '../registry/ecriture.ts'
+import { degres, nombre, pourcentage } from '../registry/ecriture.ts'
 import {
   RAPPORT_AXES_ORIENTATION,
   TABLE_CADRAGE,
@@ -19,7 +19,7 @@ import {
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
 import { DEG } from './mat3.ts'
-import { ARCMIN_PAR_DEG, ARCSEC_PAR_ARCMIN, POURCENT } from './unites.ts'
+import { ARCMIN_PAR_DEG, ARCSEC_PAR_ARCMIN } from './unites.ts'
 
 
 export type { VerdictCadrage }
@@ -168,7 +168,7 @@ function orientation(
   return {
     angleBoitierDeg: posAngDeg,
     noteOrientation:
-      `Cible allongée : tournez le boîtier à ${nombre(posAngDeg, 0)}° pour l’aligner sur la ` +
+      `Cible allongée : tournez le boîtier à ${degres(posAngDeg, 0)} pour l’aligner sur la ` +
       'longueur du capteur.',
   }
 }
@@ -192,7 +192,7 @@ export function ficheCadrage(entree: EntreeCadrage): FicheCadrage {
   const causes: string[] = []
   if (!ligne.faisable) {
     causes.push(
-      `${ligne.message} Elle occupe ${nombre(remplissage * POURCENT, 2)} % du cadre.`,
+      `${ligne.message} Elle occupe ${pourcentage(remplissage, 2)} du cadre.`,
     )
   }
   if (tropPetitEnPixels) {

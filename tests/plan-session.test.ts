@@ -24,8 +24,8 @@ import { etatsCibles, photographiable } from '../src/core/cibles-liste.ts'
 import { decodeObjets, type ObjetCielProfond } from '../src/data/deepsky.ts'
 import { K } from '../src/registry/constants.ts'
 import { LIBELLE_CAUSE_ECART, LIBELLE_LOT_CALIBRATION } from '../src/registry/libelles.ts'
+import { objetNebuleuse as objet, SITE_REFERENCE } from './fixtures.ts'
 
-const SITE_REFERENCE = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const NUIT = fenetreNocturne(SITE_REFERENCE, new Date('2026-08-14T12:00:00Z'))
 
 /** Setup ciel profond de l'Annexe A : 120 mm f/2,8 sur plein format. */
@@ -52,23 +52,6 @@ function contexte(surcharge: Partial<ContexteSession> = {}): ContexteSession {
     domaineCpFerme: null,
     snrCible: 10,
     typeMonture: 'TRACKER',
-    ...surcharge,
-  }
-}
-
-function objet(surcharge: Partial<ObjetCielProfond>): ObjetCielProfond {
-  return {
-    designation: 'TEST',
-    nomsCommuns: '',
-    adDeg: 315,
-    decDeg: 40,
-    type: 'EMISSION',
-    majAxArcmin: 280,
-    minAxArcmin: 220,
-    posAngDeg: null,
-    vMag: 5,
-    bMag: null,
-    surfBr: null,
     ...surcharge,
   }
 }

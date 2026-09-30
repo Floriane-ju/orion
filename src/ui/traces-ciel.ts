@@ -14,6 +14,7 @@ import { pointEcran, type Projecteur } from '../core/projection.ts'
 import { horsDuChamp, type ChampVisible } from './champ-visible.ts'
 import type { CoucheTraces } from '../core/constellations.ts'
 import type { EntreeDessin } from './dessine-ciel.ts'
+import { TOUR_DEG } from '../core/unites.ts'
 
 /** Échantillonnage en azimut du cercle d'horizon. */
 const PAS_AZIMUT_HORIZON_DEG = 3
@@ -173,7 +174,7 @@ export function traceHorizon(entree: EntreeDessin, couleur: string, projecteur: 
   const { ctx } = entree
   const versJ2000 = transpose(entree.matriceCiel)
   const points: Vec3[] = []
-  for (let az = 0; az <= 360; az += PAS_AZIMUT_HORIZON_DEG) {
+  for (let az = 0; az <= TOUR_DEG; az += PAS_AZIMUT_HORIZON_DEG) {
     points.push(applique(versJ2000, versVecteur(az, 0)))
   }
   ctx.strokeStyle = couleur

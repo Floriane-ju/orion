@@ -19,7 +19,7 @@
 
 import { K } from '../registry/constants.ts'
 import type { Etoile } from '../data/catalog.ts'
-import { DEG, angleDeCosDeg, versVecteur, type Vec3 } from './mat3.ts'
+import { DEG, angleDeCosDeg, separationDeg, versVecteur, type Vec3 } from './mat3.ts'
 import { dUnBloc, pointDeCoupe, type Decoupable } from './tranches.ts'
 import { encadre, ramene, TOUR_DEG } from './unites.ts'
 
@@ -275,16 +275,7 @@ export function selectionne(
   let etoilesExaminees = 0
 
   for (const cellule of index.cellules) {
-    const cos = Math.max(
-      -1,
-      Math.min(
-        1,
-        centreJ2000.x * cellule.centre.x +
-          centreJ2000.y * cellule.centre.y +
-          centreJ2000.z * cellule.centre.z,
-      ),
-    )
-    const separation = Math.acos(cos) / DEG
+    const separation = separationDeg(centreJ2000, cellule.centre)
     if (separation > rayonChampDeg + cellule.rayonDeg) continue
 
     cellulesRetenues++

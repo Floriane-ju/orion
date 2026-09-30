@@ -8,8 +8,8 @@ import { describe, expect, it } from 'vitest'
 import { fenetreNocturne, offsetMidiSolaireMin } from '../src/core/nuit.ts'
 import { seuilsDeclinaison, masseAir } from '../src/core/site.ts'
 import { HorsDomaineSeriesError, dansLeDomaineDesSeries } from '../src/core/ephem.ts'
+import { SITE_REFERENCE } from './fixtures.ts'
 
-const SITE_REFERENCE = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 
 /** §12.4 : l'écart admis sur un instant est de 2 minutes de temps. */
 const TOLERANCE_INSTANT_MIN = 2

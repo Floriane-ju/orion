@@ -21,8 +21,8 @@ import {
 } from '../src/core/nuit-datee.ts'
 import { K } from '../src/registry/constants.ts'
 import { useSaisieLieu } from '../src/ui/app-saisie.ts'
+import { SITE_REFERENCE } from './fixtures.ts'
 
-const SITE_REFERENCE = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 
 /** Le 18 septembre 2026, en heure locale — le jour civil que l'instant traverse. */
 const LENDEMAIN = { annee: 2026, mois: 8, jour: 18 } as const

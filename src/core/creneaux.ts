@@ -16,7 +16,7 @@
  */
 
 import { Horizon } from 'astronomy-engine'
-import { dureeMinLisible, nombre, nombreLibre } from '../registry/ecriture.ts'
+import { degres, dureeMinLisible, nombreLibre } from '../registry/ecriture.ts'
 import { K } from '../registry/constants.ts'
 import type { TypeMonture } from './suivi.ts'
 import type { Site } from './ephem.ts'
@@ -31,9 +31,7 @@ import {
 } from './site.ts'
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
-import { MS_PAR_MINUTE } from './unites.ts'
-
-const ANGLE_DROIT_DEG = 90
+import { MS_PAR_MINUTE, QUART_TOUR_DEG as ANGLE_DROIT_DEG } from './unites.ts'
 
 export type CauseExclusion = 'HAUTEUR' | 'RELIEF' | 'LUNE' | 'HORS_FENETRE' | 'JAMAIS_LEVE'
 
@@ -209,7 +207,7 @@ function masseAirMoyenneCreneau(visibles: readonly Echantillon[]): Traced<number
       constants: ['HAUTEUR_MIN_MASSE_AIR_DEG'],
       flags: ['HORS_DOMAINE'],
       note:
-        `La cible descend à ${nombre(altMin, 1)}° : trop basse pour chiffrer la masse d’air.`,
+        `La cible descend à ${degres(altMin, 1)} : trop basse pour chiffrer la masse d’air.`,
     })
   }
   const somme = altitudes.reduce((total, alt) => total + masseAirBrute(alt), 0)
@@ -290,7 +288,7 @@ export function creneauCible(entree: EntreeCreneau): CreneauCible {
       causeExclusion: 'HAUTEUR',
       latitudeAccessibleDeg: latitudeAccessible,
       message:
-        `La cible ne monte pas au-delà de ${nombre(altCulmination.value, 1)}° d’ici : trop ` +
+        `La cible ne monte pas au-delà de ${degres(altCulmination.value, 1)} d’ici : trop ` +
         `basse, il faut au moins ${seuil}°.`,
     }
   }
@@ -311,7 +309,7 @@ export function creneauCible(entree: EntreeCreneau): CreneauCible {
       ...commun,
       causeExclusion: 'RELIEF',
       message:
-        `Cachée par le relief (${nombre(obstructionDeg(entree.masque, azimutBloquant), 0)}° ` +
+        `Cachée par le relief (${degres(obstructionDeg(entree.masque, azimutBloquant), 0)} ` +
         `de haut vers l’azimut ${nombreLibre(azimutBloquant)}°).`,
     }
   }

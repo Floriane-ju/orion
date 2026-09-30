@@ -10,9 +10,7 @@ import { DOMAINES, SaisieRefuseeError, valide } from '../registry/domains.ts'
 import type { Flag, Traced } from './traced.ts'
 import { trace } from './traced.ts'
 import { DEG } from './mat3.ts'
-import { ramene, TOUR_DEG } from './unites.ts'
-
-const ANGLE_DROIT_DEG = 90
+import { QUART_TOUR_DEG as ANGLE_DROIT_DEG, ramene, TOUR_DEG } from './unites.ts'
 
 export interface SeuilsSite {
   /** Déclinaison au-delà de laquelle une cible est circumpolaire. */

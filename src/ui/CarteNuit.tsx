@@ -26,7 +26,7 @@ import {
 } from '../core/frise-nuit.ts'
 import type { FenetreNocturne } from '../core/nuit.ts'
 import type { Site } from '../core/ephem.ts'
-import { MS_PAR_MINUTE, POURCENT } from '../core/unites.ts'
+import { encadre, MS_PAR_MINUTE } from '../core/unites.ts'
 import { Mention } from './Mention.tsx'
 import { heure } from './horaire.ts'
 import { minuteAffichee, useTrancheScene } from './scene-etat.ts'
@@ -35,15 +35,16 @@ import {
   bandesPhases,
   curseurInstant,
   disqueLune,
+  type DisqueLune,
   incrustationsLune,
+  LIBELLE_PHASE_CIEL,
   libelleLuneInstant,
   libellePhaseLune,
-  LIBELLE_PHASE_CIEL,
+  type MarqueLune,
   marquesLune,
+  pourcentCss,
   reperesHeures,
   resumeLuneFrise,
-  type DisqueLune,
-  type MarqueLune,
 } from './carte-nuit-calcul.ts'
 
 export interface CarteNuitProps {
@@ -60,12 +61,8 @@ function classePhase(phase: PhaseCiel): string {
   return `phase-${phase.toLowerCase().replace('_', '-')}`
 }
 
-function borne(fraction: number): number {
-  return Math.min(1, Math.max(0, fraction))
-}
-
 function enPourcent(fraction: number): string {
-  return `${(borne(fraction) * POURCENT).toFixed(2)}%`
+  return pourcentCss(encadre(fraction, 0, 1))
 }
 
 export function CarteNuit({ site, nuit }: CarteNuitProps) {
@@ -138,7 +135,7 @@ function Frise({
       parseFloat(getComputedStyle(e.currentTarget).getPropertyValue('--pas-2')) *
       parseFloat(getComputedStyle(document.documentElement).fontSize) /
       cadre.width
-    setSurvol(aimante(borne((e.clientX - cadre.left) / cadre.width), marques, portee))
+    setSurvol(aimante(encadre((e.clientX - cadre.left) / cadre.width, 0, 1), marques, portee))
   }
 
   const resume =
@@ -235,7 +232,7 @@ function BulleFrise({
       <span className="nuit-bulle-trait" style={proprietes({ '--debut': position })} />
       <span
         className="nuit-bulle-corps"
-        style={proprietes({ '--debut': position, '--fraction': borne(fraction).toFixed(4) })}
+        style={proprietes({ '--debut': position, '--fraction': encadre(fraction, 0, 1).toFixed(4) })}
       >
         {/* Le ciel d'abord — l'heure et ce qu'il vaut —, la Lune ensuite, sous un filet. */}
         <span className="nuit-bulle-heure">{heure(lecture.instant)}</span>

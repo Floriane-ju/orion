@@ -10,16 +10,11 @@
  * Usage : `pnpm bench:catalogue`.
  */
 
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
 import { decodeObjets } from '../src/data/deepsky.ts'
 import { cielInstantane } from '../src/core/horloges.ts'
 import { ajouteCoordonnees, lignesCatalogue, lignesInvariantes } from '../src/core/cibles-liste.ts'
-import type { Site } from '../src/core/ephem.ts'
+import { lit, SITE } from './bench-commun.ts'
 
-const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..')
-const SITE: Site = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 
 /** §9.3 — setup de référence : 120 mm f/2.8, plein format, sous Bortle 4,5. */
 const OPTIQUE = { fovHDeg: 16.4, echApx: 10.1, capteurHMm: 24, dMm: 42.86 }
@@ -27,17 +22,9 @@ const CIEL = { sbCiel: 21.0, mLimOeil: 6.1 }
 
 /** Catalogue réel. */
 const CATALOGUE = decodeObjets({
-  enregistrements: lireBinaire('openngc-1.bin'),
-  chaines: lireBinaire('openngc-noms-1.bin'),
+  enregistrements: lit('openngc-1.bin'),
+  chaines: lit('openngc-noms-1.bin'),
 })
-
-function lireBinaire(nom: string): ArrayBuffer {
-  const buffer = readFileSync(join(RACINE, 'public/data', nom))
-  return buffer.buffer.slice(
-    buffer.byteOffset,
-    buffer.byteOffset + buffer.byteLength,
-  ) as ArrayBuffer
-}
 
 // Chauffe.
 const date0 = new Date('2026-08-15T22:00:00Z')

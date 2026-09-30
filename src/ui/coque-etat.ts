@@ -13,6 +13,7 @@
  */
 
 import { useSyncExternalStore } from 'react'
+import { creeAbonnes } from './abonnes.ts'
 
 /** Les cartes posées sur la scène. Chacune est nommée d'après ce qu'elle montre. */
 export type CleCarte = 'SITE' | 'BOITIER' | 'OPTIQUE' | 'PLAN'
@@ -55,22 +56,15 @@ const ETAT_INITIAL: EtatCoque = Object.freeze({
 })
 
 let etat: EtatCoque = ETAT_INITIAL
-const abonnes = new Set<() => void>()
+const { abonne, notifie } = creeAbonnes()
 
 export function etatCoque(): EtatCoque {
   return etat
 }
 
-function abonne(notifie: () => void): () => void {
-  abonnes.add(notifie)
-  return () => {
-    abonnes.delete(notifie)
-  }
-}
-
 function pose(suivant: EtatCoque): void {
   etat = suivant
-  for (const notifie of abonnes) notifie()
+  notifie()
 }
 
 function retoucheCarte(cle: CleCarte, retouche: Partial<EtatCarte>): void {

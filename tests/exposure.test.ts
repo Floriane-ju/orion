@@ -13,7 +13,6 @@ import {
   fluxObjet,
   planIntegration,
   poseUnitaire,
-  snrApres,
 } from '../src/core/exposure.ts'
 import { SaisieRefuseeError } from '../src/registry/domains.ts'
 import { isoRecommande, BOITIER_REFERENCE } from '../src/data/equipment.ts'
@@ -166,8 +165,12 @@ describe('nombre de poses et intégration §7.3', () => {
   })
 
   it('vérifie la formule du rapport signal sur bruit contre sa résolution inverse', () => {
+    // §7.3 écrit dans le sens direct : le SNR atteint après tS d'intégration.
+    const snrApres = (tS: number): number =>
+      (BASE.eObj * tS) /
+      Math.sqrt((BASE.eObj + BASE.eCiel) * tS + (tS / BASE.tPoseS) * BASE.readNoiseE ** 2)
     const plan = planIntegration({ ...BASE, snrCible: 10 })
-    expect(snrApres(BASE, plan.tRequisS.value)).toBeCloseTo(10, 6)
+    expect(snrApres(plan.tRequisS.value)).toBeCloseTo(10, 6)
   })
 
   it('répartit sur plusieurs nuits et prescrit un lot de darks par nuit', () => {

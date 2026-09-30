@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest'
 import type { Etoile } from '../src/data/catalog.ts'
 import { semisGeneratif } from '../src/data/semis.ts'
 import {
-  densiteRelative,
+  densite,
   latitudeGalactiqueDeg,
   magnitudeLimitePrevisu,
   opaciteEtoile,
@@ -23,7 +23,6 @@ import {
 } from '../src/core/galactique.ts'
 import { construitIndex } from '../src/core/index-ciel.ts'
 import { axePoleDeDate, cielInstantane, epoqueAnnee } from '../src/core/horloges.ts'
-import type { Site } from '../src/core/ephem.ts'
 import { versVecteur } from '../src/core/mat3.ts'
 import { arcEtoile, arcInvisible, arcsVisibles } from '../src/core/file-etoiles.ts'
 import { projecteur, type Vue } from '../src/core/projection.ts'
@@ -33,8 +32,8 @@ import { PanneauFile, type PanneauFileProps } from '../src/ui/PanneauFile.tsx'
 import { MENTION_PLAFOND_CHAMP, MENTION_PLAFOND_FILE } from '../src/ui/scene-overlay.ts'
 import { dureeApercuMin, etatSeance, majFile, reinitialiseSeance } from '../src/ui/seance-etat.ts'
 import { K } from '../src/registry/constants.ts'
+import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
-const SITE: Site = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const DATE = new Date('2026-08-15T22:00:00Z')
 const SECONDES_PAR_MINUTE = 60
 const LARGEUR = 800
@@ -226,10 +225,10 @@ describe('§9.2 — coordonnées galactiques', () => {
   })
 
   it('module la densité par la latitude galactique', () => {
-    expect(densiteRelative(0).value).toBeCloseTo(1, 6)
+    expect(densite(0)).toBeCloseTo(1, 6)
     // À une échelle de décroissance, il ne reste que 1/e de la densité du plan.
-    expect(densiteRelative(K('ECHELLE_LATITUDE_GALACTIQUE_DEG')).value).toBeCloseTo(1 / Math.E, 6)
-    expect(densiteRelative(-60).value).toBeLessThan(densiteRelative(-10).value)
+    expect(densite(K('ECHELLE_LATITUDE_GALACTIQUE_DEG'))).toBeCloseTo(1 / Math.E, 6)
+    expect(densite(-60)).toBeLessThan(densite(-10))
   })
 })
 

@@ -11,6 +11,7 @@
 import { useSyncExternalStore } from 'react'
 import { DOMAINES } from '../registry/domains.ts'
 import { TYPES_OBJET, type TypeObjet } from '../data/deepsky.ts'
+import { creeAbonnes } from './abonnes.ts'
 
 export interface EtatCatalogue {
   /**
@@ -33,22 +34,15 @@ const ETAT_INITIAL: EtatCatalogue = Object.freeze({
 })
 
 let etat: EtatCatalogue = ETAT_INITIAL
-const abonnes = new Set<() => void>()
+const { abonne, notifie } = creeAbonnes()
 
 function etatCatalogue(): EtatCatalogue {
   return etat
 }
 
-function abonne(notifie: () => void): () => void {
-  abonnes.add(notifie)
-  return () => {
-    abonnes.delete(notifie)
-  }
-}
-
 export function majCatalogue(retouche: Partial<EtatCatalogue>): void {
   etat = { ...etat, ...retouche }
-  for (const notifie of abonnes) notifie()
+  notifie()
 }
 
 /** Remet le catalogue dans son état de départ. Réservé aux tests. */

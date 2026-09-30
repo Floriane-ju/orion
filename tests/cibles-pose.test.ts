@@ -25,6 +25,7 @@ import { planSession, type ContexteSession } from '../src/core/session.ts'
 import { profilSuivi } from '../src/core/suivi.ts'
 import { K } from '../src/registry/constants.ts'
 import type { ObjetCielProfond } from '../src/data/deepsky.ts'
+import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
 // T-0294 — un espion traversant : le moteur reste le vrai, seuls ses appels se comptent.
 vi.mock('../src/core/session-candidates.ts', async (importeReel) => {
@@ -32,7 +33,6 @@ vi.mock('../src/core/session-candidates.ts', async (importeReel) => {
   return { ...reel, evalueCandidate: vi.fn(reel.evalueCandidate) }
 })
 
-const SITE = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const NUIT = fenetreNocturne(SITE, new Date('2026-08-14T12:00:00Z'))
 
 /** Setup ciel profond de l'Annexe A : 120 mm f/2,8 sur plein format. */

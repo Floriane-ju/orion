@@ -15,12 +15,13 @@
  */
 
 import { K } from '../registry/constants.ts'
-import { nombre } from '../registry/ecriture.ts'
+import { degres, nombre } from '../registry/ecriture.ts'
 import { seuilContraste } from '../registry/contrast.ts'
 import type { FormulaId } from '../registry/formulas.ts'
 import type { TypeObjet } from '../data/deepsky.ts'
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
+import { rapportDeFlux } from './exposure.ts'
 import { ARCSEC_PAR_ARCMIN } from './unites.ts'
 
 
@@ -275,7 +276,7 @@ function verdictVisuel(e: EntreeVerdict): VerdictDetectabilite {
 
 /** Combien de fois le fond de ciel est plus brillant que l'objet, par arcsec². */
 export function rapportAuFondDeCiel(deltaSb: number): number {
-  return K('BASE_MAGNITUDE') ** (-deltaSb / K('POGSON'))
+  return rapportDeFlux(deltaSb)
 }
 
 function explique(
@@ -312,8 +313,8 @@ function messageLune(lune: EtatLune | undefined, modulation: ModulationType): st
     )
   }
   return (
-    `Lune levée à ${nombre(lune.altitudeDeg, 0)}° de hauteur` +
-    `${lune.separationDeg === undefined ? '' : `, à ${nombre(lune.separationDeg, 0)}° de la cible`}` +
+    `Lune levée à ${degres(lune.altitudeDeg, 0)} de hauteur` +
+    `${lune.separationDeg === undefined ? '' : `, à ${degres(lune.separationDeg, 0)} de la cible`}` +
     `. ${modulation.conseil}`
   )
 }

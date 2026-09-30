@@ -47,6 +47,7 @@ import {
   LIBELLE_VERDICT_DETECTABILITE,
   LIBELLE_ZP_SOURCE,
 } from '../src/registry/libelles.ts'
+import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
 /**
  * Une cible du catalogue, avec tout ce qu'il faut pour que la chaîne aille jusqu'au bout :
@@ -200,7 +201,6 @@ afterEach(() => {
 })
 
 /** Le setup ciel profond de l'Annexe A, celui des autres tests de plan : 120 mm f/2,8. */
-const SITE = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 const NUIT = fenetreNocturne(SITE, new Date('2026-08-14T12:00:00Z'))
 
 const CONTEXTE: ContexteSession = {

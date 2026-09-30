@@ -13,7 +13,7 @@ import type { Site } from './ephem.ts'
 import { observateur, verifieDomaineDesSeries, versDate } from './ephem.ts'
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
-import { MIN_PAR_H, MS_PAR_MINUTE } from './unites.ts'
+import { DEG_PAR_HEURE, MIN_PAR_H, MS_PAR_MINUTE } from './unites.ts'
 
 const JOURS_DE_RECHERCHE = 2
 
@@ -66,7 +66,6 @@ export function offsetMidiSolaireMin(
   longitudeDeg: number,
   offsetFuseauH: number,
 ): Traced<number> {
-  const DEG_PAR_HEURE = 360 / 24
   const valeur =
     (longitudeDeg / DEG_PAR_HEURE) * MIN_PAR_H - offsetFuseauH * MIN_PAR_H
   return trace({

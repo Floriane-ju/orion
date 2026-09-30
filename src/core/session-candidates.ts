@@ -7,7 +7,7 @@
  */
 
 import { K } from '../registry/constants.ts'
-import { nombre } from '../registry/ecriture.ts'
+import { degres, nombre } from '../registry/ecriture.ts'
 import { SaisieRefuseeError } from '../registry/domains.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { REMPLISSAGE_MIN_PLANIFIABLE, VERDICTS_PLANIFIABLES } from '../registry/verdicts.ts'
@@ -369,7 +369,7 @@ export function preFiltre(
       ecarte(
         objet,
         'HAUTEUR',
-        `Ne monte pas au-delà de ${nombre(alt, 1)}° d’ici : trop basse, il faut au moins ${seuil}°.`,
+        `Ne monte pas au-delà de ${degres(alt, 1)} d’ici : trop basse, il faut au moins ${seuil}°.`,
       )
       continue
     }

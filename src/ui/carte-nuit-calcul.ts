@@ -5,12 +5,9 @@
  */
 
 import type { FriseNuit, LuneDeLaNuit, PhaseCiel } from '../core/frise-nuit.ts'
-import { degres, nombre } from '../registry/ecriture.ts'
-import { MIN_PAR_H, MS_PAR_MINUTE, POURCENT } from '../core/unites.ts'
+import { degres, pourcentage } from '../registry/ecriture.ts'
+import { MS_PAR_H, POURCENT, QUART_TOUR_DEG as ZENITH_DEG } from '../core/unites.ts'
 import { heure, LOCALE } from './horaire.ts'
-
-const MS_PAR_H = MS_PAR_MINUTE * MIN_PAR_H
-const ZENITH_DEG = 90
 
 /** Le nombre de l'heure, sans son suffixe : « 22 h » ne tient pas dans une graduation. */
 const HEURE_SEULE = new Intl.DateTimeFormat(LOCALE, { hour: '2-digit', hourCycle: 'h23' })
@@ -75,8 +72,9 @@ function fraction(frise: FriseNuit, instant: Date): number {
   return (instant.getTime() - frise.debut.getTime()) / duree
 }
 
-function pourcent(x: number): string {
-  return `${(x * POURCENT).toFixed(2)}%`
+/** Une fraction écrite pour le CSS (« 42.00% ») : une machine la relit, d'où le point. */
+export function pourcentCss(fraction: number): string {
+  return `${(fraction * POURCENT).toFixed(2)}%`
 }
 
 export function bandesPhases(frise: FriseNuit): readonly BandePhase[] {
@@ -84,8 +82,8 @@ export function bandesPhases(frise: FriseNuit): readonly BandePhase[] {
     const a = fraction(frise, s.debut)
     return {
       cle: String(s.debut.getTime()),
-      debut: pourcent(a),
-      largeur: pourcent(fraction(frise, s.fin) - a),
+      debut: pourcentCss(a),
+      largeur: pourcentCss(fraction(frise, s.fin) - a),
       phase: s.phase,
     }
   })
@@ -99,7 +97,7 @@ export function reperesHeures(frise: FriseNuit): readonly Repere[] {
     reperes.push({
       cle: String(t),
       texte: HEURE_SEULE.formatToParts(instant).find((p) => p.type === 'hour')?.value ?? '',
-      position: pourcent(fraction(frise, instant)),
+      position: pourcentCss(fraction(frise, instant)),
       majeur: reperes.length % 2 === 0,
     })
   }
@@ -109,7 +107,7 @@ export function reperesHeures(frise: FriseNuit): readonly Repere[] {
 /** L'instant affiché sur la frise, ou `null` quand il tombe hors de la nuit. */
 export function curseurInstant(frise: FriseNuit, instant: Date): string | null {
   const x = fraction(frise, instant)
-  return x < 0 || x > 1 ? null : pourcent(x)
+  return x < 0 || x > 1 ? null : pourcentCss(x)
 }
 
 export function disqueLune(
@@ -119,7 +117,7 @@ export function disqueLune(
   const k = lune.illumination
   return {
     eclaireADroite: lune.croissante === latitudeDeg >= 0,
-    terminateur: pourcent(Math.abs(1 - 2 * k)),
+    terminateur: pourcentCss(Math.abs(1 - 2 * k)),
     gibbeuse: k > 1 / 2,
   }
 }
@@ -135,7 +133,7 @@ export function incrustationsLune(
     .filter((p) => majeurs.has(String(p.instant.getTime())))
     .map((p) => ({
       cle: String(p.instant.getTime()),
-      position: pourcent(fraction(frise, p.instant)),
+      position: pourcentCss(fraction(frise, p.instant)),
       hauteur: (p.hauteurDeg / ZENITH_DEG).toFixed(3),
       eclat: p.eclat.toFixed(2),
       disque: disqueLune(p, latitudeDeg),
@@ -153,7 +151,7 @@ export interface MarqueLune {
 export function marquesLune(frise: FriseNuit): readonly MarqueLune[] {
   return frise.lune.evenements.map((e) => ({
     cle: String(e.instant.getTime()),
-    position: pourcent(fraction(frise, e.instant)),
+    position: pourcentCss(fraction(frise, e.instant)),
     fraction: fraction(frise, e.instant),
     texte: e.sens === 'LEVER' ? 'Lever de lune' : 'Coucher de lune',
   }))
@@ -188,7 +186,7 @@ export function resumeLuneFrise(lune: LuneDeLaNuit): string {
 
 /** La phase à l'instant pointé : son sens et sa fraction éclairée, « Décroissante 93% ». */
 export function libellePhaseLune(croissante: boolean, illumination: number): string {
-  return `${croissante ? 'Croissante' : 'Décroissante'} ${nombre(illumination * POURCENT)} %`
+  return `${croissante ? 'Croissante' : 'Décroissante'} ${pourcentage(illumination)}`
 }
 
 /**
