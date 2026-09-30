@@ -98,7 +98,7 @@ describe('§9.1 — pose max par déclinaison', () => {
     const echApx = (K('RADIAN_EN_ARCSEC') * GRAND_ANGLE.pitchUm) / (GRAND_ANGLE.focaleMm * 1000)
     // 15,041 "/s à δ = 0 : une pose de 60 s inscrit 902 arcsecondes de traînée.
     const trainee = traceePx(60, 0, echApx)
-    expect(trainee.value * echApx).toBeCloseTo(15.041 * 60, 3)
+    expect(trainee.value * echApx).toBeCloseTo(K('ROTATION_CIEL_DEG_H') * 60, 3)
     // À déclinaison plus élevée, la même pose trace moins.
     expect(traceePx(60, 60, echApx).value).toBeCloseTo(trainee.value / 2, 3)
   })

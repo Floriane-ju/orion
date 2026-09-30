@@ -57,7 +57,7 @@ describe('T-0342 — démarrage sans IndexedDB', () => {
 
   it('l’état de repli nomme une cause au lieu de laisser un écran vide', () => {
     const etat = demarrageEchoue()
-    expect(etat.catalogues.cause).toBeDefined()
+    expect(etat.catalogues.cause).toMatch(/\S/)
     expect(etat.stockage.avertissement).toBe(AVERTISSEMENT_SANS_BASE)
   })
 })

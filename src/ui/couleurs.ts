@@ -473,7 +473,11 @@ function compenseVoile(teinte: string, fond: Composantes, luminanceFond: number)
   if (voile === null) return ajusteContrasteSurFond(teinte, luminanceFond).couleur
   const opacite = Number(voile[5])
   const trait = [Number(voile[2]), Number(voile[3]), Number(voile[4])] as const
-  const surNoir = trait.map((octet) => versLineaire(octet * opacite)) as unknown as Composantes
+  const surNoir: Composantes = [
+    versLineaire(trait[0] * opacite),
+    versLineaire(trait[1] * opacite),
+    versLineaire(trait[2] * opacite),
+  ]
   const cible = composantesDeCss(ajusteContrasteSurFond(css(surNoir), luminanceFond).couleur)
   let requise = opacite
   for (let c = 0; c < trait.length; c++) {

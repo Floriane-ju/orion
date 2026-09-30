@@ -309,9 +309,18 @@ function restaure(depart: EtatScene, lu: ScenePersistee): EtatScene {
     temps.modeTemps === 'MAINTENANT' ? Date.now() + temps.decalageMs : (lu.ms ?? Date.now()),
   )
   instant.ms = ms
-  const couches = Object.fromEntries(
-    Object.entries(depart.rendu.couches).map(([c, v]) => [c, lu.rendu?.couches?.[c] ?? v]),
-  ) as unknown as CouchesActives
+  // Couche par couche plutôt qu'un `fromEntries` retypé : une couche ajoutée à `CouchesActives`
+  // ne compile pas tant qu'elle ne se relit pas ici.
+  const lue = (c: keyof CouchesActives): boolean => lu.rendu?.couches?.[c] ?? depart.rendu.couches[c]
+  const couches: CouchesActives = {
+    figures: lue('figures'),
+    frontieres: lue('frontieres'),
+    asterismes: lue('asterismes'),
+    cadre: lue('cadre'),
+    horizon: lue('horizon'),
+    voieLactee: lue('voieLactee'),
+    sol: lue('sol'),
+  }
   return {
     ...depart,
     vue: { ...vue, fovDeg: Math.min(vue.fovDeg, fovMaxSelonMode(vue.mode)) },

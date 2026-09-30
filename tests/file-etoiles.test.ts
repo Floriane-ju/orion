@@ -179,7 +179,7 @@ describe('§9.3 — brillance de la trace', () => {
 
   it('compte la pose vue par un pixel du capteur, pas par un pixel d’écran', () => {
     // 105,6 "/px traversées à 15,041 "/s : sept secondes par pixel, à l'équateur céleste.
-    expect(poseParPixelS(7200, ECH_10MM, 0)).toBeCloseTo(ECH_10MM / 15.041, 3)
+    expect(poseParPixelS(7200, ECH_10MM, 0)).toBeCloseTo(ECH_10MM / K('ROTATION_CIEL_DEG_H'), 3)
     // Elle NE dépend PAS de la durée du filé : allonger la séquence allonge la trace,
     // il ne l'éclaircit pas.
     expect(poseParPixelS(28800, ECH_10MM, 0)).toBeCloseTo(poseParPixelS(7200, ECH_10MM, 0), 6)

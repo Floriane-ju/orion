@@ -122,6 +122,9 @@ export default defineConfig({
   ],
   test: {
     environment: 'node',
+    // Node ≥ 25 expose un `localStorage` natif qui avertit faute de fichier : les tests qui en
+    // ont besoin posent le leur, le reste doit voir un Node sans stockage, comme avant.
+    execArgv: ['--no-experimental-webstorage'],
     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
   },
 })
