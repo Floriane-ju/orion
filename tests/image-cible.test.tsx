@@ -195,7 +195,9 @@ describe('cadre du capteur §6.2', () => {
   it('réutilise le traitement nocturne de la vignette, sans le redéfinir', () => {
     // Le fondu multiplicatif est déclaré une fois, sur `.image-cible-vue img` — et l'image de
     // l'encart est dedans. Une seconde règle propre à l'encart serait une divergence en
-    // puissance.
-    expect(CSS.match(/mix-blend-mode:\s*multiply/g)).toHaveLength(1)
+    // puissance. Le masque plein écran du mode nuit (T-0185) filtre la page entière, pas
+    // l'image : il est hors du compte.
+    const sansMasque = CSS.replace(/:root\[data-mode-nuit='true'\] body::after \{[^}]*\}/, '')
+    expect(sansMasque.match(/mix-blend-mode:\s*multiply/g)).toHaveLength(1)
   })
 })

@@ -116,8 +116,36 @@ describe('palette du mode nuit §11.1', () => {
   it('n’écrit que du rouge pur : canaux vert et bleu strictement nuls', () => {
     for (const valeur of declarationsCouleur(blocModeNuit())) {
       const noir = /^#000(000)?$/.test(valeur)
-      const rougePur = /^rgb\(\s*calc\(.*\)\s+0\s+0\s*\)$/.test(valeur)
+      const rougePur = /^rgb\(\s*(calc\(.*\)|\d+)\s+0\s+0\s*\)$/.test(valeur)
       expect(noir || rougePur, valeur).toBe(true)
+    }
+  })
+
+  /**
+   * T-0185 — la garantie qui ne dépend d'aucun inventaire : une couche plein écran multiplie
+   * chaque pixel par (255, 0, 0). Ce qui est peint dessous — canevas, photo, ornement natif —
+   * perd son vert et son bleu, quel que soit le chemin qui l'a peint.
+   */
+  it('pose sur toute la page un masque qui annule le vert et le bleu', () => {
+    const masque = CSS.slice(
+      CSS.indexOf(":root[data-mode-nuit='true'] body::after {"),
+      CSS.indexOf('}', CSS.indexOf(":root[data-mode-nuit='true'] body::after {")),
+    )
+    expect(masque).toMatch(/position:\s*fixed;/)
+    expect(masque).toMatch(/inset:\s*0;/)
+    expect(masque).toMatch(/mix-blend-mode:\s*multiply;/)
+    expect(masque).toMatch(/pointer-events:\s*none;/)
+    expect(masque).toMatch(/z-index:\s*var\(--plan-masque\);/)
+    expect(masque).toMatch(/background:\s*var\(--masque-nuit\);/)
+    // Rouge plein, et NON pondéré par la luminance : il multiplie ce qui l'est déjà.
+    expect(paletteDeNuit()['masque-nuit']).toBe('rgb(255 0 0)')
+  })
+
+  it('n’utilise pas la couche du haut, que le masque ne recouvrirait pas', () => {
+    const dossier = join(import.meta.dirname, '..', 'src', 'ui')
+    for (const fichier of readdirSync(dossier).filter((f) => /\.tsx?$/.test(f))) {
+      const texte = readFileSync(join(dossier, fichier), 'utf8')
+      expect(texte, fichier).not.toMatch(/showModal\(|showPopover\(|\bpopover=|<dialog\b/)
     }
   })
 

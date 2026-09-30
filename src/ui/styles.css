@@ -137,6 +137,32 @@
   --barre-encre: rgb(calc(var(--luminance-nuit) * 250) 0 0);
   --barre-survol: rgb(calc(var(--luminance-nuit) * 20) 0 0);
   --barre-survol-encre: rgb(calc(var(--luminance-nuit) * 246) 0 0);
+  --masque-nuit: rgb(255 0 0);
+}
+
+/* §11.1 — LE MASQUE : zéro vert, zéro bleu, par construction et non par inventaire.
+
+   La palette ci-dessus rougit ce que la feuille écrit. Le reste — canevas calculé à
+   l'exécution (ciel, coucher, halos, Voie lactée, teintes d'objets), photos des cibles,
+   ornements du navigateur — passait par autant de chemins qu'il fallait tenir un à un, et la
+   vignette d'une cible y avait échappé. Une couche plein écran MULTIPLIE chaque pixel par
+   (255, 0, 0) : le rouge passe intact, le vert et le bleu tombent à zéro exactement, quel que
+   soit ce qui est peint dessous. Le compositeur fait le calcul ; rien ne s'intercepte.
+
+   `--masque-nuit` n'est pas une couleur de palette mais le multiplicateur neutre du rouge :
+   il ne suit donc pas `--luminance-nuit`, qui est déjà appliquée à ce qu'il filtre.
+
+   Ce qui lui échappe est hors de la page : le pointeur de la souris et le menu natif d'un
+   `<select>` que dessine le système. La couche du haut (`<dialog>` modal, `popover`) y
+   échapperait aussi — `mode-nuit.test.tsx` refuse qu'on l'utilise. */
+:root[data-mode-nuit='true'] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: var(--plan-masque);
+  background: var(--masque-nuit);
+  mix-blend-mode: multiply;
+  pointer-events: none;
 }
 
 /* Passage progressif, jamais un basculement brutal ni un flash (§11.1). */
@@ -286,6 +312,8 @@ pre {
   --plan-page: 6;
   /* La bulle nomme ce qu'on survole, où que ce soit : elle passe devant tout. */
   --plan-bulle: 7;
+  /* Le masque du mode nuit (§11.1) : il filtre tout ce qui est peint, bulle comprise. */
+  --plan-masque: 8;
   /* T-0331 — l'anneau de focus : deux filets, détaché d'autant. */
   --trait-focus: calc(var(--trait) * 2);
   /* T-0331 — le voile d'un flottant posé sur la scène : la scène se devine, le texte se lit. */
@@ -997,7 +1025,13 @@ body {
   --icone-graisse: 400;
 }
 
-/* `cadre` — dans un panneau : un filet discret, qui ne pèse pas sur deux cents lignes. */
+/* `cadre` — dans un panneau : un filet discret, qui ne pèse pas sur deux cents lignes.
+
+   T-0185 — ce filet est sous 3:1, et c'est permis : WCAG 1.4.11 porte sur ce qui IDENTIFIE le
+   contrôle, et ici c'est le glyphe (au --texte, AA) ; l'état enfoncé, lui, se lit au
+   remplissage. La variante `nu` n'a pas de filet du tout pour la même raison. Un filet qui
+   porte l'identification — champ, tiroir, commande flottante sur le ciel — prend
+   --bordure-controle. */
 .bouton-glyphe-cadre {
   border-color: var(--bordure-faible);
 }

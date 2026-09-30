@@ -406,9 +406,12 @@ describe('T-0331 — les échelles de souffle, de graisse, de durée et de pile'
       .map((m) => m[1]!)
       .filter((v) => !/^var\(--plan-[a-z]+\)$/.test(v))
     expect(fautes).toEqual([])
-    // La bulle passe devant tout ce qui la contient : rang le plus haut de la pile.
+    // La bulle passe devant tout ce qui la contient : rang le plus haut de l'interface. Seul le
+    // masque du mode nuit (T-0185) la dépasse — il n'est pas de l'interface, il la filtre.
     const rangs = [...CSS.matchAll(/--plan-([a-z]+):\s*(\d+);/g)].map((m) => [m[1]!, Number(m[2])] as const)
-    const max = Math.max(...rangs.map(([, r]) => r))
-    expect(rangs.find(([nom]) => nom === 'bulle')?.[1]).toBe(max)
+    const rang = (nom: string): number | undefined => rangs.find(([n]) => n === nom)?.[1]
+    const interface_ = rangs.filter(([nom]) => nom !== 'masque').map(([, r]) => r)
+    expect(rang('bulle')).toBe(Math.max(...interface_))
+    expect(rang('masque')).toBeGreaterThan(rang('bulle')!)
   })
 })
