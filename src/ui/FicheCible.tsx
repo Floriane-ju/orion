@@ -14,9 +14,8 @@
  * et c'est la carte qui le dit.
  */
 
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { SaisieRefuseeError } from '../registry/domains.ts'
-import { PRESET_SNR_DEFAUT } from '../registry/verdicts.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { Site } from '../core/ephem.ts'
 import type { CibleEcartee, ContexteSession } from '../core/session-types.ts'
@@ -27,6 +26,7 @@ import { nuitFiche } from './fiche-cible-creneau.ts'
 import { conseilsCible, evalue, type ContexteFiche, type Resultat } from './fiche-cible-calcul.ts'
 import { Mention } from './Mention.tsx'
 import { Etiquette } from './Terme.tsx'
+import { majFiche, useSeance } from './seance-etat.ts'
 
 export { LIBELLE_TYPE_OBJET, libelleObjet } from './libelles-objet.ts'
 
@@ -56,11 +56,8 @@ export interface FicheCibleProps extends ContexteFiche {
 }
 
 export function FicheCible(props: FicheCibleProps) {
-  const [filtreDualBand, setFiltreDualBand] = useState(false)
-  /** §7.2 — mode permissif C-03 = 3, désactivé par défaut : il se choisit, il ne se subit pas. */
-  const [permissif, setPermissif] = useState(false)
-  const [explicationDepliee, setExplicationDepliee] = useState(false)
-  const [snrCible, setSnrCible] = useState(PRESET_SNR_DEFAUT)
+  // T-0362 — les réglages de la fiche vivent dans la séance : ils survivent au rechargement.
+  const { snrCible, permissif, filtreDualBand, explicationDepliee } = useSeance().fiche
 
   const objet = props.objet
   const iso = props.iso
@@ -125,14 +122,15 @@ export function FicheCible(props: FicheCibleProps) {
           r={calcul.r}
           creneau={nuit.creneau}
           snrCible={snrCible}
-          surSnr={setSnrCible}
+          surSnr={(snrCible) => majFiche({ snrCible })}
           zeroSysteme={props.zeroSysteme}
           conseils={conseils}
           permissif={permissif}
-          surPermissif={setPermissif}
+          surPermissif={(permissif) => majFiche({ permissif })}
           filtreDualBand={filtreDualBand}
-          surFiltre={setFiltreDualBand}
-          surDeplie={setExplicationDepliee}
+          surFiltre={(filtreDualBand) => majFiche({ filtreDualBand })}
+          explicationDepliee={explicationDepliee}
+          surDeplie={(explicationDepliee) => majFiche({ explicationDepliee })}
         />
       )}
     </>

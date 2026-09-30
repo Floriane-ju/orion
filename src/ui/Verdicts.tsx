@@ -45,6 +45,7 @@ export interface VerdictsProps {
   readonly surPermissif: (valeur: boolean) => void
   readonly filtreDualBand: boolean
   readonly surFiltre: (valeur: boolean) => void
+  readonly explicationDepliee: boolean
   readonly surDeplie: (valeur: boolean) => void
 }
 
@@ -72,6 +73,7 @@ export function Verdicts(props: VerdictsProps) {
         conseils={props.conseils}
         filtreDualBand={props.filtreDualBand}
         surFiltre={props.surFiltre}
+        explicationDepliee={props.explicationDepliee}
         surDeplie={props.surDeplie}
       />
     </>
@@ -429,12 +431,14 @@ function PourquoiCeVerdict({
   conseils,
   filtreDualBand,
   surFiltre,
+  explicationDepliee,
   surDeplie,
 }: {
   readonly r: Resultat
   readonly conseils: Conseils | null
   readonly filtreDualBand: boolean
   readonly surFiltre: (valeur: boolean) => void
+  readonly explicationDepliee: boolean
   readonly surDeplie: (valeur: boolean) => void
 }) {
   const explique = r.explique
@@ -448,6 +452,7 @@ function PourquoiCeVerdict({
       </Interrupteur>
       <details
         className="tracee"
+        open={explicationDepliee}
         onToggle={(e) => surDeplie((e.currentTarget as HTMLDetailsElement).open)}
       >
         <summary>

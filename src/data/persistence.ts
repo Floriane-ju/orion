@@ -326,20 +326,43 @@ export async function importeFichierUtilisateur(
 /**
  * Réimport sans perte. Les entrées de même identifiant sont remplacées.
  *
- * Les poids de scoring ne vont pas en base : ils appartiennent à la saisie de la séance, pas
- * aux enregistrements. Ils sont rendus à l'appelant, qui les remet à l'écran (§8.3).
+ * Les poids de scoring vont en base avec le reste, et sont aussi rendus à l'appelant, qui les
+ * remet à l'écran (§8.3).
  */
 export async function importeDonneesUtilisateur(donnees: unknown): Promise<PoidsScoring | null> {
   valide(donnees)
   const base = await db()
-  const tx = base.transaction(['sites', 'profils', 'plans'], 'readwrite')
+  const tx = base.transaction(['sites', 'profils', 'plans', 'reglages'], 'readwrite')
   await Promise.all([
     ...donnees.sites.map((site) => tx.objectStore('sites').put(site)),
     ...donnees.profils.map((profil) => tx.objectStore('profils').put(profil)),
     ...donnees.plans.map((plan) => tx.objectStore('plans').put(plan)),
+    // T-0362 — l'import suspend les écritures jusqu'au rechargement : sans cette écriture, le
+    // rechargement relirait les poids d'avant l'import.
+    ...(donnees.poids === undefined
+      ? []
+      : [tx.objectStore('reglages').put(donnees.poids, CLE_POIDS)]),
     tx.done,
   ])
   return donnees.poids ?? null
+}
+
+/**
+ * §8.3 — les poids de scoring réglés, rangés dans `reglages` comme les cibles choisies : un
+ * réglage de séance que l'utilisateur produit, donc IndexedDB et l'export — pas le stockage
+ * local de l'interface. Les ranger n'est pas les apprendre (§2.4) : ce qui revient est ce qui a
+ * été réglé, rien d'autre.
+ */
+const CLE_POIDS = 'poids-scoring'
+
+/** Relus avec le contrôle de l'import : une valeur non conforme rend les valeurs C-15. */
+export async function litPoidsScoring(): Promise<PoidsScoring | null> {
+  const brut = await (await db()).get('reglages', CLE_POIDS)
+  return brut !== undefined && poidsScoring(brut) === null ? (brut as PoidsScoring) : null
+}
+
+export async function enregistrePoidsScoring(poids: PoidsScoring): Promise<void> {
+  await (await db()).put('reglages', { ...poids }, CLE_POIDS)
 }
 
 /**

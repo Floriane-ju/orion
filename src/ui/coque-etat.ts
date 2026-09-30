@@ -14,6 +14,7 @@
 
 import { useSyncExternalStore } from 'react'
 import { creeAbonnes } from './abonnes.ts'
+import { booleen, gardeAuDepart, litLocal, objet } from '../data/stockage-local.ts'
 
 /** Les cartes posées sur la scène. Chacune est nommée d'après ce qu'elle montre. */
 export type CleCarte = 'SITE' | 'BOITIER' | 'OPTIQUE' | 'PLAN'
@@ -55,8 +56,33 @@ const ETAT_INITIAL: EtatCoque = Object.freeze({
   }),
 })
 
-let etat: EtatCoque = ETAT_INITIAL
+const CLE_STOCKAGE = 'orion.coque'
+const CLES_CARTES: readonly CleCarte[] = Object.freeze(['SITE', 'BOITIER', 'OPTIQUE', 'PLAN'])
+
+/**
+ * T-0362, §11.3 — les cartes se rouvrent comme on les a laissées : la séance survit au
+ * rechargement, et une carte qui se referme sous la main au milieu d'une saisie de focale est
+ * exactement le confort de séance perdu.
+ */
+function restaure(depart: EtatCoque): EtatCoque {
+  const cartes = objet(litLocal(CLE_STOCKAGE)?.cartes)
+  if (cartes === null) return depart
+  const ouverte = (cle: CleCarte): boolean => {
+    const lue = objet(cartes[cle])?.ouverte
+    return booleen(lue) ? (lue as boolean) : depart.cartes[cle].ouverte
+  }
+  return {
+    cartes: Object.fromEntries(CLES_CARTES.map((c) => [c, { ouverte: ouverte(c) }])) as Record<
+      CleCarte,
+      EtatCarte
+    >,
+  }
+}
+
+let etat: EtatCoque = restaure(ETAT_INITIAL)
 const { abonne, notifie } = creeAbonnes()
+
+gardeAuDepart(CLE_STOCKAGE, () => etat)
 
 export function etatCoque(): EtatCoque {
   return etat

@@ -22,18 +22,21 @@ import type { Etoile } from '../data/catalog.ts'
 import { INDEX_VIDE, type IndexCiel } from '../core/index-ciel.ts'
 import {
   demandePersistance,
+  enregistrePoidsScoring,
   enregistreProfilActif,
   enregistreSiteActif,
   exporteDonneesUtilisateur,
   ExportInvalideError,
   importeFichierUtilisateur,
   litPointsMasqueActif,
+  litPoidsScoring,
   litProfilActif,
   litSiteActif,
   type ProfilAEnregistrer,
   type SiteAExporter,
 } from '../data/persistence.ts'
 import type { PointMasque } from '../core/site.ts'
+import type { PoidsScoring } from '../core/session.ts'
 import {
   CRITERES_SCORING,
   type DepartLieu,
@@ -110,6 +113,7 @@ export function useCatalogues(): Catalogues {
 export interface SaisieRestauree {
   readonly lieu: DepartLieu | null
   readonly materiel: DepartMateriel | null
+  readonly poids: PoidsScoring | null
   /** Renseigné quand la relecture a échoué : les écritures restent alors suspendues. */
   readonly erreur: string | null
 }
@@ -117,6 +121,7 @@ export interface SaisieRestauree {
 const RIEN_A_RESTAURER: SaisieRestauree = Object.freeze({
   lieu: null,
   materiel: null,
+  poids: null,
   erreur: null,
 })
 
@@ -139,16 +144,22 @@ export function useSaisieRestauree(): SaisieRestauree | null {
     if (typeof indexedDB === 'undefined') return
     void (async () => {
       try {
-        const [site, profil, choisies] = await Promise.all([
+        const [site, profil, choisies, poids] = await Promise.all([
           litSiteActif(),
           litProfilActif(),
           litCiblesChoisies(),
+          litPoidsScoring(),
         ])
         // §8.3 — la sélection va au magasin, pas à la saisie : elle ne se saisit pas, elle se
         // coche. Posée AVANT le premier rendu, comme le lieu, sans quoi la première image
         // afficherait un plan vide avant de le remplacer par celui de la veille.
         poseCiblesChoisies(choisies)
-        setRestauree({ lieu: departLieu(site), materiel: departMateriel(profil), erreur: null })
+        setRestauree({
+          lieu: departLieu(site),
+          materiel: departMateriel(profil),
+          poids,
+          erreur: null,
+        })
       } catch (erreur) {
         // Ce qu'on n'a pas su lire ne doit surtout pas être écrasé : la saisie repart des
         // valeurs par défaut, mais plus rien ne s'enregistre tant que la cause est là — la
@@ -157,6 +168,7 @@ export function useSaisieRestauree(): SaisieRestauree | null {
         setRestauree({
           lieu: null,
           materiel: null,
+          poids: null,
           erreur:
             'Données enregistrées illisibles : valeurs par défaut, et plus rien ne s’enregistre. ' +
             `Exportez-les avant de continuer, bouton ${BOUTON_EXPORT} ci-dessus.`,
@@ -243,7 +255,9 @@ export function usePersistance(entree: EntreePersistance): Persistance {
    * moins souvent, c'est perdre les dernières frappes.
    */
   const aEcrire =
-    entree.erreurRestauration === null && !suspendues ? JSON.stringify({ site, profil }) : null
+    entree.erreurRestauration === null && !suspendues
+      ? JSON.stringify({ site, profil, poids: poids.poids })
+      : null
 
   /**
    * L'état du démarrage : il sort de la base, ou n'a pas encore été saisi. Tant que rien ne
@@ -259,6 +273,7 @@ export function usePersistance(entree: EntreePersistance): Persistance {
       try {
         if (site !== null) await enregistreSiteActif(site)
         if (profil !== null) await enregistreProfilActif(profil)
+        await enregistrePoidsScoring(poids.poids)
         // La saisie enregistrée EST la première action utile : c'est elle qu'une éviction
         // détruirait, pas l'export qui viendra peut-être.
         await demandeLaPersistanceUneFois()

@@ -21,7 +21,7 @@ import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { CouchesActives } from './dessine-ciel.ts'
 import { encadre, MS_PAR_MINUTE } from '../core/unites.ts'
 import {
-  ecritScenePersistee,
+  gardeSceneAuDepart,
   litScenePersistee,
   type ScenePersistee,
 } from '../data/scene-persistee.ts'
@@ -480,15 +480,7 @@ export function scenePersistee(courant: EtatScene, ms: number): ScenePersistee {
   }
 }
 
-// ponytail: écrit au départ de la page seulement — un onglet tué sans `pagehide` perd sa
-// dernière retouche ; écrire à chaque `pose` si ça gêne sur le terrain.
-if (typeof window !== 'undefined') {
-  const garde = () => ecritScenePersistee(scenePersistee(etat, instant.ms))
-  window.addEventListener('pagehide', garde)
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') garde()
-  })
-}
+gardeSceneAuDepart(() => scenePersistee(etat, instant.ms))
 
 /** Remet la scène dans son état de départ. Réservé aux tests : l'application n'en a pas besoin. */
 export function reinitialiseScene(): void {

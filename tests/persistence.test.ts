@@ -16,6 +16,8 @@ import {
   exporteDonneesUtilisateur,
   importeDonneesUtilisateur,
   importeFichierUtilisateur,
+  enregistrePoidsScoring,
+  litPoidsScoring,
   litPointsMasqueActif,
 } from '../src/data/persistence.ts'
 import { masqueDepuisPoints, NB_AZIMUTS, obstructionDeg } from '../src/core/site.ts'
@@ -234,10 +236,19 @@ describe('poids de scoring §8.3 → §12.3', () => {
     expect(somme).toBeCloseTo(1, 12)
   })
 
-  it('revient tel quel à l’import, sans passer par la base', async () => {
+  it('revient tel quel à l’import, et la base le garde pour le rechargement', async () => {
     const poids = normalisePoids({ cadrage: 0.9, hauteur: 0.1, signal: 0.2, fenetre: 0.3, lune: 0.4 })
     const fichier = JSON.stringify(await exporteDonneesUtilisateur(poids))
     await expect(importeFichierUtilisateur(fichier)).resolves.toStrictEqual(poids)
+    await expect(litPoidsScoring()).resolves.toStrictEqual(poids)
+  })
+
+  it('T-0362 — réglés, ils survivent au rechargement ; abîmés en base, ils retombent sur C-15', async () => {
+    const poids = { cadrage: 0.5, hauteur: 0.1, signal: 0.2, fenetre: 0.1, lune: 0.1 }
+    await enregistrePoidsScoring(poids)
+    await expect(litPoidsScoring()).resolves.toStrictEqual(poids)
+    await (await db()).put('reglages', { cadrage: 'x' }, 'poids-scoring')
+    await expect(litPoidsScoring()).resolves.toBeNull()
   })
 
   it('reste absent des exports antérieurs, qui restent importables', async () => {

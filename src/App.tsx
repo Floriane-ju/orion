@@ -18,7 +18,7 @@ import { Coque } from './ui/Coque.tsx'
 import { Planetarium } from './ui/Planetarium.tsx'
 import { PanneauMateriel } from './ui/PanneauMateriel.tsx'
 import { useTrancheScene, type EtatScene } from './ui/scene-etat.ts'
-import { ouvreCible, useSeance } from './ui/seance-etat.ts'
+import { ouvreCible, relieCible, useSeance } from './ui/seance-etat.ts'
 import { BarreHaut } from './ui/BarreHaut.tsx'
 import { BoutonInfo, PageInfo } from './ui/PageInfo.tsx'
 import { PanneauTemps } from './ui/PanneauTemps.tsx'
@@ -93,7 +93,7 @@ function AppPrete({
 }) {
   const lieu = useSaisieLieu(restauree.lieu)
   const materiel = useSaisieMateriel(restauree.materiel)
-  const poids = useSaisiePoids()
+  const poids = useSaisiePoids(restauree.poids)
   // §12.5 — l'état affiché suit les bascules, il n'est pas figé au démarrage.
   const modeReseau = useSyncExternalStore<ModeReseau>(abonneModeReseau, modeReseauCourant, () => 'EN_LIGNE')
 
@@ -101,6 +101,8 @@ function AppPrete({
   // JavaScript et ne peuvent pas porter la leur (§1.4.13, voir `gere-echap.ts`).
   useEffect(() => installeEchap(document), [])
   useEffect(() => installeFermetureDehors(document), [])
+  // T-0362 — la fiche laissée ouverte se rouvre dès que le catalogue est là.
+  useEffect(() => relieCible(catalogues.objets), [catalogues.objets])
 
   // Pointage, temps et intention : les deux magasins que la scène et les panneaux partagent.
   const anneeEpoque = useTrancheScene(epoqueAffichee)

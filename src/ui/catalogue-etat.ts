@@ -4,7 +4,7 @@
  * T-0182 — la fiche prend la place de la liste dans le panneau, et la liste est démontée
  * pendant ce temps. Une saisie tenue par le composant partirait donc avec lui : revenir de la
  * fiche rendrait un catalogue remis à zéro, alors que le geste est « je regarde celle-là, puis
- * je reviens à ma recherche ». L'état vit ici pour cette seule raison — comme [[scene-etat]],
+ * je reviens à ma recherche ». L'état vit ici pour cette raison — comme [[scene-etat]],
  * un magasin externe se lit en rendu serveur comme dans le navigateur, et se teste sans DOM.
  */
 
@@ -12,6 +12,7 @@ import { useSyncExternalStore } from 'react'
 import { DOMAINES } from '../registry/domains.ts'
 import { TYPES_OBJET, type TypeObjet } from '../data/deepsky.ts'
 import { creeAbonnes } from './abonnes.ts'
+import { booleen, chaine, dans, garde, gardeAuDepart, litLocal } from '../data/stockage-local.ts'
 
 export interface EtatCatalogue {
   /**
@@ -33,10 +34,33 @@ const ETAT_INITIAL: EtatCatalogue = Object.freeze({
   magMax: DOMAINES.m_int.max,
 })
 
-let etat: EtatCatalogue = ETAT_INITIAL
+const CLE_STOCKAGE = 'orion.catalogue'
+
+/**
+ * T-0362 — la liste se rouvre comme on l'a laissée : la case « photographiables », la
+ * recherche et les deux filtres. Un type inconnu du catalogue courant est oublié, une
+ * magnitude hors domaine retombe sur la borne.
+ */
+function restaure(depart: EtatCatalogue): EtatCatalogue {
+  const lu = litLocal(CLE_STOCKAGE)
+  if (lu === null) return depart
+  const champs = garde<Partial<EtatCatalogue>>(lu, {
+    photographiablesSeules: booleen,
+    recherche: chaine,
+    magMax: dans('m_int'),
+  })
+  const types = Array.isArray(lu.types)
+    ? { types: new Set(TYPES_OBJET.filter((t) => (lu.types as unknown[]).includes(t))) }
+    : {}
+  return { ...depart, ...champs, ...types }
+}
+
+let etat: EtatCatalogue = restaure(ETAT_INITIAL)
 const { abonne, notifie } = creeAbonnes()
 
-function etatCatalogue(): EtatCatalogue {
+gardeAuDepart(CLE_STOCKAGE, () => ({ ...etat, types: [...etat.types] }))
+
+export function etatCatalogue(): EtatCatalogue {
   return etat
 }
 

@@ -3806,10 +3806,11 @@ LE PANNEAU LATÉRAL EST TOUJOURS OUVERT — dans les deux modes
   EN PANORAMA, un seul état : les réglages du panorama.
 
 LES CARTES — Matériel, Vue, Plan de nuit
-  Déplaçables, repliables, non persistées : leur position est un confort de séance, pas un
-  réglage. Elles portent ce qui se règle en regardant la scène — matériel, vue — et ce qui
-  se consulte en la regardant : on vérifie l'heure du prochain créneau sans quitter le ciel
-  des yeux. Repliée, une carte ne monte pas son corps — c'est ce qui garantit que rien
+  Repliables ; leur repli survit au rechargement, comme le reste de l'état d'interface
+  (stockage local, jamais exporté) : c'est un confort de séance, pas un réglage, et une
+  séance rechargée ne doit pas le perdre. Elles portent ce qui se règle en regardant la
+  scène — matériel, vue — et ce qui se consulte en la regardant : on vérifie l'heure du
+  prochain créneau sans quitter le ciel des yeux. Repliée, une carte ne monte pas son corps — c'est ce qui garantit que rien
   d'invisible ne se recalcule.
 
 ORDRE DES GESTES DANS LA BARRE HAUTE — c'est un contrat, pas une mise en page
@@ -3857,7 +3858,7 @@ REPLI EN UNE COLONNE — sous une largeur seuil
 |---|---|---|---|---|
 | `mode` | enum | — | CIEL_PROFOND / PANORAMA | état de premier rang, partagé avec la scène |
 | `panneau_etat` | enum | — | LISTE / FICHE | Ciel profond seulement ; le retour rend LISTE |
-| `cartes_repliees` | set | — | matériel / vue / plan | non persisté |
+| `cartes_repliees` | set | — | site / boîtier / optique / plan | persisté localement, non exporté |
 | `menu_ouvert` | bool | — | — | menu unique de la barre haute |
 | `alerte_menu` | bool | — | — | signalée sur le menu fermé |
 

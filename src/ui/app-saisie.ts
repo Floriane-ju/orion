@@ -254,12 +254,11 @@ export interface SaisiePoids {
 /**
  * §8.3 et §2.4 — les poids de scoring se règlent, et rien ne les apprend.
  *
- * L'état vit ici, comme le reste de la saisie : il n'est ni mémorisé entre deux séances ni
- * ajusté d'après les choix passés. Ce qui le protège d'une éviction, c'est l'export §12.3,
- * pas une persistance silencieuse.
+ * L'état vit ici, comme le reste de la saisie : relu au démarrage (T-0362) comme le lieu et le
+ * matériel, jamais ajusté d'après les choix passés. Ce qui revient est ce qui a été réglé.
  */
-export function useSaisiePoids(): SaisiePoids {
-  const [poids, setPoids] = useState<PoidsScoring>(poidsParDefaut)
+export function useSaisiePoids(depart: PoidsScoring | null): SaisiePoids {
+  const [poids, setPoids] = useState<PoidsScoring>(() => depart ?? poidsParDefaut())
 
   return {
     poids,

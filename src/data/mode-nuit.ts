@@ -2,12 +2,13 @@
  * §11.1 — le mode nuit survit au redémarrage : son état persiste dans le stockage local.
  *
  * T-0338 — la persistance vit dans `src/data/`, comme toutes les autres : le composant
- * `ModeNuit` décide et applique, il ne lit ni n'écrit le stockage. `localStorage` et non
- * IndexedDB : l'état doit être connu AVANT le premier rendu, sans quoi l'écran s'allumerait en
- * blanc le temps d'une lecture asynchrone — exactement ce que le mode protège.
+ * `ModeNuit` décide et applique, il ne lit ni n'écrit le stockage. État d'interface, donc
+ * `stockage-local.ts` : il doit être connu AVANT le premier rendu, sans quoi l'écran
+ * s'allumerait en blanc le temps d'une lecture asynchrone — exactement ce que le mode protège.
  */
 
 import { K } from '../registry/constants.ts'
+import { booleen, ecritLocal, fini, litLocal } from './stockage-local.ts'
 
 export interface EtatModeNuit {
   readonly actif: boolean
@@ -33,34 +34,23 @@ export const ETAT_INITIAL: EtatModeNuit = Object.freeze({
  * et `autoActivation`, écrits par les versions d'avant T-0140.
  */
 export function litEtatPersiste(): EtatModeNuit {
-  if (typeof localStorage === 'undefined') return ETAT_INITIAL
-  try {
-    const brut = localStorage.getItem(CLE_STOCKAGE) ?? localStorage.getItem(CLE_STOCKAGE_ANCIENNE)
-    if (brut === null) return ETAT_INITIAL
-    const lu: unknown = JSON.parse(brut)
-    if (typeof lu !== 'object' || lu === null) return ETAT_INITIAL
-    const champs = lu as Record<string, unknown>
-    const plancher = K('LUMINANCE_PLANCHER_MODE_NUIT')
-    return {
-      actif: typeof champs.actif === 'boolean' ? champs.actif : ETAT_INITIAL.actif,
-      luminance:
-        typeof champs.luminance === 'number' &&
-        champs.luminance >= plancher &&
-        champs.luminance <= LUMINANCE_NOMINALE
-          ? champs.luminance
-          : ETAT_INITIAL.luminance,
-    }
-  } catch {
-    return ETAT_INITIAL
+  const lu = litLocal(CLE_STOCKAGE, CLE_STOCKAGE_ANCIENNE)
+  if (lu === null) return ETAT_INITIAL
+  const plancher = K('LUMINANCE_PLANCHER_MODE_NUIT')
+  const luminance = lu.luminance as number
+  return {
+    actif: booleen(lu.actif) ? (lu.actif as boolean) : ETAT_INITIAL.actif,
+    luminance:
+      fini(luminance) && luminance >= plancher && luminance <= LUMINANCE_NOMINALE
+        ? luminance
+        : ETAT_INITIAL.luminance,
   }
 }
 
+/**
+ * Écrit à chaque bascule plutôt qu'au départ de la page (`gardeAuDepart`) : l'état est tenu
+ * par React et change rarement, et c'est celui qu'on ne veut surtout pas perdre.
+ */
 export function ecritEtatPersiste(etat: EtatModeNuit): void {
-  if (typeof localStorage === 'undefined') return
-  try {
-    localStorage.setItem(CLE_STOCKAGE, JSON.stringify(etat))
-  } catch {
-    // Stockage refusé : le mode reste utilisable, il ne survit simplement pas au rechargement.
-  }
+  ecritLocal(CLE_STOCKAGE, etat)
 }
-

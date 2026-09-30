@@ -18,7 +18,18 @@ import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { majTemps } from './scene-etat.ts'
 import { S_PAR_MIN } from '../core/unites.ts'
 import { creeAbonnes } from './abonnes.ts'
-
+import { PRESET_SNR_DEFAUT, PRESETS_SNR } from '../registry/verdicts.ts'
+import {
+  booleen,
+  chaine,
+  dans,
+  fini,
+  garde,
+  gardeAuDepart,
+  litLocal,
+  objet,
+  parmi,
+} from '../data/stockage-local.ts'
 
 /** §9.2 aperçu d'une pose, §9.3 filé d'une durée accumulée : même moteur, durée différente. */
 export type ModeApercu = 'CHAMP' | 'FILE'
@@ -58,13 +69,36 @@ export interface RenduFile {
   readonly reelles: number
 }
 
+/**
+ * T-0362 — ce que la fiche règle pour la cible lue : objectif de qualité, mode permissif,
+ * filtre, explication dépliée. Tenus ici plutôt que dans la fiche pour survivre au
+ * rechargement ; remis au défaut quand on ouvre une AUTRE cible, comme quand la fiche les
+ * tenait — une fiche neuve s'ouvre sur l'objectif que le plan alloue (T-0268).
+ */
+export interface ReglagesFiche {
+  readonly snrCible: number
+  /** §7.2 — mode permissif C-03 = 3, désactivé par défaut : il se choisit, il ne se subit pas. */
+  readonly permissif: boolean
+  readonly filtreDualBand: boolean
+  readonly explicationDepliee: boolean
+}
+
 export interface EtatSeance {
   readonly cible: ObjetCielProfond | null
   readonly mode: ModeInterface
   readonly vueCibles: VueCibles
   readonly file: ReglagesFile
+  readonly fiche: ReglagesFiche
   readonly renduFile: RenduFile | null
 }
+
+/**
+ * Durée d'accumulation qui désigne l'aperçu de champ plutôt qu'un filé. Ce n'est pas la borne
+ * basse de §9.3 — le domaine `duree_file_min` ouvre le filé à 5 min — mais la valeur hors
+ * domaine par laquelle le curseur bascule d'un aperçu à l'autre. Le prédicat et le curseur la
+ * lisent au même endroit, faute de quoi une borne pourrait rendre le mode CHAMP inatteignable.
+ */
+export const DUREE_APERCU_CHAMP_MIN = 0
 
 const ETAT_INITIAL: EtatSeance = {
   cible: null,
@@ -76,11 +110,77 @@ const ETAT_INITIAL: EtatSeance = {
     intervalleS: K('INTERVALLE_INTER_POSE_FILE_MAX_S'),
     poseDansCadre: false,
   },
+  fiche: {
+    snrCible: PRESET_SNR_DEFAUT,
+    permissif: false,
+    filtreDualBand: false,
+    explicationDepliee: false,
+  },
   renduFile: null,
 }
 
-let etat: EtatSeance = ETAT_INITIAL
+const CLE_STOCKAGE = 'orion.seance'
+
+/**
+ * La cible ne se range que par sa désignation : l'objet vient du catalogue, qui se charge
+ * APRÈS le premier rendu. Elle attend ici que `relieCible` la retrouve ; d'ici là le panneau
+ * montre la liste, puisqu'une fiche sans cible n'existe pas.
+ */
+let designationARelire: string | null = null
+
+function restaure(depart: EtatSeance): EtatSeance {
+  const lu = litLocal(CLE_STOCKAGE)
+  if (lu === null) return depart
+  if (chaine(lu.cible)) designationARelire = lu.cible as string
+  const file = objet(lu.file)
+  const fiche = objet(lu.fiche)
+  return {
+    ...depart,
+    ...garde<Partial<EtatSeance>>(lu, {
+      mode: parmi(MODES_INTERFACE),
+      vueCibles: parmi(VUES_CIBLES),
+    }),
+    file: {
+      ...depart.file,
+      ...(file &&
+        garde<Partial<ReglagesFile>>(file, {
+          tPoseS: dans('t_pose_s'),
+          dureeTotaleMin: (v) => v === DUREE_APERCU_CHAMP_MIN || dans('duree_file_min')(v),
+          intervalleS: (v) => fini(v) && (v as number) >= 0,
+          poseDansCadre: booleen,
+        })),
+    },
+    fiche: {
+      ...depart.fiche,
+      ...(fiche &&
+        garde<Partial<ReglagesFiche>>(fiche, {
+          snrCible: (v) => PRESETS_SNR.some((p) => p.valeur === v),
+          permissif: booleen,
+          filtreDualBand: booleen,
+          explicationDepliee: booleen,
+        })),
+    },
+  }
+}
+
+const MODES_INTERFACE: readonly ModeInterface[] = Object.freeze(['CIEL_PROFOND', 'PANORAMA'])
+const VUES_CIBLES: readonly VueCibles[] = Object.freeze(['LISTE', 'FICHE'])
+
+let etat: EtatSeance = restaure(ETAT_INITIAL)
 const { abonne, notifie } = creeAbonnes()
+
+/** Le rendu du filé n'en est pas : il se recompte à la première passe. */
+function seancePersistee(courant: EtatSeance): unknown {
+  return {
+    cible: courant.cible?.designation ?? designationARelire,
+    mode: courant.mode,
+    vueCibles: courant.vueCibles,
+    file: courant.file,
+    fiche: courant.fiche,
+  }
+}
+
+gardeAuDepart(CLE_STOCKAGE, () => seancePersistee(etat))
 
 export function etatSeance(): EtatSeance {
   return etat
@@ -101,21 +201,32 @@ function pose(suivant: EtatSeance): void {
  * entrées, sans quoi les deux se mettraient à diverger.
  */
 export function ouvreCible(cible: ObjetCielProfond): void {
-  pose({ ...etat, cible, vueCibles: 'FICHE' })
+  designationARelire = null
+  const autre = etat.cible?.designation !== cible.designation
+  pose({ ...etat, cible, vueCibles: 'FICHE', ...(autre && { fiche: ETAT_INITIAL.fiche }) })
+}
+
+/**
+ * T-0362 — la cible gardée au dernier passage, retrouvée dans le catalogue qui vient d'arriver.
+ * Sans geste : la fiche se rouvre telle qu'on l'a quittée, réglages compris. Une désignation
+ * disparue du catalogue est oubliée.
+ */
+export function relieCible(catalogue: readonly ObjetCielProfond[]): void {
+  if (designationARelire === null || catalogue.length === 0) return
+  const designation = designationARelire
+  designationARelire = null
+  const cible = catalogue.find((o) => o.designation === designation)
+  if (cible !== undefined) pose({ ...etat, cible })
+}
+
+export function majFiche(retouche: Partial<ReglagesFiche>): void {
+  pose({ ...etat, fiche: { ...etat.fiche, ...retouche } })
 }
 
 /** Le retour de la fiche : la cible reste désignée, c'est la LECTURE qui change. */
 export function montreListeCibles(): void {
   pose({ ...etat, vueCibles: 'LISTE' })
 }
-
-/**
- * Durée d'accumulation qui désigne l'aperçu de champ plutôt qu'un filé. Ce n'est pas la borne
- * basse de §9.3 — le domaine `duree_file_min` ouvre le filé à 5 min — mais la valeur hors
- * domaine par laquelle le curseur bascule d'un aperçu à l'autre. Le prédicat et le curseur la
- * lisent au même endroit, faute de quoi une borne pourrait rendre le mode CHAMP inatteignable.
- */
-export const DUREE_APERCU_CHAMP_MIN = 0
 
 /**
  * Le mode d'aperçu se DÉDUIT de la durée d'accumulation, il ne se choisit pas : une durée nulle
@@ -181,6 +292,7 @@ export function poseMode(mode: ModeInterface): void {
 
 /** Remet la séance dans son état de départ. Réservé aux tests. */
 export function reinitialiseSeance(): void {
+  designationARelire = null
   pose(ETAT_INITIAL)
 }
 
