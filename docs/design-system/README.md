@@ -159,7 +159,6 @@ sont séparés de `--pas-2`**, et cet écart est posé une seule fois :
 
 ```css
 section:not([class]) > * + *,
-.masque-horizon > * + *,
 .carte-corps > * + * {
   margin-block-start: var(--pas-2);
 }

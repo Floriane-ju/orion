@@ -13,7 +13,6 @@ import { App } from '../src/App.tsx'
 import { GLOSSAIRE } from '../src/registry/glossaire.ts'
 import { TABLE_FORMATS_CAPTEUR } from '../src/registry/capteur-formats.ts'
 import { LIBELLE_ZP_SOURCE } from '../src/registry/libelles.ts'
-import { libelleFlag } from '../src/registry/libelles.ts'
 import { ouvreCarte } from '../src/ui/coque-etat.ts'
 
 // Les cartes du site et du matériel démarrent repliées : le contrat d'entrée porte sur ce qu'elles
@@ -46,11 +45,6 @@ describe('contrat d’entrée — écran par défaut, setup de l’Annexe A', ()
     expect(ecran).not.toContain('Grand champ assumé')
   })
 
-  it('affiche le masque plat comme une hypothèse, pas comme une mesure', () => {
-    expect(ecran).toContain(libelleFlag('HYP'))
-    expect(ecran).toContain('horizon plat')
-  })
-
   it('signale, en informatif, que la pose sans suivi reste courte', () => {
     expect(ecran).toMatch(/Sans suivi, les poses restent courtes\./)
     expect(ecran).toMatch(/<p class="etat">Sans suivi/)
@@ -71,7 +65,7 @@ describe('contrat d’entrée — écran par défaut, setup de l’Annexe A', ()
 
   it('glose chaque terme technique au contact', () => {
     // "champ" n'en fait plus partie : sa bulle a été retirée (T-0225), le libellé seul suffit.
-    for (const cle of ['npf', 'masque_horizon'] as const) {
+    for (const cle of ['npf'] as const) {
       expect(ecran, cle).toContain(GLOSSAIRE[cle].glose)
     }
   })

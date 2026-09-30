@@ -268,7 +268,8 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
       const html = ecran()
       const barre = html.slice(html.indexOf('carte-site'))
       expect(barre, mode).toContain('Bortle')
-      expect(barre, mode).toContain('horizon plat')
+      // Relief en chargement : pas d'avertissement.
+      expect(barre, mode).not.toContain('Horizon supposé plat')
     }
   })
 
@@ -942,14 +943,16 @@ describe('T-0228 / T-0325 — la page « info » porte les sources', () => {
     expect(page).toMatch(/Profondeur affichée (<!-- -->)?\d+,\d(<!-- -->)? mag/)
   })
 
-  it('T-0325 — ses six rubriques sont des accordéons fermés à l’ouverture', () => {
+  it('T-0325 — ses sept rubriques sont des accordéons fermés à l’ouverture', () => {
     const page = pageInfo(ecran())
-    expect(page.match(/<details class="accordeon"/g)).toHaveLength(6)
+    expect(page.match(/<details class="accordeon"/g)).toHaveLength(7)
     // La légende ouvre la liste.
     expect(page.indexOf('Légende')).toBeLessThan(page.indexOf('Vérification'))
     expect(page).not.toMatch(/<details class="accordeon"[^>]* open/)
-    // Un seul ouvert à la fois : les six forment un groupe exclusif natif.
-    expect(page.match(/<details class="accordeon" name="page-info"/g)).toHaveLength(6)
+    // Un seul ouvert à la fois : les sept forment un groupe exclusif natif.
+    expect(page.match(/<details class="accordeon" name="page-info"/g)).toHaveLength(7)
+    // T-0368 — les seuils de déclinaison quittent la carte Site pour la page info.
+    expect(page).toContain('Déclinaisons du site')
   })
 
   it('nomme l’amont de chaque donnée affichée', () => {

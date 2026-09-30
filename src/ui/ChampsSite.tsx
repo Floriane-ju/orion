@@ -1,5 +1,5 @@
 /**
- * §2.2 + §4.1 — le site : où l'on est, sous quel ciel, derrière quel relief.
+ * §2.2 — le site : où l'on est, sous quel ciel.
  *
  * T-0113 — c'était le groupe « Séance » en tête du panneau droit, déplié en permanence. Il
  * descend dans la barre basse, derrière la pastille qui affiche déjà le lieu et son Bortle :
@@ -16,12 +16,14 @@
  *
  * La barre basse est démontée : les champs vivent dans la carte « Site » posée sur la scène,
  * sans `<section>` ni `h2` — la carte porte déjà le cadre et le nom.
+ *
+ * Le relevé manuel du masque d'horizon en est sorti : le relief du terrain se dessine déjà
+ * sur le planétarium, et c'est là qu'il se lit.
  */
 
-import type { MasqueHorizon, PointMasque, SeuilsSite } from '../core/site.ts'
-import { MasqueHorizonSaisie } from './MasqueHorizon.tsx'
+import type { MasqueHorizon } from '../core/site.ts'
+import { libelleFlag } from '../registry/libelles.ts'
 import { ChampDomaine } from './ChampDomaine.tsx'
-import { TracedValue } from './TracedValue.tsx'
 import { Mention } from './Mention.tsx'
 import { ChoixLieu } from './ChoixLieu.tsx'
 
@@ -36,12 +38,8 @@ export interface ChampsSiteProps {
   readonly surBortle: (v: string) => void
   readonly sqm: string
   readonly surSqm: (v: string) => void
+  /** §4.1 — le masque en vigueur : un repli plat [HYP] se dit sous la carte. */
   readonly masque: MasqueHorizon
-  /** §4.1 — les relevés de relief saisis à la main, et leur commande d'édition. */
-  readonly pointsMasque: readonly PointMasque[]
-  readonly surPointsMasque: (v: readonly PointMasque[]) => void
-  /** Seuils de déclinaison du site — propriété de la latitude, absents si la saisie est refusée. */
-  readonly seuils?: SeuilsSite
   /**
    * La cause du refus de la saisie en cours, `null` si le lieu est calculable. La scène
    * continue d'afficher le dernier ciel valide : c'est ici, au pied des champs qui l'ont
@@ -63,6 +61,14 @@ export function ChampsSite(props: ChampsSiteProps) {
         }}
         surAltitude={props.surAltitude}
       />
+      {/* Le relief se lit sur le planétarium ; son absence, elle, ne s'y voit pas. Pendant un
+          chargement, le masque n'a pas de note : rien ne s'affiche. */}
+      {props.masque.estHypothese && props.masque.note !== undefined && (
+        <Mention ton="cause">
+          {props.masque.flags?.map((f) => `${libelleFlag(f)} `).join('')}
+          {props.masque.note}
+        </Mention>
+      )}
       {/* Latitude et longitude se lisent d'un seul mot — un lieu — et se règlent ensemble :
           la paire les pose côte à côte, comme la focale et l'ouverture (T-0234). */}
       <div className="champs paire">
@@ -108,41 +114,12 @@ export function ChampsSite(props: ChampsSiteProps) {
         />
       </div>
 
-      <MasqueHorizonSaisie
-        points={props.pointsMasque}
-        surPoints={props.surPointsMasque}
-        masque={props.masque}
-      />
-
       {props.cielRefus !== null && (
         <Mention ton="erreur" role="status">
           {props.cielRefus} — le ciel garde la dernière valeur valide.
         </Mention>
       )}
 
-      {/* Les seuils de déclinaison sont une propriété de la latitude, pas de l'optique. */}
-      {props.seuils !== undefined && (
-        <>
-          <TracedValue
-            terme="seuil_imagerie"
-            trace={props.seuils.decMinImagerie}
-            decimales={1}
-            unite="°"
-          />
-          <TracedValue
-            terme="seuil_visuel"
-            trace={props.seuils.decMinVisuel}
-            decimales={1}
-            unite="°"
-          />
-          <TracedValue
-            terme="circumpolaire"
-            trace={props.seuils.decCircumpolaire}
-            decimales={1}
-            unite="°"
-          />
-        </>
-      )}
     </>
   )
 }

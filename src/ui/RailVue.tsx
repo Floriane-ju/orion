@@ -156,8 +156,7 @@ export function RailVue(props: RailVueProps) {
     : 'Vue planétarium — stéréographique'
 
   /* §4.1 — le sol masque, il doit donc dire sur quoi il repose. L'hypothèse d'horizon plat
-     reste au panneau Lieu : elle invite à éditer le relief, un geste que le rail ne propose
-     pas. */
+     invite à éditer un relevé que l'interface ne propose plus : elle ne s'affiche pas. */
   const noteSol =
     !props.masque.estHypothese && props.masque.note !== undefined ? props.masque.note : undefined
 

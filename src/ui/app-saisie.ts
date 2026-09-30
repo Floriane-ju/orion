@@ -8,7 +8,6 @@
 
 import { useState } from 'react'
 import { poidsParDefaut, type PoidsScoring } from '../core/session.ts'
-import type { PointMasque } from '../core/site.ts'
 import type { CapteurMode, SaisieBoitier } from '../data/equipment.ts'
 import { ligneBoitier } from '../data/boitiers.ts'
 import type { QualiteMiseEnStation, TypeMonture } from '../core/suivi.ts'
@@ -44,9 +43,6 @@ export interface SaisieLieu {
   readonly surBortle: (v: string) => void
   readonly sqm: string
   readonly surSqm: (v: string) => void
-  /** §4.1 — les relevés de relief saisis à la main, interpolés sur les 360 azimuts. */
-  readonly pointsMasque: readonly PointMasque[]
-  readonly surPointsMasque: (v: readonly PointMasque[]) => void
 }
 
 /**
@@ -62,7 +58,6 @@ export interface DepartLieu {
   readonly altitude: string
   readonly bortle: string
   readonly sqm: string
-  readonly pointsMasque: readonly PointMasque[]
 }
 
 export function useSaisieLieu(depart: DepartLieu | null): SaisieLieu {
@@ -80,9 +75,6 @@ export function useSaisieLieu(depart: DepartLieu | null): SaisieLieu {
     const ms = modeTemps === 'MAINTENANT' ? Date.now() + decalageMs : instant.ms
     return nuitDeLInstant(new Date(borneInstant(ms)))
   })
-  const [pointsMasque, surPointsMasque] = useState<readonly PointMasque[]>(
-    depart?.pointsMasque ?? [],
-  )
 
   return {
     latitude,
@@ -97,8 +89,6 @@ export function useSaisieLieu(depart: DepartLieu | null): SaisieLieu {
     surBortle,
     sqm,
     surSqm,
-    pointsMasque,
-    surPointsMasque,
   }
 }
 

@@ -123,12 +123,11 @@ function AppPrete({
   // rester indistinctes. `null` tant qu'aucun filtre n'est actif.
   const enAvant = useCiblesEnAvant(catalogues.objets, chaine.etatsCibles)
 
-  // §12.3 — le lieu et le matériel s'enregistrent au fil de la saisie, masque d'horizon
-  // relevé compris, et l'export les emporte tels qu'ils sont à l'écran.
+  // §12.3 — le lieu et le matériel s'enregistrent au fil de la saisie, et l'export les
+  // emporte tels qu'ils sont à l'écran.
   const persistance = usePersistance({
     site: siteAEnregistrer(lieu, chaine.masque),
     profil: profilAEnregistrer(materiel),
-    surMasqueImporte: lieu.surPointsMasque,
     poids,
     erreurRestauration: restauree.erreur,
   })
@@ -225,6 +224,7 @@ function AppPrete({
           profondeurMag={chaine.index.profondeurMag}
           sbCiel={ciel.ok ? ciel.ciel.sbCiel.value : null}
           modeNuit={modeNuit.actif}
+          {...(ciel.ok ? { seuils: ciel.seuils } : {})}
         />
       }
     />

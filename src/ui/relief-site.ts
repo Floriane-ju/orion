@@ -13,15 +13,13 @@ import { R } from '../registry/relief.ts'
 import { nombre, nombreLibre } from '../registry/ecriture.ts'
 import { DOMAINES } from '../registry/domains.ts'
 
-interface ReliefResolu {
-  readonly cle: string
-  readonly relief: ReliefSite
-}
-
-/** Le relief du site, ou null tant qu'il n'est pas résolu pour CES coordonnées. */
+/**
+ * Le dernier relief résolu, ou null avant le tout premier. Pendant qu'un nouveau site se
+ * charge, celui de l'ancien reste affiché : il se remplace en moins d'une seconde, et un
+ * horizon plat intercalé clignoterait à chaque frappe.
+ */
 export function useReliefSite(latDeg: number, lonDeg: number): ReliefSite | null {
-  const cle = `${latDeg},${lonDeg}`
-  const [resolu, surResolu] = useState<ReliefResolu | null>(null)
+  const [relief, surRelief] = useState<ReliefSite | null>(null)
   const monte = useRef(false)
   // Un relief refusé hors réseau, ou par un service muet, se redemande au retour du réseau.
   const [retours, surRetours] = useState(0)
@@ -36,25 +34,28 @@ export function useReliefSite(latDeg: number, lonDeg: number): ReliefSite | null
     const delai = monte.current ? R('DELAI_RELIEF_MS') : 0
     monte.current = true
     const attente = setTimeout(() => {
-      void resoudRelief(latDeg, lonDeg).then((relief) => {
-        if (actif) surResolu({ cle, relief })
+      void resoudRelief(latDeg, lonDeg).then((resolu) => {
+        if (actif) surRelief(resolu)
       })
     }, delai)
     return () => {
       actif = false
       clearTimeout(attente)
     }
-  }, [cle, latDeg, lonDeg, retours])
+  }, [latDeg, lonDeg, retours])
 
-  // Le relief d'un autre site ne vaut pas pour celui-ci, même le temps d'un chargement.
-  return resolu?.cle === cle ? resolu.relief : null
+  return relief
 }
 
-const CAUSE_EN_COURS = 'Relief du terrain en cours de chargement.'
-
-/** Le masque que le relief donne : réel, ou le repli plat [HYP] avec sa cause. */
+/**
+ * Le masque que le relief donne : réel, ou le repli plat [HYP] avec sa cause. Avant le premier
+ * relief résolu, le repli plat n'a pas de note : un chargement n'est pas une indisponibilité.
+ */
 export function masqueDuRelief(relief: ReliefSite | null): MasqueHorizon {
-  if (relief === null) return masquePlat(CAUSE_EN_COURS)
+  if (relief === null) {
+    const { note: _chargement, ...plat } = masquePlat()
+    return Object.freeze(plat)
+  }
   if (relief.etat === 'INDISPONIBLE') return masquePlat(relief.cause)
   return masqueDepuisRelief(
     relief.altitudesDeg,

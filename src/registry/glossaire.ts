@@ -70,15 +70,6 @@ export const GLOSSAIRE = Object.freeze({
     consequence: 'Les créneaux se centrent sur le vrai milieu de la nuit, pas sur minuit.',
     sections: ['4.1', '8.1'],
   }),
-  masque_horizon: terme({
-    libelle: 'Masque d’horizon',
-    glose: 'relief qui cache l’horizon',
-    explication:
-      'Pour chaque direction, la hauteur sous laquelle arbres, collines ou bâtiments cachent le ' +
-      'ciel. Sans relevé, l’horizon est supposé plat.',
-    consequence: 'Sur un site encaissé, le renseigner évite de viser une cible cachée.',
-    sections: ['4.1', '8.1'],
-  }),
   circumpolaire: terme({
     libelle: 'Circumpolaire',
     glose: 'astre qui ne se couche jamais',

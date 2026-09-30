@@ -80,7 +80,6 @@ export function siteAEnregistrer(lieu: SaisieLieu, masque: MasqueHorizon): SiteA
       ...siRenseigne('bortleDeclare', lieu.bortle, 'bortle_declare'),
       ...siRenseigne('sqmMesure', lieu.sqm, 'sqm_mesure'),
       masque,
-      pointsMasque: lieu.pointsMasque,
     }
   } catch {
     return null
@@ -129,7 +128,6 @@ export function departLieu(site: SiteEnregistre | null): DepartLieu | null {
         ? DEFAUT.bortle
         : texteDe(site.bortleDeclare, 'bortle_declare'),
     sqm: texteDe(site.sqmMesure, 'sqm_mesure'),
-    pointsMasque: site.masquePoints ?? [],
   }
 }
 

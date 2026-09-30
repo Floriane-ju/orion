@@ -61,8 +61,7 @@ export interface MasqueHorizon {
  * recommandation calculée sur cette base serait fausse la moitié du temps.
  */
 export function masquePlat(cause?: string): MasqueHorizon {
-  const invitation =
-    'Horizon supposé plat. Complétez-le si arbres, collines ou bâtiments cachent le ciel.'
+  const invitation = 'Horizon supposé plat.'
   return Object.freeze({
     altitudesDeg: Object.freeze(Array.from({ length: NB_AZIMUTS }, () => 0)),
     estHypothese: true,
@@ -139,24 +138,6 @@ export function masqueDepuisPoints(points: readonly PointMasque[]): MasqueHorizo
   })
 }
 
-/**
- * §4.1 — « édition manuelle par-dessus » le relief : azimut par azimut, la plus haute des deux
- * obstructions. Un arbre devant une crête ne l'abaisse pas, une crête derrière un toit ne
- * dévoile rien : ce qui cache, c'est ce qui monte le plus haut dans la ligne de visée.
- *
- * Le repli plat [HYP] n'est pas une obstruction mesurée : composé à un masque réel, il s'efface.
- */
-export function composeMasques(relief: MasqueHorizon, manuel: MasqueHorizon): MasqueHorizon {
-  if (manuel.estHypothese) return relief
-  if (relief.estHypothese) return manuel
-  return Object.freeze({
-    altitudesDeg: Object.freeze(
-      relief.altitudesDeg.map((a, azimut) => Math.max(a, manuel.altitudesDeg[azimut] ?? 0)),
-    ),
-    estHypothese: false,
-    note: [relief.note, manuel.note].filter((n) => n !== undefined).join(' '),
-  })
-}
 
 /**
  * Obstruction à un azimut quelconque : l'azimut se referme sur lui-même.

@@ -156,7 +156,6 @@ const NUIT_ISO = nuitDeLInstant(new Date())
  * identité neuve serait une dépendance changée, donc un recalcul légitime — et le test
  * mesurerait alors son propre outillage.
  */
-const POINTS_MASQUE = Object.freeze([])
 const SAISIE_BOITIER = Object.freeze({
   formatCapteur: 'PLEIN_FORMAT',
   resolutionMpx: DEFAUT.resolutionMpx,
@@ -183,8 +182,6 @@ function lieu(champs: Partial<SaisieLieu> = {}): SaisieLieu {
     surBortle: rien,
     sqm: '',
     surSqm: rien,
-    pointsMasque: POINTS_MASQUE,
-    surPointsMasque: rien,
     ...champs,
   }
 }

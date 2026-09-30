@@ -26,6 +26,8 @@ import { Icone } from './Icone.tsx'
 import { LegendeCouleurs } from './LegendeCouleurs.tsx'
 import { MenuReglages } from './MenuReglages.tsx'
 import { Sources } from './Sources.tsx'
+import { SeuilsDeclinaison } from './SeuilsDeclinaison.tsx'
+import type { SeuilsSite } from '../core/site.ts'
 import { ALERTE_VERIFICATION, Verification } from './Verification.tsx'
 import {
   useTrancheScene,
@@ -68,6 +70,8 @@ export interface PageInfoProps {
   readonly sbCiel: number | null
   /** Les témoins de la légende se peignent aux teintes du mode courant. */
   readonly modeNuit: boolean
+  /** §4.1 — seuils de déclinaison du site, absents si la saisie du lieu est refusée. */
+  readonly seuils?: SeuilsSite
 }
 
 /** Sélecteurs définis au niveau du module — `useTrancheScene` exige une identité stable. */
@@ -142,6 +146,7 @@ export function PageInfo(props: PageInfoProps) {
           surExport={props.persistance.surExport}
           surImport={props.persistance.surImport}
         />
+        {props.seuils !== undefined && <SeuilsDeclinaison seuils={props.seuils} />}
         <MenuReglages poids={props.poids} />
         <Sources />
       </div>

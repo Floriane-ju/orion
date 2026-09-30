@@ -89,8 +89,6 @@ function lieu(): SaisieLieu {
     surBortle: rien,
     sqm: '',
     surSqm: rien,
-    pointsMasque: [],
-    surPointsMasque: rien,
   }
 }
 

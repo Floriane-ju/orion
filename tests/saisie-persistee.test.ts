@@ -24,7 +24,7 @@ import {
   siteAEnregistrer,
 } from '../src/ui/saisie-persistee.ts'
 import { DEFAUT, type SaisieLieu, type SaisieMateriel } from '../src/ui/app-saisie.ts'
-import { masqueDepuisPoints } from '../src/core/site.ts'
+import { masquePlat } from '../src/core/site.ts'
 import { DOMAINES } from '../src/registry/domains.ts'
 import { BASE_BOITIERS } from '../src/data/boitiers.ts'
 
@@ -39,14 +39,12 @@ function saisieLieu(champs: Partial<SaisieLieu> = {}): SaisieLieu {
     nuitIso: '2026-08-21',
     bortle: '4.5',
     sqm: '',
-    pointsMasque: [],
     surLatitude: RIEN,
     surLongitude: RIEN,
     surAltitude: RIEN,
     surNuitIso: RIEN,
     surBortle: RIEN,
     surSqm: RIEN,
-    surPointsMasque: RIEN,
     ...champs,
   }
 }
@@ -87,7 +85,7 @@ function saisieMateriel(champs: Partial<SaisieMateriel> = {}): SaisieMateriel {
 
 /** Le trajet complet d'un rechargement : ce qui est à l'écran, écrit puis relu. */
 async function rechargeLieu(lieu: SaisieLieu) {
-  const aEcrire = siteAEnregistrer(lieu, masqueDepuisPoints(lieu.pointsMasque))
+  const aEcrire = siteAEnregistrer(lieu, masquePlat())
   if (aEcrire !== null) await enregistreSiteActif(aEcrire)
   return departLieu(await litSiteActif())
 }
@@ -105,13 +103,8 @@ beforeEach(async () => {
 })
 
 describe('T-0082 — la saisie survit au rechargement', () => {
-  it('rend le lieu, son ciel déclaré et ses relevés de relief', async () => {
-    const lieu = saisieLieu({
-      pointsMasque: [
-        { azimutDeg: 0, altitudeDeg: 18 },
-        { azimutDeg: 180, altitudeDeg: 4 },
-      ],
-    })
+  it('rend le lieu et son ciel déclaré', async () => {
+    const lieu = saisieLieu()
 
     expect(await rechargeLieu(lieu)).toEqual({
       latitude: lieu.latitude,
@@ -119,7 +112,6 @@ describe('T-0082 — la saisie survit au rechargement', () => {
       altitude: lieu.altitude,
       bortle: lieu.bortle,
       sqm: '',
-      pointsMasque: lieu.pointsMasque,
     })
   })
 
@@ -187,14 +179,14 @@ describe('T-0082 — la saisie survit au rechargement', () => {
   it('n’écrit pas un champ vide, qui n’est pas un zéro', async () => {
     // Une latitude vide enregistrée à 0° reviendrait à chaque démarrage comme un site au
     // large du golfe de Guinée : un vide se refuse, il ne se borne pas.
-    expect(siteAEnregistrer(saisieLieu({ latitude: '' }), masqueDepuisPoints([]))).toBeNull()
+    expect(siteAEnregistrer(saisieLieu({ latitude: '' }), masquePlat())).toBeNull()
     expect(profilAEnregistrer(saisieMateriel({ focale: '' }))).toBeNull()
   })
 })
 
 describe('T-0082 — l’export cesse d’être vide', () => {
   it('emporte le site et le profil de la séance, et son réimport les restaure', async () => {
-    const lieu = saisieLieu({ pointsMasque: [{ azimutDeg: 90, altitudeDeg: 9 }] })
+    const lieu = saisieLieu()
     const materiel = saisieMateriel()
     const attenduLieu = await rechargeLieu(lieu)
     const attenduMateriel = await rechargeMateriel(materiel)

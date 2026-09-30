@@ -1918,11 +1918,9 @@ section:not([class]) > h2:first-child,
  *
  * `:not([class])` désigne la section ordinaire, celle qui empile des blocs. Les quatre
  * sections nommées posent leur propre disposition et sont hors sujet : `.scene`, `.cibles`,
- * `.carte`, `.menu-reglages`. `.masque-horizon` n'est pas une `<section>` mais empile de la
- * même façon, et le corps d'une carte aussi (T-0238) : Boîtier et Optique y posent leurs
+ * `.carte`, `.menu-reglages`. Le corps d'une carte empile de la même façon (T-0238) : Boîtier et Optique y posent leurs
  * champs sans rubrique intermédiaire. */
 section:not([class]) > * + *,
-.masque-horizon > * + *,
 .carte-corps > * + * {
   margin-block-start: var(--pas-2);
 }
@@ -2749,26 +2747,6 @@ button:disabled {
   .carte-plan .carte-corps > *:not(.plan-session) {
     display: none;
   }
-}
-
-/* §4.1 — les relevés du masque d'horizon : une ligne par crête, effaçable au contact. */
-.masque-releves {
-  list-style: none;
-  margin: var(--pas-2) 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--pas-1);
-  font-size: var(--texte-legende);
-}
-
-.masque-releves li {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--pas-2);
-  padding: var(--pas-0) 0;
-  border-bottom: var(--trait) solid var(--bordure-faible);
 }
 
 /* Les cinq poids C-15 dans l'accordéon des réglages. Le poids effectif se lit au bout

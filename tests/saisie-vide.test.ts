@@ -41,8 +41,6 @@ function lieu(champs: { readonly bortle: string; readonly sqm: string }): Saisie
     surBortle: rien,
     sqm: champs.sqm,
     surSqm: rien,
-    pointsMasque: [],
-    surPointsMasque: rien,
   }
 }
 

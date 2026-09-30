@@ -28,14 +28,12 @@ import {
   exporteDonneesUtilisateur,
   ExportInvalideError,
   importeFichierUtilisateur,
-  litPointsMasqueActif,
   litPoidsScoring,
   litProfilActif,
   litSiteActif,
   type ProfilAEnregistrer,
   type SiteAExporter,
 } from '../data/persistence.ts'
-import type { PointMasque } from '../core/site.ts'
 import type { PoidsScoring } from '../core/session.ts'
 import {
   CRITERES_SCORING,
@@ -202,7 +200,6 @@ export interface EntreePersistance {
   /** Le site tel qu'il s'enregistre ; `null` tant que la saisie n'est pas chiffrable. */
   readonly site: SiteAExporter | null
   readonly profil: ProfilAEnregistrer | null
-  readonly surMasqueImporte: (points: readonly PointMasque[]) => void
   readonly poids: SaisiePoids
   /** L'échec de relecture du démarrage, qui suspend les écritures. */
   readonly erreurRestauration: string | null
@@ -211,10 +208,10 @@ export interface EntreePersistance {
 /**
  * §12.3 — ce que l'utilisateur saisit s'enregistre au fil de la saisie, pas au moment de
  * l'export : entre deux exports, une éviction ou un simple rechargement détruisait tout ce
- * qui vivait en mémoire — le lieu, le matériel, le masque relevé à la main.
+ * qui vivait en mémoire — le lieu, le matériel.
  */
 export function usePersistance(entree: EntreePersistance): Persistance {
-  const { site, profil, poids, surMasqueImporte } = entree
+  const { site, profil, poids } = entree
   const [avis, setAvis] = useState<Avis | null>(() =>
     entree.erreurRestauration === null
       ? null
@@ -322,8 +319,6 @@ export function usePersistance(entree: EntreePersistance): Persistance {
     // en rejet non géré : sans message, l'import a l'air de ne rien faire (§12.3).
     try {
       const poidsImportes = await importeFichierUtilisateur(await fichier.text())
-      // Le masque restauré doit revenir à l'écran : il commande les créneaux (§8.1).
-      surMasqueImporte(await litPointsMasqueActif())
       // Les poids ne vivent pas en base : sans cette remise, un plan réimporté serait
       // réordonné par les valeurs C-15 plutôt que par celles du fichier (§8.3).
       if (poidsImportes !== null) {

@@ -146,10 +146,7 @@ export function CartesSeance(props: RegionSeanceProps) {
           sqm={lieu.sqm}
           surSqm={lieu.surSqm}
           masque={chaine.masque}
-          pointsMasque={lieu.pointsMasque}
-          surPointsMasque={lieu.surPointsMasque}
           cielRefus={chaine.cielRefus}
-          {...(ciel.ok ? { seuils: ciel.seuils } : {})}
         />
       </Carte>
 

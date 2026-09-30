@@ -16,6 +16,7 @@
 
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import { masquePlat } from '../src/core/site.ts'
 import { ChampsSite } from '../src/ui/ChampsSite.tsx'
 import { PanneauMateriel } from '../src/ui/PanneauMateriel.tsx'
 import {
@@ -26,7 +27,6 @@ import {
   siteChiffrable,
 } from '../src/ui/app-calcul.ts'
 import { DEFAUT, type SaisieLieu, type SaisieMateriel } from '../src/ui/app-saisie.ts'
-import { masquePlat } from '../src/core/site.ts'
 import { DOMAINES, borne, type DomaineId } from '../src/registry/domains.ts'
 import { nombreSaisi } from '../src/ui/saisie-bornee.ts'
 import { ouvreCarte } from '../src/ui/coque-etat.ts'
@@ -52,8 +52,6 @@ function lieu(champs: Partial<Record<'latitude' | 'longitude' | 'altitude' | 'bo
     surBortle: rien,
     sqm: '',
     surSqm: rien,
-    pointsMasque: [],
-    surPointsMasque: rien,
     ...champs,
   }
 }
@@ -180,8 +178,6 @@ describe('le champ qui a borné le dit à son pied', () => {
         sqm={saisie.sqm}
         surSqm={rien}
         masque={masquePlat()}
-        pointsMasque={[]}
-        surPointsMasque={rien}
         cielRefus={null}
       />,
     )

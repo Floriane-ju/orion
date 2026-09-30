@@ -15,14 +15,12 @@ import {
   type Altimetre,
 } from '../src/core/relief.ts'
 import {
-  composeMasques,
-  masqueDepuisPoints,
   masqueDepuisRelief,
-  masquePlat,
   NB_AZIMUTS,
   obstructionDeg,
 } from '../src/core/site.ts'
 import { SITE_REFERENCE } from './fixtures.ts'
+import { masqueDuRelief } from '../src/ui/relief-site.ts'
 
 const RAD = Math.PI / 180
 const RAYON_TERRE_M = K('RAYON_TERRE_KM') * 1000
@@ -119,34 +117,6 @@ describe('profil de relief sur 360 azimuts (§4.1)', () => {
   })
 })
 
-describe('relevés manuels « par-dessus » le relief (§4.1)', () => {
-  const relief = (altitude: (az: number) => number) =>
-    masqueDepuisRelief(Array.from({ length: NB_AZIMUTS }, (_, az) => altitude(az)))
-
-  it('garde, azimut par azimut, la plus haute des deux obstructions', () => {
-    const terrain = relief((az) => (az >= 150 && az <= 210 ? 10 : 2))
-    const manuel = masqueDepuisPoints([
-      { azimutDeg: 164, altitudeDeg: 0 },
-      { azimutDeg: 165, altitudeDeg: 22 },
-      { azimutDeg: 166, altitudeDeg: 0 },
-    ])
-    const masque = composeMasques(terrain, manuel)
-    expect(obstructionDeg(masque, 165)).toBe(22)
-    expect(obstructionDeg(masque, 180)).toBe(10)
-    expect(obstructionDeg(masque, 0)).toBe(2)
-    expect(masque.estHypothese).toBe(false)
-  })
-
-  it('laisse le relief intact quand aucun relevé n’est saisi', () => {
-    const terrain = relief((az) => az / 10)
-    expect(composeMasques(terrain, masquePlat()).altitudesDeg).toEqual(terrain.altitudesDeg)
-  })
-
-  it('reste plat et [HYP] quand ni relief ni relevé n’existe', () => {
-    expect(composeMasques(masquePlat(), masquePlat()).estHypothese).toBe(true)
-  })
-})
-
 describe('obstruction entre deux azimuts entiers (T-0359)', () => {
   const masque = masqueDepuisRelief(
     Array.from({ length: NB_AZIMUTS }, (_, az) => (az === 10 ? 8 : az === 11 ? 12 : 0)),
@@ -167,3 +137,17 @@ describe('obstruction entre deux azimuts entiers (T-0359)', () => {
   })
 })
 
+
+describe('avertissement d’horizon plat dans la carte Site (T-0368)', () => {
+  it('ne dit rien pendant le premier chargement du relief', () => {
+    const masque = masqueDuRelief(null)
+    expect(masque.estHypothese).toBe(true)
+    expect(masque.note).toBeUndefined()
+  })
+
+  it('nomme la cause quand le relief est indisponible', () => {
+    const masque = masqueDuRelief({ etat: 'INDISPONIBLE', cause: 'Service muet.' })
+    expect(masque.estHypothese).toBe(true)
+    expect(masque.note).toMatch(/^Service muet\. Horizon supposé plat\.$/)
+  })
+})

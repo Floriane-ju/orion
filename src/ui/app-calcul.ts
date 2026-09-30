@@ -20,9 +20,6 @@ import {
   type PoidsScoring,
 } from '../core/session.ts'
 import {
-  composeMasques,
-  masqueDepuisPoints,
-  masquePlat,
   seuilsDeclinaison,
   type MasqueHorizon,
   type SeuilsSite,
@@ -278,23 +275,11 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
   const site = dernierSite.current ?? siteSaisi
 
   /**
-   * §4.1 — le relief du terrain, puis les relevés à la main « par-dessus » : azimut par azimut,
-   * la plus haute des deux obstructions. Sans relief (hors réseau sur un site inconnu, service
-   * muet) ni relevé, le masque plat [HYP] reste le repli de la matrice de dégradation §12.5.
-   *
-   * Une saisie hors domaine ne fait pas tomber la chaîne : elle est refusée à la saisie, dans
-   * le panneau, et le masque garde son état précédent.
+   * §4.1 — le relief du terrain. Sans lui (hors réseau sur un site inconnu, service muet), le
+   * masque plat [HYP] reste le repli de la matrice de dégradation §12.5.
    */
   const relief = useReliefSite(site.latitudeDeg, site.longitudeDeg)
-  const masque: MasqueHorizon = useMemo(() => {
-    let manuel: MasqueHorizon
-    try {
-      manuel = masqueDepuisPoints(lieu.pointsMasque)
-    } catch {
-      manuel = masquePlat()
-    }
-    return composeMasques(masqueDuRelief(relief), manuel)
-  }, [relief, lieu.pointsMasque])
+  const masque: MasqueHorizon = useMemo(() => masqueDuRelief(relief), [relief])
 
   const cielSaisi = useMemo(
     () => evalueCiel(site, lieuBorne),

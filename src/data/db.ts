@@ -37,12 +37,6 @@ export interface SiteEnregistre {
   readonly masqueHorizon?: readonly number[]
   /** Vrai quand le masque est le repli plat à 0°, faute de donnée de relief (§4.1). */
   readonly masqueEstHypothese?: boolean
-  /**
-   * Les relevés dont les 360 valeurs sont interpolées (§4.1). Ils sont conservés à côté du
-   * masque parce qu'eux seuls se ré-éditent : reconstruire les crêtes depuis le profil
-   * interpolé rendrait une liste que l'utilisateur n'a pas saisie.
-   */
-  readonly masquePoints?: readonly { readonly azimutDeg: number; readonly altitudeDeg: number }[]
 }
 
 export interface ProfilMateriel {

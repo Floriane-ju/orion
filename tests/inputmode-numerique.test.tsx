@@ -13,9 +13,9 @@
 
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import { masquePlat } from '../src/core/site.ts'
 import { ChampsSite } from '../src/ui/ChampsSite.tsx'
 import { PanneauMateriel } from '../src/ui/PanneauMateriel.tsx'
-import { masquePlat } from '../src/core/site.ts'
 import { ouvreCarte } from '../src/ui/coque-etat.ts'
 
 const rien = () => undefined
@@ -38,8 +38,6 @@ const ECRAN_SITE = renderToStaticMarkup(
     sqm=""
     surSqm={rien}
     masque={masquePlat()}
-    pointsMasque={[]}
-    surPointsMasque={rien}
     cielRefus={null}
   />,
 )
@@ -88,8 +86,8 @@ describe('inputMode des champs numériques §4.1 + §5.1 (T-0192)', () => {
   const champsMateriel = champsSaisie(ECRAN_MATERIEL)
 
   it('l’écran Site expose bien les cinq champs numériques attendus', () => {
-    // latitude, longitude, altitude, bortle, sqm, + azimut et hauteur du masque d’horizon.
-    expect(champsSite.length).toBe(7)
+    // latitude, longitude, altitude, bortle, sqm.
+    expect(champsSite.length).toBe(5)
   })
 
   it('l’écran Matériel expose bien les champs numériques attendus', () => {

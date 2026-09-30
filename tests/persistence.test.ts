@@ -18,9 +18,8 @@ import {
   importeFichierUtilisateur,
   enregistrePoidsScoring,
   litPoidsScoring,
-  litPointsMasqueActif,
 } from '../src/data/persistence.ts'
-import { masqueDepuisPoints, NB_AZIMUTS, obstructionDeg } from '../src/core/site.ts'
+import { masqueDepuisRelief, NB_AZIMUTS, obstructionDeg } from '../src/core/site.ts'
 import { normalisePoids } from '../src/core/session.ts'
 
 const SITE: SiteEnregistre = {
@@ -274,49 +273,42 @@ describe('poids de scoring §8.3 → §12.3', () => {
   })
 })
 
-describe('masque d’horizon relevé à la main §4.1 → §12.3', () => {
-  const RELEVES = [
-    { azimutDeg: 150, altitudeDeg: 22 },
-    { azimutDeg: 210, altitudeDeg: 22 },
-  ]
+describe('masque d’horizon §4.1 → §12.3', () => {
+  const TERRAIN = masqueDepuisRelief(Array.from({ length: NB_AZIMUTS }, (_, az) => az / 10))
 
-  it('part dans l’export et revient à l’import, relevés compris', async () => {
-    const masque = masqueDepuisPoints(RELEVES)
+  it('part dans l’export et revient à l’import', async () => {
     await enregistreSiteActif({
       latitudeDeg: 46.391,
       longitudeDeg: 6.697,
       altitudeM: 500,
-      masque,
-      pointsMasque: RELEVES,
+      masque: TERRAIN,
     })
 
     const fichier = JSON.stringify(await exporteDonneesUtilisateur())
     const base = await db()
     const vidage = base.transaction('sites', 'readwrite')
     await Promise.all([vidage.objectStore('sites').clear(), vidage.done])
-    expect(await litPointsMasqueActif()).toHaveLength(0)
 
     await importeFichierUtilisateur(fichier)
 
     const restaure = (await base.getAll('sites')).find((s) => s.id === ID_SITE_ACTIF)
     expect(restaure?.masqueHorizon).toHaveLength(NB_AZIMUTS)
     expect(restaure?.masqueEstHypothese).toBe(false)
-    expect(await litPointsMasqueActif()).toEqual(RELEVES)
-    // Le profil restauré redonne le même relief qu'avant l'export.
-    expect(restaure?.masqueHorizon?.[165]).toBe(obstructionDeg(masque, 165))
+    expect(restaure?.masqueHorizon?.[165]).toBe(obstructionDeg(TERRAIN, 165))
   })
 
-  it('refuse un relevé hors domaine plutôt que de l’importer', async () => {
-    await expect(
-      importeDonneesUtilisateur({
-        format: 'orion-export',
-        version: VERSION_EXPORT,
-        exporteLe: new Date().toISOString(),
-        sites: [{ ...SITE, masquePoints: [{ azimutDeg: 12, altitudeDeg: 95 }] }],
-        profils: [],
-        plans: [],
-      }),
-    ).rejects.toThrow(ExportInvalideError)
+  it('laisse à la porte les relevés manuels d’un ancien export', async () => {
+    await importeDonneesUtilisateur({
+      format: 'orion-export',
+      version: VERSION_EXPORT,
+      exporteLe: new Date().toISOString(),
+      sites: [{ ...SITE, masquePoints: [{ azimutDeg: 90, altitudeDeg: 9 }] }],
+      profils: [],
+      plans: [],
+    })
+    const restaure = await (await db()).get('sites', SITE.id)
+    expect(restaure).toBeDefined()
+    expect(restaure).not.toHaveProperty('masquePoints')
   })
 
   it('n’enregistre pas un site dont les coordonnées ne sont pas chiffrables', async () => {
@@ -326,8 +318,7 @@ describe('masque d’horizon relevé à la main §4.1 → §12.3', () => {
       latitudeDeg: Number('abc'),
       longitudeDeg: 6.697,
       altitudeM: 500,
-      masque: masqueDepuisPoints(RELEVES),
-      pointsMasque: RELEVES,
+      masque: TERRAIN,
     })
     expect(await base.get('sites', ID_SITE_ACTIF)).toBeUndefined()
   })

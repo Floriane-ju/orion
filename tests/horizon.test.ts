@@ -22,7 +22,7 @@ describe('masque d’horizon §4.1', () => {
     expect(masque.altitudesDeg.every((a) => a === 0)).toBe(true)
     expect(masque.estHypothese).toBe(true)
     expect(masque.flags).toContain('HYP')
-    expect(masque.note).toMatch(/complét/i)
+    expect(masque.note).toMatch(/horizon supposé plat/i)
   })
 
   it('accepte un profil de relief mesuré, qui n’est plus une hypothèse', () => {
