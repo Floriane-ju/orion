@@ -1601,8 +1601,8 @@ body {
    le ciel se devine derrière le voile — on sait d'où l'on vient et où l'on retourne. Elle
    passe au-dessus des barres (`--plan-page`) ; seule la bulle la devance. Elle n'existe à l'écran que tant que
    l'ancre `#info` la vise : pas de JavaScript pour l'ouvrir, le retour du navigateur la
-   referme. Pas de fermeture au clic sur le voile, comme pour les tiroirs (`gere-echap.ts`) :
-   Échap et le bouton suffisent. */
+   referme. Pas de fermeture au clic sur le voile : une page se lit longtemps, un clic
+   égaré ne doit pas la perdre. Échap et le bouton suffisent. */
 .page-info {
   display: none;
   position: fixed;

@@ -37,7 +37,7 @@ import { useChaineCalcul } from './ui/app-calcul.ts'
 import { useCiblesEnAvant } from './ui/cibles-en-avant.ts'
 import { appliqueModeNuit, BoutonModeNuit } from './ui/ModeNuit.tsx'
 import { litEtatPersiste, type EtatModeNuit } from './data/mode-nuit.ts'
-import { installeEchap } from './ui/gere-echap.ts'
+import { installeEchap, installeFermetureDehors } from './ui/gere-echap.ts'
 import { Mention } from './ui/Mention.tsx'
 
 
@@ -101,6 +101,7 @@ function AppPrete({
   // T-0189 — une seule écoute d'Échap pour toute l'application : les bulles s'ouvrent sans
   // JavaScript et ne peuvent pas porter la leur (§1.4.13, voir `gere-echap.ts`).
   useEffect(() => installeEchap(document), [])
+  useEffect(() => installeFermetureDehors(document), [])
 
   // Pointage, temps et intention : les deux magasins que la scène et les panneaux partagent.
   const anneeEpoque = useTrancheScene(epoqueAffichee)

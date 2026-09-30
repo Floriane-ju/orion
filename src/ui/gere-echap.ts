@@ -9,10 +9,11 @@
  * règle de priorité : une glose ouverte au-dessus d'un tiroir se congédie sans emporter le
  * tiroir qui la porte.
  *
- * PAS DE FERMETURE AU CLIC DEHORS, pour les trois tiroirs sans exception : `tiroir-site`
- * porte les six champs du lieu, et se refermer pendant qu'on tape une latitude serait une
- * perte de contexte. Échap suffit à 1.4.13 et au motif « disclosure » de l'APG, et une règle
- * unique vaut mieux qu'une exception à retenir.
+ * T-0262 — le tiroir se referme aussi quand le pointeur ou le focus en SORT. Échap n'existe
+ * pas au doigt, et un tiroir resté ouvert recouvre la scène que la tabulation suivante
+ * atteindrait. L'objection d'origine — `tiroir-site` et ses six champs, qu'un clic dehors
+ * aurait refermés en pleine saisie — est tombée avec lui : le lieu est une carte à demeure,
+ * et le seul tiroir restant (mode nuit) ne porte qu'une case et un curseur.
  *
  * Le tiroir visé est celui qui CONTIENT le focus : Échap ne referme pas un tiroir resté
  * ouvert à l'autre bout de l'écran, dont le `<summary>` volerait le focus au passage.
@@ -109,4 +110,32 @@ export function installeEchap(doc: Document): () => void {
 
   doc.addEventListener('keydown', surTouche)
   return () => doc.removeEventListener('keydown', surTouche)
+}
+
+/**
+ * T-0262 — les tiroirs ouverts qui ne contiennent pas la cible du geste : ceux qu'un pointeur
+ * posé ailleurs ou un focus parti ailleurs referme. Décidé sans DOM, comme `cibleEchap`.
+ */
+export function tiroirsAFermer<T>(ouverts: readonly T[], contientCible: (t: T) => boolean): T[] {
+  return ouverts.filter((t) => !contientCible(t))
+}
+
+/**
+ * Pose l'écoute du geste dehors. `pointerdown` couvre le toucher et le clic sur un élément
+ * non focalisable (le canevas) ; `focusin` couvre la tabulation. Le focus n'est PAS ramené :
+ * il est déjà là où l'utilisateur l'a envoyé.
+ */
+export function installeFermetureDehors(doc: Document): () => void {
+  const surGeste = (evt: Event) => {
+    const cible = evt.target
+    if (!(cible instanceof Node)) return
+    const ouverts = [...doc.querySelectorAll<HTMLDetailsElement>('details.tiroir[open]')]
+    for (const t of tiroirsAFermer(ouverts, (o) => o.contains(cible))) t.removeAttribute('open')
+  }
+  doc.addEventListener('pointerdown', surGeste)
+  doc.addEventListener('focusin', surGeste)
+  return () => {
+    doc.removeEventListener('pointerdown', surGeste)
+    doc.removeEventListener('focusin', surGeste)
+  }
 }

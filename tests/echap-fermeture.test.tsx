@@ -14,7 +14,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { cibleEchap } from '../src/ui/gere-echap.ts'
+import { cibleEchap, tiroirsAFermer } from '../src/ui/gere-echap.ts'
 
 const RACINE = join(import.meta.dirname, '..', 'src')
 const CSS = readFileSync(join(RACINE, 'ui', 'styles.css'), 'utf8')
@@ -86,5 +86,25 @@ describe('T-0189 — les trois tiroirs sont couverts par la même règle', () =>
       const source = readFileSync(join(RACINE, 'ui', fichier), 'utf8')
       expect(source, fichier).not.toMatch(/className=(["'`])tiroir[\s"'`]/)
     }
+  })
+})
+
+describe('T-0262 — un geste hors du tiroir le referme', () => {
+  const nuit = { nom: 'nuit', enfants: ['case', 'curseur'] }
+  const autre = { nom: 'autre', enfants: ['bouton'] }
+  const contient = (cible: string) => (t: typeof nuit) => t.enfants.includes(cible)
+
+  it('garde ouvert le tiroir où tombe le geste', () => {
+    expect(tiroirsAFermer([nuit], contient('curseur'))).toEqual([])
+  })
+
+  it('referme le tiroir quand le geste tombe ailleurs — scène, autre bouton', () => {
+    expect(tiroirsAFermer([nuit], contient('canevas'))).toEqual([nuit])
+    expect(tiroirsAFermer([nuit, autre], contient('bouton'))).toEqual([nuit])
+  })
+
+  it('est installée une fois, sur le document', () => {
+    const app = readFileSync(join(RACINE, 'App.tsx'), 'utf8')
+    expect(app).toContain('installeFermetureDehors(document)')
   })
 })
