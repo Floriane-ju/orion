@@ -24,6 +24,7 @@
 
 import { K } from '../registry/constants.ts'
 import { SB_NUIT_SITE_REFERENCE_MAG, sbCrepusculeZenith } from '../registry/crepuscule.ts'
+import { SB_PLAFOND_TABLE } from '../registry/bortle.ts'
 import {
   brillanceLuneNl,
   diffusionKS,
@@ -84,14 +85,51 @@ export function hauteurRepresentative(indexPalier: number): number {
 }
 
 /**
- * Facteur d'adaptation de l'œil à ce zénith : 1 la nuit, moins dès que le zénith dépasserait
- * `LUMINANCE_ECRAN_ZENITH_ADAPTE`. Il multiplie l'exposition de TOUTE la scène, donc garde les
+ * T-0372 — luminance d'écran où l'œil commence à s'adapter : celle du zénith le plus clair de
+ * la nuit (Bortle 9). Déduite de la table, pas choisie : aucun ciel nocturne n'en est changé.
+ */
+function genouAdaptation(): number {
+  return K('K_EXPOSITION_FOND_CIEL') * nanolamberts(SB_PLAFOND_TABLE)
+}
+
+/**
+ * Facteur d'adaptation de l'œil à ce zénith : 1 la nuit, moins dès que le zénith dépasse
+ * `genouAdaptation`. Il multiplie l'exposition de TOUTE la scène, donc garde les
  * rapports de brillance : le zénith reste bleu, ce qui est plus clair que lui — le Soleil et
  * son halo — blanchit.
+ *
+ * T-0372 — l'adaptation n'est que PARTIELLE : au-dessus du genou, la luminance d'écran du
+ * zénith croît encore en puissance de sa brillance, jusqu'au plafond du jour. Complète, elle
+ * figeait le zénith au plafond du coucher jusqu'à 8,5° de dépression : fin du crépuscule
+ * civil aussi claire que midi, puis une chute brutale.
  */
 export function adaptationEcran(sbZenithMag: number): number {
   const y = K('K_EXPOSITION_FOND_CIEL') * nanolamberts(sbZenithMag)
-  return Math.min(1, K('LUMINANCE_ECRAN_ZENITH_ADAPTE') / y)
+  const genou = genouAdaptation()
+  if (!(y > genou)) return 1
+  const adaptee = Math.min(
+    K('LUMINANCE_ECRAN_ZENITH_ADAPTE'),
+    genou * (y / genou) ** K('EXPOSANT_ADAPTATION_ECRAN'),
+  )
+  return adaptee / y
+}
+
+/**
+ * T-0372 — part du chemin de la nuit au jour parcourue par l'œil adapté à ce zénith : 0 sous
+ * `genouAdaptation`, 1 au plafond du jour, linéaire en log de la luminance d'écran.
+ *
+ * C'est elle qui mélange les teintes, pas le facteur d'adaptation : la chromaticité de nuit est
+ * plus lumineuse que celle du jour à bleu égal, et `1 − adaptation` la faisait revenir d'un
+ * coup près du genou, là où la luminance d'écran ne baisse presque plus — un voile pâle
+ * naissait puis s'éteignait. Suivre le log de la luminance garantit que la teinte ne change
+ * jamais plus vite que la luminance ne baisse.
+ */
+export function partJour(sbZenithMag: number): number {
+  const genou = genouAdaptation()
+  const y = K('K_EXPOSITION_FOND_CIEL') * nanolamberts(sbZenithMag)
+  if (!(y > genou)) return 0
+  const parcours = K('EXPOSANT_ADAPTATION_ECRAN') * Math.log(y / genou)
+  return Math.min(1, parcours / Math.log(K('LUMINANCE_ECRAN_ZENITH_ADAPTE') / genou))
 }
 
 /**
@@ -118,7 +156,7 @@ export function composantesFond(
   sbZenithMag = sbMagArcsec2,
 ): readonly [number, number, number] {
   const y = luminanceEcran(sbMagArcsec2, sbZenithMag)
-  const jour = 1 - adaptationEcran(sbZenithMag)
+  const jour = partJour(sbZenithMag)
   const melange = (nuit: number, diurne: number): number => y * (nuit + jour * (diurne - nuit))
   return [
     melange(K('CHROMA_FOND_CIEL_R'), K('CHROMA_CIEL_JOUR_R')),
@@ -355,6 +393,26 @@ function affaiblissementCrepuscule(depressionSolaireDeg: number): number {
 }
 
 /**
+ * T-0372 — part du crépuscule restant dans le fond, en log : 1 jusqu'au coucher, 0 quand le
+ * fond est redevenu celui du site (fin de la table de Patat).
+ *
+ * Retirer le rougissement de visée ÉCLAIRCIT le fond : il ne fait qu'ôter du vert et du bleu.
+ * Éteint avec la lueur du couchant, il s'effaçait pendant les 5 premiers degrés où le fond,
+ * tenu au bord de la table, ne baisse pas — l'horizon pâlissait en plein crépuscule civil.
+ * Suivi en log de la brillance du fond elle-même, il s'efface moins vite que le ciel ne
+ * s'assombrit, et il est nul à l'instant où la grille du Soleil passe la main aux paliers.
+ *
+ * ponytail: la monotonie tient tant que le rougissement de visée garde plus d'un quart de la
+ * luminance (h ≳ 3°) ; plus bas, le sol recouvre le ciel.
+ */
+function extinctionRougissementFond(depressionSolaireDeg: number, bFondNl: number): number {
+  const bSite = bFondNl - brillanceCrepusculeNl(depressionSolaireDeg)
+  const couchant = Math.log1p(brillanceCrepusculeNl(0) / bSite)
+  if (!(bSite > 0) || !(couchant > 0)) return 0
+  return Math.min(1, Math.log(bFondNl / bSite) / couchant)
+}
+
+/**
  * Ce qui ne dépend que du Soleil et du fond, pas de la direction : calculé une fois par image,
  * partagé par toutes les directions de la grille.
  */
@@ -368,7 +426,7 @@ export interface EclairageSoleil {
   readonly soleil: readonly [number, number, number]
   /** Exposant du rougissement de visée appliqué au Rayleigh, 0 Soleil haut, 1 Soleil rasant. */
   readonly poidsVue: number
-  /** Le même pour le fond du site et le crépuscule, éteint avec la lueur. */
+  /** Le même pour le fond du site et le crépuscule, éteint à mesure que le zénith s'assombrit. */
   readonly poidsFond: number
   /** Facteur appliqué à la lueur de Mie pour que son pic reste dans l'écran. */
   readonly exposition: number
@@ -404,7 +462,7 @@ export function eclairageSoleil(
     sbZenith,
     soleil,
     poidsVue,
-    poidsFond: poidsVue * affaiblissementCrepuscule(-altitudeSoleilDeg),
+    poidsFond: poidsVue * extinctionRougissementFond(-altitudeSoleilDeg, bFondNl),
     exposition: yReference > 0 ? Math.min(1, K('LUEUR_CIBLE_EXPOSITION') / yReference) : 1,
   }
 }

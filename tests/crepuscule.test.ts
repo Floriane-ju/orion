@@ -175,11 +175,12 @@ describe('ce que l’utilisateur voit', () => {
     }
   })
 
-  it('au crépuscule civil, le zénith plafonne à la luminance adaptée et bleuit', () => {
+  it('au crépuscule civil, le zénith reste sous la luminance du jour et bleuit', () => {
     const sb = sbZenithAvecCrepuscule(SB_B1, 6)
     expect(adaptationEcran(sb)).toBeLessThan(1)
     const [r, v, b] = composantesFond(sb)
-    expect(b).toBeCloseTo(K('LUMINANCE_ECRAN_ZENITH_ADAPTE'), 12)
+    // T-0372 — adaptation partielle : le plafond est celui du jour, pas du crépuscule.
+    expect(b).toBeLessThan(K('LUMINANCE_ECRAN_ZENITH_ADAPTE'))
     // Plus bleu que la nuit : le rouge perd sur le bleu.
     expect(r / b).toBeLessThan(K('CHROMA_FOND_CIEL_R'))
     expect(v / b).toBeLessThan(K('CHROMA_FOND_CIEL_V'))

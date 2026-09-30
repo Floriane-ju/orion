@@ -2009,11 +2009,28 @@ const GRAND_CHAMP = {
     valeur: 0.8,
     unite: 'Y',
     source:
-      'convention produit — au-delà, l’exposition K_EXPOSITION_FOND_CIEL baisse pour que le ' +
-      'zénith y reste : l’œil s’adapte au ciel du crépuscule et du jour. Sans elle, le fond ' +
-      'sature au blanc dès 8,6° de dépression solaire. Les RAPPORTS de brillance restent ' +
+      'convention produit — plafond de l’adaptation partielle (EXPOSANT_ADAPTATION_ECRAN) : ' +
+      'le zénith de jour s’y arrête, l’exposition baisse pour qu’il y reste. Sans adaptation, ' +
+      'le fond saturerait au blanc dès 8,6° de dépression solaire. Les RAPPORTS de brillance restent ' +
       'physiques : le halo solaire blanchit, le zénith reste bleu. La nuit, le zénith est à ' +
       '0,16 au plus (Bortle 9) : rien ne change.',
+    tolerance: 'convention produit — pilote l’apparence du fond, jamais un verdict',
+    ordreDeGrandeur: false,
+    sections: ['3.3'],
+  }),
+  EXPOSANT_ADAPTATION_ECRAN: entree({
+    ref: 'C-62',
+    libelle: 'Exposant de l’adaptation partielle de l’œil au ciel clair',
+    valeur: 0.15,
+    unite: '—',
+    source:
+      'convention produit — au-dessus du zénith le plus clair de la nuit (Y₀, Bortle 9 : la ' +
+      'nuit reste intacte), la luminance d’écran du zénith suit Y = Y₀·(y/Y₀)^n, plafonnée à ' +
+      'LUMINANCE_ECRAN_ZENITH_ADAPTE : le ciel ' +
+      's’assombrit continûment du jour à la nuit. Adaptation complète (n = 0), le zénith ' +
+      'restait au plafond du jour jusqu’à 8,5° de dépression, et le crépuscule civil se ' +
+      'peignait aussi clair que midi (T-0372). n = 0,15 atteint le plafond vers 5 à 10° de ' +
+      'hauteur solaire. Réglée à l’œil.',
     tolerance: 'convention produit — pilote l’apparence du fond, jamais un verdict',
     ordreDeGrandeur: false,
     sections: ['3.3'],
