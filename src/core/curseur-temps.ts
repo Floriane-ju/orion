@@ -12,6 +12,7 @@
  */
 
 import { K } from '../registry/constants.ts'
+import { nombre } from '../registry/ecriture.ts'
 import { trace, type Traced } from './traced.ts'
 
 export type ModeTemps = 'MAINTENANT' | 'FIGE' | 'DEFILEMENT'
@@ -104,8 +105,8 @@ export function reglageVitesse(
     return {
       ...base,
       message:
-        `Vitesse ramenée de ×${Math.abs(facteurDemande).toFixed(0)} à ` +
-        `×${borne.toFixed(0)} : plus vite, le ciel deviendrait illisible à ce zoom.`,
+        `Vitesse ramenée de ×${nombre(Math.abs(facteurDemande), 0)} à ` +
+        `×${nombre(borne, 0)} : plus vite, le ciel deviendrait illisible à ce zoom.`,
     }
   }
 
@@ -115,7 +116,7 @@ export function reglageVitesse(
     return {
       ...base,
       message:
-        `À ×${Math.abs(facteur).toFixed(0)}, le mouvement est invisible. Zoomez pour le voir.`,
+        `À ×${nombre(Math.abs(facteur), 0)}, le mouvement est invisible. Zoomez pour le voir.`,
     }
   }
 

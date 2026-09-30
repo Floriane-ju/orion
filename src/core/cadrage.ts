@@ -10,6 +10,7 @@
  */
 
 import { K } from '../registry/constants.ts'
+import { nombre } from '../registry/ecriture.ts'
 import {
   RAPPORT_AXES_ORIENTATION,
   TABLE_CADRAGE,
@@ -167,7 +168,7 @@ function orientation(
   return {
     angleBoitierDeg: posAngDeg,
     noteOrientation:
-      `Cible allongée : tournez le boîtier à ${posAngDeg.toFixed(0)}° pour l’aligner sur la ` +
+      `Cible allongée : tournez le boîtier à ${nombre(posAngDeg, 0)}° pour l’aligner sur la ` +
       'longueur du capteur.',
   }
 }
@@ -191,12 +192,12 @@ export function ficheCadrage(entree: EntreeCadrage): FicheCadrage {
   const causes: string[] = []
   if (!ligne.faisable) {
     causes.push(
-      `${ligne.message} Elle occupe ${(remplissage * POURCENT).toFixed(2)} % du cadre.`,
+      `${ligne.message} Elle occupe ${nombre(remplissage * POURCENT, 2)} % du cadre.`,
     )
   }
   if (tropPetitEnPixels) {
     causes.push(
-      `Seulement ${diamPx.toFixed(0)} px de large : aucun détail visible sous ` +
+      `Seulement ${nombre(diamPx, 0)} px de large : aucun détail visible sous ` +
         `${K('DIAMETRE_PIXELS_MIN')} px.`,
     )
   }

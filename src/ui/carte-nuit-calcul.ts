@@ -5,6 +5,7 @@
  */
 
 import type { FriseNuit, LuneDeLaNuit, PhaseCiel } from '../core/frise-nuit.ts'
+import { degres, nombre } from '../registry/ecriture.ts'
 import { MIN_PAR_H, MS_PAR_MINUTE, POURCENT } from '../core/unites.ts'
 import { heure, LOCALE } from './horaire.ts'
 
@@ -182,12 +183,12 @@ export function resumeLuneFrise(lune: LuneDeLaNuit): string {
   if (lune.levee.length === 0) return 'Lune couchée toute la nuit.'
   const plages = lune.levee.map((i) => `de ${heure(i.debut)} à ${heure(i.fin)}`).join(', ')
   const haute = Math.max(0, ...lune.positions.map((p) => p.hauteurDeg))
-  return `Lune levée ${plages}, jusqu’à ${haute.toFixed(0)}° de hauteur.`
+  return `Lune levée ${plages}, jusqu’à ${degres(haute)} de hauteur.`
 }
 
 /** La phase à l'instant pointé : son sens et sa fraction éclairée, « Décroissante 93% ». */
 export function libellePhaseLune(croissante: boolean, illumination: number): string {
-  return `${croissante ? 'Croissante' : 'Décroissante'} ${(illumination * POURCENT).toFixed(0)}%`
+  return `${croissante ? 'Croissante' : 'Décroissante'} ${nombre(illumination * POURCENT)} %`
 }
 
 /**

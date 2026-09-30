@@ -430,6 +430,13 @@ pre {
     format('truetype');
 }
 
+/* T-0276 — ce qui VAUT garde sa casse dans ce qui NOMME : sous un libellé en capitales,
+   « 30 s » devenait « 30 S », « (Mo) » « (MO) », et « sous δ » « SOUS Δ » — le symbole d'un
+   écart, pas d'une déclinaison. Le suivi reste celui du libellé : seule la casse est rendue. */
+.casse-exacte {
+  text-transform: none;
+}
+
 /* Le style de base d'une icône — l'unique endroit à modifier pour toutes les faire changer.
 
    `wght` à 300 plutôt qu'à 400 : un glyphe à l'épaisseur nominale pèse plus que le texte à

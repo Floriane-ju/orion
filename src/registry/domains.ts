@@ -7,6 +7,8 @@
  * réécrire des bornes en dur, et un refus de saisie nomme toujours le champ fautif.
  */
 
+import { nombreLibre } from './ecriture.ts'
+
 export interface DomaineSaisie {
   /** Libellé du champ tel qu'il apparaît à l'utilisateur, cité dans le message de refus. */
   readonly champ: string
@@ -187,8 +189,8 @@ export function valide(champ: DomaineId, valeur: number): number {
   if (valeur < d.min || valeur > d.max) {
     throw new SaisieRefuseeError(
       champ,
-      `Saisie refusée : ${d.champ} vaut ${valeur} ${d.unite}, hors de la plage ${d.min} à ` +
-        `${d.max} ${d.unite}.`,
+      `Saisie refusée : ${d.champ} vaut ${nombreLibre(valeur)} ${d.unite}, hors de la plage ` +
+        `${nombreLibre(d.min)} à ${nombreLibre(d.max)} ${d.unite}.`,
     )
   }
   return valeur
@@ -225,8 +227,9 @@ export function borne(champ: DomaineId, valeur: number): Bornage {
     return {
       valeur: retenue,
       refus:
-        `Saisie hors plage : ${d.champ} vaut ${valeur} ${d.unite}, hors de la plage ` +
-        `${d.min} à ${d.max} ${d.unite} — ${retenue} ${d.unite} retenu.`,
+        `Saisie hors plage : ${d.champ} vaut ${nombreLibre(valeur)} ${d.unite}, hors de la ` +
+        `plage ${nombreLibre(d.min)} à ${nombreLibre(d.max)} ${d.unite} — ` +
+        `${nombreLibre(retenue)} ${d.unite} retenu.`,
     }
   }
   return { valeur, refus: null }

@@ -17,6 +17,7 @@
  */
 
 import { K, ref, type ConstantRef } from '../registry/constants.ts'
+import { nombre, nombreLibre } from '../registry/ecriture.ts'
 import { nombreDeTexte, valide, type DomaineId } from '../registry/domains.ts'
 import { ligneFormatCapteur, pitchDepuisFormat, type FormatCapteur } from '../registry/capteur-formats.ts'
 import { LIBELLE_ZP_SOURCE } from '../registry/libelles.ts'
@@ -264,7 +265,7 @@ export function notesEstimation(
   ...(vide(saisie.zpSys)
     ? {
         zpSys:
-          `Vide : ${K('ZP_SYS_GENERIQUE')} mag par défaut, ` +
+          `Vide : ${nombreLibre(K('ZP_SYS_GENERIQUE'))} mag par défaut, ` +
           `source ${LIBELLE_ZP_SOURCE.GENERIQUE} [ESTIMÉ].`,
       }
     : {}),
@@ -336,7 +337,7 @@ export function resoutBoitier(saisie: SaisieBoitier, origine?: OrigineBoitier): 
     id: origine?.id ?? 'saisi',
     libelle:
       origine?.libelle ??
-      `Boîtier saisi — ${format.libelle}, ${resolutionMpx} Mpx, pitch ${pitchUm.toFixed(2)} µm`,
+      `Boîtier saisi — ${format.libelle}, ${nombreLibre(resolutionMpx)} Mpx, pitch ${nombre(pitchUm, 2)} µm`,
     capteurLMm,
     capteurHMm,
     pitchUm,
@@ -377,7 +378,7 @@ function recadrageApsc(capteurLMm: number, capteurHMm: number): ModeRecadrage {
  */
 export function libelleZpSource(zeroSysteme: PointZeroSysteme): string {
   return (
-    `point zéro système ${zeroSysteme.valeur} mag · source : ` +
+    `point zéro système ${nombreLibre(zeroSysteme.valeur)} mag · source : ` +
     LIBELLE_ZP_SOURCE[zeroSysteme.source] +
     (zeroSysteme.estime ? ' [ESTIMÉ]' : '')
   )

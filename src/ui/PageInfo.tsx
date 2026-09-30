@@ -14,6 +14,7 @@
  */
 
 import { useEffect } from 'react'
+import { nombre } from '../registry/ecriture.ts'
 import { etatProfondeur } from '../core/projection.ts'
 import type { EtatDemarrage } from '../data/bootstrap.ts'
 import type { ModeReseau } from '../data/degradation.ts'
@@ -99,7 +100,7 @@ function LectureProfondeur(props: LectureProfondeurProps) {
       <span className="terme">
         <Bulle texte={aide} place="bas">
           <abbr>
-            {entree.libelle} {profondeur.magLimite.value.toFixed(1)} mag
+            {entree.libelle} {nombre(profondeur.magLimite.value, 1)} mag
           </abbr>
         </Bulle>
       </span>

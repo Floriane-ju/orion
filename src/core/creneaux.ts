@@ -16,6 +16,7 @@
  */
 
 import { Horizon } from 'astronomy-engine'
+import { dureeMinLisible, nombre, nombreLibre } from '../registry/ecriture.ts'
 import { K } from '../registry/constants.ts'
 import type { TypeMonture } from './suivi.ts'
 import type { Site } from './ephem.ts'
@@ -208,7 +209,7 @@ function masseAirMoyenneCreneau(visibles: readonly Echantillon[]): Traced<number
       constants: ['HAUTEUR_MIN_MASSE_AIR_DEG'],
       flags: ['HORS_DOMAINE'],
       note:
-        `La cible descend à ${altMin.toFixed(1)}° : trop basse pour chiffrer la masse d’air.`,
+        `La cible descend à ${nombre(altMin, 1)}° : trop basse pour chiffrer la masse d’air.`,
     })
   }
   const somme = altitudes.reduce((total, alt) => total + masseAirBrute(alt), 0)
@@ -289,7 +290,7 @@ export function creneauCible(entree: EntreeCreneau): CreneauCible {
       causeExclusion: 'HAUTEUR',
       latitudeAccessibleDeg: latitudeAccessible,
       message:
-        `La cible ne monte pas au-delà de ${altCulmination.value.toFixed(1)}° d’ici : trop ` +
+        `La cible ne monte pas au-delà de ${nombre(altCulmination.value, 1)}° d’ici : trop ` +
         `basse, il faut au moins ${seuil}°.`,
     }
   }
@@ -310,15 +311,15 @@ export function creneauCible(entree: EntreeCreneau): CreneauCible {
       ...commun,
       causeExclusion: 'RELIEF',
       message:
-        `Cachée par le relief (${obstructionDeg(entree.masque, azimutBloquant).toFixed(0)}° ` +
-        `de haut vers l’azimut ${azimutBloquant}°).`,
+        `Cachée par le relief (${nombre(obstructionDeg(entree.masque, azimutBloquant), 0)}° ` +
+        `de haut vers l’azimut ${nombreLibre(azimutBloquant)}°).`,
     }
   }
 
   return {
     ...commun,
     message:
-      `Créneau de ${dureeTotale.toFixed(0)} min au-dessus de ${seuil}°` +
+      `Créneau de ${dureeMinLisible(dureeTotale)} au-dessus de ${seuil}°` +
       (circumpolaire ? ', ne se couche jamais' : '') +
       (commun.retournementMeridien
         ? '. Retournement au méridien en cours de route : recadrer, puis relancer la séquence.'

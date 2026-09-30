@@ -6,6 +6,7 @@
  */
 
 import { useMemo, useState } from 'react'
+import { dureeMinLisible, nombre } from '../registry/ecriture.ts'
 import { faciliteCible } from '../core/facilite.ts'
 import {
   cartePointage,
@@ -86,7 +87,7 @@ export function PlanSessionVue(props: PlanSessionProps) {
         {!plan.budget.tient && plan.etapes.length > 0 && (
           <Mention ton="cause">
             Le total dépasse la nuit de{' '}
-            {(plan.budget.totalMin.value - plan.budget.disponibleMin).toFixed(0)} min, mise en
+            {dureeMinLisible(plan.budget.totalMin.value - plan.budget.disponibleMin)}, mise en
             station, pointages et calibration compris. Rien n’est retiré : à vous de raccourcir
             une cible ou d’en reporter une.
           </Mention>
@@ -176,7 +177,7 @@ function Etape({ etape, rang, ...props }: EtapeProps) {
         </button>
         <span className="etape-horaire">
           {heure(etape.creneauAlloue.debut)} → {heure(etape.creneauAlloue.fin)} ·{' '}
-          {etape.dureeAlloueeMin.toFixed(0)} min
+          {dureeMinLisible(etape.dureeAlloueeMin)}
         </span>
       </p>
       {/* §6.4 — la seule lecture qui reste : elle se compte d'un coup d'œil, à la frontale,
@@ -249,10 +250,10 @@ function TableAncrages({ ancrages }: { readonly ancrages: readonly Ancrage[] }) 
               />{' '}
               {ancrage.nom === '' ? SANS_NOM : ancrage.nom}
             </td>
-            <td>{ancrage.magV.toFixed(1)} mag</td>
-            <td>{ancrage.separationDeg.toFixed(2)} °</td>
-            <td>{ancrage.deltaAdH.toFixed(3)} h</td>
-            <td>{ancrage.deltaDecDeg.toFixed(2)} °</td>
+            <td>{nombre(ancrage.magV, 1)} mag</td>
+            <td>{nombre(ancrage.separationDeg, 2)}°</td>
+            <td>{nombre(ancrage.deltaAdH, 3)} h</td>
+            <td>{nombre(ancrage.deltaDecDeg, 2)}°</td>
           </tr>
         ))}
       </tbody>
@@ -427,8 +428,8 @@ export function Pointage(props: PointageProps) {
               <tr key={saut.ordre}>
                 <td>{saut.ordre}</td>
                 <td>{saut.nom === '' ? SANS_NOM : saut.nom}</td>
-                <td>{saut.magV.toFixed(1)} mag</td>
-                <td>{saut.distanceDeg.toFixed(2)} °</td>
+                <td>{nombre(saut.magV, 1)} mag</td>
+                <td>{nombre(saut.distanceDeg, 2)}°</td>
               </tr>
             ))}
           </tbody>
@@ -436,8 +437,8 @@ export function Pointage(props: PointageProps) {
       )}
 
       <p className="etat">
-        <Etiquette cle="decalage_pointage" /> : {carte.deltaAdH.toFixed(3)} h et{' '}
-        {carte.deltaDecDeg.toFixed(2)} °
+        <Etiquette cle="decalage_pointage" /> : {nombre(carte.deltaAdH, 3)} h et{' '}
+        {nombre(carte.deltaDecDeg, 2)}°
       </p>
       <p className="etat">{RAPPEL_MISE_EN_STATION}</p>
     </>

@@ -30,6 +30,7 @@
  */
 
 import type { ReactNode } from 'react'
+import { nombre } from '../registry/ecriture.ts'
 import {
   notesEstimation,
   type CapteurMode,
@@ -150,7 +151,7 @@ function ApercuPitch({
   const mpx = nombreDeTexte(resolutionMpx)
   if (!Number.isFinite(mpx) || mpx <= 0) return null
   const pitch = pitchDepuisFormat(ligneFormatCapteur(formatCapteur), mpx)
-  return <p className="etat">Pitch calculé : {pitch.toFixed(2)} µm</p>
+  return <p className="etat">Pitch calculé : {nombre(pitch, 2)} µm</p>
 }
 
 /**

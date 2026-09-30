@@ -11,6 +11,7 @@
  */
 
 import { K, type ConstantId } from '../registry/constants.ts'
+import { nombre } from '../registry/ecriture.ts'
 import { valide } from '../registry/domains.ts'
 import type { Traced } from './traced.ts'
 import { plageOrdreDeGrandeur, trace } from './traced.ts'
@@ -183,7 +184,7 @@ export function profilSuivi(entree: EntreeSuivi): ProfilSuivi {
     retournementMeridien,
     cause: null,
     gainMiseEnStation:
-      `Poses de ${tMax.toFixed(0)} s. Avec un viseur polaire bien réglé : ` +
-      `${tSoigne.toFixed(0)} s.`,
+      `Poses de ${nombre(tMax, 0)} s. Avec un viseur polaire bien réglé : ` +
+      `${nombre(tSoigne, 0)} s.`,
   }
 }

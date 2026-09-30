@@ -17,6 +17,7 @@
  */
 
 import { K } from '../registry/constants.ts'
+import { formatePose, nombre, nombreLibre } from '../registry/ecriture.ts'
 import { longueurArcDeg } from './file-etoiles.ts'
 import { rappelBatterie } from './rappel-batterie.ts'
 import { trace, type Traced } from './traced.ts'
@@ -82,8 +83,8 @@ export function sequenceFile(entree: EntreeSequenceFile): SequenceFile {
   const trou = trouTraceDeg(entree.intervalleS, entree.decDeg)
   const intervalleRefuse =
     entree.intervalleS > intervalleMax
-      ? `Pause de ${entree.intervalleS} s trop longue (max ${intervalleMax} s) : les traînées ` +
-        `auront des trous de ${(trou.value * S_PAR_H).toFixed(0)}", irréparables.`
+      ? `Pause de ${nombreLibre(entree.intervalleS)} s trop longue (max ${intervalleMax} s) : les traînées ` +
+        `auront des trous de ${nombre(trou.value * S_PAR_H, 0)}", irréparables.`
       : null
 
   const consignesBloquantes: readonly string[] = [
@@ -94,13 +95,13 @@ export function sequenceFile(entree: EntreeSequenceFile): SequenceFile {
   const messages: string[] = []
   if (entree.tPoseS < K('T_POSE_FILE_MIN_S') || entree.tPoseS > K('T_POSE_FILE_MAX_S')) {
     messages.push(
-      `Pose de ${entree.tPoseS} s : visez ${K('T_POSE_FILE_MIN_S')} à ` +
+      `Pose de ${formatePose(entree.tPoseS)} s : visez ${K('T_POSE_FILE_MIN_S')} à ` +
         `${K('T_POSE_FILE_MAX_S')} s pour un filé.`,
     )
   }
   messages.push(
-    `${nPosesValeur} poses de ${entree.tPoseS} s empilées en mode éclaircir, ` +
-      `${volume.toFixed(1)} Go, traînées de ${arcObtenuDeg.value.toFixed(2)}°.`,
+    `${nPosesValeur} poses de ${formatePose(entree.tPoseS)} s empilées en mode éclaircir, ` +
+      `${nombre(volume, 1)} Go, traînées de ${nombre(arcObtenuDeg.value, 2)}°.`,
   )
   const rappel = rappelBatterie(entree.dureeTotaleMin)
   if (rappel !== null) messages.push(rappel)

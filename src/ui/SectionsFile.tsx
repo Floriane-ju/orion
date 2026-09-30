@@ -6,6 +6,7 @@
  */
 
 import { DOMAINES } from '../registry/domains.ts'
+import { formatePose, nombre, nombreLibre } from '../registry/ecriture.ts'
 import { vignettageDiaph } from '../core/galactique.ts'
 import { libelleZpSource, type PointZeroSysteme } from '../data/equipment.ts'
 import type { ModeProjection } from '../core/projection.ts'
@@ -26,7 +27,6 @@ import { Etiquette } from './Terme.tsx'
 import type { LecturesFile } from './panneau-file-lectures.ts'
 import { Mention } from './Mention.tsx'
 import { POURCENT, S_PAR_MIN } from '../core/unites.ts'
-import { formatePose } from './horaire.ts'
 
 
 interface CadrageProps {
@@ -137,14 +137,16 @@ export function ProfondeurDUnePose({
     <section>
       <h3>Prévisualisation de champ</h3>
       <label>
-        <span className="libelle">Pose unitaire : {file.tPoseS.toFixed(0)} s</span>
+        <span className="libelle">
+          Pose unitaire : <span className="casse-exacte">{nombre(file.tPoseS, 0)} s</span>
+        </span>
         <Curseur
           libelle="Pose unitaire"
           valeur={file.tPoseS}
           min={DOMAINES.t_pose_s.min}
           max={DOMAINES.t_pose_s.max}
           pas={DOMAINES.t_pose_s.pas}
-          texte={`${file.tPoseS.toFixed(0)} s`}
+          texte={`${nombre(file.tPoseS, 0)} s`}
           {...(accroche === null ? {} : { accroche })}
           sur={(tPoseS) => majFile({ tPoseS })}
         />
@@ -170,8 +172,8 @@ export function ProfondeurDUnePose({
       />
       {poseDepassee && carte.poseOperanteS !== null && (
         <Mention ton="cause">
-          Pose trop longue : étoiles étirées de {trainee.value.toFixed(1)} px. Maximum{' '}
-          {carte.poseOperanteS.toFixed(0)} s.
+          Pose trop longue : étoiles étirées de {nombre(trainee.value, 1)} px. Maximum{' '}
+          {nombre(carte.poseOperanteS, 0)} s.
         </Mention>
       )}
       {poseDepassee && poseMax !== null && (
@@ -205,7 +207,8 @@ export function ArcsDuFile({
       <h3>Filé d’étoiles</h3>
       <label>
         <span className="libelle">
-          <Etiquette cle="duree_file" /> : {file.dureeTotaleMin.toFixed(0)} min
+          <Etiquette cle="duree_file" /> :{' '}
+          <span className="casse-exacte">{nombre(file.dureeTotaleMin, 0)} min</span>
         </span>
         {/* La borne basse n'est pas celle de §9.3 : le domaine ouvre le filé à 5 min, mais
             0 n'est pas un filé plus court — c'est l'aperçu de champ, l'autre bout de la même
@@ -216,15 +219,15 @@ export function ArcsDuFile({
           min={DUREE_APERCU_CHAMP_MIN}
           max={DOMAINES.duree_file_min.max}
           pas={DOMAINES.duree_file_min.pas}
-          texte={`${file.dureeTotaleMin.toFixed(0)} min`}
+          texte={`${nombre(file.dureeTotaleMin, 0)} min`}
           sur={(dureeTotaleMin) => majFile({ dureeTotaleMin })}
         />
       </label>
       <p className="etat">
         durée dessinée dans le cadre :{' '}
         {modeApercu(file) === 'FILE'
-          ? `${(file.dureeTotaleMin * S_PAR_MIN).toFixed(0)} s accumulées`
-          : `${file.tPoseS.toFixed(0)} s de pose unitaire`}
+          ? `${nombre(file.dureeTotaleMin * S_PAR_MIN, 0)} s accumulées`
+          : `${nombre(file.tPoseS, 0)} s de pose unitaire`}
       </p>
       <TracedValue
         terme="longueur_arc"
@@ -243,8 +246,8 @@ export function ArcsDuFile({
       <p className="etat">
         <Etiquette cle="pole_celeste" /> :{' '}
         {diagnostic.pole.dansCadre ? 'dans le cadre' : 'hors du cadre'} · hauteur{' '}
-        {diagnostic.pole.altitudeDeg.toFixed(1)}° · azimut {diagnostic.pole.azimutDeg}° ·{' '}
-        {(diagnostic.fractionHauteurCadre * POURCENT).toFixed(0)} % de la hauteur du cadre
+        {nombre(diagnostic.pole.altitudeDeg, 1)}° · azimut {nombreLibre(diagnostic.pole.azimutDeg)}° ·{' '}
+        {nombre(diagnostic.fractionHauteurCadre * POURCENT, 0)} % de la hauteur du cadre
       </p>
       {diagnostic.messages.map((message) => (
         <Mention ton="cause" key={message}>

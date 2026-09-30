@@ -7,6 +7,8 @@
  */
 
 import type { FenetreNocturne } from '../core/nuit.ts'
+import { dureeMinLisible } from '../registry/ecriture.ts'
+import { MIN_PAR_H } from '../core/unites.ts'
 import { nomDeLaNuit } from '../core/nuit-datee.ts'
 import type { FondDeCiel } from '../core/fond-ciel.ts'
 import type { Traced } from '../core/traced.ts'
@@ -94,7 +96,7 @@ function FenetreNocturneVue({
           </tr>
           <tr>
             <th>Durée de nuit astronomique</th>
-            <td>{nuit.dureeNuitH.toFixed(2)} h</td>
+            <td>{dureeMinLisible(nuit.dureeNuitH * MIN_PAR_H)}</td>
           </tr>
         </tbody>
       </table>
@@ -112,7 +114,7 @@ function FondDeCielVue({ ciel }: { readonly ciel: FondDeCiel }) {
       {ciel.confirmationRequise !== undefined && (
         <Mention ton="cause">{ciel.confirmationRequise}</Mention>
       )}
-      <TracedValue terme="fond_de_ciel" trace={ciel.sbCiel} unite="mag/as²" />
+      <TracedValue terme="fond_de_ciel" trace={ciel.sbCiel} unite="mag/arcsec²" />
       <TracedValue terme="magnitude_limite_oeil" trace={ciel.mLimOeil} unite="mag" />
     </section>
   )

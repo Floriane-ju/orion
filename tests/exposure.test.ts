@@ -6,6 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
+import { nombre, nombreLibre } from '../src/registry/ecriture.ts'
 import {
   arrondiObturateur,
   fluxCiel,
@@ -94,9 +95,9 @@ describe('pose unitaire §7.2', () => {
   it('annonce le coût du mode permissif, et ne dit rien quand il est éteint', () => {
     const permissif = poseUnitaire({ eCiel: E_CIEL, readNoiseE: 1.5, tMaxS: 75, permissif: true })
     const perte = (c: number) => (1 - Math.sqrt(c / (c + 1))) * 100
-    expect(permissif.notePermissif).toContain(perte(K('FACTEUR_POSE_C_PERMISSIF')).toFixed(1))
-    expect(permissif.notePermissif).toContain(perte(K('FACTEUR_POSE_C_DEFAUT')).toFixed(1))
-    expect(permissif.notePermissif).toContain(`${permissif.tAfficheeS} s`)
+    expect(permissif.notePermissif).toContain(nombre(perte(K('FACTEUR_POSE_C_PERMISSIF')), 1))
+    expect(permissif.notePermissif).toContain(nombre(perte(K('FACTEUR_POSE_C_DEFAUT')), 1))
+    expect(permissif.notePermissif).toContain(`${nombreLibre(permissif.tAfficheeS)} s`)
 
     // Éteint, aucune sortie ne bouge : le mode est un choix, pas un réglage silencieux.
     const defaut = poseUnitaire({ eCiel: E_CIEL, readNoiseE: 1.5, tMaxS: 75 })

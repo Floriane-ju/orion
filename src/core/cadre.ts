@@ -15,6 +15,7 @@
  */
 
 import { K } from '../registry/constants.ts'
+import { nombre } from '../registry/ecriture.ts'
 import { RAPPORT_AXES_ORIENTATION } from '../registry/verdicts.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { directionDuPlan, matriceVue, rayonProjete, type ModeProjection } from './projection.ts'
@@ -295,7 +296,7 @@ export function rotationSuggeree(
   return {
     angleDeg,
     message:
-      `Tournez de ${angleDeg.toFixed(0)}° pour aligner ${cible.objet.designation} sur la ` +
+      `Tournez de ${nombre(angleDeg, 0)}° pour aligner ${cible.objet.designation} sur la ` +
       'longueur du capteur. Valable à cette heure seulement.',
   }
 }

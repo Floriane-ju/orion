@@ -8,7 +8,7 @@
  */
 
 import { K } from '../registry/constants.ts'
-import { dureeLisible } from './exposure.ts'
+import { dureeLisible } from '../registry/ecriture.ts'
 import { S_PAR_MIN } from './unites.ts'
 
 

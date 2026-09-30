@@ -27,18 +27,18 @@ const ecran = renderToStaticMarkup(<App />)
 describe('contrat d’entrée — écran par défaut, setup de l’Annexe A', () => {
   it('affiche le champ du profil de référence', () => {
     // 17,01° × 11,37° : l'Annexe A annonce 17,02 × 11,38, arrondis d'un intermédiaire.
-    expect(ecran).toContain('17.01')
-    expect(ecran).toContain('11.37')
+    expect(ecran).toContain('17,01')
+    expect(ecran).toContain('11,37')
   })
 
   it('affiche la pose maximale sans suivi', () => {
-    expect(ecran).toContain('2.09')
+    expect(ecran).toContain('2,09')
   })
 
   it('affiche les seuils de déclinaison du site', () => {
-    expect(ecran).toContain('-13.6')
-    expect(ecran).toContain('-23.6')
-    expect(ecran).toContain('43.6')
+    expect(ecran).toContain('-13,6')
+    expect(ecran).toContain('-23,6')
+    expect(ecran).toContain('43,6')
   })
 
   it('n’affiche aucun avertissement pour un grand champ assumé', () => {

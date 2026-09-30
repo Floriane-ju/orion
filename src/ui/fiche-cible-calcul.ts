@@ -7,10 +7,10 @@
  */
 
 import { ficheCadrage, type FicheCadrage } from '../core/cadrage.ts'
+import { dureeLisible } from '../registry/ecriture.ts'
 import { detectabilite, type Detectabilite } from '../core/detectability.ts'
 import {
   attenuationBrute,
-  dureeLisible,
   fluxCiel,
   fluxE,
   fluxObjet,

@@ -13,7 +13,7 @@
 
 import { K } from '../registry/constants.ts'
 import type { CreneauCible, Intervalle } from './creneaux.ts'
-import { dureeLisible } from './exposure.ts'
+import { dureeLisible, dureeMinLisible } from '../registry/ecriture.ts'
 import { trace } from './traced.ts'
 import type { PlanCalibration } from './calibration.ts'
 import type { BudgetNuit, ContexteSession, EtapePlan } from './session-types.ts'
@@ -132,7 +132,7 @@ export function manqueIntegration(
   if (etape.integrationComplete) return null
   return etape.nNuits > 1
     ? `Trop long pour une nuit : prévoir ${etape.nNuits} nuits, avec des darks à chaque nuit.`
-    : `Créneau alloué de ${etape.dureeAlloueeMin.toFixed(0)} min pour ` +
+    : `Créneau alloué de ${dureeMinLisible(etape.dureeAlloueeMin)} pour ` +
         `${dureeLisible(etape.integration.tRequisS.value)} requises : ce soir n’en couvre ` +
         'qu’une partie.'
 }

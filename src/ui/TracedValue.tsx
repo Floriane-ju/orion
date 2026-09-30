@@ -9,6 +9,8 @@
 import type { Traced } from '../core/traced.ts'
 import { dependDUnOrdreDeGrandeur } from '../core/traced.ts'
 import type { TermeGlossaire } from '../registry/glossaire.ts'
+import { degres, nombre, nombreLibre } from '../registry/ecriture.ts'
+import { POURCENT } from '../core/unites.ts'
 import { sansSection } from './sans-section.ts'
 import { Etiquette, Glose } from './Terme.tsx'
 import { MENTION_DONNEE_MANQUANTE, libelleEntree, libelleFlag } from '../registry/libelles.ts'
@@ -21,24 +23,37 @@ interface TracedValueProps {
   readonly unite?: string
   /** Précision non technique quand un même terme sert deux fois (largeur / hauteur). */
   readonly suffixe?: string
+  /** T-0276 — une fraction se lit en pour cent : « 0,261 » sans unité ne dit rien. */
+  readonly pourcent?: boolean
 }
 
 /** Une seule formulation de l'absence, pour la sortie comme pour ses entrées (§6.3). */
 
+/** Le degré se colle au nombre ; toute autre unité s'en détache d'une espace. */
 function formate(valeur: number | null, decimales: number, unite?: string): string | null {
   if (valeur === null) return null
-  return `${valeur.toFixed(decimales)}${unite === undefined ? '' : ` ${unite}`}`
+  if (unite === '°') return degres(valeur, decimales)
+  return `${nombre(valeur, decimales)}${unite === undefined ? '' : ` ${unite}`}`
 }
 
-export function TracedValue({ terme, trace, decimales = 2, unite, suffixe }: TracedValueProps) {
+export function TracedValue({
+  terme,
+  trace,
+  decimales = 2,
+  unite: uniteDemandee,
+  suffixe,
+  pourcent = false,
+}: TracedValueProps) {
   const approximatif = dependDUnOrdreDeGrandeur(trace)
-  const valeur = formate(trace.value, decimales, unite)
+  const echelle = pourcent ? POURCENT : 1
+  const unite = pourcent ? '%' : uniteDemandee
+  const valeur = formate(trace.value === null ? null : trace.value * echelle, decimales, unite)
   // La plage encadre la valeur au lieu de la remplacer : la sortie reste lisible sans
   // jamais se présenter comme exacte (§2.1).
   const plage =
     trace.range === undefined
       ? null
-      : `${trace.range[0].toFixed(decimales)} à ${formate(trace.range[1], decimales, unite) ?? ''}`
+      : `${nombre(trace.range[0] * echelle, decimales)} à ${formate(trace.range[1] * echelle, decimales, unite) ?? ''}`
 
   return (
     <details className="tracee">
@@ -66,7 +81,7 @@ export function TracedValue({ terme, trace, decimales = 2, unite, suffixe }: Tra
             {Object.entries(trace.inputs).map(([nom, valeurEntree]) => (
               <div key={nom}>
                 <dt>{libelleEntree(nom)}</dt>
-                <dd>{valeurEntree ?? MENTION_DONNEE_MANQUANTE}</dd>
+                <dd>{valeurEntree === null ? MENTION_DONNEE_MANQUANTE : nombreLibre(valeurEntree)}</dd>
               </div>
             ))}
           </dl>
@@ -75,7 +90,7 @@ export function TracedValue({ terme, trace, decimales = 2, unite, suffixe }: Tra
           <ul className="tracee-constantes">
             {trace.constants.map((c) => (
               <li key={c.id}>
-                <strong>{c.ref}</strong> {c.libelle} = {c.valeur} {c.unite}
+                <strong>{c.ref}</strong> {c.libelle} = {nombreLibre(c.valeur)} {c.unite}
                 <br />
                 <span className="tracee-source">
                   source : {sansSection(c.source)}

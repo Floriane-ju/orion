@@ -7,6 +7,7 @@
  */
 
 import { K } from '../registry/constants.ts'
+import { nombre } from '../registry/ecriture.ts'
 import { SaisieRefuseeError } from '../registry/domains.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { REMPLISSAGE_MIN_PLANIFIABLE, VERDICTS_PLANIFIABLES } from '../registry/verdicts.ts'
@@ -358,8 +359,8 @@ export function preFiltre(
       ecarte(
         objet,
         'CADRAGE',
-        `Taille de ${taille.toFixed(0)}’ : votre cadre convient de ${tailleMin.toFixed(0)}’ à ` +
-          `${tailleMax.toFixed(0)}’.`,
+        `Taille de ${nombre(taille, 0)}’ : votre cadre convient de ${nombre(tailleMin, 0)}’ à ` +
+          `${nombre(tailleMax, 0)}’.`,
       )
       continue
     }
@@ -368,7 +369,7 @@ export function preFiltre(
       ecarte(
         objet,
         'HAUTEUR',
-        `Ne monte pas au-delà de ${alt.toFixed(1)}° d’ici : trop basse, il faut au moins ${seuil}°.`,
+        `Ne monte pas au-delà de ${nombre(alt, 1)}° d’ici : trop basse, il faut au moins ${seuil}°.`,
       )
       continue
     }

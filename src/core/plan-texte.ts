@@ -9,7 +9,7 @@
  * sur le terrain — c'est la règle de §11.2, et elle vaut aussi dans l'export.
  */
 
-import { dureeLisible } from './exposure.ts'
+import { dureeLisible, dureeMinLisible, nombre, nombreLibre } from '../registry/ecriture.ts'
 import { nomDeLaNuit } from './nuit-datee.ts'
 import type { PlanSession } from './session.ts'
 import type { CauseEcart } from './session-types.ts'
@@ -52,13 +52,13 @@ export function planEnTexte(plan: PlanSession, enTete: EnTetePlan): string {
 
   const b = plan.budget
   lignes.push('BUDGET DE NUIT')
-  lignes.push(`  Nuit exploitable    : ${b.disponibleMin.toFixed(0)} min`)
-  lignes.push(`  Capture             : ${b.captureMin.toFixed(0)} min`)
-  lignes.push(`  Calibration         : ${b.calibrationMin.toFixed(0)} min`)
-  lignes.push(`  Mise en station     : ${b.miseEnStationMin.toFixed(0)} min`)
-  lignes.push(`  Pointage            : ${b.pointageMin.toFixed(0)} min`)
+  lignes.push(`  Nuit exploitable    : ${dureeMinLisible(b.disponibleMin)}`)
+  lignes.push(`  Capture             : ${dureeMinLisible(b.captureMin)}`)
+  lignes.push(`  Calibration         : ${dureeMinLisible(b.calibrationMin)}`)
+  lignes.push(`  Mise en station     : ${dureeMinLisible(b.miseEnStationMin)}`)
+  lignes.push(`  Pointage            : ${dureeMinLisible(b.pointageMin)}`)
   lignes.push(
-    `  Total               : ${b.totalMin.value.toFixed(0)} min — ` +
+    `  Total               : ${dureeMinLisible(b.totalMin.value)} — ` +
       `${b.tient ? 'tient dans la nuit' : 'DÉPASSE la nuit disponible'}`,
   )
   lignes.push('')
@@ -80,10 +80,10 @@ export function planEnTexte(plan: PlanSession, enTete: EnTetePlan): string {
         `${index + 1}. ${heure(etape.creneauAlloue.debut)} → ` +
           `${heure(etape.creneauAlloue.fin)}  ${nom}`,
       )
-      lignes.push(`     Créneau alloué   : ${etape.dureeAlloueeMin.toFixed(0)} min`)
-      lignes.push(`     Pose unitaire    : ${etape.tPoseS} s`)
+      lignes.push(`     Créneau alloué   : ${dureeMinLisible(etape.dureeAlloueeMin)}`)
+      lignes.push(`     Pose unitaire    : ${nombreLibre(etape.tPoseS)} s`)
       lignes.push(`     Nombre de poses  : ${etape.nPoses} poses`)
-      lignes.push(`     Volume           : ${etape.volumeGo.toFixed(1)} Go`)
+      lignes.push(`     Volume           : ${nombre(etape.volumeGo, 1)} Go`)
       lignes.push(
         `     Intégration      : ${dureeLisible(etape.integration.tRequisS.value)} requises`,
       )
@@ -92,11 +92,11 @@ export function planEnTexte(plan: PlanSession, enTete: EnTetePlan): string {
       lignes.push(`     Verdict          : ${etape.verdict === null ? 'donnée manquante' : LIBELLE_VERDICT_DETECTABILITE[etape.verdict]}`)
       lignes.push(`     Cadrage          : ${LIBELLE_VERDICT_CADRAGE[etape.verdictCadrage]}`)
       lignes.push(
-        `     Fond de ciel     : ${etape.sbCielEffectif.toFixed(2)} mag/arcsec²` +
-          ` (Lune : +${etape.deltaSbLuneMag.value.toFixed(2)} mag/arcsec²)`,
+        `     Fond de ciel     : ${nombre(etape.sbCielEffectif, 2)} mag/arcsec²` +
+          ` (Lune : +${nombre(etape.deltaSbLuneMag.value, 2)} mag/arcsec²)`,
       )
       // Le score est sans dimension : « sur 1 » le dit, plutôt que de laisser un nombre nu.
-      lignes.push(`     Score            : ${etape.score.value.toFixed(3)} sur 1`)
+      lignes.push(`     Score            : ${nombre(etape.score.value, 3)} sur 1`)
       lignes.push(`     Consigne         : ${etape.consigne}`)
       const retournement = retournementDansEtape(etape)
       if (retournement !== null) {
@@ -117,7 +117,7 @@ export function planEnTexte(plan: PlanSession, enTete: EnTetePlan): string {
       )
     }
     lignes.push(
-      `  Surcoût de temps : ${plan.calibration.surcoutTempsMin.value.toFixed(0)} min`,
+      `  Surcoût de temps : ${dureeMinLisible(plan.calibration.surcoutTempsMin.value)}`,
     )
     lignes.push(`  Dithering        : ${plan.calibration.dithering}`)
     for (const avertissement of plan.calibration.avertissements) {

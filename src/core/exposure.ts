@@ -17,11 +17,12 @@
  */
 
 import { K, plageK } from '../registry/constants.ts'
+import { dureeLisible, nombre } from '../registry/ecriture.ts'
 import { valide, type DomaineId } from '../registry/domains.ts'
 import { VALEURS_OBTURATEUR_S } from '../registry/verdicts.ts'
 import type { Flag, Traced } from './traced.ts'
 import { trace } from './traced.ts'
-import { S_PAR_H, S_PAR_MIN } from './unites.ts'
+import { S_PAR_H } from './unites.ts'
 
 
 // ---------------------------------------------------------------------------
@@ -190,7 +191,7 @@ export function fluxObjetReel(
       constants,
       ...(plageAttenuation === null ? {} : { range: plageAttenuation }),
       note:
-        `${((1 - attenuationValeur) * 100).toFixed(0)} % de la lumière perdue dans l’air à ` +
+        `${nombre((1 - attenuationValeur) * 100, 0)} % de la lumière perdue dans l’air à ` +
         'cette hauteur. Plus la cible est haute, moins la pose totale est longue.',
     }),
     eObjReel: trace({
@@ -314,7 +315,7 @@ export function poseUnitaire(entree: EntreePose): PoseUnitaire {
     }),
     regime,
     message: bride
-      ? `La monture limite la pose : environ ${(perte * 100).toFixed(0)} % de qualité perdue. ` +
+      ? `La monture limite la pose : environ ${nombre(perte * 100, 0)} % de qualité perdue. ` +
         'Le grand champ reste possible.'
       : entree.permissif === true
         ? 'Pose raccourcie à votre demande : moins de photos perdues, un peu moins de qualité.'
@@ -324,8 +325,8 @@ export function poseUnitaire(entree: EntreePose): PoseUnitaire {
       ? {
           notePermissif:
             `${arrondiObturateur(tRecommande)} s au lieu de ${arrondiObturateur(tOptDefaut)} s, ` +
-            `pour ${(perte * 100).toFixed(1)} % de qualité perdue au lieu de ` +
-            `${(perteSnr(K('FACTEUR_POSE_C_DEFAUT')) * 100).toFixed(1)} %.`,
+            `pour ${nombre(perte * 100, 1)} % de qualité perdue au lieu de ` +
+            `${nombre(perteSnr(K('FACTEUR_POSE_C_DEFAUT')) * 100, 1)} %.`,
         }
       : {}),
     readNoiseUtiliseE: rn,
@@ -417,7 +418,7 @@ export function planIntegration(entree: EntreeIntegration): PlanIntegration {
   const doubleSnr = integrationRequiseS(entree, snrCible * 2)
   if (Number.isFinite(doubleSnr)) {
     messages.push(
-      `Qualité ${snrCible * 2} au lieu de ${snrCible} : ${(doubleSnr / S_PAR_H).toFixed(1)} h, ` +
+      `Qualité ${snrCible * 2} au lieu de ${snrCible} : ${dureeLisible(doubleSnr)}, ` +
         'quatre fois plus.',
     )
   }
@@ -430,7 +431,7 @@ export function planIntegration(entree: EntreeIntegration): PlanIntegration {
     )
   }
   messages.push(
-    `Prévoir ${volume.toFixed(1)} Go de carte.`,
+    `Prévoir ${nombre(volume, 1)} Go de carte.`,
   )
 
   return {
@@ -472,10 +473,3 @@ export function planIntegration(entree: EntreeIntegration): PlanIntegration {
   }
 }
 
-/** Durée lisible, pour les messages destinés à l'utilisateur. */
-export function dureeLisible(secondes: number): string {
-  if (secondes < S_PAR_H) return `${(secondes / S_PAR_MIN).toFixed(0)} min`
-  const heures = Math.floor(secondes / S_PAR_H)
-  const minutes = Math.round((secondes - heures * S_PAR_H) / S_PAR_MIN)
-  return `${heures} h ${minutes.toString().padStart(2, '0')}`
-}

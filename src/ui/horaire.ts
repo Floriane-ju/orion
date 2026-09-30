@@ -11,16 +11,9 @@
  * réécrire — découper l'instant en compteurs ne doit pas en changer l'ordre ni la ponctuation.
  */
 
-/** La langue de l'interface : une seule écriture, sans quoi deux écrans dateraient différemment. */
-export const LOCALE = 'fr-FR'
+import { LOCALE } from '../registry/ecriture.ts'
 
-/** Sous dix secondes, une pose se lit au dixième : l'arrondi à l'unité l'écraserait. */
-const POSE_AU_DIXIEME_SOUS_S = 10
-
-/** Une durée de pose, sans son unité : « 2.5 », « 13 ». */
-export function formatePose(tS: number): string {
-  return tS < POSE_AU_DIXIEME_SOUS_S ? tS.toFixed(1) : tS.toFixed(0)
-}
+export { LOCALE }
 
 /** L'heure seule, sans la date : les deux bornes d'un créneau tombent dans la même nuit. */
 export function heure(date: Date): string {
@@ -51,9 +44,18 @@ const OPTIONS_HEURE: Intl.DateTimeFormatOptions = {
   second: '2-digit',
 }
 
-/** L'instant complet, date et heure : les bornes de la nuit tombent sur deux jours. */
+/**
+ * L'instant complet, date et heure : les bornes de la nuit tombent sur deux jours.
+ * T-0276 — à la minute, comme `heure` : « 19:40:53 » à côté de « 19:40 » était une autre écriture.
+ */
 export function dateHeure(date: Date): string {
-  return date.toLocaleString(LOCALE)
+  return date.toLocaleString(LOCALE, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 /** Un compte, avec le séparateur de milliers de la langue de l'interface. */

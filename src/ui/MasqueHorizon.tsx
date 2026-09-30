@@ -10,6 +10,7 @@
  */
 
 import { useState } from 'react'
+import { nombreLibre } from '../registry/ecriture.ts'
 import { masqueDepuisPoints, repereCardinal, type MasqueHorizon, type PointMasque } from '../core/site.ts'
 import { SaisieRefuseeError } from '../registry/domains.ts'
 import { nombreSaisi, refusDe } from './saisie-bornee.ts'
@@ -77,11 +78,12 @@ export function MasqueHorizonSaisie(props: MasqueHorizonProps) {
           {props.points.map((p, rang) => (
             <li key={`${p.azimutDeg}-${p.altitudeDeg}-${rang}`}>
               <span>
-                azimut {p.azimutDeg}° ({repereCardinal(p.azimutDeg)}) → {p.altitudeDeg}°
+                azimut {nombreLibre(p.azimutDeg)}° ({repereCardinal(p.azimutDeg)}) →{' '}
+                {nombreLibre(p.altitudeDeg)}°
               </span>
               <button
                 type="button"
-                aria-label={`Effacer le relevé de l’azimut ${p.azimutDeg}°`}
+                aria-label={`Effacer le relevé de l’azimut ${nombreLibre(p.azimutDeg)}°`}
                 onClick={() => props.surPoints(props.points.filter((_, i) => i !== rang))}
               >
                 Effacer

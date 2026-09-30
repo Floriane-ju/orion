@@ -7,6 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
+import { nombre } from '../src/registry/ecriture.ts'
 import type { ObjetCielProfond } from '../src/data/deepsky.ts'
 import { titreCible } from '../src/ui/libelles-cibles.ts'
 import { nomCommun } from '../src/ui/libelles-objet.ts'
@@ -38,7 +39,7 @@ describe('T-0334 — une donnée, une lecture', () => {
   it('le résumé du site lit la virgule décimale comme le moteur', () => {
     const lu = nombreDeTexte('45,6')
     expect(resumeSite('45,6', '6,7')).toBe(
-      `${lu.toFixed(1)}° / ${nombreDeTexte('6,7').toFixed(1)}°`,
+      `${nombre(lu, 1)}° / ${nombre(nombreDeTexte('6,7'), 1)}°`,
     )
   })
 

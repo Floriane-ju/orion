@@ -16,6 +16,7 @@
  */
 
 import { useRef, useEffect } from 'react'
+import { nombre, saisieLue } from '../registry/ecriture.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { photographiable, type EtatCible } from '../core/cibles-liste.ts'
 import type { Etoile } from '../data/catalog.ts'
@@ -67,7 +68,7 @@ export interface RegionSeanceProps {
 export function resumeSite(latitude: string, longitude: string): string {
   const arrondi = (v: string) => {
     const n = nombreDeTexte(v)
-    return v.trim() === '' || !Number.isFinite(n) ? '?' : `${n.toFixed(1)}°`
+    return v.trim() === '' || !Number.isFinite(n) ? '?' : `${nombre(n, 1)}°`
   }
   return `${arrondi(latitude)} / ${arrondi(longitude)}`
 }
@@ -111,9 +112,9 @@ export function CartesSeance(props: RegionSeanceProps) {
         gaiaCharge={props.gaiaCharge}
         enTete={{
           nuitIso: lieu.nuitIso,
-          lieu: `${lieu.latitude}° / ${lieu.longitude}° — Bortle ${lieu.bortle}`,
+          lieu: `${saisieLue(lieu.latitude)}° / ${saisieLue(lieu.longitude)}° — Bortle ${saisieLue(lieu.bortle)}`,
           materiel:
-            `${materiel.focale} mm f/${materiel.ouverture} — ${calcul.boitier.libelle} · ` +
+            `${saisieLue(materiel.focale)} mm f/${saisieLue(materiel.ouverture)} — ${calcul.boitier.libelle} · ` +
             `ISO ${calcul.iso.iso} · ${libelleZpSource(calcul.zeroSysteme)}`,
         }}
       />

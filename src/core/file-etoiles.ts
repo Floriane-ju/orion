@@ -24,6 +24,7 @@
  */
 
 import { K } from '../registry/constants.ts'
+import { nombre } from '../registry/ecriture.ts'
 import { DEG, applique, rotationAutourDe, separationDeg, type Vec3 } from './mat3.ts'
 import { pointEcran, porteeUtilePx, type PointEcran, type Projecteur, type Vue } from './projection.ts'
 import { trace, type Traced } from './traced.ts'
@@ -635,7 +636,7 @@ export function diagnosticFile(entree: EntreeDiagnosticFile): DiagnosticFile {
   const fractionHauteurCadre = longueurArcMaxDeg.value / entree.hauteurCadreDeg
 
   const messages: string[] = []
-  const pourcent = (fractionHauteurCadre * 100).toFixed(0)
+  const pourcent = nombre(fractionHauteurCadre * 100, 0)
   if (entree.dureeMin < K('DUREE_FILE_LISIBLE_MIN')) {
     messages.push(
       `Traînées courtes (${pourcent} % du cadre) : des étoiles étirées plutôt qu’un filé. ` +

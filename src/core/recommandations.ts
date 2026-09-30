@@ -18,10 +18,11 @@
  */
 
 import { K } from '../registry/constants.ts'
+import { dureeLisible, nombre } from '../registry/ecriture.ts'
 import { ligneFiltre, TYPES_EN_EMISSION, type FamilleFiltre } from '../registry/filters.ts'
 import type { VerdictCadrage } from '../registry/verdicts.ts'
 import type { TypeObjet } from '../data/deepsky.ts'
-import { dureeLisible, integrationRequiseS } from './exposure.ts'
+import { integrationRequiseS } from './exposure.ts'
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
 
@@ -153,7 +154,7 @@ export function conseilFiltre(entree: EntreeConseilFiltre): ConseilFiltre {
     message:
       'Un filtre bi-bande coupe la pollution lumineuse et la Lune, pas la nébuleuse. ' +
       `Sans filtre : ${dureeLisible(tSans)} de pose. Avec : ${dureeLisible(tAvec)}, ` +
-      `${(tSans / tAvec).toFixed(1)} fois moins. La cible reste planifiable sans filtre.`,
+      `${nombre(tSans / tAvec, 1)} fois moins. La cible reste planifiable sans filtre.`,
   }
 }
 
@@ -234,12 +235,12 @@ export function recommandationsEquipement(
     recommandations.push({
       categorie: 'FOCALE_PLUS_LONGUE',
       libelle: 'Focale plus longue',
-      sans: `${entree.focaleActuelleMm.toFixed(0)} mm`,
-      avec: `${entree.focaleIdealeMm.toFixed(0)} mm`,
+      sans: `${nombre(entree.focaleActuelleMm, 0)} mm`,
+      avec: `${nombre(entree.focaleIdealeMm, 0)} mm`,
       rapport: entree.focaleIdealeMm / entree.focaleActuelleMm,
       explication:
-        `À ${entree.focaleActuelleMm.toFixed(0)} mm, la cible est trop petite dans l’image. ` +
-        `Il faudrait environ ${entree.focaleIdealeMm.toFixed(0)} mm ; recadrer ensuite ` +
+        `À ${nombre(entree.focaleActuelleMm, 0)} mm, la cible est trop petite dans l’image. ` +
+        `Il faudrait environ ${nombre(entree.focaleIdealeMm, 0)} mm ; recadrer ensuite ` +
         'n’ajoute pas de détail.',
     })
   }
@@ -265,8 +266,8 @@ export function recommandationsEquipement(
     recommandations.push({
       categorie: 'MONTURE_SUIVI',
       libelle: 'Monture de suivi',
-      sans: `${entree.tMaxSuiviS.toFixed(1)} s de pose`,
-      avec: `${entree.tOptS.toFixed(1)} s de pose`,
+      sans: `${nombre(entree.tMaxSuiviS, 1)} s de pose`,
+      avec: `${nombre(entree.tOptS, 1)} s de pose`,
       rapport: entree.tOptS / entree.tMaxSuiviS,
       explication:
         'Sans suivi, les poses restent trop courtes. Une monture de suivi ouvre les cibles ' +
@@ -283,7 +284,7 @@ export function recommandationsEquipement(
     recommandations.push({
       categorie: 'AUTOGUIDAGE',
       libelle: 'Autoguidage',
-      sans: `${entree.tMaxSuiviS.toFixed(0)} s de pose`,
+      sans: `${nombre(entree.tMaxSuiviS, 0)} s de pose`,
       avec: `au-delà de ${K('PLAFOND_POSE_SANS_AUTOGUIDAGE_S')} s`,
       rapport: entree.tOptS / entree.tMaxSuiviS,
       explication:

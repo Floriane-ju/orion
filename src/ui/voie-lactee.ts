@@ -13,6 +13,7 @@
  */
 
 import { applique, DEG, versSpherique, type Vec3 } from '../core/mat3.ts'
+import { nombre } from '../registry/ecriture.ts'
 import { depuisGalactique } from '../core/galactique.ts'
 import { nanolamberts } from '../core/moon.ts'
 import { brillanceVoieLacteeNl } from '../core/fond-ciel-rendu.ts'
@@ -394,8 +395,8 @@ export function repereCentreGalactique(
   const seuil = K('SEUIL_HAUTEUR_IMAGERIE_DEG')
   const texte =
     culmination <= seuil
-      ? `${NOM_CENTRE_GALACTIQUE} ${hauteurCouranteDeg.toFixed(0)}° — trop bas pour la photo d’ici`
-      : `${NOM_CENTRE_GALACTIQUE} ${hauteurCouranteDeg.toFixed(0)}°`
+      ? `${NOM_CENTRE_GALACTIQUE} ${nombre(hauteurCouranteDeg, 0)}° — trop bas pour la photo d’ici`
+      : `${NOM_CENTRE_GALACTIQUE} ${nombre(hauteurCouranteDeg, 0)}°`
   return {
     texte,
     categorie: 'CONSTELLATION',

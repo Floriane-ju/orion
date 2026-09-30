@@ -47,6 +47,7 @@ C'est pourquoi chaque discipline ci-dessous a son test :
 | La police d'icônes n'est nommée que dans `.icone` | `icone.test.tsx` |
 | Aucune phrase d'alerte posée sans passer par `Mention` | `icone.test.tsx` |
 | Aucun tiroir bâti hors de `Tiroir` | `echap-fermeture.test.tsx` |
+| Aucun nombre lu écrit au point : tout passe par `src/registry/ecriture.ts` ; `toFixed` ne sert qu'au CSS | `ecriture.test.tsx` |
 
 **Ajouter une règle qui viole l'une d'elles fait échouer `pnpm test`.** C'est voulu.
 

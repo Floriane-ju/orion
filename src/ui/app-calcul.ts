@@ -8,6 +8,7 @@
  */
 
 import { useDeferredValue, useMemo, useRef } from 'react'
+import { nombreLibre } from '../registry/ecriture.ts'
 import { fenetreNocturne, offsetMidiSolaireMin, type FenetreNocturne } from '../core/nuit.ts'
 import { midiDeLaNuit } from '../core/nuit-datee.ts'
 import { etatsCibles, type EtatCible } from '../core/cibles-liste.ts'
@@ -644,7 +645,7 @@ export function profilsDeCadre(calcul: Calcul, materiel: SaisieMateriel): readon
   })
   return [
     {
-      libelle: `${focaleMm} mm f/${ouvertureN} — ${mode === 'FULL_FRAME' ? 'plein format' : 'recadrage APS-C'}`,
+      libelle: `${nombreLibre(focaleMm)} mm f/${nombreLibre(ouvertureN)} — ${mode === 'FULL_FRAME' ? 'plein format' : 'recadrage APS-C'}`,
       fovLDeg: optique.fovLDeg.value,
       fovHDeg: optique.fovHDeg.value,
       echApx: optique.echApx.value,

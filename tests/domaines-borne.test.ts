@@ -7,6 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
+import { nombreLibre } from '../src/registry/ecriture.ts'
 import { DOMAINES, borne, valide, type DomaineId } from '../src/registry/domains.ts'
 
 const TOUS = Object.keys(DOMAINES) as readonly DomaineId[]
@@ -17,7 +18,7 @@ describe('borne() — une saisie hors plage est ramenée, et on le dit', () => {
     const r = borne(champ, d.max + 1)
     expect(r.valeur).toBe(d.max)
     expect(r.refus).toContain(d.champ)
-    expect(r.refus).toContain(String(d.max))
+    expect(r.refus).toContain(nombreLibre(d.max))
   })
 
   it.each(TOUS)('%s : en dessous du minimum, le minimum est retenu', (champ) => {

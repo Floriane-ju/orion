@@ -12,6 +12,7 @@
  */
 
 import { K } from '../registry/constants.ts'
+import { nombre } from '../registry/ecriture.ts'
 import { DEG, angleDeSinDeg, applique, transpose } from './mat3.ts'
 import { directionDuPlan, matriceVue, rayonProjete, type ModeProjection } from './projection.ts'
 import { npf, type ToleranceNpf } from './suivi.ts'
@@ -69,7 +70,7 @@ function pose(tNpfS: number | null): number {
 function nommeZone(uFrac: number, vFrac: number, decDeg: number): string {
   const vertical = vFrac > 0 ? 'bord haut' : vFrac < 0 ? 'bord bas' : 'milieu'
   const horizontal = uFrac > 0 ? 'à droite' : uFrac < 0 ? 'à gauche' : 'au centre'
-  return `${vertical} ${horizontal}, δ = ${decDeg.toFixed(0)}°`
+  return `${vertical} ${horizontal}, δ = ${nombre(decDeg, 0)}°`
 }
 
 /**

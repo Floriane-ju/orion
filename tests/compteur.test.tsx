@@ -18,7 +18,13 @@ import type { Site } from '../src/core/ephem.ts'
 import { cielInstantane } from '../src/core/horloges.ts'
 import { cransGlisse } from '../src/ui/compteur-glisse.ts'
 import { lisSaisie, nombreDuTexte } from '../src/ui/Compteur.tsx'
-import { LARGEURS_INSTANT, dateAvec, partiesHeure, partiesJour } from '../src/ui/horaire.ts'
+import {
+  LARGEURS_INSTANT,
+  dateAvec,
+  dateHeure,
+  partiesHeure,
+  partiesJour,
+} from '../src/ui/horaire.ts'
 import { HAUTEUR_MAX_DEG, HAUTEUR_MIN_DEG } from '../src/ui/planetarium-gestes.ts'
 import { TOUR_DEG, ramene } from '../src/core/unites.ts'
 import { etatScene, majVue, reinitialiseScene } from '../src/ui/scene-etat.ts'
@@ -235,7 +241,7 @@ describe('T-0163 — la visée se règle par sa réciproque', () => {
     const vue = etatScene().vue
     const assemblee = segmentsVisee(vue, MATRICE).reduce((p, s) => p + s.avant + s.texte, '')
     const phrase = ligneVisee(vue, MATRICE, INSTANT)
-    expect(phrase.startsWith(INSTANT.toLocaleString('fr-FR'))).toBe(true)
+    expect(phrase.startsWith(dateHeure(INSTANT))).toBe(true)
     expect(phrase.endsWith(assemblee)).toBe(true)
   })
 

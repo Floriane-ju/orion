@@ -24,10 +24,10 @@
  */
 
 import { K } from '../registry/constants.ts'
+import { dureeLisible, dureeMinLisible, nombreLibre } from '../registry/ecriture.ts'
 import { LIBELLE_CAUSE_ECART } from '../registry/libelles.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { Intervalle } from './creneaux.ts'
-import { dureeLisible } from './exposure.ts'
 import { planCalibration } from './calibration.ts'
 import { rappelBatterie } from './rappel-batterie.ts'
 import { evalueCandidate, preFiltre } from './session-candidates.ts'
@@ -358,8 +358,8 @@ function consigneTerrain(
   dureeAlloueeMin: number,
 ): string {
   const base =
-    `Poses de ${candidate.pose.tAfficheeS} s, ` +
-    `${dureeAlloueeMin.toFixed(0)} min sur cette cible. ${candidate.cadrage.noteOrientation}`
+    `Poses de ${nombreLibre(candidate.pose.tAfficheeS)} s, ` +
+    `${dureeMinLisible(dureeAlloueeMin)} sur cette cible. ${candidate.cadrage.noteOrientation}`
   if (complete) return base
   // Ce soir n'est pas tout : la cible reste au plan, et la consigne dit ce qu'on en emporte.
   // Deux manques différents, deux phrases : la cible dépasse la nuit, ou son créneau est

@@ -14,6 +14,7 @@
  */
 
 import type { Mat3 } from '../core/mat3.ts'
+import { nombre } from '../registry/ecriture.ts'
 import { applique, versSpherique, versVecteur } from '../core/mat3.ts'
 import { projecteur } from '../core/projection.ts'
 import { vuePlanetarium, type VueScene } from './scene-etat.ts'
@@ -82,7 +83,7 @@ const DECIMALES_COURT: Readonly<Record<ChampVisee, number>> = Object.freeze({
 
 /** La valeur d'un champ de la barre haute, telle qu'elle s'y écrit. */
 export function courtVisee(champ: ChampVisee, valeurDeg: number): string {
-  return `${valeurDeg.toFixed(DECIMALES_COURT[champ])}°`
+  return `${nombre(valeurDeg, DECIMALES_COURT[champ])}°`
 }
 
 export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly SegmentVisee[] {
@@ -92,7 +93,7 @@ export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly Segmen
       champ: 'AD',
       libelle: 'Ascension droite visée',
       valeurDeg: visee.longitudeDeg,
-      texte: `${visee.longitudeDeg.toFixed(DECIMALES_VISEE)}° AD`,
+      texte: `${nombre(visee.longitudeDeg, DECIMALES_VISEE)}° AD`,
       avant: 'visée ',
       prefixe: 'AD',
       court: courtVisee('AD', visee.longitudeDeg),
@@ -101,7 +102,7 @@ export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly Segmen
       champ: 'DEC',
       libelle: 'Déclinaison visée',
       valeurDeg: visee.latitudeDeg,
-      texte: `${visee.latitudeDeg.toFixed(DECIMALES_VISEE)}° δ`,
+      texte: `${nombre(visee.latitudeDeg, DECIMALES_VISEE)}° δ`,
       avant: ' / ',
       prefixe: 'δ',
       court: courtVisee('DEC', visee.latitudeDeg),
@@ -110,7 +111,7 @@ export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly Segmen
       champ: 'AZIMUT',
       libelle: 'Azimut',
       valeurDeg: vue.azimutDeg,
-      texte: `${vue.azimutDeg.toFixed(DECIMALES_POINTAGE)}°`,
+      texte: `${nombre(vue.azimutDeg, DECIMALES_POINTAGE)}°`,
       avant: ' · azimut ',
       prefixe: 'AZ',
       court: courtVisee('AZIMUT', vue.azimutDeg),
@@ -119,7 +120,7 @@ export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly Segmen
       champ: 'HAUTEUR',
       libelle: 'Hauteur',
       valeurDeg: vue.hauteurDeg,
-      texte: `${vue.hauteurDeg.toFixed(DECIMALES_POINTAGE)}°`,
+      texte: `${nombre(vue.hauteurDeg, DECIMALES_POINTAGE)}°`,
       avant: ', hauteur ',
       prefixe: 'H',
       court: courtVisee('HAUTEUR', vue.hauteurDeg),
@@ -128,7 +129,7 @@ export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly Segmen
       champ: 'FOV',
       libelle: 'Champ de vision',
       valeurDeg: vue.fovDeg,
-      texte: `${vue.fovDeg.toFixed(DECIMALES_CHAMP)}°`,
+      texte: `${nombre(vue.fovDeg, DECIMALES_CHAMP)}°`,
       avant: ' · champ ',
       prefixe: 'CH',
       court: courtVisee('FOV', vue.fovDeg),
@@ -137,7 +138,7 @@ export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly Segmen
       champ: 'ROTATION',
       libelle: 'Rotation du cadre',
       valeurDeg: vue.rotationCadreDeg,
-      texte: `${vue.rotationCadreDeg.toFixed(DECIMALES_POINTAGE)}°`,
+      texte: `${nombre(vue.rotationCadreDeg, DECIMALES_POINTAGE)}°`,
       avant: ' · rotation ',
       prefixe: 'ROT',
       court: courtVisee('ROTATION', vue.rotationCadreDeg),

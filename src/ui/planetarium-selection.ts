@@ -10,6 +10,7 @@
  */
 
 import { titreCible } from './libelles-cibles.ts'
+import { nombre } from '../registry/ecriture.ts'
 import type { SelectionScene } from './scene-etat.ts'
 import type { CibleEcran } from './dessine-ciel.ts'
 import { LIBELLE_TYPE_OBJET } from './libelles-objet.ts'
@@ -21,8 +22,8 @@ export function decritCible(cible: CibleEcran): SelectionScene {
       titre: titreCible(cible),
       lignes: [
         LIBELLE_TYPE_OBJET[o.type],
-        o.vMag === null ? 'magnitude intégrée absente du catalogue' : `magnitude ${o.vMag}`,
-        o.majAxArcmin === null ? 'dimensions absentes' : `grand axe ${o.majAxArcmin}’`,
+        o.vMag === null ? 'magnitude intégrée absente du catalogue' : `magnitude ${nombre(o.vMag, 1)}`,
+        o.majAxArcmin === null ? 'dimensions absentes' : `grand axe ${nombre(o.majAxArcmin, 1)}’`,
       ],
       objet: o,
     }
@@ -32,8 +33,8 @@ export function decritCible(cible: CibleEcran): SelectionScene {
     return {
       titre: titreCible(cible),
       lignes: [
-        `ascension droite ${c.adH.toFixed(3)} h · déclinaison ${c.decDeg.toFixed(2)}°`,
-        `azimut ${c.azimutDeg.toFixed(1)}° · hauteur ${c.hauteurDeg.toFixed(1)}°`,
+        `ascension droite ${nombre(c.adH, 3)} h · déclinaison ${nombre(c.decDeg, 2)}°`,
+        `azimut ${nombre(c.azimutDeg, 1)}° · hauteur ${nombre(c.hauteurDeg, 1)}°`,
       ],
       objet: null,
     }
@@ -43,11 +44,11 @@ export function decritCible(cible: CibleEcran): SelectionScene {
     return {
       titre: titreCible(cible),
       lignes: [
-        `magnitude ${nommee.magV.toFixed(2)} · constellation ${nommee.constellation}`,
+        `magnitude ${nombre(nommee.magV, 2)} · constellation ${nommee.constellation}`,
         nommee.spectre === '' ? 'type spectral absent du catalogue' : `type spectral ${nommee.spectre}`,
         nommee.distancePc === null
           ? 'distance inconnue'
-          : `distance ${nommee.distancePc.toFixed(1)} pc`,
+          : `distance ${nombre(nommee.distancePc, 1)} pc`,
       ],
       objet: null,
     }
@@ -58,7 +59,7 @@ export function decritCible(cible: CibleEcran): SelectionScene {
     lignes: [
       etoile === undefined
         ? ''
-        : `magnitude ${etoile.magV.toFixed(2)} · indice B−V ${etoile.bv.toFixed(2)}`,
+        : `magnitude ${nombre(etoile.magV, 2)} · indice B−V ${nombre(etoile.bv, 2)}`,
     ].filter((l) => l !== ''),
     objet: null,
   }

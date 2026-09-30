@@ -22,16 +22,34 @@ interface EtiquetteProps {
   readonly glose?: string | undefined
 }
 
+/** Une lettre grecque est un symbole : δ en capitale, Δ, désigne un écart (T-0276). */
+const SYMBOLE_GREC = /([α-ωµ]+)/u
+
+/** Le libellé, ses symboles soustraits aux capitales du micro-libellé. */
+function libelleProtege(libelle: string) {
+  return libelle
+    .split(SYMBOLE_GREC)
+    .map((morceau, rang) =>
+      rang % 2 === 1 ? (
+        <span key={rang} className="casse-exacte">
+          {morceau}
+        </span>
+      ) : (
+        morceau
+      ),
+    )
+}
+
 /** Libellé d'un terme, glose au survol — le pointillé sous le mot annonce qu'il y a une aide. */
 export function Etiquette({ cle, glose }: EtiquetteProps) {
   const entree = GLOSSAIRE[cle]
   if (entree.sansBulle === true) {
-    return <span className="terme">{entree.libelle}</span>
+    return <span className="terme">{libelleProtege(entree.libelle)}</span>
   }
   return (
     <span className="terme">
       <Bulle texte={glose ?? entree.glose} place="bas">
-        <abbr>{entree.libelle}</abbr>
+        <abbr>{libelleProtege(entree.libelle)}</abbr>
       </Bulle>
     </span>
   )

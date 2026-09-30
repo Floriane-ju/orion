@@ -14,6 +14,7 @@
  */
 
 import { Body, Equator, Illumination, KM_PER_AU, SearchRiseSet } from 'astronomy-engine'
+import { dureeMinLisible, nombre } from '../registry/ecriture.ts'
 import { K } from '../registry/constants.ts'
 import type { Site } from './ephem.ts'
 import { observateur, positionCorps, verifieDomaineDesSeries, versDate } from './ephem.ts'
@@ -230,7 +231,7 @@ export function deltaSbLune(entree: EntreeDeltaSbLune): Traced<number> {
     inputs,
     constants,
     note:
-      `La Lune éclaircit le ciel de ${delta.toFixed(2)} mag/arcsec² sur cette cible : ` +
+      `La Lune éclaircit le ciel de ${nombre(delta, 2)} mag/arcsec² sur cette cible : ` +
       'poses plus courtes, temps total plus long.',
   })
 }
@@ -385,7 +386,7 @@ export function fenetreUtile(site: Site, nuit: FenetreNocturne): FenetreUtile {
     dureeNuitH,
     luneInterfere,
     note: luneInterfere
-      ? `${dureeH.toFixed(2)} h sans Lune sur ${dureeNuitH.toFixed(2)} h de nuit.`
+      ? `${dureeMinLisible(dureeH * MIN_PAR_H)} sans Lune sur ${dureeMinLisible(dureeNuitH * MIN_PAR_H)} de nuit.`
       : 'La Lune ne gêne pas cette nuit.',
   }
 }

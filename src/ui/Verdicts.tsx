@@ -11,7 +11,7 @@
  * d'une CONSTANTE reste au contact, dépliée sous sa valeur : c'est §10.2, pas une bibliographie.
  */
 
-import { dureeLisible } from '../core/exposure.ts'
+import { dureeLisible, nombre, nombreLibre } from '../registry/ecriture.ts'
 import { PRESETS_SNR } from '../registry/verdicts.ts'
 import { libelleZpSource, type PointZeroSysteme } from '../data/equipment.ts'
 import { MANQUANTE } from './ChampsCible.tsx'
@@ -90,7 +90,7 @@ function CadrageDeLaCible({ r }: { readonly r: Resultat }) {
     <section>
       <h2>Cadrage de la cible</h2>
       <p className="etat">verdict : {LIBELLE_VERDICT_CADRAGE[cadrage.verdict]}</p>
-      <TracedValue terme="remplissage" trace={cadrage.remplissage} decimales={3} />
+      <TracedValue terme="remplissage" trace={cadrage.remplissage} decimales={0} pourcent />
       <TracedValue terme="diametre_pixels" trace={cadrage.diamPx} decimales={0} unite="px" />
       {cadrage.nTuiles !== undefined && (
         <TracedValue terme="mosaique" trace={cadrage.nTuiles} decimales={0} unite="tuiles" />
@@ -132,7 +132,7 @@ function CielSousLaLune({
         Lune évaluée à {heure(r.lune.instant)},{' '}
         {dansLeCreneau ? 'au milieu du créneau' : 'au début de la nuit'}.
       </p>
-      <TracedValue terme="degradation_lunaire" trace={r.lune.ciel.delta} unite="mag/as²" />
+      <TracedValue terme="degradation_lunaire" trace={r.lune.ciel.delta} unite="mag/arcsec²" />
     </>
   )
 }
@@ -192,8 +192,8 @@ function Detectabilite({
       <p className="etat">verdict : {LIBELLE_VERDICT_DETECTABILITE[r.detect.verdict]}</p>
       <CreneauPhoto creneau={creneau} />
       <CielSousLaLune r={r} creneau={creneau} />
-      <TracedValue terme="brillance_surface" trace={r.detect.sbObj} unite="mag/as²" />
-      <TracedValue terme="contraste_ciel" trace={r.detect.deltaSb} unite="mag/as²" />
+      <TracedValue terme="brillance_surface" trace={r.detect.sbObj} unite="mag/arcsec²" />
+      <TracedValue terme="contraste_ciel" trace={r.detect.deltaSb} unite="mag/arcsec²" />
       <TracedValue terme="magnitude_limite_instrument" trace={r.detect.mLimInstr} unite="mag" />
       <p>{r.detect.explication}</p>
       <p className="etat">
@@ -233,8 +233,8 @@ function PoseUnitaire({
         <>
           <TracedValue terme="pose_unitaire" trace={r.pose.tOptS} decimales={1} unite="s" />
           <p className="etat">
-            <Etiquette cle="plage_utile" /> : poser {r.pose.tAfficheeS} s — de{' '}
-            {r.pose.plageUtileS.value[0]} à {r.pose.plageUtileS.value[1]} s, même résultat.
+            <Etiquette cle="plage_utile" /> : poser {nombreLibre(r.pose.tAfficheeS)} s — de{' '}
+            {nombreLibre(r.pose.plageUtileS.value[0])} à {nombreLibre(r.pose.plageUtileS.value[1])} s, même résultat.
           </p>
           <p className="etat">
             <Etiquette cle="regime_pose" /> : {LIBELLE_REGIME_POSE[r.pose.regime]}
@@ -308,7 +308,7 @@ function Plancher({ plancher }: { readonly plancher: Resultat['plancher'] }) {
   const { plusHaut, integration } = plancher
   return (
     <p className="etat">
-      Au plus haut du créneau — {plusHaut.altitudeDeg.toFixed(1)}°
+      Au plus haut du créneau — {nombre(plusHaut.altitudeDeg, 1)}°
       {plusHaut.instant === null ? '' : `, vers ${heure(plusHaut.instant)}`} :{' '}
       {dureeLisible(integration.tRequisS.value)} et {integration.nPoses.value} poses. Un
       plancher, atteint en ne posant qu’autour de la culmination.
@@ -470,7 +470,7 @@ function PourquoiCeVerdict({
             {Object.entries(explique.sensibilites).map(([nom, valeur]) => (
               <div key={nom}>
                 <dt>{libelleEntree(nom)}</dt>
-                <dd>{valeur.toFixed(2)}</dd>
+                <dd>{nombre(valeur, 2)}</dd>
               </div>
             ))}
           </dl>
@@ -513,7 +513,7 @@ function ConseilsEtRecommandations({ conseils }: { readonly conseils: Conseils }
                 <td>{reco.libelle}</td>
                 <td>{reco.sans}</td>
                 <td>{reco.avec}</td>
-                <td>× {reco.rapport.toFixed(1)}</td>
+                <td>× {nombre(reco.rapport, 1)}</td>
               </tr>
             ))}
           </tbody>
@@ -537,7 +537,7 @@ function ChaineDeCalcul({
       <div className="tracee-detail">
         {etapes.map((etape) => (
           <p key={etape.libelle} className="tracee-formule">
-            <strong>{etape.libelle}</strong> = {etape.valeur?.toFixed(3) ?? '—'} {etape.unite}
+            <strong>{etape.libelle}</strong> = {etape.valeur === null || etape.valeur === undefined ? '—' : nombre(etape.valeur, 3)} {etape.unite}
             <br />
             <code>{etape.expression}</code>
             {etape.constantes.length > 0 && (

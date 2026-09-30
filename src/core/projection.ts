@@ -17,6 +17,7 @@
  */
 
 import { K } from '../registry/constants.ts'
+import { nombre } from '../registry/ecriture.ts'
 import { mLimOeilBorne } from '../registry/bortle.ts'
 import { mLimOeilCielClair } from './seuil-oeil.ts'
 import { DEG, multiplie, transpose, type Mat3, type Vec3 } from './mat3.ts'
@@ -384,8 +385,8 @@ export function magnitudeRendue(
     oeil.borne === 'AUCUNE'
       ? ''
       : oeil.borne === 'CIEL_PLUS_CLAIR'
-        ? ` Ciel plus clair que Bortle 9 : seuil de Schaefer, limite ${oeil.value.toFixed(1)}.`
-        : ` Ciel plus noir que Bortle 1 : limite fixée à ${oeil.value.toFixed(1)}.`
+        ? ` Ciel plus clair que Bortle 9 : seuil de Schaefer, limite ${nombre(oeil.value, 1)}.`
+        : ` Ciel plus noir que Bortle 1 : limite fixée à ${nombre(oeil.value, 1)}.`
   return trace({
     value: Math.min(zoom.value, oeil.value),
     formula: 'MAGNITUDE_LIMITE_RENDUE',
@@ -463,7 +464,7 @@ export function etatProfondeur(
     ...(epuise
       ? {
           cause:
-            `Le catalogue s’arrête à la magnitude ${profondeurCatalogue.toFixed(1)} : le ciel ` +
+            `Le catalogue s’arrête à la magnitude ${nombre(profondeurCatalogue, 1)} : le ciel ` +
             'paraît plus pauvre qu’en vrai, et rien n’est inventé pour le combler.',
         }
       : {}),

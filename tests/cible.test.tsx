@@ -86,8 +86,8 @@ describe('fiche de cible — écran par défaut, M33 depuis le site de l’Annex
   it('produit le verdict de détectabilité de M33 avec sa brillance et son contraste', () => {
     // 23,0148 mag/arcsec² et −2,0648 : le PRD écrit 23,02 et −2,07, arrondis obtenus avec
     // le facteur 8,63 plutôt qu’avec π/4 × 3600 calculé.
-    expect(ecran).toContain('23.01')
-    expect(ecran).toContain('-2.06')
+    expect(ecran).toContain('23,01')
+    expect(ecran).toContain('-2,06')
     expect(ecran).toContain(LIBELLE_VERDICT_DETECTABILITE.PHOTO_SEULE)
   })
 

@@ -13,6 +13,7 @@
  */
 
 import { MATRICE_DEGRADATION } from '../data/degradation.ts'
+import { nombre } from '../registry/ecriture.ts'
 import type { EtatDemarrage } from '../data/bootstrap.ts'
 import { REGISTRE } from '../registry/constants.ts'
 import { Mention } from './Mention.tsx'
@@ -58,7 +59,7 @@ export function Verification(props: VerificationProps) {
               <p className="etat">
                 stockage persistant : {etat.stockage.persistant ? 'accordé' : 'non accordé'}
                 {etat.stockage.usageMo !== null &&
-                  ` · ${etat.stockage.usageMo.toFixed(1)} Mo utilisés`}
+                  ` · ${nombre(etat.stockage.usageMo, 1)} Mo utilisés`}
               </p>
               {etat.stockage.avertissement !== undefined && (
                 <Mention ton="cause">{etat.stockage.avertissement}</Mention>
@@ -70,7 +71,7 @@ export function Verification(props: VerificationProps) {
                 {etat.catalogues.paquets.map((p) => (
                   <li key={p.manifeste.nom}>
                     {p.manifeste.nom} v{p.manifeste.version} — {LIBELLE_INTEGRITE_PAQUET[p.integrite]} (
-                    {(p.manifeste.octets / OCTETS_PAR_MO).toFixed(2)} Mo)
+                    {nombre(p.manifeste.octets / OCTETS_PAR_MO, 2)} Mo)
                   </li>
                 ))}
               </ul>

@@ -22,6 +22,7 @@
  */
 
 import { useEffect, useMemo } from 'react'
+import { dureeLisible, nombre } from '../registry/ecriture.ts'
 import {
   ajouteCoordonnees,
   filtreLignes,
@@ -38,7 +39,6 @@ import {
   compteTropPetites,
   type BornesTailleCadre,
 } from '../core/session-candidates.ts'
-import { dureeLisible } from '../core/exposure.ts'
 import { matriceALaMinute } from '../core/horloges.ts'
 import type { Site } from '../core/ephem.ts'
 import type { ContexteSession } from '../core/session.ts'
@@ -92,7 +92,7 @@ function aidePortee(
   const pluriel = tropPetites > 1
   return (
     `Objets à plus de ${seuilDeg}° cette nuit, dont le grand axe mesure de ` +
-    `${taille.minArcmin.toFixed(0)}’ à ${taille.maxArcmin.toFixed(0)}’ — plus petit, ` +
+    `${nombre(taille.minArcmin, 0)}’ à ${nombre(taille.maxArcmin, 0)}’ — plus petit, ` +
     `l’objet ne fait que quelques pixels ; plus grand, il déborde du cadre. ` +
     `${compte(tropPetites)} objet${pluriel ? 's' : ''} du catalogue ` +
     `${pluriel ? 'sont écartés' : 'est écarté'} comme trop petit${pluriel ? 's' : ''} ` +
@@ -251,7 +251,7 @@ export function PanneauCibles(props: PanneauCiblesProps) {
           <span className="libelle">
             Jusqu’à la magnitude{' '}
             <span className="cibles-mag-valeur">
-              {magMax >= DOMAINE_MAG.max ? 'toutes' : magMax.toFixed(1)}
+              {magMax >= DOMAINE_MAG.max ? 'toutes' : nombre(magMax, 1)}
             </span>
           </span>
           <Curseur
@@ -260,7 +260,7 @@ export function PanneauCibles(props: PanneauCiblesProps) {
             min={DOMAINE_MAG.min}
             max={DOMAINE_MAG.max}
             pas={DOMAINE_MAG.pas}
-            texte={magMax >= DOMAINE_MAG.max ? 'toutes' : `${magMax.toFixed(1)} mag`}
+            texte={magMax >= DOMAINE_MAG.max ? 'toutes' : `${nombre(magMax, 1)} mag`}
             sur={(magMax) => majCatalogue({ magMax })}
           />
         </label>
@@ -419,5 +419,5 @@ function libellePose(pose: PoseCible): string {
 function libelleEncombrement(ligne: LigneCible): string {
   const { remplissage } = ligne
   if (remplissage === null) return 'dimensions absentes'
-  return `${(remplissage * POURCENT).toFixed(0)} % du cadre`
+  return `${nombre(remplissage * POURCENT, 0)} % du cadre`
 }

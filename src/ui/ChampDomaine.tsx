@@ -13,6 +13,7 @@
  */
 
 import { useId } from 'react'
+import { nombreLibre } from '../registry/ecriture.ts'
 import { DOMAINES, type DomaineId } from '../registry/domains.ts'
 import type { TermeGlossaire } from '../registry/glossaire.ts'
 import { nombreSaisi } from './saisie-bornee.ts'
@@ -66,7 +67,7 @@ export function ChampDomaine(props: ChampDomaineProps) {
   // Un champ vide n'est pas une valeur fautive : c'est un état transitoire de frappe (T-0149),
   // et la conséquence de son absence est déjà dite par `note` ou par le panneau.
   const refus = props.valeur.trim() === '' ? null : nombreSaisi(props.domaine, props.valeur).refus
-  const placeholder = props.placeholder ?? (props.requis === true ? `${d.min} à ${d.max}` : 'inconnu')
+  const placeholder = props.placeholder ?? (props.requis === true ? `${nombreLibre(d.min)} à ${nombreLibre(d.max)}` : 'inconnu')
 
   return (
     <label>
@@ -77,7 +78,7 @@ export function ChampDomaine(props: ChampDomaineProps) {
           ) : (
             <Etiquette cle={props.cle} glose={props.glose} />
           )}
-          {props.unite === true && ` (${d.unite})`}
+          {props.unite === true && <span className="casse-exacte"> ({d.unite})</span>}
         </span>
         {props.note !== undefined && <AlerteChamp note={props.note} />}
       </span>

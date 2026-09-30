@@ -8,6 +8,7 @@
  */
 
 import { readFileSync, readdirSync } from 'node:fs'
+import { nombre } from '../src/registry/ecriture.ts'
 import { join } from 'node:path'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -69,9 +70,9 @@ describe('T-0068 — la description dit ce que la vue montre en ce moment', () =
   it('nomme la visée, le champ et l’instant', () => {
     const texte = description(ecran())
     const { azimutDeg, hauteurDeg, fovDeg } = etatScene().vue
-    expect(texte).toContain(`azimut ${azimutDeg.toFixed(0)}°`)
-    expect(texte).toContain(`hauteur ${hauteurDeg.toFixed(0)}°`)
-    expect(texte).toContain(`champ ${fovDeg.toFixed(1)}°`)
+    expect(texte).toContain(`azimut ${nombre(azimutDeg)}°`)
+    expect(texte).toContain(`hauteur ${nombre(hauteurDeg)}°`)
+    expect(texte).toContain(`champ ${nombre(fovDeg, 1)}°`)
     expect(texte).toContain('AD')
   })
 
@@ -79,7 +80,7 @@ describe('T-0068 — la description dit ce que la vue montre en ce moment', () =
     majVue({ azimutDeg: 90, fovDeg: K('FOV_MIN_SANS_GAIA_DEG') })
     const texte = description(ecran())
     expect(texte).toContain('azimut 90°')
-    expect(texte).toContain(`champ ${K('FOV_MIN_SANS_GAIA_DEG').toFixed(1)}°`)
+    expect(texte).toContain(`champ ${nombre(K('FOV_MIN_SANS_GAIA_DEG'), 1)}°`)
   })
 
   it('énonce les raccourcis du clavier, que le code seul ne dirait à personne (T-0069)', () => {
@@ -92,7 +93,7 @@ describe('T-0068 — la description dit ce que la vue montre en ce moment', () =
   it('emprunte les mots de la lecture affichée : une seule phrase, deux endroits', () => {
     majVue({ azimutDeg: 42 })
     const html = ecran()
-    const commune = /(visée [^·]+· azimut 42°, hauteur [^·]+· champ [\d.]+°)/.exec(
+    const commune = /(visée [^·]+· azimut 42°, hauteur [^·]+· champ [\d,]+°)/.exec(
       description(html),
     )
     expect(commune).not.toBeNull()

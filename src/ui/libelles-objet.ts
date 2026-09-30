@@ -7,6 +7,7 @@
  */
 
 import type { ObjetCielProfond, TypeObjet } from '../data/deepsky.ts'
+import { nombre } from '../registry/ecriture.ts'
 
 /**
  * T-0049 — les types de §6.3 en français. Le `Record` complet fait refuser par le
@@ -39,6 +40,6 @@ export function nomCommun(objet: ObjetCielProfond): string {
 
 export function libelleObjet(objet: ObjetCielProfond): string {
   const nom = nomCommun(objet) === '' ? '' : ` — ${nomCommun(objet)}`
-  const mag = objet.vMag === null ? '' : ` · mag ${objet.vMag.toFixed(1)}`
+  const mag = objet.vMag === null ? '' : ` · mag ${nombre(objet.vMag, 1)}`
   return `${objet.designation}${nom} · ${LIBELLE_TYPE_OBJET[objet.type]}${mag}`
 }

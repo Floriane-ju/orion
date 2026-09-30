@@ -18,6 +18,7 @@
  */
 
 import { useEffect } from 'react'
+import { nombre } from '../registry/ecriture.ts'
 import { K } from '../registry/constants.ts'
 import { Bulle } from './Bulle.tsx'
 import { Curseur } from './Curseur.tsx'
@@ -71,10 +72,10 @@ export function ModeNuit({ etat, surChangement }: ModeNuitProps) {
           min={plancher}
           max={LUMINANCE_NOMINALE}
           pas={plancher}
-          texte={`${(etat.luminance * POURCENT).toFixed(0)} %`}
+          texte={`${nombre(etat.luminance * POURCENT, 0)} %`}
           sur={(luminance) => surChangement({ ...etat, luminance })}
         />
-        <span className="etat">{(etat.luminance * POURCENT).toFixed(0)} %</span>
+        <span className="etat">{nombre(etat.luminance * POURCENT, 0)} %</span>
       </label>
       <p className="etat">Sur un écran LCD, un peu de lumière passe toujours.</p>
     </section>

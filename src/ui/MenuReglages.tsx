@@ -15,6 +15,7 @@
  */
 
 import { normalisePoids } from '../core/session.ts'
+import { nombre } from '../registry/ecriture.ts'
 import { DOMAINES } from '../registry/domains.ts'
 import { CRITERES_SCORING, type CritereScoring, type SaisiePoids } from './app-saisie.ts'
 import { Curseur } from './Curseur.tsx'
@@ -56,7 +57,7 @@ function ReglagePoids(props: SaisiePoids) {
             {LIBELLE_CRITERE[critere]}
             <span className="poids-effectif">
               {' '}
-              {(effectifs[critere] * POURCENT).toFixed(0)} %
+              {nombre(effectifs[critere] * POURCENT, 0)} %
             </span>
           </span>
           <Curseur
@@ -65,7 +66,7 @@ function ReglagePoids(props: SaisiePoids) {
             min={DOMAINE_POIDS.min}
             max={DOMAINE_POIDS.max}
             pas={PAS_CURSEUR}
-            texte={`${(effectifs[critere] * POURCENT).toFixed(0)} %`}
+            texte={`${nombre(effectifs[critere] * POURCENT, 0)} %`}
             sur={(valeur) => props.surPoids(critere, valeur)}
           />
         </label>

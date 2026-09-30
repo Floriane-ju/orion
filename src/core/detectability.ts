@@ -15,6 +15,7 @@
  */
 
 import { K } from '../registry/constants.ts'
+import { nombre } from '../registry/ecriture.ts'
 import { seuilContraste } from '../registry/contrast.ts'
 import type { FormulaId } from '../registry/formulas.ts'
 import type { TypeObjet } from '../data/deepsky.ts'
@@ -287,19 +288,19 @@ function explique(
 ): string {
   if (verdict === 'PHOTO_SEULE' && deltaSb < 0) {
     return (
-      `Objet ${rapportAuFondDeCiel(deltaSb).toFixed(0)} fois plus pâle que le ciel ` +
-      `(${sbObj.toFixed(2)} contre ${sbCiel.toFixed(2)}) : invisible à l’œil, mais une ` +
+      `Objet ${nombre(rapportAuFondDeCiel(deltaSb), 0)} fois plus pâle que le ciel ` +
+      `(${nombre(sbObj, 2)} contre ${nombre(sbCiel, 2)}) : invisible à l’œil, mais une ` +
       'longue pose le fera apparaître.'
     )
   }
   if (verdict === 'PHOTO_SEULE') {
     return (
       `Trop faible pour l’œil${mLimOeil === null ? '' : ' depuis ce site'} (magnitude ` +
-      `${mInt.toFixed(1)}) : une longue pose le fera apparaître.`
+      `${nombre(mInt, 1)}) : une longue pose le fera apparaître.`
     )
   }
   return (
-    `Assez contrasté pour être vu à sa taille (écart ${deltaSb.toFixed(2)} mag/arcsec²).`
+    `Assez contrasté pour être vu à sa taille (écart ${nombre(deltaSb, 2)} mag/arcsec²).`
   )
 }
 
@@ -311,8 +312,8 @@ function messageLune(lune: EtatLune | undefined, modulation: ModulationType): st
     )
   }
   return (
-    `Lune levée à ${lune.altitudeDeg.toFixed(0)}° de hauteur` +
-    `${lune.separationDeg === undefined ? '' : `, à ${lune.separationDeg.toFixed(0)}° de la cible`}` +
+    `Lune levée à ${nombre(lune.altitudeDeg, 0)}° de hauteur` +
+    `${lune.separationDeg === undefined ? '' : `, à ${nombre(lune.separationDeg, 0)}° de la cible`}` +
     `. ${modulation.conseil}`
   )
 }

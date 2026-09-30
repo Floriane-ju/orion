@@ -11,6 +11,7 @@
  */
 
 import { readFileSync } from 'node:fs'
+import { nombre } from '../src/registry/ecriture.ts'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { decodeEtoiles, encodeEtoiles, type Etoile } from '../src/data/catalog.ts'
@@ -947,7 +948,7 @@ describe('cibles dédoublonnées T-0107', () => {
     const decrite = decritCible(premiere)
     // Aucun nom à porter, et une fiche qui dit ce que le paquet contient — rien de plus.
     expect(premiere.nom).toBe('')
-    expect(decrite.lignes.join(' ')).toContain(premiere.etoile!.magV.toFixed(2))
+    expect(decrite.lignes.join(' ')).toContain(nombre(premiere.etoile!.magV, 2))
     // Aucun libellé peint : le survol retombe sur le titre de la fiche, seul nom qu'elle ait.
     expect(libelleCible(premiere)).toBeNull()
     const reveles = anonymes.slice(0, 5).filter((c) => {

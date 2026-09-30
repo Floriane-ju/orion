@@ -20,6 +20,7 @@
  */
 
 import type { ObjetCielProfond } from '../data/deepsky.ts'
+import { degres, nombre } from '../registry/ecriture.ts'
 import { Etiquette } from './Terme.tsx'
 import { LIBELLE_TYPE_OBJET } from './libelles-objet.ts'
 import { MENTION_DONNEE_MANQUANTE } from '../registry/libelles.ts'
@@ -51,13 +52,13 @@ function lignesDimensions(objet: ObjetCielProfond) {
   return [
     objet.majAxArcmin === null
       ? null
-      : { libelle: 'Dimension grand axe', valeur: `${objet.majAxArcmin} ’` },
+      : { libelle: 'Dimension grand axe', valeur: `${nombre(objet.majAxArcmin, 1)}’` },
     objet.minAxArcmin === null
       ? null
-      : { libelle: 'Dimension petit axe', valeur: `${objet.minAxArcmin} ’` },
+      : { libelle: 'Dimension petit axe', valeur: `${nombre(objet.minAxArcmin, 1)}’` },
     objet.posAngDeg === null
       ? null
-      : { libelle: 'Angle de position', valeur: `${objet.posAngDeg} °` },
+      : { libelle: 'Angle de position', valeur: degres(objet.posAngDeg) },
   ].filter((ligne) => ligne !== null)
 }
 

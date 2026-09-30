@@ -23,6 +23,7 @@
  */
 
 import type { ProfilOptique, TypeObjectif } from '../core/optics.ts'
+import { saisieLue } from '../registry/ecriture.ts'
 import type { ProfilSuivi, QualiteMiseEnStation, TypeMonture } from '../core/suivi.ts'
 import type { Traced } from '../core/traced.ts'
 import type {
@@ -196,7 +197,7 @@ function ChampsSuivi(props: PanneauMaterielProps) {
  * laisser « mm f/ » orphelin — sans la bulle d'`Inconnu`, qui ne se pose pas dans un bouton.
  */
 function resumeOptique(focale: string, ouverture: string): string {
-  const marque = (v: string) => (v.trim() === '' ? '?' : v)
+  const marque = (v: string) => (v.trim() === '' ? '?' : saisieLue(v))
   return `${marque(focale)} mm f/${marque(ouverture)}`
 }
 

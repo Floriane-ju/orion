@@ -28,6 +28,7 @@
  */
 
 import { K } from '../registry/constants.ts'
+import { nombre, nombreLibre } from '../registry/ecriture.ts'
 import type { Etoile } from '../data/catalog.ts'
 import { nomComplet, type EtoileNommee } from '../data/constellations.ts'
 import type { Site } from './ephem.ts'
@@ -233,13 +234,13 @@ function directionNord(qDeg: number): { readonly xNord: number; readonly yNord: 
 function phraseOrientation(qDeg: number): string {
   return (
     'Schéma orienté zénith en haut : le nord céleste, marqué dessus, fait ' +
-    `${Math.abs(qDeg).toFixed(0)}° avec la verticale.`
+    `${nombre(Math.abs(qDeg), 0)}° avec la verticale.`
   )
 }
 
 /** Une étoile se désigne par son nom quand le catalogue en donne un, par sa magnitude sinon. */
 function designe(etoile: { readonly nom: string; readonly magV: number }): string {
-  const magnitude = `magnitude ${etoile.magV.toFixed(1)}`
+  const magnitude = `magnitude ${nombre(etoile.magV, 1)}`
   return etoile.nom === '' ? `une étoile sans nom, ${magnitude}` : `${etoile.nom}, ${magnitude}`
 }
 
@@ -314,7 +315,7 @@ function carteDirecte(entree: EntreePointage): CartePointage {
       cause:
         magLimite === null
           ? 'Ciel hors de l’échelle de Bortle : aucune étoile repère proposée.'
-          : `Aucune étoile visible à l’œil (magnitude ${magLimite.toFixed(2)}) dans le cadre.`,
+          : `Aucune étoile visible à l’œil (magnitude ${nombre(magLimite, 2)}) dans le cadre.`,
       contraintesARelacher: [
         'Un site plus sombre montre plus d’étoiles repères.',
         'Un chercheur, même petit, montre bien plus d’étoiles.',
@@ -334,8 +335,8 @@ function carteDirecte(entree: EntreePointage): CartePointage {
       (principale === undefined
         ? ', toutes assez faibles : repérage délicat sous un ciel voilé.'
         : `, la plus brillante : ${designe(premier)}.`) +
-      ` Écart : ${premier.deltaAdH.toFixed(3)} h en ascension droite, ` +
-      `${premier.deltaDecDeg.toFixed(2)}° en déclinaison. ${phraseOrientation(orientation.value)}`,
+      ` Écart : ${nombre(premier.deltaAdH, 3)} h en ascension droite, ` +
+      `${nombre(premier.deltaDecDeg, 2)}° en déclinaison. ${phraseOrientation(orientation.value)}`,
   }
 }
 
@@ -418,10 +419,10 @@ function cheminement(entree: EntreePointage): CartePointage {
       deltaDecDeg: 0,
       message: 'Aucun chemin d’étoile en étoile trouvé.',
       cause:
-        `Aucun chemin en ${sautsMax} sauts au plus, de ${sautMax.toFixed(1)}° maximum chacun, ` +
-        `depuis une étoile de magnitude ${K('MAG_DEPART_CHEMINEMENT_MAX')}.`,
+        `Aucun chemin en ${sautsMax} sauts au plus, de ${nombre(sautMax, 1)}° maximum chacun, ` +
+        `depuis une étoile de magnitude ${nombreLibre(K('MAG_DEPART_CHEMINEMENT_MAX'))}.`,
       contraintesARelacher: [
-        `Partir d’une étoile plus faible que magnitude ${K('MAG_DEPART_CHEMINEMENT_MAX')}.`,
+        `Partir d’une étoile plus faible que magnitude ${nombreLibre(K('MAG_DEPART_CHEMINEMENT_MAX'))}.`,
         `Autoriser plus de ${sautsMax} sauts.`,
         'Utiliser un chercheur au champ plus large.',
       ],
@@ -449,8 +450,8 @@ function cheminement(entree: EntreePointage): CartePointage {
     message:
       `${sauts.length} saut${sauts.length > 1 ? 's' : ''} d’étoile en étoile, depuis ` +
       `${designe(depart)}. Écart total : ` +
-      `${(entree.adCibleH - depart.adH).toFixed(3)} h en ascension droite, ` +
-      `${(entree.decCibleDeg - depart.decDeg).toFixed(2)}° en déclinaison. ` +
+      `${nombre(entree.adCibleH - depart.adH, 3)} h en ascension droite, ` +
+      `${nombre(entree.decCibleDeg - depart.decDeg, 2)}° en déclinaison. ` +
       phraseOrientation(orientation.value),
   }
 }

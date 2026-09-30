@@ -12,6 +12,7 @@
  */
 
 import { readFileSync } from 'node:fs'
+import { nombre } from '../src/registry/ecriture.ts'
 import { join } from 'node:path'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -277,7 +278,7 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
     const html = ecran()
     const entete = html.slice(html.indexOf('carte-site"'))
     const resume = entete.slice(0, entete.indexOf('</button>'))
-    const dixieme = (v: string) => `${Number(v).toFixed(1)}°`
+    const dixieme = (v: string) => `${nombre(Number(v), 1)}°`
     expect(resume).toContain(
       `<span class="carte-resume">${dixieme(DEFAUT.latitude)} / ${dixieme(DEFAUT.longitude)}</span>`,
     )
@@ -938,7 +939,7 @@ describe('T-0228 / T-0325 — la page « info » porte les sources', () => {
     expect(barreHaute(html)).not.toContain('Profondeur affichée')
     const page = pageInfo(html)
     expect(page.indexOf('Profondeur affichée')).toBeLessThan(page.indexOf('<details'))
-    expect(page).toMatch(/Profondeur affichée (<!-- -->)?\d+\.\d(<!-- -->)? mag/)
+    expect(page).toMatch(/Profondeur affichée (<!-- -->)?\d+,\d(<!-- -->)? mag/)
   })
 
   it('T-0325 — ses six rubriques sont des accordéons fermés à l’ouverture', () => {
