@@ -13,20 +13,29 @@
 import { profilRelief, type Altimetre } from '../core/relief.ts'
 import { masqueDepuisRelief } from '../core/site.ts'
 import { DEG } from '../core/mat3.ts'
+import {
+  LATITUDE_MAX_MERCATOR_DEG,
+  pixelMonde as pixelMondeCote,
+  type PointMonde,
+} from '../core/mercator.ts'
 import { K } from '../registry/constants.ts'
 import { R, urlTuileRelief } from '../registry/relief.ts'
 import { cleRelief, ecritRelief, litRelief } from './db.ts'
 import { modeReseauCourant } from './degradation.ts'
 
-export type ReliefSite =
-  | { readonly etat: 'RELIEF'; readonly altitudesDeg: readonly number[] }
-  | { readonly etat: 'INDISPONIBLE'; readonly cause: string }
+export interface ReliefConnu {
+  readonly etat: 'RELIEF'
+  readonly altitudesDeg: readonly number[]
+  /** T-0365 — l'altitude du sol au site, en mètres : celle d'où l'œil regarde le relief. */
+  readonly solM: number
+}
+
+export type ReliefSite = ReliefConnu | { readonly etat: 'INDISPONIBLE'; readonly cause: string }
 
 /** Les altitudes d'une tuile, en mètres, ligne par ligne ; null quand elle n'a pas pu être lue. */
 export type ChargeTuile = (z: number, x: number, y: number) => Promise<Float32Array | null>
 
 const CANAUX_RGBA = 4
-const LATITUDE_MAX_MERCATOR_DEG = Math.atan(Math.sinh(Math.PI)) / DEG
 
 /** Terrarium : h = R × 256 + V + B / 256 − 32 768. */
 export function altitudeTerrarium(rouge: number, vert: number, bleu: number): number {
@@ -35,13 +44,8 @@ export function altitudeTerrarium(rouge: number, vert: number, bleu: number): nu
 }
 
 /** Position en pixels mondiaux Web Mercator au zoom `z` : la tuile est ce nombre divisé par 256. */
-export function pixelMonde(latDeg: number, lonDeg: number, z: number): { x: number; y: number } {
-  const monde = R('COTE_TUILE_PX') * 2 ** z
-  const phi = latDeg * DEG
-  return {
-    x: ((lonDeg + 180) / 360) * monde,
-    y: ((1 - Math.log(Math.tan(phi) + 1 / Math.cos(phi)) / Math.PI) / 2) * monde,
-  }
+export function pixelMonde(latDeg: number, lonDeg: number, z: number): PointMonde {
+  return pixelMondeCote(latDeg, lonDeg, z, R('COTE_TUILE_PX'))
 }
 
 /** Les tuiles qui couvrent le rayon de §4.1 autour du site, ou null au-delà du plafond. */
@@ -172,9 +176,14 @@ async function depuisReseau(
     }
     tuiles.set(`${x}/${y}`, altitudes)
   }
-  const profil = profilRelief(altimetre(tuiles), latDeg, lonDeg)
-  if (profil === null || !dansLeDomaine(profil)) return { etat: 'INDISPONIBLE', cause: CAUSE_INVALIDE }
-  return { etat: 'RELIEF', altitudesDeg: profil }
+  const altitude = altimetre(tuiles)
+  const profil = profilRelief(altitude, latDeg, lonDeg)
+  // `profilRelief` rend null sans sol : non nul, le profil garantit l'altitude du site.
+  const solM = altitude(latDeg, lonDeg)
+  if (profil === null || solM === null || !dansLeDomaine(profil)) {
+    return { etat: 'INDISPONIBLE', cause: CAUSE_INVALIDE }
+  }
+  return { etat: 'RELIEF', altitudesDeg: profil, solM }
 }
 
 /**
@@ -201,14 +210,14 @@ export async function resoudRelief(
 ): Promise<ReliefSite> {
   const cle = cleRelief(latDeg, lonDeg)
   const enCache = await litRelief(cle).catch(() => null)
-  if (enCache !== null && dansLeDomaine(enCache)) return { etat: 'RELIEF', altitudesDeg: enCache }
+  if (enCache !== null && dansLeDomaine(enCache.altitudesDeg)) return enCache
   if (modeReseauCourant() === 'HORS_LIGNE') return { etat: 'INDISPONIBLE', cause: CAUSE_HORS_LIGNE }
 
   const dejaEnVol = enVol.get(cle)
   if (dejaEnVol !== undefined) return dejaEnVol
   const resolution = depuisReseau(latDeg, lonDeg, charge).then(async (relief) => {
     // Un cache refusé (navigation privée, quota) ne retire rien au relief de la session.
-    if (relief.etat === 'RELIEF') await ecritRelief(cle, relief.altitudesDeg).catch(() => undefined)
+    if (relief.etat === 'RELIEF') await ecritRelief(cle, relief).catch(() => undefined)
     return relief
   })
   enVol.set(cle, resolution)

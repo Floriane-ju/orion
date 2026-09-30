@@ -10,6 +10,7 @@
 import { deleteDB, openDB, type DBSchema, type IDBPDatabase } from 'idb'
 import type { FormatCapteur } from '../registry/capteur-formats.ts'
 import { NB_AZIMUTS } from '../core/site.ts'
+import type { ReliefConnu } from './relief.ts'
 
 export const NOM_BASE = 'orion'
 /**
@@ -289,20 +290,25 @@ const MILLIEMES = 1000
  * elle, un calcul corrigé ne s'appliquerait jamais aux sites déjà visités. À monter à chaque
  * changement de `profilRelief` ou de ses constantes.
  */
-const VERSION_PROFIL = 3
+// v4 (T-0365) : le cache garde aussi l'altitude du sol au site, à côté du profil.
+const VERSION_PROFIL = 4
 
 export function cleRelief(latDeg: number, lonDeg: number): string {
   return `relief:v${VERSION_PROFIL}:${Math.round(latDeg * MILLIEMES)},${Math.round(lonDeg * MILLIEMES)}`
 }
 
-export async function litRelief(cle: string): Promise<readonly number[] | null> {
-  const brut = await (await db()).get('reglages', cle)
-  if (!Array.isArray(brut) || brut.length !== NB_AZIMUTS) return null
-  return brut.every((v) => typeof v === 'number' && Number.isFinite(v)) ? brut : null
+export async function litRelief(cle: string): Promise<ReliefConnu | null> {
+  const brut: unknown = await (await db()).get('reglages', cle)
+  if (typeof brut !== 'object' || brut === null) return null
+  const { profil, solM } = brut as Record<string, unknown>
+  if (!Array.isArray(profil) || profil.length !== NB_AZIMUTS) return null
+  if (!profil.every((v) => typeof v === 'number' && Number.isFinite(v))) return null
+  if (typeof solM !== 'number' || !Number.isFinite(solM)) return null
+  return { etat: 'RELIEF', altitudesDeg: profil as number[], solM }
 }
 
-export async function ecritRelief(cle: string, altitudesDeg: readonly number[]): Promise<void> {
-  await (await db()).put('reglages', [...altitudesDeg], cle)
+export async function ecritRelief(cle: string, relief: ReliefConnu): Promise<void> {
+  await (await db()).put('reglages', { profil: [...relief.altitudesDeg], solM: relief.solM }, cle)
 }
 
 export async function litImage(designation: string): Promise<ImageStockee | null> {

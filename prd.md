@@ -4297,6 +4297,7 @@ Aucune pour Soleil, Lune, planètes, étoiles. TLE CelesTrak pour les satellites
 | Flux, pose unitaire, N poses, calibration | §7 | **complet** | aucune |
 | Fenêtre nocturne, Lune, créneaux, plan | §8.1–8.3 | **complet** | aucune |
 | Masque d'horizon | §4, §8.1 | **complet si en cache** | site inconnu → masque plat marqué `[HYP]` |
+| Carte de choix du lieu | §4.1 | **complet** | fond embarqué Natural Earth (côtes, frontières, villes), sans le détail des tuiles OSM |
 | Météo, couverture nuageuse, seeing, température | §4 | **tombe** | planification sans filtre météo, signalée |
 | Cheminement et carte de pointage | §8.4 | **complet** | aucune |
 | Prévisualisation fixe et filé | §9.2–9.3 | **complet** | Voie lactée procédurale, pas HiPS |
@@ -4376,11 +4377,17 @@ TIERS CONTACTÉS — et ce qui leur est transmis
   Terrain Tiles, AWS Open Data    la ZONE du site : les numéros des tuiles de relief
                                   couvrant 30 km autour (maille ≈ 25–40 km), une fois
                                   par site — le profil est ensuite servi par le cache
+  tile.openstreetmap.org           la ZONE AFFICHÉE sur la carte de choix du lieu : les
+                                  numéros des tuiles au zoom choisi, tant que la carte est
+                                  ouverte ; le Referer porte l'origine de l'application,
+                                  exigé par la politique d'usage d'OSM (T-0363)
 
   Dans tous les cas s'ajoute ce qu'une requête HTTP transmet toujours : l'adresse IP du
   navigateur. Ne sont transmis ni profil matériel, ni coordonnées exactes du site, ni
   masque d'horizon, ni plan de séance, ni saisie. La zone du site, elle, part : c'est le
-  prix du relief de §4.1, arbitré le 30 septembre 2026 (T-0359). Le critère de §13.3 se
+  prix du relief de §4.1, arbitré le 30 septembre 2026 (T-0359). La zone regardée sur la
+  carte de choix du lieu part aussi, à la précision du zoom : c'est le prix de la carte,
+  arbitré le même jour (T-0363) ; hors réseau, la carte garde son fond embarqué. Le critère de §13.3 se
   lit désormais avec cette exception nommée.
   Mais il cesse d'être vrai PAR ABSENCE DE TRAFIC, et c'est la raison de ce bloc : la
   garantie ne se lit plus dans l'architecture, elle se lit dans cette liste. Toute
@@ -4418,7 +4425,8 @@ Et aucune requête de télémétrie n'est émise
 Étant donné une session de travail complète
 Quand j'inspecte le trafic réseau
 Alors aucune donnée de profil ni de plan de session n'est transmise
-Et du site, seule la zone des tuiles de relief l'est (§13.1)
+Et du site, seules la zone des tuiles de relief et celle affichée sur la carte de choix
+    du lieu le sont (§13.1)
 
 Étant donné le jeu de cas de référence des formules optiques
 Quand la suite de tests s'exécute
@@ -4428,7 +4436,7 @@ Alors chaque valeur calculée correspond à la valeur attendue dans sa toléranc
 Quand j'inspecte le trafic réseau
 Alors les seules origines contactées sont celles énumérées en §13.1
 Et chaque requête ne porte qu'une désignation de cible, un couple de coordonnées
-    de cible ou le numéro d'une tuile de relief
+    de cible, le numéro d'une tuile de relief ou celui d'une tuile de carte
 ```
 
 ---

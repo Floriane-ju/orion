@@ -52,5 +52,14 @@
     "sha256": "42cf7bce1fbc32c59be240ed0a829c812c4941bdda9135ddc2b4c24f76205b32",
     "source": "Bloc de chaînes du paquet deepsky",
     "obligatoire": true
+  },
+  {
+    "nom": "fond-carte",
+    "version": "1",
+    "nombreEntrees": 3066,
+    "octets": 375354,
+    "sha256": "5eaf284359ad2a307088c5d79c85da0f09c52565211cfa90365989453e529a73",
+    "source": "Natural Earth 1:50 M, commit ca96624a56bd078437bca8184e78163e5039ad19 — ne_50m_land, ne_50m_admin_0_boundary_lines_land, ne_50m_populated_places_simple",
+    "obligatoire": false
   }
 ]

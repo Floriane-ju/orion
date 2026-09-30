@@ -343,6 +343,9 @@ pre {
      un tableau qu'on fait glisser ne se compare plus d'une ligne à l'autre. Sa carte a donc
      son propre gabarit. */
   --carte-plan: 29rem;
+  /* T-0363 — la hauteur de la carte de choix du lieu : assez pour une région autour du site,
+     pas au point de repousser les champs du site sous le pli de la carte « Site ». */
+  --choix-lieu-haut: 12rem;
   --jour-carte: var(--pas-3);
   /* La hauteur de la frise de la nuit, publiée par elle (`CarteNuit`) ; nulle tant qu'elle
      n'est pas montée. */
@@ -2157,6 +2160,32 @@ th {
   font-weight: var(--graisse-moyenne);
   letter-spacing: var(--suivi-micro);
   text-transform: uppercase;
+}
+
+/* T-0363 — la carte de choix du lieu. `touch-action: none` : le doigt la déplace et la
+   pince, il ne fait pas défiler la carte « Site » qui la porte. */
+.choix-lieu {
+  margin-bottom: var(--pas-3);
+}
+
+.choix-lieu-toile {
+  display: block;
+  width: 100%;
+  height: var(--choix-lieu-haut);
+  border: var(--trait) solid var(--bordure-faible);
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.choix-lieu-credit {
+  margin: var(--pas-1) 0 0;
+  color: var(--attenue);
+  font-size: var(--texte-legende);
+  text-align: right;
+}
+
+.choix-lieu-credit a {
+  color: inherit;
 }
 
 /* Un état porte des PHRASES, pas des étiquettes : il reste en casse normale.

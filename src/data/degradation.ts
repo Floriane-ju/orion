@@ -70,6 +70,12 @@ export const MATRICE_DEGRADATION: readonly LigneDegradation[] = Object.freeze([
     degradation: 'site inconnu → masque plat marqué [HYPOTHÈSE]',
   },
   {
+    fonction: 'Carte de choix du lieu',
+    sections: '§4.1',
+    horsReseau: 'COMPLET',
+    degradation: 'fond embarqué (côtes, frontières, villes), sans le détail des tuiles OSM',
+  },
+  {
     fonction: 'Météo, couverture nuageuse, seeing, température',
     sections: '§4, §9.4',
     horsReseau: 'TOMBE',

@@ -26,6 +26,7 @@ import { SOURCE_TABLE_CONTRASTE } from './contrast.ts'
 import { SOURCE_TABLE_FILTRES } from './filters.ts'
 import { CREDIT_RELEVE } from './imagerie.ts'
 import { CREDIT_RELIEF } from './relief.ts'
+import { CREDIT_CARTE } from './lieu-carte.ts'
 
 export interface Source {
   /** Ce que cette source alimente, dit du point de vue de l'écran, pas du fichier. */
@@ -73,6 +74,16 @@ export const SOURCES: readonly Source[] = Object.freeze(
       donnee: 'Masque d’horizon — relief du terrain dans un rayon de 30 km autour du site',
       provenance: `${CREDIT_RELIEF.auteur} · ${CREDIT_RELIEF.licence}`,
       lien: CREDIT_RELIEF.lien,
+    },
+    {
+      donnee: 'Carte de choix du lieu — côtes, frontières et villes, embarquées',
+      provenance: 'Natural Earth 1:50 M (ne_50m_land, admin_0_boundary_lines_land, populated_places_simple), domaine public',
+      lien: 'https://www.naturalearthdata.com',
+    },
+    {
+      donnee: 'Carte de choix du lieu — tuiles affichées quand le réseau est là',
+      provenance: `OpenStreetMap, ${CREDIT_CARTE.auteur} · ${CREDIT_CARTE.licence}`,
+      lien: CREDIT_CARTE.lien,
     },
     {
       donnee: 'Fond de ciel et magnitude limite à l’œil nu, à partir du Bortle saisi',

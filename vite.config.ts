@@ -18,6 +18,10 @@ import { ORIGINES_TIERS } from './src/registry/origines.ts'
 // §4.1 — le relief du terrain joint le jeu Terrain Tiles : la zone du site part avec le numéro
 // des tuiles, une fois par site (T-0359). §13.1 l'énumère ; la liste est `ORIGINES_TIERS`.
 //
+// §4.1 — la carte de choix du lieu joint le serveur de tuiles d'OSM : la zone affichée part,
+// au zoom choisi, tant que la carte est ouverte (T-0363). Les tuiles passent par `fetch` et
+// sont peintes sur un canvas : `img-src` reste fermé aux tiers.
+//
 // Une seule directive s'ouvre. Les vignettes sont téléchargées, rangées en IndexedDB, puis
 // affichées depuis un `blob:` : `img-src` n'a aucun hôte tiers à nommer, et il n'y a qu'une
 // surface à surveiller au lieu de deux.

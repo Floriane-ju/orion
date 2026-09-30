@@ -8,7 +8,7 @@
 
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleRelief, db, ecritRelief } from '../src/data/db.ts'
+import { cleRelief, db, ecritRelief, litRelief } from '../src/data/db.ts'
 import {
   altimetre,
   altitudeTerrarium,
@@ -19,7 +19,8 @@ import {
 } from '../src/data/relief.ts'
 import { NB_AZIMUTS } from '../src/core/site.ts'
 import { R } from '../src/registry/relief.ts'
-import { DOMAINES } from '../src/registry/domains.ts'
+import { DOMAINES, nombreDeTexte } from '../src/registry/domains.ts'
+import { altitudeDuRelief } from '../src/ui/relief-site.ts'
 import { SITE_REFERENCE } from './fixtures.ts'
 
 const { latitudeDeg: LAT, longitudeDeg: LON } = SITE_REFERENCE
@@ -79,7 +80,13 @@ describe('résolution du relief (§4.1, §12.5)', () => {
     expect(relief.etat).toBe('RELIEF')
     if (relief.etat !== 'RELIEF') return
     expect(relief.altitudesDeg).toHaveLength(NB_AZIMUTS)
-    expect(await (await db()).get('reglages', cleRelief(LAT, LON))).toEqual(relief.altitudesDeg)
+    expect(await litRelief(cleRelief(LAT, LON))).toEqual(relief)
+  })
+
+  it('rend l’altitude du sol au site, celle d’où l’œil regarde (T-0365)', async () => {
+    const relief = await resoudRelief(LAT, LON, plaine(812))
+    expect(relief.etat).toBe('RELIEF')
+    if (relief.etat === 'RELIEF') expect(relief.solM).toBe(812)
   })
 
   it('lit les tuiles nord en haut : un terrain qui monte vers le nord cache le nord', async () => {
@@ -95,11 +102,11 @@ describe('résolution du relief (§4.1, §12.5)', () => {
 
   it('hors réseau, retrouve le relief d’un site déjà visité', async () => {
     const profil = Array.from({ length: NB_AZIMUTS }, (_, az) => az % 7)
-    await ecritRelief(cleRelief(LAT, LON), profil)
+    await ecritRelief(cleRelief(LAT, LON), { etat: 'RELIEF', altitudesDeg: profil, solM: 640 })
     vi.stubGlobal('navigator', { onLine: false })
     const chargeur = vi.fn(plaine(0))
     const relief = await resoudRelief(LAT, LON, chargeur)
-    expect(relief).toEqual({ etat: 'RELIEF', altitudesDeg: profil })
+    expect(relief).toEqual({ etat: 'RELIEF', altitudesDeg: profil, solM: 640 })
     expect(chargeur).not.toHaveBeenCalled()
   })
 
@@ -132,7 +139,7 @@ describe('résolution du relief (§4.1, §12.5)', () => {
 
   it('ignore un cache hors du domaine du masque plutôt que de faire tomber le calcul', async () => {
     const horsDomaine = Array.from({ length: NB_AZIMUTS }, () => DOMAINES.masque_horizon_deg.max + 1)
-    await ecritRelief(cleRelief(LAT, LON), horsDomaine)
+    await ecritRelief(cleRelief(LAT, LON), { etat: 'RELIEF', altitudesDeg: horsDomaine, solM: 0 })
     const relief = await resoudRelief(LAT, LON, plaine(0))
     expect(relief.etat).toBe('RELIEF')
     if (relief.etat === 'RELIEF') expect(relief.altitudesDeg).not.toEqual(horsDomaine)
@@ -141,5 +148,22 @@ describe('résolution du relief (§4.1, §12.5)', () => {
   it('ignore un cache corrompu et redemande le relief', async () => {
     await (await db()).put('reglages', ['pas', 'un', 'profil'], cleRelief(LAT, LON))
     expect((await resoudRelief(LAT, LON, plaine(0))).etat).toBe('RELIEF')
+  })
+})
+
+describe('altitude du site depuis le relief (T-0365)', () => {
+  const profil = Array.from({ length: NB_AZIMUTS }, () => 0)
+  const { min, max } = DOMAINES.altitude_m
+
+  it('écrit le sol au mètre, que le champ relit', () => {
+    const texte = altitudeDuRelief({ etat: 'RELIEF', altitudesDeg: profil, solM: 812.6 })
+    expect(texte).not.toBeNull()
+    expect(nombreDeTexte(texte!)).toBe(813)
+  })
+
+  it('n’écrit rien sans relief ni hors du domaine de saisie', () => {
+    expect(altitudeDuRelief({ etat: 'INDISPONIBLE', cause: 'hors réseau' })).toBeNull()
+    expect(altitudeDuRelief({ etat: 'RELIEF', altitudesDeg: profil, solM: min - 1 })).toBeNull()
+    expect(altitudeDuRelief({ etat: 'RELIEF', altitudesDeg: profil, solM: max + 1 })).toBeNull()
   })
 })

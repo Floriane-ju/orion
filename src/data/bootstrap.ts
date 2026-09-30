@@ -17,6 +17,7 @@ import {
   type PaquetConstellations,
 } from './constellations.ts'
 import { modeReseauCourant, type ModeReseau } from './degradation.ts'
+import { FOND_VIDE, decodeFondCarte, type FondCarte } from './fond-carte.ts'
 import { AVERTISSEMENT_SANS_BASE, etatStockage, type EtatStockage } from './persistence.ts'
 import { parTranches } from '../core/tranches.ts'
 import { construitIndexPas, type IndexCiel } from '../core/index-ciel.ts'
@@ -185,6 +186,14 @@ const PAQUET_CONSTELLATIONS = 'constellations'
 export async function chargeConstellations(): Promise<PaquetConstellations> {
   const paquet = await litPaquet(PAQUET_CONSTELLATIONS)
   return paquet === null ? PAQUET_VIDE : decodeConstellations(paquet)
+}
+
+const PAQUET_FOND_CARTE = 'fond-carte'
+
+/** §12.5 — le fond de la carte du site. Absent, la carte reste vide et la saisie chiffrée reste. */
+export async function chargeFondCarte(): Promise<FondCarte> {
+  const paquet = await litPaquet(PAQUET_FOND_CARTE)
+  return paquet === null ? FOND_VIDE : decodeFondCarte(paquet)
 }
 
 /**

@@ -29,6 +29,7 @@ import {
   type Segment,
   type TypeArete,
 } from '../src/data/constellations.ts'
+import { encodeFondCarte, type FondCarteSource, type VilleSource } from '../src/data/fond-carte.ts'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..')
 const DOSSIER_SORTIE = join(RACINE, 'public', 'data')
@@ -132,6 +133,26 @@ const SOURCE_STELLARIUM_DSO_NOMS: SourceEpinglee = {
 }
 
 /** §3.3 : HYG est complet jusqu'à magnitude ≈ 9. Au-delà, le catalogue n'est plus fiable. */
+/** Natural Earth au 1:50 M — le fond embarqué de la carte du site (T-0364). */
+const COMMIT_NATURAL_EARTH = 'ca96624a56bd078437bca8184e78163e5039ad19'
+const urlNaturalEarth = (fichier: string): string =>
+  `https://raw.githubusercontent.com/nvkelso/natural-earth-vector/${COMMIT_NATURAL_EARTH}/geojson/${fichier}.geojson`
+const SOURCE_NE_TERRES: SourceEpinglee = {
+  nom: 'Natural Earth (ne_50m_land)',
+  url: urlNaturalEarth('ne_50m_land'),
+  sha256: 'e874b27a51d146452be360cafb3cc50c86001074a67d534113e6534682f9826b',
+}
+const SOURCE_NE_FRONTIERES: SourceEpinglee = {
+  nom: 'Natural Earth (ne_50m_admin_0_boundary_lines_land)',
+  url: urlNaturalEarth('ne_50m_admin_0_boundary_lines_land'),
+  sha256: '2faac4f6b34386f3d21b6e018cf151f241f00e5c936d44dd17d7d9bfb147fa48',
+}
+const SOURCE_NE_VILLES: SourceEpinglee = {
+  nom: 'Natural Earth (ne_50m_populated_places_simple)',
+  url: urlNaturalEarth('ne_50m_populated_places_simple'),
+  sha256: '8e70756b39fae9bcdc1e332bfc510c024c5edd3a13203ffd20092ee37b61d978',
+}
+
 const MAG_LIMITE_HYG = 9
 const VERSION_PAQUETS = '1'
 
@@ -782,6 +803,54 @@ function construitConstellations(brut: string, index: Map<number, EtoileHyg>) {
   }
 }
 
+type PointGeo = readonly [number, number]
+
+interface GeometrieGeo {
+  readonly type: string
+  readonly coordinates: unknown
+}
+
+/** Les anneaux ou lignes d'une géométrie GeoJSON, à plat : le fond ne distingue pas les trous. */
+function tracesGeo(g: GeometrieGeo): PointGeo[][] {
+  switch (g.type) {
+    case 'LineString':
+      return [g.coordinates as PointGeo[]]
+    case 'Polygon':
+    case 'MultiLineString':
+      return g.coordinates as PointGeo[][]
+    case 'MultiPolygon':
+      return (g.coordinates as PointGeo[][][]).flat()
+    default:
+      throw new Error(`Géométrie Natural Earth inattendue : ${g.type}`)
+  }
+}
+
+function featuresGeo(contenu: string): { geometry: GeometrieGeo; properties: Record<string, unknown> }[] {
+  return (JSON.parse(contenu) as { features: { geometry: GeometrieGeo; properties: Record<string, unknown> }[] })
+    .features
+}
+
+async function construitFondCarte(): Promise<FondCarteSource> {
+  const traces = async (source: SourceEpinglee) =>
+    featuresGeo(await telecharge(source)).flatMap((f) => tracesGeo(f.geometry))
+  const villes = featuresGeo(await telecharge(SOURCE_NE_VILLES)).map(
+    ({ properties: p }): VilleSource => ({
+      nom: String(p.name),
+      latitudeDeg: Number(p.latitude),
+      longitudeDeg: Number(p.longitude),
+      zoomMin: Number(p.min_zoom),
+    }),
+  )
+  return {
+    terres: await traces(SOURCE_NE_TERRES),
+    frontieres: await traces(SOURCE_NE_FRONTIERES),
+    villes,
+    source:
+      `Natural Earth 1:50 M, commit ${COMMIT_NATURAL_EARTH} — ne_50m_land, ` +
+      'ne_50m_admin_0_boundary_lines_land, ne_50m_populated_places_simple',
+  }
+}
+
 async function ecritPaquet(
   nom: string,
   buffer: ArrayBuffer,
@@ -830,8 +899,11 @@ function fusionne(
   return [...parNom.values()]
 }
 
-/** Groupes constructibles : `pnpm data:build [hyg] [openngc] [deepsky] [constellations]`. */
-const GROUPES = ['hyg', 'openngc', 'deepsky', 'constellations'] as const
+/**
+ * Groupes constructibles :
+ * `pnpm data:build [hyg] [openngc] [deepsky] [constellations] [fond-carte]`.
+ */
+const GROUPES = ['hyg', 'openngc', 'deepsky', 'constellations', 'fond-carte'] as const
 type Groupe = (typeof GROUPES)[number]
 
 async function principal(): Promise<void> {
@@ -941,6 +1013,22 @@ async function principal(): Promise<void> {
         paquet.figures.length + paquet.asterismes.length + paquet.frontieres.length,
         paquet.source,
         true,
+      ),
+    )
+  }
+
+  if (aConstruire.has('fond-carte')) {
+    process.stdout.write('Fond de la carte du site (Natural Earth 1:50 M)\n')
+    const fond = await construitFondCarte()
+    produits.push(
+      await ecritPaquet(
+        'fond-carte',
+        encodeFondCarte(fond),
+        fond.terres.length + fond.frontieres.length + fond.villes.length,
+        fond.source,
+        // Sans lui, la carte reste — vide — et la saisie chiffrée aussi : il n'arrête pas le
+        // démarrage (§12.5).
+        false,
       ),
     )
   }

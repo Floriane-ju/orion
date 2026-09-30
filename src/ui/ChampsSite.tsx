@@ -23,6 +23,7 @@ import { MasqueHorizonSaisie } from './MasqueHorizon.tsx'
 import { ChampDomaine } from './ChampDomaine.tsx'
 import { TracedValue } from './TracedValue.tsx'
 import { Mention } from './Mention.tsx'
+import { ChoixLieu } from './ChoixLieu.tsx'
 
 export interface ChampsSiteProps {
   readonly latitude: string
@@ -52,6 +53,16 @@ export interface ChampsSiteProps {
 export function ChampsSite(props: ChampsSiteProps) {
   return (
     <>
+      {/* T-0363 — la carte écrit dans les deux champs qui suivent : ils restent la vérité. */}
+      <ChoixLieu
+        latitude={props.latitude}
+        longitude={props.longitude}
+        surLieu={(latitude, longitude) => {
+          props.surLatitude(latitude)
+          props.surLongitude(longitude)
+        }}
+        surAltitude={props.surAltitude}
+      />
       {/* Latitude et longitude se lisent d'un seul mot — un lieu — et se règlent ensemble :
           la paire les pose côte à côte, comme la focale et l'ouverture (T-0234). */}
       <div className="champs paire">

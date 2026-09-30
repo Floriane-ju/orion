@@ -7,6 +7,7 @@
 
 import { ORIGINES_IMAGERIE } from './imagerie.ts'
 import { ORIGINES_RELIEF } from './relief.ts'
+import { ORIGINES_CARTE } from './lieu-carte.ts'
 
 export interface OrigineTiers {
   readonly origine: string
@@ -17,4 +18,5 @@ export interface OrigineTiers {
 export const ORIGINES_TIERS: readonly OrigineTiers[] = Object.freeze([
   ...ORIGINES_IMAGERIE,
   ...ORIGINES_RELIEF,
+  ...ORIGINES_CARTE,
 ])

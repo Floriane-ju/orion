@@ -10,7 +10,8 @@ import { useEffect, useRef, useState } from 'react'
 import { masqueDepuisRelief, masquePlat, type MasqueHorizon } from '../core/site.ts'
 import { resoudRelief, type ReliefSite } from '../data/relief.ts'
 import { R } from '../registry/relief.ts'
-import { nombreLibre } from '../registry/ecriture.ts'
+import { nombre, nombreLibre } from '../registry/ecriture.ts'
+import { DOMAINES } from '../registry/domains.ts'
 
 interface ReliefResolu {
   readonly cle: string
@@ -59,4 +60,16 @@ export function masqueDuRelief(relief: ReliefSite | null): MasqueHorizon {
     relief.altitudesDeg,
     `Relief du terrain sur ${nombreLibre(R('RAYON_RELIEF_KM'))} km (Terrain Tiles).`,
   )
+}
+
+/**
+ * T-0365 — l'altitude à écrire dans le champ après un clic sur la carte : le sol du modèle,
+ * au mètre. Null sans relief, ou hors du domaine de saisie (mer Morte, sommets) : écrire une
+ * valeur bornée mentirait, écrire la vraie ferait refuser la saisie — le champ garde la sienne.
+ */
+export function altitudeDuRelief(relief: ReliefSite): string | null {
+  if (relief.etat !== 'RELIEF') return null
+  const { min, max } = DOMAINES.altitude_m
+  const solM = Math.round(relief.solM)
+  return solM < min || solM > max ? null : nombre(solM)
 }
