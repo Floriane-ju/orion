@@ -14,6 +14,12 @@
  * (`texte`) et rend ce qui se règle (`valeur`). C'est ce qui lui permet de porter aussi bien
  * un mois en toutes lettres qu'un champ en degrés.
  *
+ * LE GESTE NE BUTE PAS AU BORD DE L'ÉCRAN. À la souris, le premier cran franchi verrouille le
+ * pointeur (Pointer Lock) : le déplacement se cumule en `movementX`, et un curseur fantôme
+ * ressort du bord opposé, comme dans Blender — une page ne peut pas téléporter la vraie souris.
+ * Verrouiller au premier cran, pas à l'appui : un clic reste un clic, sans bandeau du
+ * navigateur. Si le verrou est refusé, la capture suffit et le geste s'arrête au bord.
+ *
  * UN CHAMP, PAS UN MOT. Le compteur a l'allure d'une saisie — un cadre, et un `prefixe` qui dit
  * ce qu'il règle, comme le « H » d'un éditeur graphique. Sous la souris, il se tire ; un clic
  * sans glisser, ou Entrée, l'ouvre en saisie : un `<input>` prend sa place, on tape le nombre,
@@ -21,10 +27,19 @@
  * le temps de la frappe : au repos, la valeur reste le texte qui s'affiche et s'annonce.
  */
 
-import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+  type PointerEvent,
+} from 'react'
+import { createPortal } from 'react-dom'
+import { Icone } from './Icone.tsx'
 import { cransGlisse } from './compteur-glisse.ts'
 import { nombreDeTexte } from '../registry/domains.ts'
-import { encadre } from '../core/unites.ts'
+import { encadre, ramene } from '../core/unites.ts'
 
 export interface CompteurProps {
   /** Nom accessible : le compteur affiche une valeur, jamais ce qu'elle désigne. */
@@ -54,6 +69,23 @@ interface Depart {
   readonly valeur: number
   /** Un geste qui a bougé n'est plus un clic : c'est ce qui distingue les deux intentions. */
   bouge: boolean
+  /** Où serait le pointeur sans bord d'écran : sous verrou, `clientX` ne bouge plus. */
+  xPxCumule: number
+  yPxCumule: number
+}
+
+interface Point {
+  readonly x: number
+  readonly y: number
+}
+
+/** Sans verrou (refusé, ou absent au doigt), la capture garde le geste : il bute au bord. */
+function verrouille(cible: HTMLElement): void {
+  Promise.resolve(cible.requestPointerLock()).catch(() => undefined)
+}
+
+function deverrouille(cible: Element): void {
+  if (document.pointerLockElement === cible) document.exitPointerLock()
 }
 
 /** Le nombre que la saisie propose : celui qu'on lit dans le texte, sinon la valeur brute. */
@@ -74,6 +106,20 @@ export function Compteur(props: CompteurProps) {
   /** Vrai du premier appui au relâchement, que le geste devienne un clic ou un glisser. */
   const [appuye, setAppuye] = useState(false)
   const initiale = useRef('')
+  /** Le curseur qui remplace la souris verrouillée ; `null` hors verrou. */
+  const [fantome, setFantome] = useState<Point | null>(null)
+
+  // Échap rend la souris en plein geste : le glisser s'arrête là où il en est.
+  useEffect(() => {
+    function surVerrou(): void {
+      if (document.pointerLockElement !== null || depart.current === null) return
+      depart.current = null
+      setAppuye(false)
+      setFantome(null)
+    }
+    document.addEventListener('pointerlockchange', surVerrou)
+    return () => document.removeEventListener('pointerlockchange', surVerrou)
+  }, [])
 
   function borne(valeur: number): number {
     return encadre(valeur, props.min ?? -Infinity, props.max ?? Infinity)
@@ -102,7 +148,13 @@ export function Compteur(props: CompteurProps) {
     // Le bouton secondaire ouvre le menu contextuel : le capturer priverait d'un clic droit.
     if (e.button !== 0) return
     e.currentTarget.setPointerCapture(e.pointerId)
-    depart.current = { xPx: e.clientX, valeur: props.valeur, bouge: false }
+    depart.current = {
+      xPx: e.clientX,
+      valeur: props.valeur,
+      bouge: false,
+      xPxCumule: e.clientX,
+      yPxCumule: e.clientY,
+    }
     setAppuye(true)
     props.surDebut?.()
   }
@@ -110,10 +162,22 @@ export function Compteur(props: CompteurProps) {
   function surPointerMove(e: PointerEvent<HTMLSpanElement>): void {
     const d = depart.current
     if (d === null) return
-    const crans = cransGlisse(e.clientX - d.xPx)
+    if (document.pointerLockElement === e.currentTarget) {
+      d.xPxCumule += e.movementX
+      d.yPxCumule += e.movementY
+      setFantome({
+        x: ramene(d.xPxCumule, window.innerWidth),
+        y: ramene(d.yPxCumule, window.innerHeight),
+      })
+    } else {
+      d.xPxCumule = e.clientX
+      d.yPxCumule = e.clientY
+    }
+    const crans = cransGlisse(d.xPxCumule - d.xPx)
     // Le premier cran fait la différence entre un clic et un glisser : tant qu'il n'est pas
     // franchi, rien ne bouge et le clic reste possible.
     if (crans === 0 && !d.bouge) return
+    if (!d.bouge && e.pointerType === 'mouse') verrouille(e.currentTarget)
     d.bouge = true
     props.sur(borne(d.valeur + crans * props.pas))
   }
@@ -122,6 +186,8 @@ export function Compteur(props: CompteurProps) {
     const d = depart.current
     depart.current = null
     setAppuye(false)
+    setFantome(null)
+    deverrouille(e.currentTarget)
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId)
     }
@@ -195,9 +261,11 @@ export function Compteur(props: CompteurProps) {
       onPointerDown={surPointerDown}
       onPointerMove={surPointerMove}
       onPointerUp={surPointerUp}
-      onPointerCancel={() => {
+      onPointerCancel={(e) => {
         depart.current = null
         setAppuye(false)
+        setFantome(null)
+        deverrouille(e.currentTarget)
       }}
       onKeyDown={surClavier}
     >
@@ -205,6 +273,14 @@ export function Compteur(props: CompteurProps) {
       <span className="compteur-valeur" style={gabarit}>
         {props.texte}
       </span>
+      {/* Hors de la barre : un ancêtre filtré ou transformé ferait du `fixed` un `absolute`. */}
+      {fantome !== null &&
+        createPortal(
+          <span className="compteur-fantome" style={{ left: fantome.x, top: fantome.y }}>
+            <Icone nom="arrow_range" />
+          </span>,
+          document.body,
+        )}
     </span>
   )
 }

@@ -618,6 +618,16 @@ body {
   display: inline-block;
 }
 
+/* Le curseur qui remplace la souris verrouillée pendant un glisser (`Compteur`) : il ressort
+   du bord opposé. Centré sur le point qu'il désigne, et transparent au pointeur. */
+.compteur-fantome {
+  position: fixed;
+  z-index: var(--plan-bulle);
+  translate: -50% -50%;
+  color: var(--texte);
+  pointer-events: none;
+}
+
 .legende-couleurs {
   list-style: none;
   margin: var(--pas-3) 0 0;
