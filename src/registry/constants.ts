@@ -1451,6 +1451,9 @@ const RENDU = {
     tolerance: 'ordre de grandeur',
     ordreDeGrandeur: true,
     sections: ['3.3', '3.4'],
+    deprecie:
+      'Conservée pour mémoire (§3.4) : T-0360 borne l’année affichée à 1900–2100, à un ' +
+      'siècle au plus de J2000, bien en deçà de cet horizon — aucun avertissement n’a lieu d’être.',
   }),
   /**
    * T-0097 — extension de rendu. §3.3 ne dit du fond de ciel que « plafonne mag_limite en vue

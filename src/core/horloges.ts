@@ -155,20 +155,6 @@ export function matriceALaMinute(site: Site, minute: number): Mat3 {
   return cielInstantane(site, new Date(minute * MS_PAR_MINUTE)).matrice
 }
 
-/**
- * Avertissement de §3.4 : au-delà de l'horizon des mouvements propres, les figures restent
- * reliées aux mêmes étoiles, mais le dessin qu'elles formaient n'a plus de sens.
- */
-export function avertissementEpoque(anneeEpoque: number): string | null {
-  const ecart = Math.abs(anneeEpoque - K('EPOQUE_J2000_ANNEE'))
-  const arrondi = Math.round(ecart)
-  if (ecart <= K('HORIZON_MOUVEMENTS_PROPRES_AN')) return null
-  return (
-    `À ${arrondi} ans de l’an 2000, les étoiles ont bougé : les figures des constellations ` +
-    'ne sont plus fidèles.'
-  )
-}
-
 // ---------------------------------------------------------------------------
 // Horloge d'éphémérides — corps mobiles
 // ---------------------------------------------------------------------------

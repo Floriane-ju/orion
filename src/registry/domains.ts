@@ -29,6 +29,10 @@ function domaine<D extends DomaineSaisie>(d: D): Readonly<D> {
 }
 
 export const DOMAINES = Object.freeze({
+  // §3.2 — curseur temporel. T-0360 : ni mouvements propres (§3.4) ni séries d'éphémérides
+  // (§3.1) ne posent question sur ces deux siècles, et l'app n'affiche rien au-delà.
+  annee_affichee: domaine({ champ: 'l’année affichée', min: 1900, max: 2100, unite: 'an', section: '3.2' }),
+
   // §4.1 — profil Lieu
   latitude_deg: domaine({ champ: 'la latitude', min: -90, max: 90, unite: '°', section: '4.1' }),
   longitude_deg: domaine({ champ: 'la longitude', min: -180, max: 180, unite: '°', section: '4.1' }),

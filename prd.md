@@ -430,7 +430,7 @@ Le découplage n'est pas une optimisation prématurée : sans lui, chaque image 
 
 | Champ | Type | Unité | Plage valide | Note |
 |---|---|---|---|---|
-| `t_affiche_jd` | float | jour julien | −1e6 – 1e6 | horloge maîtresse |
+| `t_affiche_jd` | float | jour julien | 2415020,5 – 2488434,5 | horloge maîtresse ; années 1900 à 2100 incluses, le curseur s'arrête aux bornes |
 | `facteur_vitesse` | float | — | −3600 – 3600 | négatif = marche arrière |
 | `latitude`, `longitude` | float | ° | §4 | |
 | `freq_ephemerides_hz` | float | Hz | 1 – 60 | défaut 10 |
@@ -451,17 +451,6 @@ Et l'ajout d'étoiles au catalogue ne dégrade pas mesurablement la fréquence
 Étant donné un défilement à ×3600 et la Lune affichée
 Quand je compare la position interpolée à la position calculée exactement
 Alors l'écart reste inférieur à 0,06° à tout instant
-
-Étant donné un curseur déplacé de 2026 à 1400                       # cas limite
-Quand le ciel est rendu
-Alors la précession est appliquée et le décalage attendu d'environ 8,7° est visible
-Et l'app signale que les positions sont précessées, pas les magnitudes ni les noms
-
-Étant donné une date hors du domaine de validité des séries    # cas limite
-Quand le ciel est rendu
-Alors les étoiles et constellations restent affichées
-Et les corps du système solaire sont masqués avec la cause nommée,
-    plutôt qu'extrapolés silencieusement
 ```
 
 ### Dépendances données
@@ -771,11 +760,6 @@ Et aucun label ne chevauche un autre
 Quand la fiche s'ouvre
 Alors elle affiche le verdict de cadrage, le verdict de détectabilité
     et un accès direct au plan de capture
-
-Étant donné le curseur temporel déplacé de 10 000 ans dans le futur  # cas limite
-Quand les figures sont tracées
-Alors elles restent reliées aux mêmes étoiles, désormais déplacées
-Et l'app signale que les figures perdent leur sens à cette échelle de temps
 ```
 
 ### Dépendances données

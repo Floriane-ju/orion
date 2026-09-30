@@ -13,7 +13,7 @@ import type { CapteurMode, SaisieBoitier } from '../data/equipment.ts'
 import { ligneBoitier } from '../data/boitiers.ts'
 import type { QualiteMiseEnStation, TypeMonture } from '../core/suivi.ts'
 import { nuitDeLInstant } from '../core/nuit-datee.ts'
-import { etatScene, instant, majVue } from './scene-etat.ts'
+import { borneInstant, etatScene, instant, majVue } from './scene-etat.ts'
 import { modeObjectif, type TypeObjectif } from '../core/optics.ts'
 
 /**
@@ -77,7 +77,8 @@ export function useSaisieLieu(depart: DepartLieu | null): SaisieLieu {
   // sa nuit. En `MAINTENANT`, l'horloge fait foi, avec le décalage que la scène a gardé.
   const [nuitIso, surNuitIso] = useState(() => {
     const { modeTemps, decalageMs } = etatScene().temps
-    return nuitDeLInstant(new Date(modeTemps === 'MAINTENANT' ? Date.now() + decalageMs : instant.ms))
+    const ms = modeTemps === 'MAINTENANT' ? Date.now() + decalageMs : instant.ms
+    return nuitDeLInstant(new Date(borneInstant(ms)))
   })
   const [pointsMasque, surPointsMasque] = useState<readonly PointMasque[]>(
     depart?.pointsMasque ?? [],

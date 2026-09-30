@@ -26,6 +26,7 @@ import {
   type ScenePersistee,
 } from '../data/scene-persistee.ts'
 import { creeAbonnes } from './abonnes.ts'
+import { DOMAINES } from '../registry/domains.ts'
 
 /**
  * Résolution de rendu de référence, celle du viewport de §3.2. Ce n'est plus qu'un point de
@@ -245,6 +246,16 @@ export interface EtatScene {
 }
 
 /**
+ * T-0360 — un instant ramené dans `DOMAINES.annee_affichee`, bornes incluses. Toute écriture de
+ * l'instant affiché y passe : le compteur d'année, le transport et la scène relue. Le temps
+ * universel fait foi, sans quoi la borne bougerait avec le fuseau du poste.
+ */
+export function borneInstant(ms: number): number {
+  const { min, max } = DOMAINES.annee_affichee
+  return encadre(ms, Date.UTC(min, 0, 1), Date.UTC(max + 1, 0, 1) - 1)
+}
+
+/**
  * L'instant affiché, en millisecondes. Réécrit à chaque image par la boucle de rendu : le
  * garder hors de l'état réactif est ce qui évite soixante rendus React par seconde (§3).
  */
@@ -294,8 +305,9 @@ const ETAT_INITIAL: EtatScene = {
 function restaure(depart: EtatScene, lu: ScenePersistee): EtatScene {
   const temps = { ...depart.temps, ...lu.temps }
   const vue = { ...depart.vue, ...lu.vue }
-  const ms =
-    temps.modeTemps === 'MAINTENANT' ? Date.now() + temps.decalageMs : (lu.ms ?? Date.now())
+  const ms = borneInstant(
+    temps.modeTemps === 'MAINTENANT' ? Date.now() + temps.decalageMs : (lu.ms ?? Date.now()),
+  )
   instant.ms = ms
   const couches = Object.fromEntries(
     Object.entries(depart.rendu.couches).map(([c, v]) => [c, lu.rendu?.couches?.[c] ?? v]),
@@ -384,12 +396,13 @@ export function vaA(ms: number): void {
   // hors des instants représentables fait lever `astronomy-engine` depuis la boucle de rendu.
   // Une destination inatteignable n'est pas un voyage : on reste où l'on est.
   if (!Number.isFinite(ms)) return
-  instant.ms = ms
+  const borne = borneInstant(ms)
+  instant.ms = borne
   majTemps({ modeTemps: 'FIGE' })
   // L'horloge d'affichage saute avec l'instant, sans attendre l'image suivante : seule la
   // boucle du canevas republiait `msAffiche`, si bien qu'un écran rendu sans boucle — rendu
   // serveur, test — datait ses lectures de l'instant de démarrage plutôt que de la destination.
-  afficheInstant(ms)
+  afficheInstant(borne)
 }
 
 /**

@@ -40,14 +40,16 @@ import {
 import { BoutonGlyphe } from './BoutonGlyphe.tsx'
 import { Compteur } from './Compteur.tsx'
 import {
+  borneInstant,
+  type EtatScene,
   majTemps,
   reprend,
   secondeAffichee,
+  type TempsScene,
   useTrancheScene,
   vaA,
-  type EtatScene,
-  type TempsScene,
 } from './scene-etat.ts'
+import { DOMAINES } from '../registry/domains.ts'
 
 /** Sélecteur défini au niveau du module — `useTrancheScene` exige une identité stable. */
 function tempsScene(etat: EtatScene): EtatScene['temps'] {
@@ -209,9 +211,9 @@ function useCompteurs(props: PanneauTempsProps): {
   const date = new Date(seconde * 1000)
 
   function va(champ: ChampInstant, valeur: number): void {
-    const choisi = dateAvec(depart.current ?? date, champ, valeur)
-    vaA(choisi.getTime())
-    props.surNuitIso(nuitDeLInstant(choisi))
+    const choisi = dateAvec(depart.current ?? date, champ, valeur).getTime()
+    vaA(choisi)
+    props.surNuitIso(nuitDeLInstant(new Date(borneInstant(choisi))))
   }
 
   /** Les littéraux de la locale restent du texte : seuls les nombres deviennent des compteurs. */
@@ -230,6 +232,9 @@ function useCompteurs(props: PanneauTempsProps): {
             ? {}
             : { largeur: LARGEURS_INSTANT[partie.type] })}
           pas={PAS_INSTANT}
+          {...(champ === 'annee'
+            ? { min: DOMAINES.annee_affichee.min, max: DOMAINES.annee_affichee.max }
+            : {})}
           sur={(valeur) => va(champ, valeur)}
           surDebut={() => {
             depart.current = date

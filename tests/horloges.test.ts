@@ -10,7 +10,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   avanceEphemerides,
-  avertissementEpoque,
   cielInstantane,
   epoqueAnnee,
   matriceHorizon,
@@ -78,12 +77,6 @@ describe('précession §3.1', () => {
   it('est nulle à l’époque de référence', () => {
     const point = versVecteur(45, 20)
     expect(separationDeg(applique(matricePrecession(2000), point), point)).toBeLessThan(1e-9)
-  })
-
-  it('signale que les figures perdent leur sens au-delà des mouvements propres ignorés', () => {
-    expect(avertissementEpoque(2100)).toBeNull()
-    const lointain = avertissementEpoque(12000)
-    expect(lointain).toMatch(/ne sont plus fidèles/)
   })
 
   it('date l’époque affichée en année fractionnaire', () => {
