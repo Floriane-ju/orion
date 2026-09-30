@@ -35,10 +35,24 @@ function vue(fovDeg: number, hauteurDeg: number): Vue {
   }
 }
 
-/** Enroulement cumulé sur tous les secteurs : le point est-il peint ? */
-function peint(polygones: readonly (readonly [number, number])[][], x: number, y: number): boolean {
+type Polygone = readonly (readonly [number, number])[]
+
+/** Boîte englobante de chaque polygone : hors d'elle, son enroulement est nul. */
+function avecBoites(polygones: readonly Polygone[]) {
+  return polygones.map((poly) => ({
+    poly,
+    xMin: Math.min(...poly.map(([x]) => x)),
+    xMax: Math.max(...poly.map(([x]) => x)),
+    yMin: Math.min(...poly.map(([, y]) => y)),
+    yMax: Math.max(...poly.map(([, y]) => y)),
+  }))
+}
+
+/** Enroulement cumulé sur tous les polygones : le point est-il peint ? */
+function peint(polygones: ReturnType<typeof avecBoites>, x: number, y: number): boolean {
   let enroulement = 0
-  for (const poly of polygones) {
+  for (const { poly, xMin, xMax, yMin, yMax } of polygones) {
+    if (x < xMin || x > xMax || y < yMin || y > yMax) continue
     for (let i = 0; i < poly.length; i++) {
       const [x1, y1] = poly[i]!
       const [x2, y2] = poly[(i + 1) % poly.length]!
@@ -55,7 +69,7 @@ function peint(polygones: readonly (readonly [number, number])[][], x: number, y
  */
 function ecart(v: Vue, dedans: TestSol): number {
   const proj = projecteur(v, ciel.matrice)
-  const polygones = polygonesRegion(frontiereEcran(proj, dedans))
+  const polygones = avecBoites(polygonesRegion(frontiereEcran(proj, dedans)))
   const vrai = (x: number, y: number): boolean => {
     const d = proj.inverse(x, y)
     return dedans(d.x, d.y, d.z)
@@ -104,6 +118,24 @@ describe('balayage en espace écran', () => {
     it(`peint un relief dentelé sans bande de ciel, champ ${fov}°, azimut ${azimut}°`, () => {
       const v = { ...vue(fov, hauteur), azimutDeg: azimut }
       expect(ecart(v, sousLeSol(DENTELE, ciel.matrice))).toBe(0)
+    })
+  }
+
+  // Visée haute sous un grand champ : l'horizon est un cercle, et sur ses flancs la crête est
+  // VERTICALE à l'écran. Un balayage en colonnes la longeait au lieu de la couper, et chaque
+  // dent y changeait le nombre de traversées : le bord se peignait en marches (T-0371). Le
+  // relief est crénelé sur tout le tour, d'un degré à l'autre, comme un relevé Terrain Tiles.
+  const CRENELE = masqueDepuisRelief(
+    Array.from({ length: NB_AZIMUTS }, (_, az) => 3 + 4 * Math.abs(Math.sin(az * 0.7)) + ((az * 7) % 11) / 4),
+  )
+  for (const [fov, azimut, hauteur] of [
+    [150, 25, 57],
+    [200, 25, 57],
+    [200, 25, 75],
+  ] as const) {
+    it(`peint une crête verticale à l’écran sans marches, champ ${fov}°, visée à ${hauteur}°`, () => {
+      const v = { ...vue(fov, hauteur), azimutDeg: azimut }
+      expect(ecart(v, sousLeSol(CRENELE, ciel.matrice))).toBe(0)
     })
   }
 

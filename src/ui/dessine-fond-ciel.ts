@@ -47,14 +47,14 @@ import { K } from '../registry/constants.ts'
 
 /**
  * Balayage allégé pour les paliers du halo : un bord de palier sépare deux teintes voisines,
- * là où la crête du sol sépare le ciel du noir. Un parallèle de hauteur est lisse : des colonnes
- * quatre fois plus espacées que celles du sol suffisent, et les paliers sont lissés ensuite.
+ * là où la crête du sol sépare le ciel du noir. Un parallèle de hauteur est lisse : des mailles
+ * trois fois plus larges que celles du sol suffisent, et les paliers sont lissés ensuite.
  * ponytail: si les paliers se voyaient, c'est le nombre de PALIERS qu'il faudrait monter
  * (PALIERS_HALO_HORIZON), pas la finesse de leur bord.
  */
 let paliersCaches: { cle: string; frontieres: readonly FrontiereEcran[] } | null = null
 
-const BALAYAGE_HALO: FinesseBalayage = { pasColonnePx: 12, pasEchantillonPx: 24, dichotomies: 4 }
+const BALAYAGE_HALO: FinesseBalayage = { pasMaillePx: 12, pasBlocPx: 48, dichotomies: 4 }
 
 /**
  * T-0098 — le ciel s'éclaircit vers l'horizon : la couche émissive y est vue sous une
