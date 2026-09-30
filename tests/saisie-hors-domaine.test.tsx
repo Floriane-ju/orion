@@ -124,13 +124,15 @@ describe('le lieu hors domaine ne fait plus tomber la chaîne', () => {
     expect(site.latitudeDeg).toBe(DOMAINES.latitude_deg.max)
   })
 
-  it('une levée que rien ne reconnaît s’affiche au lieu de démonter l’arbre', () => {
+  it('une levée que rien ne reconnaît se dit en français au lieu de démonter l’arbre', () => {
     // Le site NON borné, tel que la chaîne le construisait avant T-0208 : `astronomy-engine`
     // lève ici une chaîne de caractères. `refus()` la relançait depuis un rendu React.
     const brut = { latitudeDeg: 456, longitudeDeg: 5, altitudeM: 200 }
     const calcul = evalueCiel(brut, grandeursLieu(lieu({})))
     expect(calcul.ok).toBe(false)
-    expect(calcul.ok === false && calcul.erreur).toContain('456')
+    // T-0279 — la phrase anglaise de la bibliothèque part à la console, pas à l'écran.
+    expect(calcul.ok === false && calcul.erreur).toContain('Calcul impossible')
+    expect(calcul.ok === false && calcul.erreur).not.toMatch(/Latitude|range/)
   })
 
   it('un champ du lieu vidé n’est pas borné : le lieu cesse d’être chiffrable', () => {

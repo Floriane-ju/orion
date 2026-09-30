@@ -55,7 +55,7 @@ export function Glose({ cle, contexte }: GloseProps) {
       <p className="glossaire-contexte">
         {contexte === undefined
           ? 'Pas encore calculée : complétez le lieu ou le matériel.'
-          : `Ta valeur : ${contexte}`}
+          : `Votre valeur : ${contexte}`}
       </p>
       <p className="glossaire-consequence">{entree.consequence}</p>
     </div>

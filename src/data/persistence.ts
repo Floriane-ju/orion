@@ -315,10 +315,10 @@ export async function importeFichierUtilisateur(
   let donnees: unknown
   try {
     donnees = JSON.parse(texte)
-  } catch (erreur) {
-    throw new ExportInvalideError(
-      `le fichier n’est pas du JSON lisible (${erreur instanceof Error ? erreur.message : String(erreur)})`,
-    )
+  } catch {
+    // Le détail de `JSON.parse` est la phrase anglaise du navigateur : le texte de
+    // `ExportInvalideError` s'affiche tel quel, il ne la porte donc pas.
+    throw new ExportInvalideError('le fichier n’est pas du JSON lisible.')
   }
   return importeDonneesUtilisateur(donnees)
 }

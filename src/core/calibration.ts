@@ -71,9 +71,9 @@ export function planCalibration(entree: EntreeCalibration): PlanCalibration {
     }),
     dithering:
       entree.autoguidage === true
-        ? `Dithering de ${DITHERING_PX.min} à ${DITHERING_PX.max} px entre les poses, via ` +
+        ? `décalage de ${DITHERING_PX.min} à ${DITHERING_PX.max} px entre les poses, via ` +
           'l’autoguidage.'
-        : `Dithering de ${DITHERING_PX.min} à ${DITHERING_PX.max} px à chaque pose : la ` +
+        : `décalage de ${DITHERING_PX.min} à ${DITHERING_PX.max} px à chaque pose : la ` +
           'dérive naturelle de la monture suffit.',
     avertissements,
   }

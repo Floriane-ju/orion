@@ -6,25 +6,26 @@
  * DIRE. C'est ce qui a rendu une latitude de 456° catastrophique plutôt que gênante.
  *
  * T-0208 ferme ce chemin-là en bornant la saisie ; celui-ci ferme la classe. Une bibliothèque
- * qui lève, un moteur qui déborde, un champ ajouté demain sans borne : la cause s'affiche et
+ * qui lève, un moteur qui déborde, un champ ajouté demain sans borne : l'écran le dit et
  * la page tient.
  *
- * `String(erreur)` et pas `erreur.message` : `astronomy-engine` lève des CHAÎNES de caractères,
- * et c'est exactement le cas qu'une garde écrite pour les seules `Error` laisserait passer.
+ * T-0279 — la cause ne s'affiche plus : c'est une phrase anglaise de bibliothèque (`astronomy-engine`
+ * lève des CHAÎNES), illisible pour qui observe. Elle part à la console avec la pile du composant ;
+ * l'écran dit ce qui reste vrai et ce qu'on peut faire.
  */
 
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { Mention } from './Mention.tsx'
 
 interface EtatGarde {
-  readonly cause: string | null
+  readonly interrompu: boolean
 }
 
 export class GardeErreur extends Component<{ readonly children: ReactNode }, EtatGarde> {
-  override state: EtatGarde = { cause: null }
+  override state: EtatGarde = { interrompu: false }
 
-  static getDerivedStateFromError(erreur: unknown): EtatGarde {
-    return { cause: erreur instanceof Error ? erreur.message : String(erreur) }
+  static getDerivedStateFromError(): EtatGarde {
+    return { interrompu: true }
   }
 
   /**
@@ -37,8 +38,7 @@ export class GardeErreur extends Component<{ readonly children: ReactNode }, Eta
   }
 
   override render(): ReactNode {
-    const cause = this.state.cause
-    return cause === null ? this.props.children : <EcranInterrompu cause={cause} />
+    return this.state.interrompu ? <EcranInterrompu /> : this.props.children
   }
 }
 
@@ -47,11 +47,11 @@ export class GardeErreur extends Component<{ readonly children: ReactNode }, Eta
  * s'active pas au rendu serveur, et c'est le seul rendu dont ce projet dispose (`environment:
  * 'node'`). Séparé, il se vérifie ; fondu dans la classe, il ne serait jamais rendu par un test.
  */
-export function EcranInterrompu({ cause }: { readonly cause: string }) {
+export function EcranInterrompu() {
   return (
     <div className="garde-erreur" role="alert">
       <h1>Le calcul s’est interrompu</h1>
-      <Mention ton="erreur">{cause}</Mention>
+      <Mention ton="erreur">Une valeur saisie ou calculée sort de ce que l’application sait traiter.</Mention>
       <p className="etat">Vos données sont intactes. Rechargez la page.</p>
       <button type="button" onClick={() => window.location.reload()}>
         Recharger

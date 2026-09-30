@@ -18,6 +18,7 @@ import { REGISTRE } from '../registry/constants.ts'
 import { Mention } from './Mention.tsx'
 import type { ModeReseau } from '../data/degradation.ts'
 import { Accordeon } from './Accordeon.tsx'
+import { LIBELLE_EXPORT } from './app-donnees.ts'
 import {
   LIBELLE_DISPONIBILITE_HORS_LIGNE,
   LIBELLE_INTEGRITE_PAQUET,
@@ -78,7 +79,7 @@ export function Verification(props: VerificationProps) {
         </div>
         <div className="actions">
           <button type="button" onClick={props.surExport}>
-            Exporter mes données (JSON)
+            {LIBELLE_EXPORT}
           </button>
           <label className="bouton-fichier">
             Réimporter

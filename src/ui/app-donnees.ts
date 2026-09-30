@@ -25,6 +25,7 @@ import {
   enregistreProfilActif,
   enregistreSiteActif,
   exporteDonneesUtilisateur,
+  ExportInvalideError,
   importeFichierUtilisateur,
   litPointsMasqueActif,
   litProfilActif,
@@ -152,13 +153,13 @@ export function useSaisieRestauree(): SaisieRestauree | null {
         // Ce qu'on n'a pas su lire ne doit surtout pas être écrasé : la saisie repart des
         // valeurs par défaut, mais plus rien ne s'enregistre tant que la cause est là — la
         // sélection de cibles comprise, dont le magasin reste non hydraté, donc muet en base.
+        console.error('Orion — relecture des données enregistrées', erreur)
         setRestauree({
           lieu: null,
           materiel: null,
           erreur:
             'Données enregistrées illisibles : valeurs par défaut, et plus rien ne s’enregistre. ' +
-            'Exportez avant de continuer. ' +
-            (erreur instanceof Error ? erreur.message : 'Cause inconnue.'),
+            `Exportez-les avant de continuer, bouton ${BOUTON_EXPORT} ci-dessus.`,
         })
       }
     })()
@@ -166,6 +167,10 @@ export function useSaisieRestauree(): SaisieRestauree | null {
 
   return restauree
 }
+
+/** Le libellé du bouton d'export, que les messages d'échec citent pour dire où il se trouve. */
+export const LIBELLE_EXPORT = 'Exporter mes données (JSON)'
+const BOUTON_EXPORT = `« ${LIBELLE_EXPORT} »`
 
 export interface Persistance {
   readonly message: string | null
@@ -258,10 +263,11 @@ export function usePersistance(entree: EntreePersistance): Persistance {
         // détruirait, pas l'export qui viendra peut-être.
         await demandeLaPersistanceUneFois()
       } catch (erreur) {
+        console.error('Orion — enregistrement de la saisie', erreur)
         setAvis({
           texte:
-            'Enregistrement impossible : exportez pour ne rien perdre au rechargement. ' +
-            (erreur instanceof Error ? erreur.message : 'Cause inconnue.'),
+            'Enregistrement impossible : exportez vos données pour ne rien perdre au ' +
+            `rechargement, bouton ${BOUTON_EXPORT} ci-dessus.`,
           echec: true,
         })
       }
@@ -315,11 +321,14 @@ export function usePersistance(entree: EntreePersistance): Persistance {
         echec: false,
       })
     } catch (erreur) {
+      // Seul le refus d'`importeFichierUtilisateur` est rédigé pour l'écran ; toute autre
+      // levée vient du navigateur, en anglais, et part à la console.
+      if (!(erreur instanceof ExportInvalideError)) console.error('Orion — import', erreur)
       setAvis({
         texte:
-          erreur instanceof Error
+          erreur instanceof ExportInvalideError
             ? `Import abandonné, rien n’a été modifié. ${erreur.message}`
-            : 'Import abandonné, rien n’a été modifié : cause inconnue.',
+            : 'Import abandonné, rien n’a été modifié : le fichier n’a pas pu être lu.',
         echec: true,
       })
     }

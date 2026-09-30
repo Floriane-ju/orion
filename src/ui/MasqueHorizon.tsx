@@ -47,7 +47,7 @@ export function MasqueHorizonSaisie(props: MasqueHorizonProps) {
       surRefus(refusDe(azimutBorne, altitudeBornee))
     } catch (erreur) {
       surRefus(
-        erreur instanceof SaisieRefuseeError || erreur instanceof Error
+        erreur instanceof SaisieRefuseeError
           ? erreur.message
           : 'Saisie refusée : relevé inexploitable.',
       )

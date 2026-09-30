@@ -609,7 +609,7 @@ export function evalueMateriel(
  * T-0208 — et plus jamais relancée. `astronomy-engine` lève des CHAÎNES de caractères, pas des
  * `Error` : les quatre `instanceof` étaient faux, la levée repartait depuis un `useMemo` de
  * rendu, et React démontait l'arbre entier — l'écran devenait noir sans rien dire. Une cause
- * qu'on ne sait pas nommer s'affiche telle quelle ; elle ne fait pas tomber l'application.
+ * qu'on ne sait pas nommer ne fait pas tomber l'application.
  */
 function refus(erreur: unknown): { readonly ok: false; readonly erreur: string } {
   if (
@@ -620,7 +620,10 @@ function refus(erreur: unknown): { readonly ok: false; readonly erreur: string }
   ) {
     return { ok: false, erreur: erreur.message }
   }
-  return { ok: false, erreur: `Calcul impossible : ${String(erreur)}` }
+  // T-0279 — la levée inconnue est une phrase anglaise de bibliothèque : elle part à la
+  // console, l'écran dit ce qu'on peut faire.
+  console.error('Orion — calcul refusé', erreur)
+  return { ok: false, erreur: 'Calcul impossible pour cette saisie : vérifiez le lieu, la date et le matériel.' }
 }
 
 export function profilsDeCadre(calcul: Calcul, materiel: SaisieMateriel): readonly ProfilCadre[] {

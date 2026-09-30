@@ -17,7 +17,7 @@ import { libelleZpSource, type PointZeroSysteme } from '../data/equipment.ts'
 import { MANQUANTE } from './ChampsCible.tsx'
 import { Interrupteur } from './Interrupteur.tsx'
 import { TracedValue } from './TracedValue.tsx'
-import { Etiquette, Terme } from './Terme.tsx'
+import { Etiquette } from './Terme.tsx'
 import { heure } from './horaire.ts'
 import type { Conseils, Resultat } from './fiche-cible-calcul.ts'
 import type { CreneauFiche } from './fiche-cible-creneau.ts'
@@ -382,7 +382,6 @@ function PlanDeCalibration({ r }: { readonly r: Resultat }) {
   return (
     <section>
       <h2>Plan de calibration</h2>
-      <Terme cle="plan_calibration" />
       <table>
         <thead>
           <tr>
@@ -543,8 +542,8 @@ function ChaineDeCalcul({
             <code>{etape.expression}</code>
             {etape.constantes.length > 0 && (
               <span className="tracee-source">
-                {' '}
-                · constantes : {etape.constantes.map((c) => `${c.ref} = ${c.valeur}`).join(', ')}
+                <br />
+                constantes : {etape.constantes.map((c) => `${c.ref} = ${c.valeur}`).join(', ')}
               </span>
             )}
           </p>
