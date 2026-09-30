@@ -60,18 +60,19 @@ export interface MasqueHorizon {
  * L'hypothèse est annoncée — un site au pied des Alpes n'a pas d'horizon plat, et une
  * recommandation calculée sur cette base serait fausse la moitié du temps.
  */
-export function masquePlat(): MasqueHorizon {
+export function masquePlat(cause?: string): MasqueHorizon {
+  const invitation =
+    'Horizon supposé plat. Complétez-le si arbres, collines ou bâtiments cachent le ciel.'
   return Object.freeze({
     altitudesDeg: Object.freeze(Array.from({ length: NB_AZIMUTS }, () => 0)),
     estHypothese: true,
     flags: Object.freeze(['HYP' as const]),
-    note:
-      'Horizon supposé plat. Complétez-le si arbres, collines ou bâtiments cachent le ciel.',
+    note: cause === undefined ? invitation : `${cause} ${invitation}`,
   })
 }
 
 /** Masque construit sur un profil d'altitude réel : ce n'est plus une hypothèse (§4.1). */
-export function masqueDepuisRelief(altitudesDeg: readonly number[]): MasqueHorizon {
+export function masqueDepuisRelief(altitudesDeg: readonly number[], note?: string): MasqueHorizon {
   if (altitudesDeg.length !== NB_AZIMUTS) {
     throw new SaisieRefuseeError(
       'masque_horizon_deg',
@@ -86,6 +87,7 @@ export function masqueDepuisRelief(altitudesDeg: readonly number[]): MasqueHoriz
   return Object.freeze({
     altitudesDeg: Object.freeze([...altitudesDeg]),
     estHypothese: false,
+    ...(note === undefined ? {} : { note }),
   })
 }
 
@@ -134,6 +136,25 @@ export function masqueDepuisPoints(points: readonly PointMasque[]): MasqueHorizo
     estHypothese: false,
     note:
       `Relevé à la main : ${releves.length} direction${releves.length > 1 ? 's' : ''}.`,
+  })
+}
+
+/**
+ * §4.1 — « édition manuelle par-dessus » le relief : azimut par azimut, la plus haute des deux
+ * obstructions. Un arbre devant une crête ne l'abaisse pas, une crête derrière un toit ne
+ * dévoile rien : ce qui cache, c'est ce qui monte le plus haut dans la ligne de visée.
+ *
+ * Le repli plat [HYP] n'est pas une obstruction mesurée : composé à un masque réel, il s'efface.
+ */
+export function composeMasques(relief: MasqueHorizon, manuel: MasqueHorizon): MasqueHorizon {
+  if (manuel.estHypothese) return relief
+  if (relief.estHypothese) return manuel
+  return Object.freeze({
+    altitudesDeg: Object.freeze(
+      relief.altitudesDeg.map((a, azimut) => Math.max(a, manuel.altitudesDeg[azimut] ?? 0)),
+    ),
+    estHypothese: false,
+    note: [relief.note, manuel.note].filter((n) => n !== undefined).join(' '),
   })
 }
 

@@ -101,6 +101,13 @@ vi.mock('react', async (importeReel) => {
   }
 })
 
+// §4.1 — le relief est une ressource réseau, résolue hors du calcul : ce test porte sur ce que
+// la FRAPPE relance, et le crochet qui l'attend n'a ni état ni effet à simuler ici.
+vi.mock('../src/ui/relief-site.ts', async (importeReel) => ({
+  ...(await importeReel<typeof import('../src/ui/relief-site.ts')>()),
+  useReliefSite: () => null,
+}))
+
 vi.mock('../src/core/nuit.ts', async (importeReel) => {
   const reel = await importeReel<typeof import('../src/core/nuit.ts')>()
   return { ...reel, fenetreNocturne: vi.fn(reel.fenetreNocturne) }

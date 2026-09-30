@@ -9,6 +9,7 @@
 
 import { deleteDB, openDB, type DBSchema, type IDBPDatabase } from 'idb'
 import type { FormatCapteur } from '../registry/capteur-formats.ts'
+import { NB_AZIMUTS } from '../core/site.ts'
 
 export const NOM_BASE = 'orion'
 /**
@@ -271,6 +272,37 @@ export async function litCiblesChoisies(): Promise<readonly string[]> {
 
 export async function ecritCiblesChoisies(designations: readonly string[]): Promise<void> {
   await (await db()).put('reglages', [...designations], CLE_CIBLES_CHOISIES)
+}
+
+/**
+ * §4.1, §12.5 — le relief d'un site, mis en cache sous ses coordonnées au millième de degré
+ * (≈ 110 m, la précision que §4.1 juge suffisante) : un site voisin de moins de 55 m relit le
+ * profil calculé depuis le premier, écart sous la résolution des tuiles. Dans `reglages` pour la même raison que
+ * les cibles choisies : aucune montée de `VERSION_BASE` pour 360 nombres par site.
+ *
+ * Ce qui revient de la base est validé : une valeur qui n'est pas un profil complet rend null,
+ * et le relief se redemande au réseau.
+ */
+const MILLIEMES = 1000
+/**
+ * Version du calcul qui a produit le profil. Un profil caché survit aux mises à jour : sans
+ * elle, un calcul corrigé ne s'appliquerait jamais aux sites déjà visités. À monter à chaque
+ * changement de `profilRelief` ou de ses constantes.
+ */
+const VERSION_PROFIL = 2
+
+export function cleRelief(latDeg: number, lonDeg: number): string {
+  return `relief:v${VERSION_PROFIL}:${Math.round(latDeg * MILLIEMES)},${Math.round(lonDeg * MILLIEMES)}`
+}
+
+export async function litRelief(cle: string): Promise<readonly number[] | null> {
+  const brut = await (await db()).get('reglages', cle)
+  if (!Array.isArray(brut) || brut.length !== NB_AZIMUTS) return null
+  return brut.every((v) => typeof v === 'number' && Number.isFinite(v)) ? brut : null
+}
+
+export async function ecritRelief(cle: string, altitudesDeg: readonly number[]): Promise<void> {
+  await (await db()).put('reglages', [...altitudesDeg], cle)
 }
 
 export async function litImage(designation: string): Promise<ImageStockee | null> {

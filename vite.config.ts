@@ -2,10 +2,10 @@ import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import type { Plugin } from 'vite'
-import { ORIGINES_IMAGERIE } from './src/registry/imagerie.ts'
+import { ORIGINES_TIERS } from './src/registry/origines.ts'
 
-// §13.1, §13.3 — l'application n'a pas de serveur applicatif et ne transmet ni profil, ni site,
-// ni plan de séance. `connect-src` fait tenir cette promesse par le navigateur à l'exécution :
+// §13.1, §13.3 — l'application n'a pas de serveur applicatif et ne transmet ni profil ni plan
+// de séance ; du site, seule sa zone part, vers les tuiles de relief (voir plus bas). `connect-src` fait tenir cette promesse par le navigateur à l'exécution :
 // une dépendance qui appellerait un tiers demain est refusée sans qu'une revue de code ait à la
 // rattraper.
 //
@@ -14,6 +14,9 @@ import { ORIGINES_IMAGERIE } from './src/registry/imagerie.ts'
 // sert de garantie de confidentialité en §13.1. Ce qui lui est transmis est un couple de
 // coordonnées — jamais un profil, un site ou un plan de séance, donc le critère de §13.3 tient
 // toujours.
+//
+// §4.1 — le relief du terrain joint le jeu Terrain Tiles : la zone du site part avec le numéro
+// des tuiles, une fois par site (T-0359). §13.1 l'énumère ; la liste est `ORIGINES_TIERS`.
 //
 // Une seule directive s'ouvre. Les vignettes sont téléchargées, rangées en IndexedDB, puis
 // affichées depuis un `blob:` : `img-src` n'a aucun hôte tiers à nommer, et il n'y a qu'une
@@ -38,7 +41,7 @@ const CSP_COMMUNE = [
 
 /** `connect-src`, dérivé de la liste d'origines : une seule source de vérité (§13.1). */
 function connectSrc(...supplements: readonly string[]): string {
-  return ['connect-src', "'self'", ...supplements, ...ORIGINES_IMAGERIE.map((o) => o.origine)].join(
+  return ['connect-src', "'self'", ...supplements, ...ORIGINES_TIERS.map((o) => o.origine)].join(
     ' ',
   )
 }

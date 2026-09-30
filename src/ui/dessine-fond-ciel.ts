@@ -34,19 +34,27 @@ import {
   sbDepuisNanolamberts,
 } from '../core/fond-ciel-rendu.ts'
 import { fondRealiste, fondRealisteSoleil } from './couleurs.ts'
-import { frontiereEcran, remplitRegion, type FinesseBalayage } from './balayage-ecran.ts'
+import {
+  frontiereEcran,
+  remplitRegion,
+  type FinesseBalayage,
+  type FrontiereEcran,
+} from './balayage-ecran.ts'
+import { cleVue } from './dessine-sol.ts'
 import { peintLisse } from './lissage.ts'
 import { DEG_PAR_HEURE } from '../core/unites.ts'
 import { K } from '../registry/constants.ts'
 
 /**
  * Balayage allégé pour les paliers du halo : un bord de palier sépare deux teintes voisines,
- * là où la crête du sol sépare le ciel du noir. À 96 rayons et 9 dichotomies, l'écart au bord
- * exact reste sous le pixel, pour un quart du coût du balayage du sol.
+ * là où la crête du sol sépare le ciel du noir. Un parallèle de hauteur est lisse : des colonnes
+ * quatre fois plus espacées que celles du sol suffisent, et les paliers sont lissés ensuite.
  * ponytail: si les paliers se voyaient, c'est le nombre de PALIERS qu'il faudrait monter
  * (PALIERS_HALO_HORIZON), pas la finesse de leur bord.
  */
-const BALAYAGE_HALO: FinesseBalayage = { rayons: 96, dichotomies: 9 }
+let paliersCaches: { cle: string; frontieres: readonly FrontiereEcran[] } | null = null
+
+const BALAYAGE_HALO: FinesseBalayage = { pasColonnePx: 12, pasEchantillonPx: 24, dichotomies: 4 }
 
 /**
  * T-0098 — le ciel s'éclaircit vers l'horizon : la couche émissive y est vue sous une
@@ -67,13 +75,24 @@ export function dessineHaloHorizon(
   sbCiel: number,
 ): void {
   const bornes = bornesPaliersHalo()
+  // Même raison que le sol (`cleVue`) : les paliers sont des hauteurs, fixes dans le repère
+  // du site ; seule la visée les déplace à l'écran.
+  const cle = cleVue(projecteur)
+  if (paliersCaches === null || paliersCaches.cle !== cle) {
+    paliersCaches = {
+      cle,
+      frontieres: bornes.map((borne) =>
+        frontiereEcran(projecteur, sousLaHauteur(borne, matriceCiel), BALAYAGE_HALO),
+      ),
+    }
+  }
+  const { frontieres } = paliersCaches
   const bSite = nanolamberts(sbCiel)
   const paliers = (cible: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D) => {
     // Du plus haut palier au plus bas : les régions s'emboîtent, la dernière peinte l'emporte.
     for (let i = bornes.length - 2; i >= 0; i--) {
       const sb = sbDepuisNanolamberts(bSite * facteurHaloHorizon(hauteurRepresentative(i)))
-      const frontiere = frontiereEcran(projecteur, sousLaHauteur(bornes[i]!, matriceCiel), BALAYAGE_HALO)
-      remplitRegion(cible, frontiere, fondRealiste(sb, sbCiel))
+      remplitRegion(cible, frontieres[i]!, fondRealiste(sb, sbCiel))
     }
   }
   const { largeurPx, hauteurPx, fovDeg } = projecteur.vue

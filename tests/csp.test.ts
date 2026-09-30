@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CSP_DEVELOPPEMENT, CSP_PRODUCTION, politiqueDeSecurite } from '../vite.config.ts'
-import { ORIGINES_IMAGERIE } from '../src/registry/imagerie.ts'
+import { ORIGINES_TIERS } from '../src/registry/origines.ts'
 
 /** Les valeurs d'une directive, la directive elle-même exclue. */
 function directive(politique: string, nom: string): readonly string[] {
@@ -23,7 +23,7 @@ function metaInjectee(serveur: unknown): Record<string, string | boolean | undef
 }
 
 /**
- * §6.4, §13.1 — les origines de l'imagerie d'objet.
+ * §4.1, §6.4, §13.1 — les origines tierces : imagerie d'objet et relief du terrain.
  *
  * La liste du registre est la garantie de confidentialité de §13.1 : elle énumère les tiers
  * joints et ce qui leur est transmis. Si la politique et la liste divergent, l'une des deux
@@ -31,17 +31,17 @@ function metaInjectee(serveur: unknown): Record<string, string | boolean | undef
  * origine est joignable sans avoir été déclarée. Ces tests refusent la divergence dans les
  * deux sens.
  */
-describe('origines de l’imagerie d’objet (§6.4, §13.1)', () => {
+describe('origines tierces (§4.1, §6.4, §13.1)', () => {
   it('ouvre connect-src à exactement les origines du registre, et à rien d’autre', () => {
     const autorisees = directive(CSP_PRODUCTION, 'connect-src')
-    const declarees = ORIGINES_IMAGERIE.map((o) => o.origine)
+    const declarees = ORIGINES_TIERS.map((o) => o.origine)
     expect([...autorisees].sort()).toStrictEqual([...declarees, "'self'"].sort())
   })
 
   it('refuse une origine déclarée au registre mais absente de la politique', () => {
     // Le sens qui compte : une origine ajoutée au registre sans l'être ici serait une
     // requête que le code émet et que la politique bloque, sans que rien ne le dise.
-    for (const { origine } of ORIGINES_IMAGERIE) {
+    for (const { origine } of ORIGINES_TIERS) {
       expect(CSP_PRODUCTION, origine).toContain(origine)
       expect(CSP_DEVELOPPEMENT, origine).toContain(origine)
     }
@@ -50,13 +50,13 @@ describe('origines de l’imagerie d’objet (§6.4, §13.1)', () => {
   it('n’ouvre aucun hôte tiers à img-src : les vignettes passent par blob:', () => {
     const images = directive(CSP_PRODUCTION, 'img-src')
     expect(images).toStrictEqual(["'self'", 'blob:'])
-    for (const { origine } of ORIGINES_IMAGERIE) {
+    for (const { origine } of ORIGINES_TIERS) {
       expect(images, origine).not.toContain(origine)
     }
   })
 
   it('n’autorise que des origines chiffrées et sans joker', () => {
-    for (const { origine } of ORIGINES_IMAGERIE) {
+    for (const { origine } of ORIGINES_TIERS) {
       expect(origine, origine).toMatch(/^https:\/\/[a-z0-9.-]+$/)
     }
   })
@@ -64,10 +64,10 @@ describe('origines de l’imagerie d’objet (§6.4, §13.1)', () => {
   it('nomme, pour chaque origine, ce qui lui est transmis', () => {
     // Sans cette phrase, §13.1 énumère des hôtes sans dire ce qui en sort : la liste ne
     // vaudrait plus comme garantie.
-    for (const { origine, transmis } of ORIGINES_IMAGERIE) {
+    for (const { origine, transmis } of ORIGINES_TIERS) {
       expect(transmis, origine).not.toBe('')
     }
-    expect(Object.isFrozen(ORIGINES_IMAGERIE)).toBe(true)
+    expect(Object.isFrozen(ORIGINES_TIERS)).toBe(true)
   })
 })
 

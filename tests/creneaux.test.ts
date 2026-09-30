@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest'
 import { creneauCible } from '../src/core/creneaux.ts'
 import { fenetreNocturne } from '../src/core/nuit.ts'
 import {
+  composeMasques,
   masqueDepuisPoints,
   masqueDepuisRelief,
   masquePlat,
@@ -73,6 +74,34 @@ describe('hauteur et créneau §8.2', () => {
     expect(creneau.causeExclusion).toBe('RELIEF')
     expect(creneau.message).toMatch(/relief/)
     expect(creneau.message).toMatch(/Cachée par le relief/)
+  })
+
+  it('§8.1 — un relevé à 22° posé sur un relief plus bas garde la cause RELIEF (T-0359)', () => {
+    const culminationVoulueDeg = 19
+    const decDeg = SITE_REFERENCE.latitudeDeg - (90 - culminationVoulueDeg)
+    // Le terrain monte à 10° au sud ; le relevé ajoute une crête à 22° par-dessus.
+    const terrain = masqueDepuisRelief(
+      Array.from({ length: NB_AZIMUTS }, (_, azimut) => (azimut >= 150 && azimut <= 210 ? 10 : 0)),
+    )
+    const releve = masqueDepuisPoints([
+      { azimutDeg: 149, altitudeDeg: 0 },
+      { azimutDeg: 150, altitudeDeg: 22 },
+      { azimutDeg: 210, altitudeDeg: 22 },
+      { azimutDeg: 211, altitudeDeg: 0 },
+    ])
+    const masque = composeMasques(terrain, releve)
+    expect(obstructionDeg(masque, 165)).toBe(22)
+
+    const creneau = creneauCible({
+      site: SITE_REFERENCE,
+      adH: 22,
+      decDeg,
+      fenetre: FENETRE,
+      masque,
+      seuilHauteurDeg: 15,
+      typeMonture: 'TRACKER',
+    })
+    expect(creneau.causeExclusion).toBe('RELIEF')
   })
 
   it('§8.1 — un relief saisi à 22° dans l’azimut 165 écarte une cible culminant à 19°', () => {

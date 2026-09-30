@@ -4368,15 +4368,20 @@ CONSERVÉ  métriques produit anonymes et agrégées, sans lien avec une prédic
 
 ```
 TIERS CONTACTÉS — et ce qui leur est transmis
-  L'application n'a pas de serveur, mais elle n'est plus sans trafic. Deux services
-  publics sont interrogés, uniquement pour l'image d'objet de §6.4 :
+  L'application n'a pas de serveur, mais elle n'est plus sans trafic. Des services
+  publics sont interrogés, pour l'image d'objet de §6.4 et le relief de §4.1 :
 
   wikipedia.org, wikimedia.org    la désignation de la cible consultée
   service HiPS du CDS, Strasbourg les coordonnées de la cible consultée
+  Terrain Tiles, AWS Open Data    la ZONE du site : les numéros des tuiles de relief
+                                  couvrant 30 km autour (maille ≈ 25–40 km), une fois
+                                  par site — le profil est ensuite servi par le cache
 
-  Dans les deux cas s'ajoute ce qu'une requête HTTP transmet toujours : l'adresse IP du
-  navigateur. Ne sont transmis ni profil matériel, ni site, ni masque d'horizon, ni plan
-  de séance, ni saisie — le critère de §13.3 reste vrai.
+  Dans tous les cas s'ajoute ce qu'une requête HTTP transmet toujours : l'adresse IP du
+  navigateur. Ne sont transmis ni profil matériel, ni coordonnées exactes du site, ni
+  masque d'horizon, ni plan de séance, ni saisie. La zone du site, elle, part : c'est le
+  prix du relief de §4.1, arbitré le 30 septembre 2026 (T-0359). Le critère de §13.3 se
+  lit désormais avec cette exception nommée.
   Mais il cesse d'être vrai PAR ABSENCE DE TRAFIC, et c'est la raison de ce bloc : la
   garantie ne se lit plus dans l'architecture, elle se lit dans cette liste. Toute
   origine ajoutée à cette liste est un amendement du présent document, pas un choix
@@ -4412,7 +4417,8 @@ Et aucune requête de télémétrie n'est émise
 
 Étant donné une session de travail complète
 Quand j'inspecte le trafic réseau
-Alors aucune donnée de profil, de site ou de plan de session n'est transmise
+Alors aucune donnée de profil ni de plan de session n'est transmise
+Et du site, seule la zone des tuiles de relief l'est (§13.1)
 
 Étant donné le jeu de cas de référence des formules optiques
 Quand la suite de tests s'exécute
@@ -4421,7 +4427,8 @@ Alors chaque valeur calculée correspond à la valeur attendue dans sa toléranc
 Étant donné une session de travail complète
 Quand j'inspecte le trafic réseau
 Alors les seules origines contactées sont celles énumérées en §13.1
-Et chaque requête ne porte qu'une désignation de cible ou un couple de coordonnées
+Et chaque requête ne porte qu'une désignation de cible, un couple de coordonnées
+    de cible ou le numéro d'une tuile de relief
 ```
 
 ---

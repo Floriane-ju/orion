@@ -9,61 +9,57 @@
  * l'antipode tombe entre deux mailles pour que le défaut réapparaisse, à certaines hauteurs de
  * visée seulement.
  *
- * Ici, la scène est balayée en rayons partant du centre du canevas. Sur chaque rayon, la
- * frontière est trouvée par dichotomie sur `Projecteur.inverse` et un prédicat de direction :
- * la question posée est « ce pixel est-il dedans ? », qui n'a ni singularité ni approximation.
- * Un rayon traverse la frontière au plus une fois — un parallèle de hauteur ne coupe un grand
- * cercle qu'une fois par demi-tour — et la région est donc soit le dedans de la courbe
- * obtenue, soit son dehors, selon ce qu'est le centre du canevas.
+ * Ici, la scène est balayée en colonnes verticales de quelques pixels. Sur chaque colonne, chaque
+ * changement de côté est repéré par échantillonnage puis affiné par dichotomie sur
+ * `Projecteur.inverse` et un prédicat de direction : la question posée est « ce pixel est-il
+ * dedans ? », qui n'a ni singularité ni approximation. Une colonne peut traverser la frontière
+ * plusieurs fois — sous un champ de 300°, le sol revient au bord de l'image derrière
+ * l'observateur — et chaque intervalle dedans se peint.
  *
- * Échantillonner en angle ÉCRAN et non en azimut est ce qui rend le bord exact : le polygone
- * est inscrit sur la courbe telle qu'elle se voit, et son écart n'est plus la corde d'un grand
- * cercle mais celle de la courbe elle-même sur un degré d'écran — de l'ordre du centième de
- * pixel.
+ * T-0359 — pourquoi des colonnes et non des rayons partant du centre. Un rayon qui longe une
+ * crête dentelée la traverse un nombre de fois qui change d'un rayon au suivant, et relier
+ * leurs traversées dessinait des bandes de ciel en travers du relief. Une crête est à peu près
+ * horizontale à l'écran : une colonne la coupe franchement, et deux colonnes voisines ne sont
+ * qu'à quelques pixels l'une de l'autre, là où deux rayons s'écartaient d'un degré — vingt
+ * pixels au bord du canevas.
  */
 
 import type { Projecteur } from '../core/projection.ts'
 import type { TestSol } from '../core/sol.ts'
-import { TOUR_RAD } from '../core/unites.ts'
-
-/** La portée du balayage dépasse le coin du canevas : la région ne doit pas s'arrêter dans l'image. */
-const MARGE_RAYON = 1.02
 
 export interface FinesseBalayage {
-  /** Rayons du balayage. À 240, le polygone s'écarte de la courbe de moins d'un centième de pixel. */
-  readonly rayons: number
-  /** Dichotomies par rayon : douze passes placent la frontière au tiers de pixel près. */
+  /** Écart entre deux colonnes, en pixels : c'est la corde du bord sur une pente. */
+  readonly pasColonnePx: number
+  /**
+   * Pas d'échantillonnage le long d'une colonne, en pixels. Deux traversées plus proches se
+   * confondent : c'est une pointe de relief plus fine que ce pas, perdue sans dommage.
+   */
+  readonly pasEchantillonPx: number
+  /** Dichotomies par traversée : de quoi placer la frontière sous le demi-pixel. */
   readonly dichotomies: number
 }
 
 /** Finesse du bord du sol : c'est une crête soulignée d'un trait, elle se voit au pixel près. */
-export const BALAYAGE_FIN: FinesseBalayage = Object.freeze({ rayons: 240, dichotomies: 12 })
+export const BALAYAGE_FIN: FinesseBalayage = Object.freeze({
+  pasColonnePx: 4,
+  pasEchantillonPx: 16,
+  dichotomies: 5,
+})
 
 export interface FrontiereEcran {
-  readonly centreX: number
-  readonly centreY: number
   readonly largeur: number
   readonly hauteur: number
-  /** Rayon de la frontière sur chaque rayon du balayage, en pixels depuis le centre. */
-  readonly bords: Float64Array
-  /** Rayons où une frontière existe : ailleurs, le polygone se referme hors du canevas. */
-  readonly trouvees: Uint8Array
-  /** Le centre du canevas est-il dans la région ? Il décide du sens du remplissage. */
-  readonly centreDedans: boolean
-  readonly rayons: number
+  /** Abscisse de chaque colonne ; la dernière touche le bord droit. */
+  readonly colonnes: Float64Array
+  /** Ordonnées des traversées de chaque colonne, croissantes. */
+  readonly traversees: readonly Float64Array[]
+  /** Le haut de chaque colonne est-il dans la région ? Il décide du côté du premier intervalle. */
+  readonly hautDedans: Uint8Array
 }
 
-const angleDe = (f: FrontiereEcran, i: number): number => (i * TOUR_RAD) / f.rayons
+type Point = readonly [number, number]
 
-function xDe(f: FrontiereEcran, i: number): number {
-  return f.centreX + f.bords[i]! * Math.cos(angleDe(f, i))
-}
-
-function yDe(f: FrontiereEcran, i: number): number {
-  return f.centreY + f.bords[i]! * Math.sin(angleDe(f, i))
-}
-
-/** Cherche la frontière de la région définie par `dedans`, rayon par rayon. */
+/** Cherche les traversées de la région définie par `dedans`, colonne par colonne. */
 export function frontiereEcran(
   projecteur: Projecteur,
   dedans: TestSol,
@@ -71,43 +67,88 @@ export function frontiereEcran(
 ): FrontiereEcran {
   const largeur = projecteur.vue.largeurPx
   const hauteur = projecteur.vue.hauteurPx
-  const centreX = largeur / 2
-  const centreY = hauteur / 2
-  const rayonMax = (Math.hypot(largeur, hauteur) / 2) * MARGE_RAYON
+  const { pasColonnePx, pasEchantillonPx, dichotomies } = finesse
+  const nbColonnes = Math.ceil(largeur / pasColonnePx) + 1
+  const nbEchantillons = Math.max(1, Math.ceil(hauteur / pasEchantillonPx))
 
-  const estDedans = (xPx: number, yPx: number): boolean => {
-    const v = projecteur.inverse(xPx, yPx)
-    return dedans(v.x, v.y, v.z)
+  const colonnes = new Float64Array(nbColonnes)
+  const hautDedans = new Uint8Array(nbColonnes)
+  const traversees: Float64Array[] = []
+  for (let c = 0; c < nbColonnes; c++) {
+    const x = Math.min(c * pasColonnePx, largeur)
+    colonnes[c] = x
+    const estDedans = (y: number): boolean => {
+      const v = projecteur.inverse(x, y)
+      return dedans(v.x, v.y, v.z)
+    }
+    const trouvees: number[] = []
+    let avant = 0
+    let coteAvant = estDedans(0)
+    hautDedans[c] = coteAvant ? 1 : 0
+    for (let pas = 1; pas <= nbEchantillons; pas++) {
+      const apres = (hauteur * pas) / nbEchantillons
+      const coteApres = estDedans(apres)
+      if (coteApres !== coteAvant) {
+        let bas = avant
+        let haut = apres
+        for (let d = 0; d < dichotomies; d++) {
+          const milieu = (bas + haut) / 2
+          if (estDedans(milieu) === coteAvant) bas = milieu
+          else haut = milieu
+        }
+        trouvees.push((bas + haut) / 2)
+      }
+      avant = apres
+      coteAvant = coteApres
+    }
+    traversees.push(Float64Array.from(trouvees))
   }
-  const centreDedans = estDedans(centreX, centreY)
 
-  const { rayons, dichotomies } = finesse
-  const bords = new Float64Array(rayons + 1)
-  const trouvees = new Uint8Array(rayons + 1)
-  for (let i = 0; i <= rayons; i++) {
-    const angle = (i * TOUR_RAD) / rayons
-    const dx = Math.cos(angle)
-    const dy = Math.sin(angle)
-    if (estDedans(centreX + rayonMax * dx, centreY + rayonMax * dy) === centreDedans) {
-      // Le rayon est tout entier du même côté : le polygone se referme hors du canevas.
-      bords[i] = rayonMax
+  return { largeur, hauteur, colonnes, traversees, hautDedans }
+}
+
+/** Les intervalles de la colonne `c` qui sont dans la région, de haut en bas. */
+function intervalles(f: FrontiereEcran, c: number): readonly (readonly [number, number])[] {
+  const resultat: [number, number][] = []
+  let dedans = f.hautDedans[c] === 1
+  let debut = 0
+  for (const y of f.traversees[c] ?? []) {
+    if (dedans) resultat.push([debut, y])
+    else debut = y
+    dedans = !dedans
+  }
+  if (dedans) resultat.push([debut, f.hauteur])
+  return resultat
+}
+
+/**
+ * La région en polygones, bande par bande entre deux colonnes voisines. Aux mêmes nombres
+ * d'intervalles, elles se relient intervalle par intervalle — le bord suit la pente ; sinon
+ * chacune peint sa moitié de bande à ses propres ordonnées — la frontière y change de
+ * topologie, sur un pas de colonne.
+ *
+ * Les bandes ne se recouvrent pas, elles se touchent par leurs bords : peintes d'un seul
+ * `fill`, elles ne laissent aucune couture.
+ */
+export function polygonesRegion(f: FrontiereEcran): Point[][] {
+  const polygones: Point[][] = []
+  for (let c = 0; c + 1 < f.colonnes.length; c++) {
+    const xa = f.colonnes[c]!
+    const xb = f.colonnes[c + 1]!
+    const a = intervalles(f, c)
+    const b = intervalles(f, c + 1)
+    if (a.length === b.length) {
+      a.forEach(([hautA, basA], k) => {
+        const [hautB, basB] = b[k]!
+        polygones.push([[xa, hautA], [xb, hautB], [xb, basB], [xa, basA]])
+      })
       continue
     }
-    let commeLeCentre = 0
-    let autre = rayonMax
-    for (let pas = 0; pas < dichotomies; pas++) {
-      const milieu = (commeLeCentre + autre) / 2
-      if (estDedans(centreX + milieu * dx, centreY + milieu * dy) === centreDedans) {
-        commeLeCentre = milieu
-      } else {
-        autre = milieu
-      }
-    }
-    bords[i] = (commeLeCentre + autre) / 2
-    trouvees[i] = 1
+    const xm = (xa + xb) / 2
+    for (const [haut, bas] of a) polygones.push([[xa, haut], [xm, haut], [xm, bas], [xa, bas]])
+    for (const [haut, bas] of b) polygones.push([[xm, haut], [xb, haut], [xb, bas], [xm, bas]])
   }
-
-  return { centreX, centreY, largeur, hauteur, bords, trouvees, centreDedans, rayons }
+  return polygones
 }
 
 /** Peint la région, opaque. */
@@ -118,25 +159,21 @@ export function remplitRegion(
 ): void {
   ctx.fillStyle = couleur
   ctx.beginPath()
-  if (!f.centreDedans) {
-    // La région est le DEHORS de la courbe : le canevas entier, percé de cette courbe. Le trou
-    // est découpé à la règle `evenodd`, qui ne dépend pas du sens de parcours des deux
-    // contours — avec `nonzero`, un sens inversé remplirait tout ou rien selon la visée.
-    ctx.moveTo(0, 0)
-    ctx.lineTo(f.largeur, 0)
-    ctx.lineTo(f.largeur, f.hauteur)
-    ctx.lineTo(0, f.hauteur)
+  for (const polygone of polygonesRegion(f)) {
+    const [premier, ...suite] = polygone
+    if (premier === undefined) continue
+    ctx.moveTo(premier[0], premier[1])
+    for (const [x, y] of suite) ctx.lineTo(x, y)
     ctx.closePath()
   }
-  ctx.moveTo(xDe(f, 0), yDe(f, 0))
-  for (let i = 1; i <= f.rayons; i++) ctx.lineTo(xDe(f, i), yDe(f, i))
-  ctx.closePath()
   ctx.fill('evenodd')
 }
 
 /**
- * Souligne la frontière du remplissage. Le trait tracé est le bord LUI-MÊME, et non une
- * seconde polyligne calculée à part : il ne peut donc pas se décoller de ce qu'il souligne.
+ * Souligne la frontière du remplissage. Le trait relie les traversées de même rang de deux
+ * colonnes voisines : il ne peut pas se décoller de ce qu'il souligne. Là où le nombre de
+ * traversées change, il s'interrompt sur un pas de colonne plutôt que de relier deux bords
+ * étrangers.
  */
 export function traceFrontiere(
   ctx: CanvasRenderingContext2D,
@@ -146,15 +183,14 @@ export function traceFrontiere(
   ctx.strokeStyle = couleur
   ctx.lineWidth = 1
   ctx.beginPath()
-  let enchaine = false
-  for (let i = 0; i <= f.rayons; i++) {
-    if (f.trouvees[i] === 0) {
-      enchaine = false
-      continue
-    }
-    if (enchaine) ctx.lineTo(xDe(f, i), yDe(f, i))
-    else ctx.moveTo(xDe(f, i), yDe(f, i))
-    enchaine = true
+  for (let c = 0; c + 1 < f.colonnes.length; c++) {
+    const a = f.traversees[c]!
+    const b = f.traversees[c + 1]!
+    if (a.length !== b.length) continue
+    a.forEach((y, k) => {
+      ctx.moveTo(f.colonnes[c]!, y)
+      ctx.lineTo(f.colonnes[c + 1]!, b[k]!)
+    })
   }
   ctx.stroke()
 }

@@ -1,0 +1,133 @@
+/**
+ * §4.1, §12.5 — le relief d'un site : tuiles, cache par site, replis (T-0359).
+ *
+ * Le réseau est remplacé par un chargeur de tuiles synthétiques : ce qui est vérifié, c'est la
+ * conduite face à chaque issue — tuile manquante, service qui lève, hors réseau, cache — et
+ * jamais la disponibilité d'un service tiers.
+ */
+
+import 'fake-indexeddb/auto'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { cleRelief, db, ecritRelief } from '../src/data/db.ts'
+import {
+  altitudeTerrarium,
+  pixelMonde,
+  resoudRelief,
+  tuilesCouvrantes,
+  type ChargeTuile,
+} from '../src/data/relief.ts'
+import { NB_AZIMUTS } from '../src/core/site.ts'
+import { R } from '../src/registry/relief.ts'
+import { DOMAINES } from '../src/registry/domains.ts'
+import { SITE_REFERENCE } from './fixtures.ts'
+
+const { latitudeDeg: LAT, longitudeDeg: LON } = SITE_REFERENCE
+const cote = R('COTE_TUILE_PX')
+
+/** Une tuile de plaine à l'altitude donnée. */
+const plaine =
+  (altitude: number): ChargeTuile =>
+  async () =>
+    new Float32Array(cote * cote).fill(altitude)
+
+beforeEach(async () => {
+  const base = await db()
+  for (const cle of await base.getAllKeys('reglages')) {
+    if (String(cle).startsWith('relief:')) await base.delete('reglages', cle)
+  }
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+describe('format Terrarium et tuiles', () => {
+  it('décode l’altitude depuis les trois canaux', () => {
+    expect(altitudeTerrarium(R('DECALAGE_TERRARIUM_M') / cote, 0, 0)).toBe(0)
+    expect(altitudeTerrarium(R('DECALAGE_TERRARIUM_M') / cote, 1, cote / 2)).toBe(1.5)
+  })
+
+  it('place le site dans une des tuiles couvrantes, sous le plafond', () => {
+    const tuiles = tuilesCouvrantes(LAT, LON)!
+    expect(tuiles.length).toBeGreaterThan(1)
+    expect(tuiles.length).toBeLessThanOrEqual(R('TUILES_RELIEF_MAX'))
+    const p = pixelMonde(LAT, LON, R('ZOOM_TUILE_RELIEF'))
+    const ici = { x: Math.floor(p.x / cote), y: Math.floor(p.y / cote) }
+    expect(tuiles).toContainEqual(ici)
+  })
+
+  it('renonce près du pôle, où la maille écrasée ferait exploser le téléchargement', () => {
+    expect(tuilesCouvrantes(89.5, LON)).toBeNull()
+  })
+})
+
+describe('résolution du relief (§4.1, §12.5)', () => {
+  it('convertit les tuiles en 360 élévations et les range en cache', async () => {
+    const relief = await resoudRelief(LAT, LON, plaine(800))
+    expect(relief.etat).toBe('RELIEF')
+    if (relief.etat !== 'RELIEF') return
+    expect(relief.altitudesDeg).toHaveLength(NB_AZIMUTS)
+    expect(await (await db()).get('reglages', cleRelief(LAT, LON))).toEqual(relief.altitudesDeg)
+  })
+
+  it('lit les tuiles nord en haut : un terrain qui monte vers le nord cache le nord', async () => {
+    // L'altitude croît vers le haut de chaque tuile, et de tuile en tuile vers le nord.
+    const penteNord: ChargeTuile = async (_z, _x, y) =>
+      Float32Array.from({ length: cote * cote }, (_, i) => -(y * cote + Math.floor(i / cote)) * 10)
+    const relief = await resoudRelief(LAT, LON, penteNord)
+    expect(relief.etat).toBe('RELIEF')
+    if (relief.etat !== 'RELIEF') return
+    expect(relief.altitudesDeg[0]).toBeGreaterThan(0)
+    expect(relief.altitudesDeg[180]).toBe(0)
+  })
+
+  it('hors réseau, retrouve le relief d’un site déjà visité', async () => {
+    const profil = Array.from({ length: NB_AZIMUTS }, (_, az) => az % 7)
+    await ecritRelief(cleRelief(LAT, LON), profil)
+    vi.stubGlobal('navigator', { onLine: false })
+    const chargeur = vi.fn(plaine(0))
+    const relief = await resoudRelief(LAT, LON, chargeur)
+    expect(relief).toEqual({ etat: 'RELIEF', altitudesDeg: profil })
+    expect(chargeur).not.toHaveBeenCalled()
+  })
+
+  it('hors réseau, un site inconnu rend une cause sans rien demander', async () => {
+    vi.stubGlobal('navigator', { onLine: false })
+    const chargeur = vi.fn(plaine(0))
+    const relief = await resoudRelief(LAT, LON, chargeur)
+    expect(relief.etat).toBe('INDISPONIBLE')
+    expect(chargeur).not.toHaveBeenCalled()
+  })
+
+  it('une tuile manquante fait tomber tout le profil, sans le ranger', async () => {
+    let appels = 0
+    const troue: ChargeTuile = async () => (appels++ === 0 ? null : new Float32Array(cote * cote))
+    const relief = await resoudRelief(LAT, LON, troue)
+    expect(relief.etat).toBe('INDISPONIBLE')
+    expect(await (await db()).get('reglages', cleRelief(LAT, LON))).toBeUndefined()
+  })
+
+  it('un service qui lève rend une cause lisible, jamais l’exception', async () => {
+    const relief = await resoudRelief(LAT, LON, () => Promise.reject(new TypeError('Failed to fetch')))
+    expect(relief.etat).toBe('INDISPONIBLE')
+    if (relief.etat === 'INDISPONIBLE') expect(relief.cause).not.toMatch(/fetch|Error/)
+  })
+
+  it('refuse une tuile aux altitudes illisibles', async () => {
+    const relief = await resoudRelief(LAT, LON, async () => new Float32Array(cote * cote).fill(NaN))
+    expect(relief.etat).toBe('INDISPONIBLE')
+  })
+
+  it('ignore un cache hors du domaine du masque plutôt que de faire tomber le calcul', async () => {
+    const horsDomaine = Array.from({ length: NB_AZIMUTS }, () => DOMAINES.masque_horizon_deg.max + 1)
+    await ecritRelief(cleRelief(LAT, LON), horsDomaine)
+    const relief = await resoudRelief(LAT, LON, plaine(0))
+    expect(relief.etat).toBe('RELIEF')
+    if (relief.etat === 'RELIEF') expect(relief.altitudesDeg).not.toEqual(horsDomaine)
+  })
+
+  it('ignore un cache corrompu et redemande le relief', async () => {
+    await (await db()).put('reglages', ['pas', 'un', 'profil'], cleRelief(LAT, LON))
+    expect((await resoudRelief(LAT, LON, plaine(0))).etat).toBe('RELIEF')
+  })
+})

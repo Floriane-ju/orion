@@ -1,9 +1,10 @@
 /**
  * §4.1 — l'édition manuelle du masque d'horizon, sous le groupe « Séance ».
  *
- * Le modèle numérique de terrain de §4.1 demande le réseau et un cache par site ; le relevé
- * à la main, lui, est hors ligne et suffit à rendre les créneaux justes. On saisit quelques
- * crêtes — azimut, hauteur d'obstruction — et [[masqueDepuisPoints]] interpole le reste.
+ * Le relief du terrain trace l'horizon lointain (`relief-site.ts`) ; le relevé à la main
+ * ajoute par-dessus ce que le modèle de terrain ne connaît pas — arbres, bâtiments. On saisit
+ * quelques crêtes — azimut, hauteur d'obstruction — et [[masqueDepuisPoints]] interpole le
+ * reste. Hors réseau sur un site inconnu, le relevé reste la seule source.
  *
  * Le refus est montré à la saisie, jamais après coup : une altitude hors domaine nomme son
  * champ et n'entre pas dans la liste, plutôt que de faire tomber la chaîne de calcul.
@@ -22,7 +23,7 @@ import { libelleFlag } from '../registry/libelles.ts'
 export interface MasqueHorizonProps {
   readonly points: readonly PointMasque[]
   readonly surPoints: (v: readonly PointMasque[]) => void
-  /** Le masque effectivement en vigueur : relevés interpolés, ou repli plat [HYP]. */
+  /** Le masque effectivement en vigueur : relief et relevés composés, ou repli plat [HYP]. */
   readonly masque: MasqueHorizon
 }
 
@@ -62,7 +63,9 @@ export function MasqueHorizonSaisie(props: MasqueHorizonProps) {
         contexte={
           props.masque.estHypothese
             ? `horizon plat supposé ${libelleFlag('HYP')}`
-            : `${props.points.length} relevé${props.points.length > 1 ? 's' : ''}`
+            : props.points.length === 0
+              ? 'relief du terrain'
+              : `${props.points.length} relevé${props.points.length > 1 ? 's' : ''}`
         }
       />
       {/* L'hypothèse plate est une alerte — le relevé saisi, lui, n'est qu'une lecture. */}

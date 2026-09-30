@@ -20,6 +20,7 @@ import {
   type PoidsScoring,
 } from '../core/session.ts'
 import {
+  composeMasques,
   masqueDepuisPoints,
   masquePlat,
   seuilsDeclinaison,
@@ -58,6 +59,7 @@ import { modeObjectif } from '../core/optics.ts'
 import type { SaisieLieu, SaisieMateriel } from './app-saisie.ts'
 import { nombreSaisi, nombreSiRenseigne } from './saisie-bornee.ts'
 import type { MaterielFile } from './planetarium-materiel.ts'
+import { masqueDuRelief, useReliefSite } from './relief-site.ts'
 import { PRESET_SNR_DEFAUT } from '../registry/verdicts.ts'
 import type { ContexteFiche } from './fiche-cible-calcul.ts'
 import { useCiblesChoisies } from './cibles-choisies.ts'
@@ -251,22 +253,6 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
   const materielBorne = grandeursMateriel(materiel)
 
   /**
-   * §4.1 — le relief relevé à la main l'emporte sur toute hypothèse. Sans relevé, le masque
-   * plat [HYP] reste le repli documenté de la matrice de dégradation §12.5 : aucune source de
-   * relief n'est disponible hors réseau ni au premier démarrage.
-   *
-   * Une saisie hors domaine ne fait pas tomber la chaîne : elle est refusée à la saisie, dans
-   * le panneau, et le masque garde son état précédent.
-   */
-  const masque: MasqueHorizon = useMemo(() => {
-    try {
-      return masqueDepuisPoints(lieu.pointsMasque)
-    } catch {
-      return masquePlat()
-    }
-  }, [lieu.pointsMasque])
-
-  /**
    * T-0208 — les trois grandeurs du lieu, ramenées dans leur domaine avant d'entrer dans le
    * moindre moteur. C'est ici que se ferme l'écran noir : `astronomy-engine` lève une CHAÎNE
    * de caractères sur une latitude hors [−90, 90], que `refus()` ne reconnaissait pas et
@@ -290,6 +276,25 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
   const dernierSite = useRef<Site | null>(null)
   if (siteChiffrable(siteSaisi)) dernierSite.current = siteSaisi
   const site = dernierSite.current ?? siteSaisi
+
+  /**
+   * §4.1 — le relief du terrain, puis les relevés à la main « par-dessus » : azimut par azimut,
+   * la plus haute des deux obstructions. Sans relief (hors réseau sur un site inconnu, service
+   * muet) ni relevé, le masque plat [HYP] reste le repli de la matrice de dégradation §12.5.
+   *
+   * Une saisie hors domaine ne fait pas tomber la chaîne : elle est refusée à la saisie, dans
+   * le panneau, et le masque garde son état précédent.
+   */
+  const relief = useReliefSite(site.latitudeDeg, site.longitudeDeg)
+  const masque: MasqueHorizon = useMemo(() => {
+    let manuel: MasqueHorizon
+    try {
+      manuel = masqueDepuisPoints(lieu.pointsMasque)
+    } catch {
+      manuel = masquePlat()
+    }
+    return composeMasques(masqueDuRelief(relief), manuel)
+  }, [relief, lieu.pointsMasque])
 
   const cielSaisi = useMemo(
     () => evalueCiel(site, lieuBorne),

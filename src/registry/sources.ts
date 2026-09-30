@@ -25,6 +25,7 @@ import { SOURCE_TABLE_BORTLE } from './bortle.ts'
 import { SOURCE_TABLE_CONTRASTE } from './contrast.ts'
 import { SOURCE_TABLE_FILTRES } from './filters.ts'
 import { CREDIT_RELEVE } from './imagerie.ts'
+import { CREDIT_RELIEF } from './relief.ts'
 
 export interface Source {
   /** Ce que cette source alimente, dit du point de vue de l'écran, pas du fichier. */
@@ -67,6 +68,11 @@ export const SOURCES: readonly Source[] = Object.freeze(
       donnee: 'Position du Soleil, de la Lune et des planètes, crépuscules, phase lunaire',
       provenance: 'Calculées à l’exécution par astronomy-engine — aucune éphéméride embarquée',
       lien: 'https://github.com/cosinekitty/astronomy',
+    },
+    {
+      donnee: 'Masque d’horizon — relief du terrain dans un rayon de 30 km autour du site',
+      provenance: `${CREDIT_RELIEF.auteur} · ${CREDIT_RELIEF.licence}`,
+      lien: CREDIT_RELIEF.lien,
     },
     {
       donnee: 'Fond de ciel et magnitude limite à l’œil nu, à partir du Bortle saisi',
