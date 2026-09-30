@@ -2818,6 +2818,8 @@ button:disabled {
   block-size: calc(var(--cible-clic) + var(--pas-1));
   overflow: hidden;
   border-block: var(--trait) solid var(--texte);
+  /* Un aplat sous la nuit seule : sans lui, les étoiles de la scène se lisaient dans la frise. */
+  background: var(--surface);
 }
 .nuit-bande {
   position: absolute;
