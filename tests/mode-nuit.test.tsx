@@ -10,7 +10,7 @@
  *      survivrait au basculement.
  */
 
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
@@ -330,6 +330,83 @@ describe('focus et couleurs du navigateur — T-0070', () => {
 
   it('colore l’anneau de focus depuis un jeton repeint en rouge la nuit', () => {
     expect(jetonsDeNuit()).toContain(jetonFocus())
+  })
+})
+
+/**
+ * T-0304 — les contrôles natifs du balisage, un par un.
+ *
+ * T-0070 tenait une liste de cinq déclarations : ce qui n'y figurait pas — le bleu d'un lien,
+ * le gris d'un placeholder — fuyait sans que rien ne le voie. La liste se DÉRIVE ici des
+ * composants : chaque sorte de contrôle présente dans `src/ui/*.tsx` doit avoir sa règle, et
+ * une sorte inconnue fait échouer le test jusqu'à ce qu'on lui en écrive une.
+ */
+describe('surfaces natives du balisage — T-0304', () => {
+  const DOSSIER_UI = join(import.meta.dirname, '..', 'src', 'ui')
+  const BALISAGE = readdirSync(DOSSIER_UI)
+    .filter((f) => f.endsWith('.tsx'))
+    .map((f) => readFileSync(join(DOSSIER_UI, f), 'utf8'))
+    .join('\n')
+  const SANS_COMMENTAIRES = CSS.replace(/\/\*[\s\S]*?\*\//g, '')
+
+  /** Le corps de la règle dont le sélecteur est exactement `selecteur`. */
+  function corps(selecteur: string): string {
+    const debut = SANS_COMMENTAIRES.indexOf(`\n${selecteur} {`)
+    expect(debut, selecteur).toBeGreaterThan(-1)
+    return SANS_COMMENTAIRES.slice(debut, SANS_COMMENTAIRES.indexOf('}', debut))
+  }
+
+  const colorePar = (bloc: string, propriete: string): void => {
+    const valeur = new RegExp(`(?:^|[\\s;{])${propriete}:\\s*([^;]+);`).exec(bloc)?.[1]
+    expect(valeur, propriete).toMatch(/^var\(--[a-z-]+\)$/)
+  }
+  const retire = (selecteur: string): void => {
+    const debut = SANS_COMMENTAIRES.search(new RegExp(`${selecteur.replace(/[[\]()]/g, '\\$&')}[,\\s{]`))
+    expect(debut, selecteur).toBeGreaterThan(-1)
+    const bloc = SANS_COMMENTAIRES.slice(debut, SANS_COMMENTAIRES.indexOf('}', debut))
+    expect(bloc, selecteur).toMatch(/appearance:\s*none/)
+  }
+
+  /** Ce que chaque sorte de contrôle exige de la feuille pour ne rien peindre hors palette. */
+  const EXIGENCES: Readonly<Record<string, () => void>> = {
+    a: () => colorePar(corps('a'), 'color'),
+    placeholder: () => colorePar(corps('::placeholder'), 'color'),
+    select: () => {
+      colorePar(corps('option'), 'color')
+      colorePar(corps('option'), 'background')
+    },
+    option: () => colorePar(corps('option'), 'color'),
+    textarea: () => expect(corps('textarea')).toMatch(/resize:\s*none/),
+    'input:button': () => {},
+    'input:text': () => {},
+    'input:checkbox': () => expect(corps("input[type='checkbox']")).toMatch(/appearance:\s*none/),
+    'input:search': () => retire("input[type='search']::-webkit-search-cancel-button"),
+    'input:number': () => {
+      retire("input[type='number']::-webkit-inner-spin-button")
+      expect(corps("input[type='number']")).toMatch(/appearance:\s*textfield/)
+    },
+    'input:file': () => expect(corps('.bouton-fichier input')).toMatch(/display:\s*none/),
+  }
+
+  const sortes = new Set([
+    ...[...BALISAGE.matchAll(/<(a|select|option|textarea)\b/g)].map((m) => m[1]!),
+    ...[...BALISAGE.matchAll(/\bplaceholder=/g)].map(() => 'placeholder'),
+    ...[...BALISAGE.matchAll(/<input\b[^>]*?\btype="([a-z-]+)"/g)].map((m) => `input:${m[1]!}`),
+  ])
+
+  it('connaît chaque sorte de contrôle natif présente dans le balisage', () => {
+    expect([...sortes].filter((s) => !(s in EXIGENCES))).toEqual([])
+  })
+
+  it.each([...sortes].filter((s) => s in EXIGENCES))('%s ne peint rien hors palette', (sorte) => {
+    EXIGENCES[sorte]!()
+  })
+
+  it('cerne les commandes flottantes du filet des contrôles, qui tient 3:1', () => {
+    // Le rail, le mode nuit et l'info sont des contrôles : WCAG 1.4.11 les tient à 3:1, et
+    // `--bordure` n'y montait qu'à 1,42:1 la nuit.
+    expect(corps('.bouton-glyphe-flottant')).toMatch(/border:.*var\(--bordure-controle\)/)
+    expect(SANS_COMMENTAIRES).not.toMatch(/\.tiroir-nuit > summary \{[^}]*var\(--bordure\)/)
   })
 })
 

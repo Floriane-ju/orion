@@ -177,7 +177,10 @@ pre {
    sélection, le caret, la couleur d'accent et les ascenseurs sont peints par le navigateur
    avec les siennes — bleues — et `color-scheme: dark` ne fait que les assombrir. N'étant
    écrites nulle part, elles échappent au basculement de palette ET au test qui le vérifie.
-   Les déclarer les rend rouges en mode nuit, et inspectables.
+   Les déclarer les rend rouges en mode nuit, et inspectables. Ce n'est pas une liste close :
+   tout contrôle natif du balisage a sa règle (T-0304, après `::selection`), et le test la
+   dérive des composants — la garantie est « aucune surface peinte par le navigateur sans
+   jeton », pas « ces cinq-là ».
 
    Les jetons de FORME logent ici plutôt qu'avec la palette : le mode nuit repeint des
    couleurs, il ne redessine pas la grammaire. Un jeton de forme placé dans le premier bloc
@@ -432,6 +435,48 @@ pre {
 ::selection {
   background: var(--texte);
   color: var(--fond);
+}
+
+/* T-0304 — LES AUTRES SURFACES QUE LE NAVIGATEUR PEINT, une par sorte de contrôle natif
+   présente dans le balisage. Un lien garde le bleu de la feuille du navigateur, un
+   placeholder son gris, une option de liste le gris du système : `color-scheme: dark`
+   n'assombrit que vers le gris, jamais vers le rouge. Les ornements qu'aucune couleur ne
+   pilote — la croix d'une recherche, les flèches d'un nombre, la poignée d'un texte — sont
+   retirés plutôt que repeints : le clavier les remplace, et aucune déclaration ne les
+   rougirait. `mode-nuit.test.tsx` dérive la liste du balisage : un contrôle ajouté sans sa
+   règle ici fait échouer le test. */
+a {
+  color: var(--texte);
+}
+
+::placeholder {
+  color: var(--attenue);
+}
+
+option {
+  background: var(--surface-haute);
+  color: var(--texte);
+}
+
+input[type='search']::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+/* Firefox retire les flèches par `textfield` ; Chrome et Safari par leurs pseudo-éléments. */
+input[type='number'] {
+  appearance: textfield;
+}
+
+input[type='number']::-webkit-inner-spin-button {
+  appearance: none;
+}
+
+input[type='number']::-webkit-outer-spin-button {
+  appearance: none;
+}
+
+textarea {
+  resize: none;
 }
 
 /* WCAG 2.4.11 et 2.4.13 — l'anneau est une FORME avant d'être une couleur.
@@ -979,7 +1024,7 @@ body {
   background: var(--surface);
   background: var(--voile);
   color: var(--attenue);
-  border: var(--trait) solid var(--bordure);
+  border: var(--trait) solid var(--bordure-controle);
 }
 
 /* Enfoncé sur le ciel, il s'allume en APLAT : fond neutre plein, glyphe au fond.
@@ -1475,11 +1520,7 @@ body {
   background: var(--voile);
 }
 
-/* Au repos le filet des bascules ; le survol garde celui des tiroirs, le trait plein. */
-.coque-nuit .bouton-info:not([data-alerte='true']):not(:hover),
-.tiroir-nuit > summary {
-  border-color: var(--bordure);
-}
+
 
 
 /* LE SURVOL SUR LE CIEL SE VOIT. Les commandes du flanc gauche — le rail, le mode nuit, l'info —
