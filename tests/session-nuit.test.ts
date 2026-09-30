@@ -7,9 +7,15 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { alloueCreneau, creneauxSeChevauchent, minutesLibres } from '../src/core/session-nuit.ts'
+import {
+  alloueCreneau,
+  creneauxSeChevauchent,
+  manqueIntegration,
+  minutesLibres,
+  retournementDansEtape,
+} from '../src/core/session-nuit.ts'
 import type { Intervalle, SousCreneau } from '../src/core/creneaux.ts'
-import { MS_PAR_MINUTE } from '../src/core/unites.ts'
+import { MS_PAR_MINUTE, S_PAR_MIN } from '../src/core/unites.ts'
 
 const ORIGINE = Date.UTC(2026, 0, 1)
 const t = (minute: number): Date => new Date(ORIGINE + minute * MS_PAR_MINUTE)
@@ -46,5 +52,52 @@ describe('T-0345 — allocation de la nuit', () => {
 
   it('ne rend rien quand tout est pris', () => {
     expect(alloueCreneau(creneau(sous(0, 60)), [intervalle(0, 60)], 30)).toBeNull()
+  })
+})
+
+describe('T-0271 — les alertes d’une étape décrivent son créneau alloué', () => {
+  // Culmination forgée à la minute 240 : la cible bascule au méridien à cet instant.
+  const creneauGem = { retournementMeridien: true, heureCulmination: t(240) }
+
+  it('ne signale pas un retournement qui tombe hors de l’étape', () => {
+    // M31 21:51 → 22:08 pour un retournement à 02:27 : l'étape est finie bien avant.
+    expect(
+      retournementDansEtape({ creneau: creneauGem, creneauAlloue: intervalle(0, 17) }),
+    ).toBeNull()
+    // Étape posée juste après le retournement : on pointe déjà du bon côté.
+    expect(
+      retournementDansEtape({ creneau: creneauGem, creneauAlloue: intervalle(240, 300) }),
+    ).toBeNull()
+  })
+
+  it('signale, avec son heure, un retournement que l’étape traverse', () => {
+    expect(
+      retournementDansEtape({ creneau: creneauGem, creneauAlloue: intervalle(200, 280) }),
+    ).toEqual(t(240))
+    expect(
+      retournementDansEtape({
+        creneau: { ...creneauGem, retournementMeridien: false },
+        creneauAlloue: intervalle(200, 280),
+      }),
+    ).toBeNull()
+  })
+
+  const etape = (dureeAlloueeMin: number, tRequisMin: number, nNuits: number) => ({
+    dureeAlloueeMin,
+    nNuits,
+    integrationComplete: dureeAlloueeMin >= tRequisMin,
+    integration: { tRequisS: { value: tRequisMin * S_PAR_MIN } },
+  })
+
+  it('nomme le créneau alloué quand c’est lui, et non la nuit, qui manque', () => {
+    // B111 : 27 min requises, 20 min allouées, une nuit suffirait.
+    const phrase = manqueIntegration(etape(20, 27, 1))
+    expect(phrase).toMatch(/créneau alloué de 20 min/i)
+    expect(phrase).not.toMatch(/nuits/)
+  })
+
+  it('annonce les nuits quand le créneau de la cible ne suffit pas', () => {
+    expect(manqueIntegration(etape(60, 180, 3))).toMatch(/prévoir 3 nuits/)
+    expect(manqueIntegration(etape(30, 27, 1))).toBeNull()
   })
 })

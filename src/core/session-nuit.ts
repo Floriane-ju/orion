@@ -13,6 +13,7 @@
 
 import { K } from '../registry/constants.ts'
 import type { CreneauCible, Intervalle } from './creneaux.ts'
+import { dureeLisible } from './exposure.ts'
 import { trace } from './traced.ts'
 import type { PlanCalibration } from './calibration.ts'
 import type { BudgetNuit, ContexteSession, EtapePlan } from './session-types.ts'
@@ -93,6 +94,47 @@ export function alloueCreneau(
   if (meilleur === null || duree(meilleur) <= 0) return null
   const alloue = Math.min(Math.ceil(dureeMaxMin * MS_PAR_MINUTE), duree(meilleur))
   return { debut: meilleur.debut, fin: new Date(meilleur.debut.getTime() + alloue) }
+}
+
+/**
+ * T-0271 — l'heure du retournement au méridien QUAND L'ÉTAPE LE TRAVERSE, sinon `null`.
+ *
+ * `creneau` décrit la cible sur toute la nuit : son retournement peut tomber quatre heures
+ * après la fin de l'étape. L'alerte ne vaut que pour la capture qu'on mène, donc pour le
+ * créneau alloué. Une étape qui commence pile au méridien pointe déjà du bon côté.
+ */
+export function retournementDansEtape(etape: {
+  readonly creneau: Pick<CreneauCible, 'retournementMeridien' | 'heureCulmination'>
+  readonly creneauAlloue: Intervalle
+}): Date | null {
+  const instant = etape.creneau.heureCulmination
+  if (!etape.creneau.retournementMeridien || instant === null) return null
+  const { debut, fin } = etape.creneauAlloue
+  return instant.getTime() > debut.getTime() && instant.getTime() < fin.getTime()
+    ? instant
+    : null
+}
+
+/**
+ * T-0271 — ce qui manque à l'étape pour atteindre son intégration, dit par la contrainte qui
+ * mord vraiment, ou `null` quand l'étape est complète.
+ *
+ * Deux contraintes différentes : le créneau de la cible est plus court que la pose requise
+ * (il faut plusieurs nuits), ou la cible tiendrait dans la nuit mais le plan lui a alloué
+ * moins — partage avec d'autres cibles, frais fixes réservés. Accuser la nuit dans le second
+ * cas renvoyait l'utilisateur à un problème qu'il n'a pas.
+ */
+export function manqueIntegration(
+  etape: Pick<EtapePlan, 'integrationComplete' | 'nNuits' | 'dureeAlloueeMin'> & {
+    readonly integration: { readonly tRequisS: { readonly value: number } }
+  },
+): string | null {
+  if (etape.integrationComplete) return null
+  return etape.nNuits > 1
+    ? `Trop long pour une nuit : prévoir ${etape.nNuits} nuits, avec des darks à chaque nuit.`
+    : `Créneau alloué de ${etape.dureeAlloueeMin.toFixed(0)} min pour ` +
+        `${dureeLisible(etape.integration.tRequisS.value)} requises : ce soir n’en couvre ` +
+        'qu’une partie.'
 }
 
 export function calculeBudget(

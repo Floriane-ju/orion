@@ -14,6 +14,7 @@ import {
   type Ancrage,
 } from '../core/pointage.ts'
 import { planEnTexte, type EnTetePlan } from '../core/plan-texte.ts'
+import { manqueIntegration, retournementDansEtape } from '../core/session-nuit.ts'
 import type { CibleEcartee, EtapePlan, PlanSession as Plan } from '../core/session.ts'
 import type { Site } from '../core/ephem.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
@@ -160,6 +161,8 @@ function Etape({ etape, rang, ...props }: EtapeProps) {
       ? etape.objet.designation
       : `${etape.objet.designation} — ${etape.objet.nomsCommuns.split('|')[0]}`
   const facilite = faciliteCible(etape)
+  const manque = manqueIntegration(etape)
+  const retournement = retournementDansEtape(etape)
 
   return (
     <div className="etape">
@@ -179,17 +182,11 @@ function Etape({ etape, rang, ...props }: EtapeProps) {
       {/* §6.4 — la seule lecture qui reste : elle se compte d'un coup d'œil, à la frontale,
           et c'est la même note que la ligne de liste, lue sur le même score. */}
       {facilite !== null && <Pastilles note={facilite.note} libelle={facilite.libelle} />}
-      {!etape.integrationComplete && (
+      {manque !== null && <Mention ton="cause">{manque}</Mention>}
+      {retournement !== null && (
         <Mention ton="cause">
-          {etape.nNuits > 1
-            ? `Trop long pour une nuit : prévoir ${etape.nNuits} nuits, avec des darks à chaque nuit.`
-            : 'Créneau partagé avec une cible mieux notée : ce soir n’en couvre qu’une partie.'}
-        </Mention>
-      )}
-      {etape.creneau.retournementMeridien && (
-        <Mention ton="cause">
-          Retournement au méridien à {heure(etape.creneau.heureCulmination!)} : recadrer, puis
-          relancer la séquence.
+          Retournement au méridien à {heure(retournement)} : recadrer, puis relancer la
+          séquence.
         </Mention>
       )}
 

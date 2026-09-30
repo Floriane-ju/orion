@@ -13,6 +13,7 @@ import { dureeLisible } from './exposure.ts'
 import { nomDeLaNuit } from './nuit-datee.ts'
 import type { PlanSession } from './session.ts'
 import type { CauseEcart } from './session-types.ts'
+import { manqueIntegration, retournementDansEtape } from './session-nuit.ts'
 import {
   LIBELLE_CAUSE_ECART,
   LIBELLE_LOT_CALIBRATION,
@@ -84,9 +85,10 @@ export function planEnTexte(plan: PlanSession, enTete: EnTetePlan): string {
       lignes.push(`     Nombre de poses  : ${etape.nPoses} poses`)
       lignes.push(`     Volume           : ${etape.volumeGo.toFixed(1)} Go`)
       lignes.push(
-        `     Intégration      : ${dureeLisible(etape.integration.tRequisS.value)} requises` +
-          (etape.integrationComplete ? '' : ` — à répartir sur ${etape.nNuits} nuits`),
+        `     Intégration      : ${dureeLisible(etape.integration.tRequisS.value)} requises`,
       )
+      const manque = manqueIntegration(etape)
+      if (manque !== null) lignes.push(`     Couverture       : ${manque}`)
       lignes.push(`     Verdict          : ${etape.verdict === null ? 'donnée manquante' : LIBELLE_VERDICT_DETECTABILITE[etape.verdict]}`)
       lignes.push(`     Cadrage          : ${LIBELLE_VERDICT_CADRAGE[etape.verdictCadrage]}`)
       lignes.push(
@@ -96,10 +98,11 @@ export function planEnTexte(plan: PlanSession, enTete: EnTetePlan): string {
       // Le score est sans dimension : « sur 1 » le dit, plutôt que de laisser un nombre nu.
       lignes.push(`     Score            : ${etape.score.value.toFixed(3)} sur 1`)
       lignes.push(`     Consigne         : ${etape.consigne}`)
-      if (etape.creneau.retournementMeridien) {
+      const retournement = retournementDansEtape(etape)
+      if (retournement !== null) {
         lignes.push(
-          '     Méridien         : retournement obligatoire, orientation du capteur ' +
-            'basculée de 180° — re-vérifier le cadrage, la séquence redémarre',
+          `     Méridien         : retournement à ${heure(retournement)}, orientation du ` +
+            'capteur basculée de 180° — re-vérifier le cadrage, la séquence redémarre',
         )
       }
     }
