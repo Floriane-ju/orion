@@ -4,9 +4,9 @@
    couleur écrite en dur ailleurs dans la feuille survivrait au basculement et suffirait à
    ruiner une demi-heure d'adaptation à l'obscurité.
 
-   Le mode nuit n'est pas un filtre de teinte posé sur une interface claire — la luminance
-   globale resterait trop élevée. La palette est CONÇUE en rouge sur noir, canaux vert et
-   bleu strictement nuls.
+   Le mode nuit n'est pas qu'un filtre posé sur une interface claire — ses aplats resteraient
+   trop lumineux. La palette est CONÇUE en rouge sur noir : elle porte le dessin (barres
+   éteintes, contrastes). Le masque plein écran porte la teinte et la luminance.
 
    LANGAGE VISUEL. La palette de jour est FILAIRE : blanc sur noir pur, et un seul
    accent pour la marque et le cadre du matériel — ce qu'on vise. Un instrument de terrain se lit à la lampe
@@ -75,8 +75,8 @@
   --cible-clic: 44px;
 }
 
-/* §11.1 — sortie = (R, 0, 0). Le facteur de luminance est réglable jusqu'à un plancher
-   d'environ 2 % de la luminance nominale, et il multiplie toute la palette.
+/* §11.1 — sortie = (R, 0, 0). La palette est écrite au facteur de luminance nominal ; le
+   facteur, réglable jusqu'à un plancher d'environ 2 %, est porté par le masque plus bas.
 
    CONTRASTE DU TEXTE. Ratios WCAG 2.2 (§ « contrast ratio » et « relative luminance »,
    https://www.w3.org/TR/WCAG22/#dfn-contrast-ratio) : pour un canal c dans [0, 1],
@@ -118,26 +118,26 @@
    couleur. --accent (la marque, le cadre) et --avertissement, qui se lisent à leur teinte le jour, ne se
    distinguent plus que par la place qu'ils occupent une fois passés au rouge. */
 :root[data-mode-nuit='true'] {
-  --base-neutre: rgb(calc(var(--luminance-nuit) * 250) 0 0);
-  --base-accent: rgb(calc(var(--luminance-nuit) * 246) 0 0);
+  --base-neutre: rgb(250 0 0);
+  --base-accent: rgb(246 0 0);
   --fond: #000000;
-  --surface: rgb(calc(var(--luminance-nuit) * 8) 0 0);
-  --surface-haute: rgb(calc(var(--luminance-nuit) * 18) 0 0);
-  --surface-survol: rgb(calc(var(--luminance-nuit) * 26) 0 0);
-  --texte: rgb(calc(var(--luminance-nuit) * 250) 0 0);
-  --attenue: rgb(calc(var(--luminance-nuit) * 242) 0 0);
-  --accent: rgb(calc(var(--luminance-nuit) * 246) 0 0);
-  --avertissement: rgb(calc(var(--luminance-nuit) * 250) 0 0);
-  --bordure: rgb(calc(var(--luminance-nuit) * 90) 0 0);
-  --bordure-controle: rgb(calc(var(--luminance-nuit) * 188) 0 0);
-  --bordure-faible: rgb(calc(var(--luminance-nuit) * 65) 0 0);
-  --alerte: rgb(calc(var(--luminance-nuit) * 255) 0 0);
-  --fond-alerte: rgb(calc(var(--luminance-nuit) * 26) 0 0);
+  --surface: rgb(8 0 0);
+  --surface-haute: rgb(18 0 0);
+  --surface-survol: rgb(26 0 0);
+  --texte: rgb(250 0 0);
+  --attenue: rgb(242 0 0);
+  --accent: rgb(246 0 0);
+  --avertissement: rgb(250 0 0);
+  --bordure: rgb(90 0 0);
+  --bordure-controle: rgb(188 0 0);
+  --bordure-faible: rgb(65 0 0);
+  --alerte: rgb(255 0 0);
+  --fond-alerte: rgb(26 0 0);
   --barre-fond: #000000;
-  --barre-encre: rgb(calc(var(--luminance-nuit) * 250) 0 0);
-  --barre-survol: rgb(calc(var(--luminance-nuit) * 20) 0 0);
-  --barre-survol-encre: rgb(calc(var(--luminance-nuit) * 246) 0 0);
-  --masque-nuit: rgb(255 0 0);
+  --barre-encre: rgb(250 0 0);
+  --barre-survol: rgb(20 0 0);
+  --barre-survol-encre: rgb(246 0 0);
+  --masque-nuit: rgb(calc(var(--luminance-nuit) * 255) 0 0);
 }
 
 /* §11.1 — LE MASQUE : zéro vert, zéro bleu, par construction et non par inventaire.
@@ -149,8 +149,9 @@
    (255, 0, 0) : le rouge passe intact, le vert et le bleu tombent à zéro exactement, quel que
    soit ce qui est peint dessous. Le compositeur fait le calcul ; rien ne s'intercepte.
 
-   `--masque-nuit` n'est pas une couleur de palette mais le multiplicateur neutre du rouge :
-   il ne suit donc pas `--luminance-nuit`, qui est déjà appliquée à ce qu'il filtre.
+   Le masque porte aussi `--luminance-nuit` : multiplier par (255·L, 0, 0) atténue d'un seul
+   geste la feuille, le canevas et les photos. La palette ne l'applique donc pas elle-même —
+   le canevas ne lit pas la feuille, et échappait au curseur tant que chaque jeton le portait.
 
    Ce qui lui échappe est hors de la page : le pointeur de la souris et le menu natif d'un
    `<select>` que dessine le système. La couche du haut (`<dialog>` modal, `popover`) y
@@ -3256,17 +3257,6 @@ button:disabled {
   height: auto;
 }
 
-/* L'encart porte le même fond que la vue : c'est contre lui que le fondu multiplicatif de
-   l'image se joue, et un fond sombre propre à l'encart la rendrait noire la nuit. */
-:root[data-mode-nuit='true'] .image-cible-vue,
-:root[data-mode-nuit='true'] .image-cible-encart {
-  background: var(--texte);
-}
-
-:root[data-mode-nuit='true'] .image-cible-vue img {
-  mix-blend-mode: multiply;
-}
-
 .image-cible figcaption {
   font-size: var(--texte-micro);
   color: var(--attenue);
@@ -3288,10 +3278,7 @@ button:disabled {
   object-fit: cover;
 }
 
-/* La case en attente. Elle n'emprunte pas le fond de `.image-cible-vue` : en mode
-   nuit celui-ci passe au clair pour le fondu multiplicatif de l'image, et le glyphe y
-   disparaîtrait dans sa propre teinte. Atténué, jamais accentué : il annonce une place, pas
-   un défaut. */
+/* La case en attente. Atténuée, jamais accentuée : elle annonce une place, pas un défaut. */
 .cible-vignette-vide {
   display: grid;
   place-items: center;

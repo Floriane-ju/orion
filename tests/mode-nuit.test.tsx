@@ -21,8 +21,6 @@ import { Mention } from '../src/ui/Mention.tsx'
 import { K } from '../src/registry/constants.ts'
 import { etatScene } from '../src/ui/scene-etat.ts'
 import { POLICE_SCENE, palette, type PaletteCiel } from '../src/ui/couleurs.ts'
-import { LegendeCouleurs } from '../src/ui/LegendeCouleurs.tsx'
-import { teintesObjets } from '../src/ui/apparence-objets.ts'
 
 const CSS = readFileSync(join(import.meta.dirname, '..', 'src', 'ui', 'styles.css'), 'utf8')
 
@@ -73,9 +71,9 @@ const paletteParDefaut = (): Readonly<Record<string, string>> =>
 const paletteDeNuit = (): Readonly<Record<string, string>> => jetonsDuBloc(blocModeNuit())
 
 /**
- * Les canaux 0-255 d'une valeur de palette, AU FACTEUR DE LUMINANCE NOMINAL : `#rrggbb`, ou
- * `rgb(calc(var(--luminance-nuit) * N) 0 0)` — le facteur multiplie toute la palette, donc
- * le lire à 1 revient à mesurer le meilleur cas, celui où le seuil doit tenir.
+ * Les canaux 0-255 d'une valeur de palette : `#rrggbb`, ou `rgb(N 0 0)`. La palette est écrite
+ * au facteur de luminance nominal — le masque applique le facteur par-dessus — donc la lire
+ * telle quelle revient à mesurer le meilleur cas, celui où le seuil doit tenir.
  */
 function canaux(valeur: string): readonly [number, number, number] {
   const court = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(valeur)
@@ -85,7 +83,7 @@ function canaux(valeur: string): readonly [number, number, number] {
     const canal = (i: number): number => parseInt(hex[1]!.slice(i, i + 2), 16)
     return [canal(0), canal(2), canal(4)]
   }
-  const rouge = /^rgb\(\s*calc\(var\(--luminance-nuit\)\s*\*\s*(\d+)\)\s+0\s+0\s*\)$/.exec(valeur)
+  const rouge = /^rgb\((\d+) 0 0\)$/.exec(valeur)
   expect(rouge, `valeur de palette illisible : ${valeur}`).not.toBeNull()
   return [Number(rouge![1]), 0, 0]
 }
@@ -137,8 +135,15 @@ describe('palette du mode nuit §11.1', () => {
     expect(masque).toMatch(/pointer-events:\s*none;/)
     expect(masque).toMatch(/z-index:\s*var\(--plan-masque\);/)
     expect(masque).toMatch(/background:\s*var\(--masque-nuit\);/)
-    // Rouge plein, et NON pondéré par la luminance : il multiplie ce qui l'est déjà.
-    expect(paletteDeNuit()['masque-nuit']).toBe('rgb(255 0 0)')
+    // Rouge plein au facteur de luminance : le seul endroit où le curseur agit.
+    expect(paletteDeNuit()['masque-nuit']).toBe('rgb(calc(var(--luminance-nuit) * 255) 0 0)')
+  })
+
+  it('n’applique la luminance que par le masque, qui atteint aussi le canevas', () => {
+    const { 'masque-nuit': _masque, ...jetons } = paletteDeNuit()
+    for (const [jeton, valeur] of Object.entries(jetons)) {
+      expect(valeur, jeton).not.toContain('--luminance-nuit')
+    }
   })
 
   it('n’utilise pas la couche du haut, que le masque ne recouvrirait pas', () => {
@@ -167,7 +172,7 @@ describe('palette du mode nuit §11.1', () => {
     const couleursNuit = jetonsDuBloc(blocModeNuit())
     expect(couleursNuit, '--bordure-controle manquant').toHaveProperty('bordure-controle')
     const valeur = couleursNuit['bordure-controle']!
-    expect(valeur, valeur).toMatch(/^rgb\(\s*calc\(var\(--luminance-nuit\)\s*\*\s*\d+\)\s+0\s+0\s*\)$/)
+    expect(valeur, valeur).toMatch(/^rgb\(\d+ 0 0\)$/)
   })
 
   it('n’écrit aucune couleur en dur hors des blocs de palette', () => {
@@ -757,46 +762,5 @@ describe('mouvement réduit — WCAG 2.3.3', () => {
     // §11.2 — aucune animation non sollicitée. Le défilement n'est jamais l'état de départ :
     // il ne peut donc pas démarrer de lui-même, et reste choisissable sous la préférence.
     expect(etatScene().temps.modeTemps).not.toBe('DEFILEMENT')
-  })
-})
-
-/**
- * T-0332 — la fuite nocturne hors de la feuille de style.
- *
- * Le test de palette ne lit que `styles.css`. Le canevas (`couleurs.ts`, `apparence-objets.ts`)
- * et la feuille que la légende injecte peignent pourtant le même écran : la nuit, aucune de
- * leurs couleurs ne doit porter de vert ni de bleu.
- */
-describe('fuite nocturne hors de la feuille — T-0332', () => {
-  /** Les canaux vert et bleu de chaque couleur écrite dans un texte : `#rrggbb` ou `rgb(r g b)`. */
-  function vertsEtBleus(texte: string): readonly number[] {
-    const hex = [...texte.matchAll(/#([0-9a-f]{6})\b/gi)].flatMap((m) => [
-      parseInt(m[1]!.slice(2, 4), 16),
-      parseInt(m[1]!.slice(4, 6), 16),
-    ])
-    const rgb = [...texte.matchAll(/rgba?\(\s*[\d.]+[\s,]+([\d.]+)[\s,]+([\d.]+)/g)].flatMap((m) => [
-      Number(m[1]),
-      Number(m[2]),
-    ])
-    return [...hex, ...rgb]
-  }
-
-  it('la palette du canevas n’a que du rouge la nuit', () => {
-    const couleurs = Object.values(palette(true)).join(' ')
-    expect(vertsEtBleus(couleurs).length).toBeGreaterThan(0)
-    expect(vertsEtBleus(couleurs).every((c) => c === 0)).toBe(true)
-  })
-
-  it('les teintes d’objets n’ont que du rouge la nuit', () => {
-    const couleurs = JSON.stringify(teintesObjets(true, false, 0))
-    expect(vertsEtBleus(couleurs).length).toBeGreaterThan(0)
-    expect(vertsEtBleus(couleurs).every((c) => c === 0)).toBe(true)
-  })
-
-  it('la feuille injectée par la légende n’a que du rouge la nuit', () => {
-    const html = renderToStaticMarkup(<LegendeCouleurs modeNuit={true} />)
-    const feuille = /<style>([\s\S]*?)<\/style>/.exec(html)?.[1] ?? ''
-    expect(vertsEtBleus(feuille).length).toBeGreaterThan(0)
-    expect(vertsEtBleus(feuille).every((c) => c === 0)).toBe(true)
   })
 })

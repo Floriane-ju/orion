@@ -87,22 +87,11 @@ describe('absence d’image §12.5', () => {
 })
 
 describe('lisibilité en mode nuit §11.1', () => {
-  it('éteint le vert et le bleu par un fondu multiplicatif, pas par un filtre de teinte', () => {
-    // image × rouge pur = (R, 0, 0), exactement. Un `filter: hue-rotate` laisserait fuir.
-    const fondu = regle(":root[data-mode-nuit='true'] .image-cible-vue img")
-    expect(fondu).toMatch(/mix-blend-mode:\s*multiply/)
+  it('laisse au masque plein écran le rougissement de l’image, sans fondu propre', () => {
+    // Le masque (T-0185) multiplie toute la page, photos comprises. Un `filter: hue-rotate`
+    // laisserait fuir ; un second fondu sur l'image doublerait l'atténuation.
     expect(CSS).not.toMatch(/filter:\s*[^;]*hue-rotate/)
-  })
-
-  it('multiplie contre un jeton de palette, donc contre du rouge pur la nuit', () => {
-    const fond = regle(
-      ":root[data-mode-nuit='true'] .image-cible-vue,\n:root[data-mode-nuit='true'] .image-cible-encart",
-    )
-    // Une couleur écrite en dur ici survivrait au basculement et ruinerait le fondu.
-    expect(fond).toMatch(/background:\s*var\(--[a-z-]+\)/)
-    // L'encart bascule avec la vue : un fond sombre qui lui resterait propre noircirait son
-    // image, puisque c'est contre ce fond que le fondu multiplicatif se joue.
-    expect(fond).toContain('.image-cible-encart')
+    expect(CSS.match(/mix-blend-mode:\s*multiply/g)).toHaveLength(1)
   })
 
   it('garde à la vignette de liste la hauteur d’une cible de clic', () => {
@@ -185,12 +174,4 @@ describe('cadre du capteur §6.2', () => {
     expect(regle('.image-cible-encart')).toMatch(/overflow: hidden/)
   })
 
-  it('réutilise le traitement nocturne de la vignette, sans le redéfinir', () => {
-    // Le fondu multiplicatif est déclaré une fois, sur `.image-cible-vue img` — et l'image de
-    // l'encart est dedans. Une seconde règle propre à l'encart serait une divergence en
-    // puissance. Le masque plein écran du mode nuit (T-0185) filtre la page entière, pas
-    // l'image : il est hors du compte.
-    const sansMasque = CSS.replace(/:root\[data-mode-nuit='true'\] body::after \{[^}]*\}/, '')
-    expect(sansMasque.match(/mix-blend-mode:\s*multiply/g)).toHaveLength(1)
-  })
 })

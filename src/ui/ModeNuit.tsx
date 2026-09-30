@@ -6,9 +6,10 @@
  * L'adaptation à l'obscurité demande 20 à 30 minutes et se détruit en QUELQUES SECONDES
  * de lumière blanche : le mode est global et sans exception, pas un thème sombre.
  *
- * L'extinction est faite par la palette, pas par un filtre de teinte : la feuille de style
- * bascule des variables dont les canaux vert et bleu sont strictement nuls. Un filtre posé
- * sur une interface claire laisserait la luminance globale trop élevée.
+ * La palette dessine, le masque éteint : la feuille bascule des variables rouge sur noir,
+ * et un masque plein écran multiplie chaque pixel par (255·L, 0, 0) — vert et bleu à zéro,
+ * luminance réglée, canevas et photos compris. Le masque seul sur une interface claire
+ * laisserait ses aplats trop lumineux.
  *
  * T-0140 — le tiroir ne porte plus que ce qui se décide : une bascule et une luminance. Le
  * pourquoi du rouge ne s'arbitre pas, il reste ici. Le type de dalle ne changeait aucun
