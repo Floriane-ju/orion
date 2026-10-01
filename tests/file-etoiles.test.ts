@@ -103,7 +103,7 @@ describe('§9.3 — longueur des arcs', () => {
     expect(longueurArcDeg(60, 60).value).toBeCloseTo(7.52, 2)
   })
 
-  it('annonce qu’un filé lisible demande au moins une heure', () => {
+  it('signale des traînées courtes sous la part du cadre du registre, pas au-delà', () => {
     const diagnostic = diagnosticFile({
       projecteur: proj({ azimutDeg: 180, hauteurDeg: 30 }),
       latitudeDeg: SITE.latitudeDeg,
@@ -116,9 +116,22 @@ describe('§9.3 — longueur des arcs', () => {
     expect(diagnostic.longueurArcMaxDeg.value).toBeCloseTo(5.01, 2)
     // 5 % de la hauteur du cadre : des étoiles étirées, pas un filé.
     expect(diagnostic.fractionHauteurCadre).toBeCloseTo(0.05, 2)
-    expect(diagnostic.messages.join(' ')).toMatch(
-      new RegExp(`au moins ${K('DUREE_FILE_LISIBLE_MIN')} min`),
-    )
+    expect(diagnostic.messages.join(' ')).toMatch(/Traînées courtes/)
+    expect(diagnostic.messages.join(' ')).not.toMatch(/Comptez/)
+
+    // Assez long pour couvrir la part du cadre : plus d'avertissement.
+    const dureeLisibleMin =
+      (K('FRACTION_CADRE_FILE_LISIBLE') * 100.2 * 60) / K('ROTATION_CIEL_DEG_H')
+    const lisible = diagnosticFile({
+      projecteur: proj({ azimutDeg: 180, hauteurDeg: 30 }),
+      latitudeDeg: SITE.latitudeDeg,
+      axePoleNord: AXE_POLE,
+      dureeMin: dureeLisibleMin,
+      decMinAbsDeg: 0,
+      decMaxAbsDeg: 60,
+      hauteurCadreDeg: 100.2,
+    })
+    expect(lisible.messages).toEqual([])
   })
 })
 

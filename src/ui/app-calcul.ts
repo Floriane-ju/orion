@@ -497,9 +497,7 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
     contexteFiche:
       calcul.ok && ciel.ok ? contexteFiche(calcul, ciel, materiel, lieu) : null,
     panneauFile:
-      calcul.ok && profondeurFile !== null
-        ? panneauFile(calcul, materiel, site, profondeurFile)
-        : null,
+      calcul.ok && ciel.ok ? panneauFile(calcul, materiel, site) : null,
   }
 }
 
@@ -689,7 +687,6 @@ function panneauFile(
   calcul: Calcul & { ok: true },
   materiel: SaisieMateriel,
   site: Site,
-  profondeur: EntreeProfondeur,
 ): PanneauFileProps {
   return {
     site,
@@ -700,10 +697,7 @@ function panneauFile(
     capteurHMm: calcul.capteur.capteurHMm,
     fovLDeg: calcul.optique.fovLDeg.value,
     fovHDeg: calcul.optique.fovHDeg.value,
-    echApx: calcul.optique.echApx.value,
     tailleRawMo: calcul.boitier.tailleRawMo,
-    profondeur,
-    zeroSysteme: calcul.zeroSysteme,
     modeObjectif: modeObjectif(materiel.typeObjectif),
   }
 }

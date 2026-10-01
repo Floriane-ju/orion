@@ -240,8 +240,16 @@ export const FORMULES = Object.freeze({
     unite: '°',
     section: '9.3',
   },
+  PLAN_PANORAMA: {
+    expression:
+      'si duree_totale ≤ t_max_cadre : une photo, t_pose = duree_totale · ' +
+      'sinon filé : t_pose = min(C-36 haut, duree_totale), intervalle = C-09',
+    unite: 's',
+    section: '9.3',
+    note: 'Au-delà de la pose max, des étoiles qui filent sont le but.',
+  },
   NOMBRE_POSES_FILE: {
-    expression: 'n_poses_file = floor( duree_s / (t_pose_s + intervalle_s) )',
+    expression: 'n_poses_file = ceil( duree_s / t_pose_s )',
     unite: '—',
     section: '9.4',
   },
@@ -279,12 +287,6 @@ export const FORMULES = Object.freeze({
     unite: '—',
     section: '9.3',
     note: 'Une étoile qui file paraît moins brillante.',
-  },
-  TROU_TRACE: {
-    expression: 'trou_deg = 15,041 × intervalle_s / 3600 × cos(δ)',
-    unite: '°',
-    section: '9.4',
-    note: 'Trou entre deux poses, irréparable ensuite.',
   },
 
   // Position et temps — §4, §8

@@ -2,14 +2,14 @@
  * §9.4 — Logistique de séquence de filé.
  *
  * Traduit une durée souhaitée en paramètres d'intervallomètre et en contraintes matérielles
- * VÉRIFIABLES AVANT DE SORTIR. Deux règles y sont dures :
+ * VÉRIFIABLES AVANT DE SORTIR.
  *
- *   1. L'intervalle inter-pose dépasse C-09 → l'application refuse et chiffre le trou produit
- *      dans chaque trace. C'est un défaut irréparable en post-traitement.
- *   2. La réduction de bruit sur longue exposition du boîtier occupe un temps égal à la pose
- *      après chaque image : l'intervalle effectif devient supérieur à la pose, et la séquence
- *      est ruinée. Sa désactivation est une consigne bloquante, prescrite sans condition —
- *      T-0167, la déclarer active ne changeait pas la consigne, elle la rédigeait deux fois.
+ * T-0374 — la durée totale est la seule saisie. La pose et l'intervalle ne se règlent plus :
+ * ils se prescrivent (`planPanorama`). L'intervalle vaut C-09, donc le refus d'un intervalle
+ * trop long n'a plus d'entrée à refuser. Reste une règle dure : la réduction de bruit sur
+ * longue exposition du boîtier occupe un temps égal à la pose après chaque image, et la
+ * séquence est ruinée. Sa désactivation est une consigne bloquante, prescrite sans condition —
+ * T-0167, la déclarer active ne changeait pas la consigne, elle la rédigeait deux fois.
  *
  * Aucune autonomie de batterie n'est modélisée (T-0150) : seule la durée de prise de vue est
  * connue, et elle sert de rappel, pas de prédiction. Aucun budget de carte non plus (T-0167) :
@@ -17,11 +17,9 @@
  */
 
 import { K } from '../registry/constants.ts'
-import { degres, formatePose, nombre, nombreLibre } from '../registry/ecriture.ts'
-import { longueurArcDeg } from './file-etoiles.ts'
 import { rappelBatterie } from './rappel-batterie.ts'
 import { trace, type Traced } from './traced.ts'
-import { S_PAR_H, S_PAR_MIN } from './unites.ts'
+import { S_PAR_MIN } from './unites.ts'
 
 
 export interface EntreeSequenceFile {
@@ -29,35 +27,64 @@ export interface EntreeSequenceFile {
   readonly tPoseS: number
   readonly intervalleS: number
   readonly tailleRawMo: number
-  /** Déclinaison de la zone visée : elle fixe l'arc obtenu et la longueur d'un trou. */
-  readonly decDeg: number
 }
 
 export interface SequenceFile {
   readonly nPoses: Traced<number>
   readonly volumeGo: Traced<number>
-  readonly arcObtenuDeg: Traced<number>
-  /** Renseigné quand l'intervalle dépasse C-09 : la séquence est refusée, le trou chiffré. */
-  readonly intervalleRefuse: string | null
   readonly consignesBloquantes: readonly string[]
   readonly messages: readonly string[]
 }
 
-/** Longueur du trou laissé dans chaque trace par un intervalle inter-pose, en degrés. */
-export function trouTraceDeg(intervalleS: number, decDeg: number): Traced<number> {
-  // Un trou est un arc : celui que l'étoile décrit pendant que l'obturateur est fermé.
-  return trace({
-    value: longueurArcDeg(intervalleS / S_PAR_MIN, decDeg).value,
-    formula: 'TROU_TRACE',
-    inputs: { intervalle_s: intervalleS, dec_deg: decDeg },
-    constants: ['ROTATION_CIEL_DEG_H'],
-  })
+/**
+ * T-0374 — ce que le temps de prise de vue prescrit. Jusqu'à la pose max du cadre (§9.1), le
+ * temps tient dans une seule photo à étoiles ponctuelles : c'est l'aperçu de §9.2, posé sur
+ * toute la durée. Au-delà, des étoiles qui filent sont le but, et la durée se découpe en poses
+ * de C-36 haut séparées de C-09.
+ *
+ * Pourquoi C-36 haut et non la pose max : la netteté de chaque image ne compte plus dans un
+ * filé, seul le nombre d'images coûte. L'optimum dépend en vérité du capteur (bruit de lecture
+ * face au fond de ciel, thermique) — non modélisé, la convention terrain en tient lieu.
+ *
+ * `poseMaxS` vaut `null` tant que le panneau n'a pas chiffré le cadre : C-36 sert alors de
+ * seuil, faute de mieux, et l'aperçu bascule dès que la vraie pose max est connue.
+ */
+export interface PlanPanorama {
+  readonly mode: 'CHAMP' | 'FILE'
+  readonly tPoseS: Traced<number>
+  readonly intervalleS: Traced<number>
+}
+
+export function planPanorama(dureeTotaleS: number, poseMaxS: number | null): PlanPanorama {
+  const seuil = poseMaxS ?? K('T_POSE_FILE_MAX_S')
+  const mode = dureeTotaleS <= seuil ? 'CHAMP' : 'FILE'
+  const inputs = { duree_totale_s: dureeTotaleS, t_max_cadre_s: poseMaxS }
+  return {
+    mode,
+    tPoseS: trace({
+      // Une durée plus courte qu'une pose conseillée tient en une pose : elle file, seule.
+      value: mode === 'CHAMP' ? dureeTotaleS : Math.min(K('T_POSE_FILE_MAX_S'), dureeTotaleS),
+      formula: 'PLAN_PANORAMA',
+      inputs,
+      constants: ['T_POSE_FILE_MAX_S'],
+    }),
+    intervalleS: trace({
+      value: mode === 'CHAMP' ? 0 : K('INTERVALLE_INTER_POSE_FILE_MAX_S'),
+      formula: 'PLAN_PANORAMA',
+      inputs,
+      constants: ['INTERVALLE_INTER_POSE_FILE_MAX_S'],
+    }),
+  }
 }
 
 export function sequenceFile(entree: EntreeSequenceFile): SequenceFile {
   const dureeTotaleS = entree.dureeTotaleMin * S_PAR_MIN
-  const cadenceS = entree.tPoseS + entree.intervalleS
-  const nPosesValeur = Math.floor(dureeTotaleS / cadenceS)
+  // Assez de poses pour COUVRIR le temps voulu, quitte à le dépasser d'une fraction de pose :
+  // 1 min en poses de 30 s, c'est deux photos, pas une. L'intervalle ne retire rien au compte,
+  // il allonge seulement la séquence d'une seconde par pose. La durée est ramenée à la seconde,
+  // le pas de sa saisie : rendue en minutes puis en secondes, elle garde une poussière
+  // flottante (45,000000001) qui ajouterait une photo.
+  const nPosesValeur = Math.ceil(Math.round(dureeTotaleS) / entree.tPoseS)
   const volume = (nPosesValeur * entree.tailleRawMo) / K('MO_PAR_GO')
 
   const nPoses = trace({
@@ -77,40 +104,20 @@ export function sequenceFile(entree: EntreeSequenceFile): SequenceFile {
     constants: ['MO_PAR_GO'],
   })
 
-  const arcObtenuDeg = longueurArcDeg(entree.dureeTotaleMin, entree.decDeg)
-
-  const intervalleMax = K('INTERVALLE_INTER_POSE_FILE_MAX_S')
-  const trou = trouTraceDeg(entree.intervalleS, entree.decDeg)
-  const intervalleRefuse =
-    entree.intervalleS > intervalleMax
-      ? `Pause de ${nombreLibre(entree.intervalleS)} s trop longue (max ${intervalleMax} s) : les traînées ` +
-        `auront des trous de ${nombre(trou.value * S_PAR_H, 0)}", irréparables.`
-      : null
-
   const consignesBloquantes: readonly string[] = [
     'Désactivez la réduction de bruit sur longue exposition de l’appareil, sinon les ' +
       'traînées seront pointillées.',
   ]
 
+  // Le résumé « N poses de 30 s, X Go, traînées de Y° » est parti : il répétait les lignes
+  // chiffrées posées juste au-dessus de lui.
   const messages: string[] = []
-  if (entree.tPoseS < K('T_POSE_FILE_MIN_S') || entree.tPoseS > K('T_POSE_FILE_MAX_S')) {
-    messages.push(
-      `Pose de ${formatePose(entree.tPoseS)} s : visez ${K('T_POSE_FILE_MIN_S')} à ` +
-        `${K('T_POSE_FILE_MAX_S')} s pour un filé.`,
-    )
-  }
-  messages.push(
-    `${nPosesValeur} poses de ${formatePose(entree.tPoseS)} s empilées en mode éclaircir, ` +
-      `${nombre(volume, 1)} Go, traînées de ${degres(arcObtenuDeg.value, 2)}.`,
-  )
   const rappel = rappelBatterie(entree.dureeTotaleMin)
   if (rappel !== null) messages.push(rappel)
 
   return {
     nPoses,
     volumeGo,
-    arcObtenuDeg,
-    intervalleRefuse,
     consignesBloquantes,
     messages,
   }

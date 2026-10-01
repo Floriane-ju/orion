@@ -6,18 +6,22 @@
  * carte de pose, au diagnostic des arcs et à la séquence de prises de vue.
  */
 
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { axePoleDeDate, cielInstantane } from '../core/horloges.ts'
-import { cartePoseMax, traceePx, type CartePoseMax } from '../core/grand-champ.ts'
+import { cartePoseMax, type CartePoseMax } from '../core/grand-champ.ts'
 import { diagnosticFile, type DiagnosticFile } from '../core/file-etoiles.ts'
-import { magnitudeLimitePrevisu, type EntreeProfondeur } from '../core/galactique.ts'
-import { sequenceFile, type SequenceFile } from '../core/sequence-file.ts'
+import {
+  planPanorama,
+  sequenceFile,
+  type PlanPanorama,
+  type SequenceFile,
+} from '../core/sequence-file.ts'
 import type { Site } from '../core/ephem.ts'
 import { DEG, versSpherique } from '../core/mat3.ts'
 import { projecteur, rayonProjete, type ModeProjection, type Vue } from '../core/projection.ts'
-import type { Traced } from '../core/traced.ts'
 import type { VueScene } from './scene-etat.ts'
-import { dureeApercuMin, type ReglagesFile } from './seance-etat.ts'
+import { posePoseMaxCadre, type ReglagesFile } from './seance-etat.ts'
+import { S_PAR_MIN } from '../core/unites.ts'
 
 /**
  * Définition de référence du cadre pour les diagnostics. Elle ne décrit aucun canevas :
@@ -34,9 +38,7 @@ export interface MaterielCadre {
   readonly capteurHMm: number
   readonly fovLDeg: number
   readonly fovHDeg: number
-  readonly echApx: number
   readonly tailleRawMo: number
-  readonly profondeur: EntreeProfondeur
   readonly modeObjectif: ModeProjection
 }
 
@@ -44,10 +46,8 @@ export interface LecturesFile {
   /** Centre du cadre en coordonnées équatoriales : ce que le boîtier vise vraiment. */
   readonly visee: { readonly longitudeDeg: number; readonly latitudeDeg: number }
   readonly carte: CartePoseMax
-  readonly profondeur: Traced<number>
-  readonly trainee: Traced<number>
-  /** Vrai quand la pose unitaire dépasse ce que le cadre tolère : les étoiles s'ovalisent. */
-  readonly poseDepassee: boolean
+  /** T-0374 — photo unique ou filé, et la pose qui en découle. */
+  readonly plan: PlanPanorama
   readonly diagnostic: DiagnosticFile
   readonly sequence: SequenceFile
 }
@@ -103,7 +103,13 @@ export function useLecturesFile(
     [materiel, visee, rotationDeg],
   )
 
-  const dureeMin = dureeApercuMin(file)
+  // La pose max calculée ici est celle que la scène et la profondeur attendent : publiée au
+  // magasin, elle y décide du même plan que celui lu au panneau.
+  const poseMaxS = carte.poseOperanteS
+  useEffect(() => posePoseMaxCadre(poseMaxS), [poseMaxS])
+  const plan = planPanorama(file.dureeTotaleS, poseMaxS)
+
+  const dureeMin = file.dureeTotaleS / S_PAR_MIN
   const diagnostic = useMemo(
     () =>
       diagnosticFile({
@@ -121,21 +127,18 @@ export function useLecturesFile(
   const sequence = useMemo(
     () =>
       sequenceFile({
-        dureeTotaleMin: file.dureeTotaleMin,
-        tPoseS: file.tPoseS,
-        intervalleS: file.intervalleS,
+        dureeTotaleMin: dureeMin,
+        tPoseS: plan.tPoseS.value,
+        intervalleS: plan.intervalleS.value,
         tailleRawMo: materiel.tailleRawMo,
-        decDeg: carte.decMinAbsDeg,
       }),
-    [file, materiel.tailleRawMo, carte.decMinAbsDeg],
+    [dureeMin, plan.tPoseS.value, plan.intervalleS.value, materiel.tailleRawMo],
   )
 
   return {
     visee,
     carte,
-    profondeur: magnitudeLimitePrevisu(materiel.profondeur),
-    trainee: traceePx(file.tPoseS, carte.decMinAbsDeg, materiel.echApx),
-    poseDepassee: carte.poseOperanteS !== null && file.tPoseS > carte.poseOperanteS,
+    plan,
     diagnostic,
     sequence,
   }

@@ -18,21 +18,18 @@ import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { majTemps } from './scene-etat.ts'
 import { S_PAR_MIN } from '../core/unites.ts'
 import { creeAbonnes } from './abonnes.ts'
+import { planPanorama, type PlanPanorama } from '../core/sequence-file.ts'
 import { PRESET_SNR_DEFAUT, PRESETS_SNR } from '../registry/verdicts.ts'
 import {
   booleen,
   chaine,
   dans,
-  fini,
   garde,
   gardeAuDepart,
   litLocal,
   objet,
   parmi,
 } from '../data/stockage-local.ts'
-
-/** §9.2 aperçu d'une pose, §9.3 filé d'une durée accumulée : même moteur, durée différente. */
-export type ModeApercu = 'CHAMP' | 'FILE'
 
 /**
  * T-0179 — le seul commutateur de premier rang (§11.3) : il décide de ce que la scène peint et
@@ -49,11 +46,14 @@ export type ModeInterface = 'CIEL_PROFOND' | 'PANORAMA'
  */
 export type VueCibles = 'LISTE' | 'FICHE'
 
-/** Réglages de §9.2 à §9.4. Ils pilotent le panneau ET l'aperçu peint dans le cadre. */
+/**
+ * Réglages de §9.2 à §9.4. Ils pilotent le panneau ET l'aperçu peint dans le cadre.
+ *
+ * T-0374 — une seule saisie, le temps de prise de vue. La pose et l'intervalle s'en déduisent
+ * avec la pose max du cadre (`planPanorama`) : deux curseurs et un champ pour une intention.
+ */
 export interface ReglagesFile {
-  readonly tPoseS: number
-  readonly dureeTotaleMin: number
-  readonly intervalleS: number
+  readonly dureeTotaleS: number
   /** T-0142 — §9.1 peinte DANS le cadre du capteur, qu'elle masque, plutôt qu'au panneau. */
   readonly poseDansCadre: boolean
 }
@@ -90,24 +90,20 @@ export interface EtatSeance {
   readonly file: ReglagesFile
   readonly fiche: ReglagesFiche
   readonly renduFile: RenduFile | null
+  /**
+   * §9.1 — pose max du cadre visé, publiée par le panneau qui la chiffre. Elle décide si le
+   * temps de prise de vue tient en une photo : la scène et la profondeur la lisent ici.
+   * `null` tant que le panneau ne l'a pas chiffrée. Recomptée, jamais persistée.
+   */
+  readonly poseMaxCadreS: number | null
 }
-
-/**
- * Durée d'accumulation qui désigne l'aperçu de champ plutôt qu'un filé. Ce n'est pas la borne
- * basse de §9.3 — le domaine `duree_file_min` ouvre le filé à 5 min — mais la valeur hors
- * domaine par laquelle le curseur bascule d'un aperçu à l'autre. Le prédicat et le curseur la
- * lisent au même endroit, faute de quoi une borne pourrait rendre le mode CHAMP inatteignable.
- */
-export const DUREE_APERCU_CHAMP_MIN = 0
 
 const ETAT_INITIAL: EtatSeance = {
   cible: null,
   mode: 'CIEL_PROFOND',
   vueCibles: 'LISTE',
   file: {
-    tPoseS: K('T_POSE_FILE_MAX_S'),
-    dureeTotaleMin: K('DUREE_FILE_SPECTACULAIRE_MIN'),
-    intervalleS: K('INTERVALLE_INTER_POSE_FILE_MAX_S'),
+    dureeTotaleS: K('DUREE_FILE_SPECTACULAIRE_MIN') * S_PAR_MIN,
     poseDansCadre: false,
   },
   fiche: {
@@ -117,6 +113,7 @@ const ETAT_INITIAL: EtatSeance = {
     explicationDepliee: false,
   },
   renduFile: null,
+  poseMaxCadreS: null,
 }
 
 const CLE_STOCKAGE = 'orion.seance'
@@ -144,9 +141,7 @@ function restaure(depart: EtatSeance): EtatSeance {
       ...depart.file,
       ...(file &&
         garde<Partial<ReglagesFile>>(file, {
-          tPoseS: dans('t_pose_s'),
-          dureeTotaleMin: (v) => v === DUREE_APERCU_CHAMP_MIN || dans('duree_file_min')(v),
-          intervalleS: (v) => fini(v) && (v as number) >= 0,
+          dureeTotaleS: dans('duree_prise_vue_s'),
           poseDansCadre: booleen,
         })),
     },
@@ -229,26 +224,21 @@ export function montreListeCibles(): void {
 }
 
 /**
- * Le mode d'aperçu se DÉDUIT de la durée d'accumulation, il ne se choisit pas : une durée nulle
- * ne décrit qu'une photo, une durée non nulle décrit des poses qu'on additionne. Un menu à côté
- * du curseur pouvait contredire le curseur — deux commandes pour une seule intention.
+ * Ce que le temps de prise de vue prescrit au cadre visé : une photo, ou un filé découpé en
+ * poses. Le mode ne se choisit pas, il se déduit — un menu à côté du curseur pouvait le
+ * contredire. Une seule source pour la passe qui peint, le panneau qui chiffre et la profondeur.
  */
-export function modeApercu(file: ReglagesFile): ModeApercu {
-  return file.dureeTotaleMin > DUREE_APERCU_CHAMP_MIN ? 'FILE' : 'CHAMP'
-}
-
-/**
- * La durée que l'aperçu accumule, en minutes — une seule source pour la passe qui la peint et
- * pour le diagnostic qui la chiffre. Une photo unique n'accumule pas rien : elle accumule sa
- * pose, et ses étoiles portent l'arc de cette pose. Les lire à zéro annonçait un ciel figé que
- * le cadre ne montre pas.
- */
-export function dureeApercuMin(file: ReglagesFile): number {
-  return modeApercu(file) === 'FILE' ? file.dureeTotaleMin : file.tPoseS / S_PAR_MIN
+export function planDeSeance(courant: Pick<EtatSeance, 'file' | 'poseMaxCadreS'>): PlanPanorama {
+  return planPanorama(courant.file.dureeTotaleS, courant.poseMaxCadreS)
 }
 
 export function majFile(retouche: Partial<ReglagesFile>): void {
   pose({ ...etat, file: { ...etat.file, ...retouche } })
+}
+
+/** T-0374 — n'écrit que si la valeur change : le panneau la republie à chaque rendu. */
+export function posePoseMaxCadre(poseMaxCadreS: number | null): void {
+  if (poseMaxCadreS !== etat.poseMaxCadreS) pose({ ...etat, poseMaxCadreS })
 }
 
 /** `null` quand le filé s'éteint : des compteurs périmés mentiraient sur ce qui est tracé. */

@@ -634,11 +634,12 @@ export function diagnosticFile(entree: EntreeDiagnosticFile): DiagnosticFile {
 
   const messages: string[] = []
   const pourcent = nombre(fractionHauteurCadre * 100, 0)
-  if (entree.dureeMin < K('DUREE_FILE_LISIBLE_MIN')) {
+  // T-0374 — le seuil porte sur ce que l'œil voit, la part du cadre que l'arc traverse, et non
+  // sur une durée : à focale longue, vingt minutes font déjà un filé ; au fisheye, une heure
+  // n'en fait pas toujours un.
+  if (fractionHauteurCadre < K('FRACTION_CADRE_FILE_LISIBLE')) {
     messages.push(
-      `Traînées courtes (${pourcent} % du cadre) : des étoiles étirées plutôt qu’un filé. ` +
-        `Comptez au moins ${K('DUREE_FILE_LISIBLE_MIN')} min, ` +
-        `idéalement ${K('DUREE_FILE_SPECTACULAIRE_MIN')} min.`,
+      `Traînées courtes (${pourcent} % du cadre) : des étoiles étirées plutôt qu’un filé.`,
     )
   }
 

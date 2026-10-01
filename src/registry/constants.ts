@@ -2263,6 +2263,18 @@ const GRAND_CHAMP = {
     ordreDeGrandeur: true,
     sections: ['9.3'],
   }),
+  FRACTION_CADRE_FILE_LISIBLE: entree({
+    ref: 'C-35',
+    libelle: 'Part de la hauteur du cadre sous laquelle un filé se lit comme un flou',
+    valeur: 0.1,
+    unite: '—',
+    source:
+      'T-0374 — mesurée sur l’arc le plus long du cadre : c’est ce que l’œil voit, quelle que ' +
+      'soit la focale',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: false,
+    sections: ['9.3'],
+  }),
   DUREE_FILE_SPECTACULAIRE_MIN: entree({
     ref: 'C-35',
     libelle: 'Durée à partir de laquelle le filé devient spectaculaire',

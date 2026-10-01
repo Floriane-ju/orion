@@ -2219,6 +2219,19 @@ th {
   line-height: var(--interligne-texte);
 }
 
+/* T-0374 — un conseil prend le cadre d'une alerte, pas sa couleur : c'est un geste à faire,
+   pas une faute. Gris, filet neutre, signe « info ». */
+.conseil {
+  margin: var(--pas-2) 0;
+  padding: var(--pas-2) var(--pas-3);
+  border: var(--trait) solid var(--bordure);
+  border-left-width: var(--trait-marque);
+  background: var(--surface-haute);
+  color: var(--attenue);
+  font-size: var(--texte-legende);
+  line-height: var(--interligne-texte);
+}
+
 /* §11.1 — le rouge ne porte jamais seul une information : l'alerte se distingue aussi par
    sa forme, sa barre latérale et son signe.
 

@@ -3070,21 +3070,27 @@ ARCHITECTURE RETENUE — le coût marginal du catalogue réel est nul
   s'étale. Sans cette pondération, la prévisu montre des traces trop marquées et
   l'utilisateur est déçu du résultat réel.
 
-LE MODE D'APERÇU SE DÉDUIT DE LA DURÉE, IL NE SE CHOISIT PAS
-  duree_totale_min = 0  → aperçu de champ §9.2, une pose unique
-  duree_totale_min > 0  → filé §9.3, poses accumulées
-  Une commande séparée — menu ou bascule — posée à côté du curseur pouvait le
-  contredire : mode « champ » affiché avec une durée de 2 h, ou mode « filé » avec
-  une durée au minimum. Deux commandes pour une seule intention, dont l'une mentait.
-  Le curseur porte donc les deux aperçus, et 0 est le cran qui les sépare.
+UNE SEULE SAISIE : LE TEMPS DE PRISE DE VUE
+  duree_prise_vue_s, de 1 s à 480 min, sur un curseur logarithmique. Le rail porte un
+  repère à t_max_cadre (§9.1) : « max étoiles comme des points ».
 
-  → CONSÉQUENCE SUR LA PLAGE : 0 est accepté au curseur alors que le filé n'est
-    VALIDE qu'à partir de 5 min. Ce n'est pas un filé plus court que la borne, c'est
-    l'autre aperçu. Le domaine du filé reste 5 – 480.
+  duree ≤ t_max_cadre → aperçu de champ §9.2 : UNE photo, posée sur toute la durée,
+                         étoiles ponctuelles
+  duree > t_max_cadre → filé §9.3 : des étoiles qui filent sont le but, la durée se
+                         découpe en poses (§9.4)
 
-  → CE QUE 0 N'EST PAS : une durée d'accumulation nulle. Une pose unique accumule sa
-    propre pose, et ses étoiles portent l'arc de cette pose (§9.1). Lire zéro
-    annoncerait un ciel figé que le cadre ne montre pas.
+  Le mode se DÉDUIT, il ne se choisit pas. Deux curseurs (pose unitaire et durée
+  d'accumulation) et un champ d'intervalle décrivaient une seule intention — combien de
+  temps je photographie — et pouvaient se contredire. La pose et l'intervalle ne se
+  saisissent plus : ils se prescrivent.
+
+  → POURQUOI LOGARITHMIQUE : sur 1 s → 8 h en linéaire, t_max_cadre (≈ 25 s au grand
+    angle) tomberait dans le premier millième du rail. Crans : la seconde sous la
+    minute, la minute sous l'heure, cinq minutes au-delà.
+
+  → PAS DE ZONE TAMPON : juste au-dessus de t_max_cadre, le filé est court et se lit
+    comme des étoiles étirées. Le moteur le dit tant que l'arc le plus long couvre moins
+    de C-35 (10 %) de la hauteur du cadre : « traînées courtes ».
 ```
 
 **Application au setup grand angle** — 10 mm plein format, champ vertical 100,2°, 4 672 px de hauteur, soit 46,6 px/° :
@@ -3102,7 +3108,7 @@ LE MODE D'APERÇU SE DÉDUIT DE LA DURÉE, IL NE SE CHOISIT PAS
 
 | Champ | Type | Unité | Plage valide | Note |
 |---|---|---|---|---|
-| `duree_totale_min` | float | min | 0 – 480 | curseur, prévisu en direct · **0 sélectionne l'aperçu de §9.2**, le filé n'est valide qu'à partir de 5 |
+| `duree_prise_vue_s` | float | s | 1 – 28 800 | seule saisie, curseur log · **≤ `t_max_cadre` sélectionne l'aperçu de §9.2** |
 | `latitude_observateur` | float | ° | −90 – 90 | pilote la position du pôle |
 | `centre_az`, `centre_alt`, `angle_rotation` | float | ° | — | pointage |
 | `type_objectif` | enum | — | RECTILINEAIRE / FISHEYE | §5.1 |
@@ -3129,18 +3135,22 @@ Et l'app ne recentre PAS artificiellement le pôle dans l'image
 Étant donné une durée de 20 min à δ = 0
 Quand la prévisualisation est générée
 Alors la longueur d'arc affichée est 5,01°, soit environ 5 % de la hauteur du cadre
-Et l'app indique qu'un filé lisible demande typiquement au moins une heure
+Et l'app signale des traînées courtes, l'arc couvrant moins de 10 % du cadre
 
 Étant donné un objectif déclaré FISHEYE
 Quand les arcs sont tracés
 Alors la projection équidistante est utilisée et les arcs restent quasi circulaires
     autour du pôle, contrairement au rendu rectilinéaire
 
-Étant donné une durée d'accumulation ramenée à 0
+Étant donné un temps de prise de vue inférieur ou égal à t_max_cadre
 Quand la prévisualisation est générée
-Alors l'aperçu rendu est celui de §9.2 — une pose unique, étoiles ponctuelles sous suivi
+Alors l'aperçu rendu est celui de §9.2 — une photo unique posée sur toute la durée
 Et aucune commande séparée ne permet de contredire le curseur sur le mode affiché
-Et la durée peinte est celle de la pose unitaire, jamais zéro
+
+Étant donné un temps de prise de vue supérieur à t_max_cadre
+Quand la prévisualisation est générée
+Alors l'aperçu rendu est le filé, sur toute la durée
+Et le repère « max étoiles comme des points » reste visible sur le rail
 
 Étant donné une durée telle que l'arc dépasse le champ              # cas limite
 Quand la prévisualisation est générée
@@ -3162,10 +3172,17 @@ HYG (couche réelle), transformations de coordonnées en JS. Aucun réseau. Fall
 ### Règle métier
 
 ```
-n_poses = floor( duree_totale_s / (t_pose_s + intervalle_s) )
-  t_pose recommandé   20 à 30 s
-  intervalle ≤ 1 s (C-09) → au-delà, TROUS VISIBLES dans les traces,
-                            défaut irréparable en post-traitement
+n_poses = ceil( duree_totale_s / t_pose_s )
+  Assez de poses pour COUVRIR le temps voulu, quitte à le dépasser d'une fraction de
+  pose : 1 min en poses de 30 s donne 2 photos, 45 s aussi. L'intervalle n'entre pas
+  dans le compte, il allonge la séquence d'une seconde par pose.
+  t_pose PRESCRIT     min( 30 s (C-36 haut), duree_totale_s )
+                      La netteté de chaque pose ne compte plus dans un filé : seul le
+                      nombre d'images coûte. L'optimum dépend du capteur (bruit de
+                      lecture face au fond de ciel, thermique) — non modélisé, la
+                      convention terrain en tient lieu.
+  intervalle PRESCRIT C-09 = 1 s → au-delà, TROUS VISIBLES dans les traces,
+                      défaut irréparable en post-traitement. Il ne se saisit pas.
 
 CONTRAINTE MATÉRIELLE QUI PLAFONNE L'INTERVALLE
   Réduction de bruit sur longue exposition (dark automatique du boîtier) :
@@ -3189,21 +3206,20 @@ VOIE À SPÉCIFIER : empilement de poses courtes en mode éclaircir.
   de pollution lumineuse.
 
 CETTE SECTION NE S'APPLIQUE PAS HORS DU FILÉ
-  À duree_totale_min = 0, l'aperçu est celui de §9.2 : une photo, pas une séquence.
-  Il n'y a rien à cadencer, et les compteurs ci-dessus annonceraient zéro pose et
-  zéro gigaoctet. La logistique est alors ABSENTE, pas affichée à zéro — un compteur
-  à zéro se lit comme un budget calculé, donc comme un résultat.
+  Quand le temps de prise de vue tient sous t_max_cadre, l'aperçu est celui de §9.2 :
+  une photo, pas une séquence. Il n'y a rien à cadencer. La logistique est alors
+  ABSENTE — un compteur à une pose se lirait comme un budget calculé.
 ```
 
-**Séquence type, 2 h à 25 s** : `n_poses = 7200 / 26 = 276 images` · volume ≈ 8,9 Go (33 Mo par RAW `[À VÉRIFIER]`) · arc obtenu 30,1° à δ = 0, 27,3° dans la Voie lactée d'été.
+**Séquence type, 2 h** : pose prescrite 30 s, `n_poses = ceil(7200 / 30) = 240 images` · volume ≈ 7,7 Go (33 Mo par RAW `[À VÉRIFIER]`) · arc obtenu 30,1° à δ = 0, 27,3° dans la Voie lactée d'été. Le moteur reste vérifié sur une pose de 25 s : 288 images, ≈ 9,3 Go.
 
 ### Entrées / Sorties
 
 | Champ | Type | Unité | Plage valide | Note |
 |---|---|---|---|---|
-| `duree_totale_min` | float | min | 5 – 480 | hors plage, la section ne s'applique pas (§9.3) |
-| `t_pose_s` | float | s | 5 – 60 | recommandé 20–30 |
-| `intervalle_s` | float | s | 0 – 30 | refusé au-delà de C-09 |
+| `duree_prise_vue_s` | float | s | > t_max_cadre | sinon la section ne s'applique pas (§9.3) |
+| `t_pose_s` | float | s | sortie | prescrit, C-36 haut |
+| `intervalle_s` | float | s | sortie | prescrit, C-09 |
 | `n_poses` | int | — | sortie | |
 | `volume_go` | float | Go | sortie | |
 | `rappel_batterie` | string | — | sortie | au-delà de C-16, sinon absent |
@@ -3212,24 +3228,24 @@ CETTE SECTION NE S'APPLIQUE PAS HORS DU FILÉ
 ### Critères d'acceptation
 
 ```gherkin
-Étant donné une durée cible de 2 h et une pose de 25 s
+Étant donné un temps de prise de vue de 2 h, au-delà de t_max_cadre
 Quand j'ouvre la fiche de séquence
-Alors l'app prescrit 276 poses, un intervalle de 1 s au maximum, environ 8,9 Go
+Alors l'app prescrit des poses de 30 s, un intervalle de 1 s, 240 poses, environ 7,7 Go
 Et liste en consigne bloquante la désactivation de la réduction de bruit longue exposition
 
-Étant donné un intervalle saisi à 3 s
-Quand je valide
-Alors l'app refuse et chiffre la longueur du trou produit dans chaque trace
+Étant donné un temps de prise de vue à peine supérieur à t_max_cadre
+Quand j'ouvre la fiche de séquence
+Alors l'app prescrit au moins une pose, jamais une séquence vide
 
 Étant donné une durée d'accumulation dépassant le seuil C-16
 Quand j'ouvre la fiche de séquence
 Alors l'app rappelle de prévoir de quoi tenir la nuit en batterie
 Et n'affiche ni nombre de batteries, ni autonomie, ni température, ni facteur de froid
 
-Étant donné une durée d'accumulation ramenée à 0                     # aperçu §9.2
+Étant donné un temps de prise de vue ≤ t_max_cadre                   # aperçu §9.2
 Quand j'ouvre le panneau du filé
 Alors la logistique de séquence est absente du panneau
-Et aucun compteur de poses ni de volume n'est affiché à zéro
+Et aucun compteur de poses ni de volume n'est affiché
 ```
 
 ### Dépendances données
@@ -4600,7 +4616,7 @@ Valeurs de travail : RN ≈ 1,5 e⁻ au-delà du seuil de double gain (≈ ISO 6
 | NPF à δ = +50° | 39,1 s |
 | Arc de filé, 20 min à δ = 0 | 5,01° ≈ 234 px, soit 5 % de la hauteur |
 | Arc de filé, 1 h à δ = 0 | 15,04° ≈ 701 px |
-| Séquence 2 h à 25 s + 1 s | 276 poses, ≈ 8,9 Go, arc 30,1° |
+| Séquence 2 h à 25 s + 1 s | 288 poses, ≈ 9,3 Go, arc 30,1° |
 
 ---
 
@@ -4653,7 +4669,7 @@ t_max_suivi  = t_ref × (200 / focale_mm), plafonné à 240 s
 trace_arcsec = 15,041 × t_s × cos(δ)
 t_npf        = k × (35 × N + 30 × pitch_um) / ( focale_mm × cos(δ) )
 arc_deg      = 15,041 × duree_h × cos(δ)
-n_poses_file = floor( duree_s / (t_pose_s + intervalle_s) )
+n_poses_file = ceil( duree_s / t_pose_s )
 ```
 
 ## Position et temps

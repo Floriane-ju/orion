@@ -617,35 +617,6 @@ export const GLOSSAIRE = Object.freeze({
     consequence: 'Cadrer plus près du pôle autorise des poses plus longues.',
     sections: ['9.1'],
   }),
-  trainee: terme({
-    libelle: 'Traînée',
-    sansBulle: true,
-    glose: 'étirement des étoiles',
-    explication:
-      'C’est la longueur en pixels du trait laissé par une étoile pendant la pose. Au-delà d’un ' +
-      'ou deux pixels, les étoiles ne sont plus rondes.',
-    consequence: 'Raccourcissez la pose pour garder des étoiles rondes.',
-    sections: ['9.1', '9.2'],
-  }),
-  profondeur_previsu: terme({
-    libelle: 'Profondeur par photo',
-    glose: 'étoiles les plus faibles photographiées',
-    explication:
-      'C’est jusqu’où la photo enregistre des étoiles faibles. Elle dépend de la pose, de ' +
-      'l’objectif et du ciel.',
-    consequence: 'Un ciel pollué ou une pose courte montrent moins d’étoiles.',
-    sections: ['9.2'],
-  }),
-  vignettage: terme({
-    libelle: 'Vignettage',
-    sansBulle: true,
-    glose: 'coins plus sombres',
-    explication:
-      'Objectif grand ouvert, les coins de l’image sont plus sombres que le centre. Fermer d’un ' +
-      'cran le réduit nettement.',
-    consequence: 'Évitez de placer la cible dans un coin.',
-    sections: ['9.2'],
-  }),
   pole_celeste: terme({
     libelle: 'Centre de rotation',
     sansBulle: true,
@@ -663,14 +634,16 @@ export const GLOSSAIRE = Object.freeze({
     explication:
       'Plus la séquence dure, plus les traînées sont longues. Près du pôle, elles restent ' +
       'courtes.',
-    consequence: 'Comptez au moins une heure pour un filé lisible.',
+    consequence: 'Sous un dixième de la hauteur du cadre, les étoiles paraissent floues.',
     sections: ['9.3'],
   }),
   duree_file: terme({
-    libelle: 'Durée d’accumulation',
+    libelle: 'Temps de prise de vue',
     sansBulle: true,
-    glose: 'durée totale de la séquence',
-    explication: 'C’est le temps couvert par toutes les poses. Il fixe la longueur des traînées.',
+    glose: 'durée totale photographiée',
+    explication:
+      'Jusqu’à la pose max du cadre, c’est une seule photo aux étoiles ponctuelles. Au-delà, ' +
+      'c’est une séquence de poses dont les étoiles filent.',
     consequence: 'Doubler la durée double la longueur des traînées.',
     sections: ['9.3', '9.4'],
   }),
@@ -689,7 +662,7 @@ export const GLOSSAIRE = Object.freeze({
     sansBulle: true,
     glose: 'photos de la séquence',
     explication:
-      'C’est la durée totale divisée par la durée d’une pose et de sa pause. Les photos ' +
+      'C’est la durée totale divisée par la durée d’une pose, arrondie au-dessus. Les photos ' +
       's’empilent ensuite en mode éclaircir.',
     consequence: 'Prévoyez la place sur la carte.',
     sections: ['9.4'],

@@ -39,7 +39,8 @@ export interface CurseurProps {
   readonly valeur: number
   readonly min: number
   readonly max: number
-  readonly pas: number
+  readonly pas: Rail['pas']
+  readonly echelle?: Rail['echelle']
   /** La valeur telle qu'elle s'écrit — « 25 s », « 40 % ». */
   readonly texte: string
   /**
@@ -65,6 +66,7 @@ export function Curseur(props: CurseurProps) {
     min: props.min,
     max: props.max,
     pas: props.pas,
+    ...(props.echelle === undefined ? {} : { echelle: props.echelle }),
     ...(props.accroche === undefined ? {} : { accroche: props.accroche.valeur }),
   }
   const marque = accrocheDansLaCourse(rail)
@@ -108,7 +110,8 @@ export function Curseur(props: CurseurProps) {
       return
     }
     e.preventDefault()
-    props.sur(valeurQuantifiee(props.valeur + sens * props.pas, rail))
+    const pas = typeof props.pas === 'function' ? props.pas(props.valeur) : props.pas
+    props.sur(valeurQuantifiee(props.valeur + sens * pas, rail))
   }
 
   return (

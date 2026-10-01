@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest'
 import { Curseur } from '../src/ui/Curseur.tsx'
 import {
   accrocheDansLaCourse,
+  cranDeDuree,
   fractionDuRail,
   valeurDuRail,
   valeurQuantifiee,
@@ -84,6 +85,36 @@ describe('accroche', () => {
 
   it('n’aimante rien quand le rail n’a pas de largeur mesurée', () => {
     expect(valeurDuRail(fraction(26), rail, 0)).toBe(26)
+  })
+})
+
+describe('T-0374 — rail logarithmique de durée', () => {
+  const S_PAR_MIN = 60
+  const S_PAR_H = 3600
+  const DUREE: Rail = { min: 1, max: 8 * S_PAR_H, pas: cranDeDuree, echelle: 'log' }
+
+  it('donne la même longueur de rail à chaque décade', () => {
+    const decade = fractionDuRail(10, DUREE) - fractionDuRail(1, DUREE)
+    expect(fractionDuRail(100, DUREE) - fractionDuRail(10, DUREE)).toBeCloseTo(decade, 9)
+  })
+
+  it('retrouve la valeur que désigne sa propre fraction', () => {
+    for (const v of [1, 25, 45 * S_PAR_MIN, 2 * S_PAR_H]) {
+      expect(valeurDuRail(fractionDuRail(v, DUREE), DUREE, 0)).toBe(v)
+    }
+  })
+
+  it('crante à la seconde, puis à la minute, puis à cinq minutes', () => {
+    expect(valeurQuantifiee(25.4, DUREE)).toBe(25)
+    expect(valeurQuantifiee(10 * S_PAR_MIN + 20, DUREE)).toBe(10 * S_PAR_MIN)
+    expect(valeurQuantifiee(2 * S_PAR_H + 2 * S_PAR_MIN, DUREE)).toBe(2 * S_PAR_H)
+  })
+
+  it('aimante la pose max avec la même détente qu’en linéaire', () => {
+    const rail: Rail = { ...DUREE, accroche: 25 }
+    const f = fractionDuRail(25, rail)
+    expect(valeurDuRail(f + 2 / LARGEUR_PX, rail, LARGEUR_PX)).toBe(25)
+    expect(valeurDuRail(f + 20 / LARGEUR_PX, rail, LARGEUR_PX)).not.toBe(25)
   })
 })
 

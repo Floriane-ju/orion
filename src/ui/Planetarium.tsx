@@ -166,7 +166,8 @@ export function Planetarium(props: PlanetariumProps) {
   const minute = useTrancheScene(minuteAffichee)
   const actions = ACTIONS_SCENE
   const { fovDeg, largeurPx, hauteurPx } = pointage
-  const { file, mode } = useSeance()
+  const seance = useSeance()
+  const { file, mode } = seance
 
   const figures = useMemo(() => coucheFigures(props.constellations.figures), [props.constellations])
   const asterismes = useMemo(
@@ -289,7 +290,7 @@ export function Planetarium(props: PlanetariumProps) {
   const parametresFile = useParametresFile({
     etoiles: props.etoiles,
     mode,
-    file,
+    seance,
     materiel: props.file,
   })
 

@@ -21,8 +21,12 @@
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 import { Icone } from './Icone.tsx'
 
-/** Les quatre classes que ces phrases portent dans la feuille. */
-export type TonMention = 'etat' | 'cause' | 'erreur' | 'tracee-source'
+/**
+ * Les classes que ces phrases portent dans la feuille. T-0374 — `conseil` : un geste à faire
+ * avant de partir, encadré comme une alerte mais en gris, avec le signe « info ». Ce n'est pas
+ * une faute de l'utilisateur, et le rouge le lui aurait reproché.
+ */
+export type TonMention = 'etat' | 'cause' | 'erreur' | 'conseil' | 'tracee-source'
 
 /** Les deux tons qui alertent, et qui prennent donc le signe de §11.1. */
 const ALERTENT: readonly TonMention[] = ['cause', 'erreur']
@@ -42,6 +46,7 @@ export function Mention({ ton, children, ...reste }: MentionProps) {
   return (
     <p className={ton} {...reste}>
       {ALERTENT.includes(ton) && <Icone nom="warning" classe="mention-signe" />}
+      {ton === 'conseil' && <Icone nom="info" classe="mention-signe" />}
       {children}
     </p>
   )

@@ -310,7 +310,7 @@ qu'elle nomme ce qu'on survole où que ce soit. `echelles.test.ts` tient les deu
 | `Etiquette` | 12 | **tout libellé** — rend une clé du glossaire, jamais un littéral |
 | `Terme` | 4 | un terme affiché seul, définition complète au clic |
 | `TracedValue` | 6 | **tout nombre calculé** — dépliable jusqu'à sa formule (§1.5.2) |
-| `Mention` | 13 | une phrase qui commente : état, cause, erreur |
+| `Mention` | 13 | une phrase qui commente : état, cause, erreur, conseil |
 | `Bulle` | 9 | une infobulle — une phrase, pas un paragraphe |
 | `Inconnu` | 1 | une grandeur absente, marquée plutôt qu'effacée |
 
@@ -319,8 +319,9 @@ qu'elle nomme ce qu'on survole où que ce soit. `echelles.test.ts` tient les deu
 <Mention ton={budget.tient ? 'etat' : 'cause'}>{message}</Mention>
 ```
 
-`ton` vaut `'etat' | 'cause' | 'erreur' | 'tracee-source'`. Les deux qui **alertent** —
-`cause` et `erreur` — portent le signe ⚠ de §11.1, rendu par `Icone`. `Mention` accepte par
+`ton` vaut `'etat' | 'cause' | 'erreur' | 'conseil' | 'tracee-source'`. Les deux qui **alertent** —
+`cause` et `erreur` — portent le signe ⚠ de §11.1, rendu par `Icone`. `conseil` prend le même
+cadre en gris, avec le signe `info` : un geste à faire avant de partir, pas une faute. `Mention` accepte par
 ailleurs les attributs d'un `<p>` (`role`, `id`, `aria-live`…) : le contrat d'accessibilité
 appartient à la phrase, pas au composant.
 

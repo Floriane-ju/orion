@@ -27,10 +27,16 @@ import { versVecteur } from '../src/core/mat3.ts'
 import { arcEtoile, arcInvisible, arcsVisibles } from '../src/core/file-etoiles.ts'
 import { projecteur, type Vue } from '../src/core/projection.ts'
 import { dessineChamp, type EntreeDessinChamp } from '../src/ui/dessine-champ.ts'
-import { pointZeroSysteme } from '../src/data/equipment.ts'
 import { PanneauFile, type PanneauFileProps } from '../src/ui/PanneauFile.tsx'
-import { dureeApercuMin, etatSeance, majFile, reinitialiseSeance } from '../src/ui/seance-etat.ts'
+import {
+  etatSeance,
+  majFile,
+  planDeSeance,
+  posePoseMaxCadre,
+  reinitialiseSeance,
+} from '../src/ui/seance-etat.ts'
 import { K } from '../src/registry/constants.ts'
+import { DOMAINES } from '../src/registry/domains.ts'
 import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
 const DATE = new Date('2026-08-15T22:00:00Z')
@@ -167,10 +173,7 @@ const PROPS_PANNEAU: PanneauFileProps = {
   capteurHMm: 23.9,
   fovLDeg: 121.7,
   fovHDeg: 100.2,
-  echApx: 105.6,
   tailleRawMo: 33,
-  profondeur: { ...PROFONDEUR, zpEstime: true },
-  zeroSysteme: pointZeroSysteme(null),
   modeObjectif: 'MODE_CADRE',
 }
 
@@ -331,8 +334,14 @@ describe('§9 — le panneau du filé', () => {
     // T-0142 — la carte de pose se lit dans le cadre : le panneau n'en porte que la bascule.
     expect(html).toContain('Afficher la pose maximale dans le cadre')
     expect(html).not.toContain('carte-pose')
-    expect(html).toContain('Prévisualisation de champ')
-    expect(html).toContain('Filé d’étoiles')
+    // T-0374 — une seule saisie, le temps de prise de vue, et ce qu'elle prescrit.
+    expect(html.match(/role="slider"/g)).toHaveLength(1)
+    expect(html).toContain('Temps de prise de vue')
+    expect(html).toContain('max étoiles comme des points')
+    expect(html).not.toContain('type="number"')
+    expect(html).not.toContain('Profondeur d’une pose')
+    expect(html).toContain('<h2>Temps de prise de vue</h2>')
+    expect(html).toContain('Longueur d’arc')
     expect(html).toContain('Séquence de filé')
     // T-0174 — la règle des 500 ne s'affiche plus : un repère qu'aucun calcul ne retient
     // n'a pas sa place à côté des valeurs qui décident.
@@ -456,33 +465,53 @@ describe('§9.3 — T-0119, le filé plafonne la surface peinte', () => {
     expect(JSON.stringify(second)).toBe(JSON.stringify(premier))
   })
 
-  it('retire la logistique de séquence quand la durée du filé est nulle', () => {
+  it('retire la logistique de séquence quand le temps tient en une photo', () => {
     const html = () => renderToStaticMarkup(createElement(PanneauFile, PROPS_PANNEAU))
     try {
-      // §9.4 — à durée nulle l'aperçu ne décrit qu'une photo : il n'y a rien à cadencer. La
-      // section est ABSENTE, pas affichée à zéro — un compteur à zéro se lit comme un budget
-      // calculé, donc comme un résultat.
-      majFile({ dureeTotaleMin: 0 })
+      // §9.4, T-0374 — sous la pose max du cadre, le temps de prise de vue ne décrit qu'une
+      // photo : il n'y a rien à cadencer. La section est ABSENTE, pas affichée à une pose.
+      majFile({ dureeTotaleS: DOMAINES.duree_prise_vue_s.min })
       expect(html()).not.toContain('Séquence de filé')
 
-      majFile({ dureeTotaleMin: K('DUREE_FILE_SPECTACULAIRE_MIN') })
+      majFile({ dureeTotaleS: K('DUREE_FILE_SPECTACULAIRE_MIN') * SECONDES_PAR_MINUTE })
       expect(html()).toContain('Séquence de filé')
     } finally {
       reinitialiseSeance()
     }
   })
 
-  it('accumule la pose unitaire quand la durée du filé est nulle', () => {
+  it('avertit des étoiles étirées entre la pose max et un filé lisible, pas avant ni après', () => {
+    const html = () => renderToStaticMarkup(createElement(PanneauFile, PROPS_PANNEAU))
     try {
-      // Le mode ne se choisit plus : la durée le décide. Et une photo unique n'accumule pas
-      // rien — elle accumule sa pose, donc l'arc lu au panneau est celui de cette pose, pas
-      // zéro. Le peintre et le diagnostic lisent cette même durée.
-      majFile({ dureeTotaleMin: 0 })
-      const { file } = etatSeance()
-      expect(dureeApercuMin(file) * SECONDES_PAR_MINUTE).toBeCloseTo(file.tPoseS, 9)
+      // Une photo unique : étoiles ponctuelles, rien à signaler.
+      majFile({ dureeTotaleS: DOMAINES.duree_prise_vue_s.min })
+      expect(html()).not.toContain('étoiles étirées')
+      // Au-delà de la pose max, sous le filé lisible : ni points, ni arcs.
+      majFile({ dureeTotaleS: (K('DUREE_FILE_LISIBLE_MIN') * SECONDES_PAR_MINUTE) / 2 })
+      expect(html()).toContain('étoiles étirées')
+      majFile({ dureeTotaleS: K('DUREE_FILE_LISIBLE_MIN') * SECONDES_PAR_MINUTE })
+      expect(html()).not.toContain('étoiles étirées')
+    } finally {
+      reinitialiseSeance()
+    }
+  })
 
-      majFile({ dureeTotaleMin: K('DUREE_FILE_SPECTACULAIRE_MIN') })
-      expect(dureeApercuMin(etatSeance().file)).toBe(K('DUREE_FILE_SPECTACULAIRE_MIN'))
+  it('bascule de la photo au filé à la pose max du cadre', () => {
+    try {
+      // Le mode ne se choisit pas : le temps et la pose max le décident. Une photo unique pose
+      // tout le temps de prise de vue ; au-delà, la pose est celle du filé, C-36 haut.
+      const poseMax = K('T_POSE_FILE_MAX_S') * 2
+      posePoseMaxCadre(poseMax)
+      majFile({ dureeTotaleS: poseMax })
+      const photo = planDeSeance(etatSeance())
+      expect(photo.mode).toBe('CHAMP')
+      expect(photo.tPoseS.value).toBe(poseMax)
+
+      majFile({ dureeTotaleS: poseMax + 1 })
+      const file = planDeSeance(etatSeance())
+      expect(file.mode).toBe('FILE')
+      expect(file.tPoseS.value).toBe(K('T_POSE_FILE_MAX_S'))
+      expect(file.intervalleS.value).toBe(K('INTERVALLE_INTER_POSE_FILE_MAX_S'))
     } finally {
       reinitialiseSeance()
     }

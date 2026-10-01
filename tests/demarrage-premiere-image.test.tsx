@@ -55,7 +55,7 @@ describe('T-0296 — l’index de Panorama n’est construit qu’en Panorama', 
     const parametres = useParametresFile({
       etoiles,
       mode: etatSeance().mode,
-      file: etatSeance().file,
+      seance: etatSeance(),
       materiel: undefined,
     })
     return <p>{parametres.current === null ? 'aucun' : 'des paramètres'}</p>

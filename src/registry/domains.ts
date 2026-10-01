@@ -137,16 +137,15 @@ export const DOMAINES = Object.freeze({
   // §9.1 — déclinaison de la zone visée
   dec_deg: domaine({ champ: 'la déclinaison', min: -90, max: 90, unite: '°', section: '9.1' }),
 
-  // §9.3 — durée d'accumulation du filé. Le PRD ouvre la plage à 5 min : en deçà, la trace
-  // ne se lit plus comme un arc. Le curseur descend pourtant à 0, qui n'est pas un filé
-  // court mais l'autre aperçu — une pose unique (§9.2). C'est une valeur hors domaine par
-  // construction, et c'est pourquoi elle vaut zéro et non la borne basse.
-  duree_file_min: domaine({
-    champ: 'la durée du filé',
-    min: 5,
-    max: 480,
-    pas: 5,
-    unite: 'min',
+  // §9.3 — T-0374 : temps total de prise de vue, la seule saisie du Panorama. Il part d'une
+  // seconde, comme la pose unitaire : en deçà de la pose max du cadre, il EST la pose d'une
+  // photo unique. La borne haute est celle du filé de §9.3, huit heures.
+  duree_prise_vue_s: domaine({
+    champ: 'le temps de prise de vue',
+    min: 1,
+    max: 28800,
+    pas: 1,
+    unite: 's',
     section: '9.3',
   }),
 

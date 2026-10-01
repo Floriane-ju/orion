@@ -16,21 +16,15 @@ import { semisGeneratif } from '../data/semis.ts'
 import { magnitudeLimitePrevisu } from '../core/galactique.ts'
 import { INDEX_VIDE, construitIndex, type IndexCiel } from '../core/index-ciel.ts'
 import type { Etoile } from '../data/catalog.ts'
-import {
-  dureeApercuMin,
-  modeApercu,
-  type ModeInterface,
-  type ReglagesFile,
-} from './seance-etat.ts'
+import { planDeSeance, type EtatSeance, type ModeInterface } from './seance-etat.ts'
 import type { ParametresFile } from './dessine-champ.ts'
 import type { MaterielFile } from './planetarium-materiel.ts'
-import { S_PAR_MIN } from '../core/unites.ts'
 
 
 export interface EntreeParametresFile {
   readonly etoiles: readonly Etoile[]
   readonly mode: ModeInterface
-  readonly file: ReglagesFile
+  readonly seance: Pick<EtatSeance, 'file' | 'poseMaxCadreS'>
   readonly materiel: MaterielFile | undefined
 }
 
@@ -59,7 +53,7 @@ export function useIndexReel(etoiles: readonly Etoile[], actif: boolean): IndexC
 export function useParametresFile(
   entree: EntreeParametresFile,
 ): RefObject<ParametresFile | null> {
-  const { file, materiel } = entree
+  const { seance, materiel } = entree
   const enPanorama = entree.mode === 'PANORAMA'
   const indexReel = useIndexReel(entree.etoiles, enPanorama)
   const parametres = useRef<ParametresFile | null>(null)
@@ -69,7 +63,7 @@ export function useParametresFile(
     parametres.current = null
     return parametres
   }
-  const apercu = modeApercu(file)
+  const apercu = planDeSeance(seance).mode
   // Le semis n'est construit qu'à la première passe : sans elle, il ne sert à rien.
   indexSemis.current ??= construitIndex(semisGeneratif())
   parametres.current = {
@@ -81,7 +75,9 @@ export function useParametresFile(
     // En panorama, la monture est réputée coupée : le ciel tourne, dans le filé comme dans
     // l'aperçu de champ, quel que soit le suivi déclaré au matériel.
     suiviActif: false,
-    dureeS: dureeApercuMin(file) * S_PAR_MIN,
+    // Une photo unique accumule sa pose, un filé sa séquence : dans les deux cas, le temps de
+    // prise de vue entier (T-0374).
+    dureeS: seance.file.dureeTotaleS,
     // T-0119 — deux plafonds, deux portées. La LISIBILITÉ ne concerne que le filé : l'aperçu de
     // champ montre des points, qui ne se recouvrent pas et dont aucune longueur ne se lit. Le
     // COÛT concerne les deux : l'aperçu de champ lisait le catalogue à pleine profondeur, soit
