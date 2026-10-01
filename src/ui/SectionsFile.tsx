@@ -74,19 +74,11 @@ export function TempsDePriseDeVue({
       >
         Afficher la pose maximale dans le cadre
       </Interrupteur>
-      {file.poseDansCadre && (
-        <p className="etat">Le cadre est masqué tant que la grille est affichée.</p>
-      )}
       {carte.messages.map((message) => (
         <Mention ton="cause" key={message}>
           {message}
         </Mention>
       ))}
-      <p className="etat">
-        {plan.mode === 'CHAMP'
-          ? `Une photo de ${texte} : étoiles ponctuelles.`
-          : 'Au-delà de la pose max : filé d’étoiles, en une séquence de poses.'}
-      </p>
       {/* Entre la pose max et un filé lisible, les étoiles ne sont ni des points ni des arcs :
           elles paraissent floues. L'avertissement se lit au curseur, là où on le franchit — et
           jamais pour une photo unique, dont les étoiles sont ponctuelles par construction. */}
