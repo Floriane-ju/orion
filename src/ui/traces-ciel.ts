@@ -10,7 +10,7 @@
 
 import { angleDeCosDeg, applique, transpose, versVecteur, type Mat3, type Vec3 } from '../core/mat3.ts'
 import { contourCadreJ2000, type Cadre } from '../core/cadre.ts'
-import { pointEcran, type Projecteur } from '../core/projection.ts'
+import { pointEcran, type PointEcranMut, type Projecteur } from '../core/projection.ts'
 import { horsDuChamp, type ChampVisible } from './champ-visible.ts'
 import type { CoucheTraces } from '../core/constellations.ts'
 import type { EntreeDessin } from './dessine-ciel.ts'
@@ -130,6 +130,33 @@ export function cheminCadre(
   cheminLignes(ctx, projecteur, [[...contour, contour[0]!]])
 }
 
+/**
+ * T-0373 — un segment de figure n'a que deux sommets, et la portée en laisse projeter qui sont
+ * loin derrière l'observateur. Quand l'arc qui les joint passe derrière la visée, son image est
+ * le GRAND arc d'un cercle qui fait le tour de l'écran ; la corde droite, elle, traverse le
+ * ciel. Le milieu de l'arc tranche : sur le petit arc, il tombe dans le disque dont la corde
+ * est le diamètre ; sur le grand, hors de ce disque — ou nulle part, s'il frôle l'antipode.
+ */
+function arcDevant(
+  projecteur: Projecteur,
+  va: Vec3,
+  vb: Vec3,
+  a: PointEcranMut,
+  b: PointEcranMut,
+  m: PointEcranMut,
+): boolean {
+  const sx = va.x + vb.x
+  const sy = va.y + vb.y
+  const sz = va.z + vb.z
+  const norme = Math.sqrt(sx * sx + sy * sy + sz * sz)
+  if (norme <= Number.EPSILON) return false
+  if (!projecteur.projetteEn(sx / norme, sy / norme, sz / norme, m)) return false
+  const dx = m.xPx - (a.xPx + b.xPx) / 2
+  const dy = m.yPx - (a.yPx + b.yPx) / 2
+  const demiCordeCarree = ((a.xPx - b.xPx) ** 2 + (a.yPx - b.yPx) ** 2) / 4
+  return dx * dx + dy * dy <= demiCordeCarree
+}
+
 export function traceSegments(
   ctx: CanvasRenderingContext2D,
   projecteur: Projecteur,
@@ -138,6 +165,7 @@ export function traceSegments(
 ): void {
   const a = pointEcran()
   const b = pointEcran()
+  const m = pointEcran()
   // L'écart se fait par CONSTELLATION, pas par segment : une figure est compacte, et sa
   // calotte rejette ses vingt segments d'un seul produit scalaire.
   const calottes =
@@ -156,6 +184,7 @@ export function traceSegments(
     for (const segment of couche.segments) {
       if (!projecteur.projetteEn(segment.a.x, segment.a.y, segment.a.z, a)) continue
       if (!projecteur.projetteEn(segment.b.x, segment.b.y, segment.b.z, b)) continue
+      if (!arcDevant(projecteur, segment.a, segment.b, a, b, m)) continue
       ctx.moveTo(a.xPx, a.yPx)
       ctx.lineTo(b.xPx, b.yPx)
     }
