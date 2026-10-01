@@ -1,5 +1,5 @@
 /**
- * §9.1–§9.3 — les cinq régions de l'onglet « Filé », nommées d'après ce qu'elles montrent.
+ * §9.1–§9.3 — les quatre régions de l'onglet « Filé », nommées d'après ce qu'elles montrent.
  *
  * Aucune ne calcule : elles reçoivent les lectures de `useLecturesFile` et les réglages du
  * magasin de séance. Le rendu de l'image, lui, se voit dans le cadre matériel sur la scène.
@@ -9,17 +9,13 @@ import { DOMAINES } from '../registry/domains.ts'
 import { degres, formatePose, nombre, nombreLibre, pourcentage } from '../registry/ecriture.ts'
 import { vignettageDiaph } from '../core/galactique.ts'
 import { libelleZpSource, type PointZeroSysteme } from '../data/equipment.ts'
-import type { ModeProjection } from '../core/projection.ts'
-import type { ActionsScene } from './scene-etat.ts'
 import {
   DUREE_APERCU_CHAMP_MIN,
   majFile,
   modeApercu,
-  type ModeInterface,
   type ReglagesFile,
   type RenduFile,
 } from './seance-etat.ts'
-import { MENTION_PLAFOND_CHAMP, MENTION_PLAFOND_FILE } from './scene-overlay.ts'
 import { Curseur } from './Curseur.tsx'
 import { Interrupteur } from './Interrupteur.tsx'
 import { TracedValue } from './TracedValue.tsx'
@@ -28,49 +24,6 @@ import type { LecturesFile } from './panneau-file-lectures.ts'
 import { Mention } from './Mention.tsx'
 import { S_PAR_MIN } from '../core/unites.ts'
 
-
-interface CadrageProps {
-  readonly lectures: LecturesFile
-  readonly file: ReglagesFile
-  readonly fovLDeg: number
-  readonly modeObjectif: ModeProjection
-  /** T-0179 — la portée de l'aperçu ne se coche plus : elle suit le mode de l'interface. */
-  readonly mode: ModeInterface
-  readonly actions: ActionsScene
-}
-
-/** Ce que le boîtier vise, et l'écart entre ce que la scène montre et ce que le capteur voit. */
-export function CadrageDuFile({
-  lectures,
-  file,
-  fovLDeg,
-  modeObjectif,
-  mode,
-  actions,
-}: CadrageProps) {
-  return (
-    <section>
-      <h2>Grand champ et filé</h2>
-
-      <p className="etat">La monture n’est pas prise en compte.</p>
-
-      <p className="etat">
-        {modeApercu(file) === 'FILE' ? MENTION_PLAFOND_FILE : MENTION_PLAFOND_CHAMP}
-      </p>
-
-      {/* Azimut, hauteur et rotation n'ont pas de curseur ici : le pointage se fait à la
-          scène, en faisant glisser le planétarium, et la rotation se règle au panneau Vue
-          ou avec Maj + glisser. Ce panneau les lit, il ne les commande pas — la visée
-          courante se lit au centre de la barre basse (§11.1). */}
-
-      {mode === 'PANORAMA' && lectures.projDifferente && (
-        <button type="button" onClick={() => actions.majVue({ mode: modeObjectif, fovDeg: fovLDeg })}>
-          Voir comme l’objectif
-        </button>
-      )}
-    </section>
-  )
-}
 
 /**
  * §9.1 — la pose maximale n'est pas un nombre, c'est une carte par déclinaison.

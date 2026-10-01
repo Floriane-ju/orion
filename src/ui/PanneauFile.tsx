@@ -19,7 +19,6 @@ import { modeApercu, useSeance } from './seance-etat.ts'
 import { useLecturesFile } from './panneau-file-lectures.ts'
 import {
   ArcsDuFile,
-  CadrageDuFile,
   PoseMaximale,
   ProfondeurDUnePose,
   SequenceDePrises,
@@ -46,20 +45,12 @@ export interface PanneauFileProps {
 
 export function PanneauFile(props: PanneauFileProps) {
   // Le pointage est celui de la scène : cadrer ici cadre le planétarium de §3, et l'inverse.
-  const { vue, actions } = useScene()
-  const { file, renduFile, mode } = useSeance()
+  const { vue } = useScene()
+  const { file, renduFile } = useSeance()
   const lectures = useLecturesFile(props, vue, file)
 
   return (
     <>
-      <CadrageDuFile
-        lectures={lectures}
-        file={file}
-        fovLDeg={props.fovLDeg}
-        modeObjectif={props.modeObjectif}
-        mode={mode}
-        actions={actions}
-      />
       <PoseMaximale lectures={lectures} file={file} />
       <ProfondeurDUnePose
         lectures={lectures}

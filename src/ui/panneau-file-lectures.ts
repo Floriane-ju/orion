@@ -48,8 +48,6 @@ export interface LecturesFile {
   readonly trainee: Traced<number>
   /** Vrai quand la pose unitaire dépasse ce que le cadre tolère : les étoiles s'ovalisent. */
   readonly poseDepassee: boolean
-  /** Vrai quand la scène ne regarde pas comme l'objectif (§5.1) : le panneau offre d'y revenir. */
-  readonly projDifferente: boolean
   readonly diagnostic: DiagnosticFile
   readonly sequence: SequenceFile
 }
@@ -138,7 +136,6 @@ export function useLecturesFile(
     profondeur: magnitudeLimitePrevisu(materiel.profondeur),
     trainee: traceePx(file.tPoseS, carte.decMinAbsDeg, materiel.echApx),
     poseDepassee: carte.poseOperanteS !== null && file.tPoseS > carte.poseOperanteS,
-    projDifferente: vue.mode !== mode,
     diagnostic,
     sequence,
   }

@@ -29,7 +29,6 @@ import { projecteur, type Vue } from '../src/core/projection.ts'
 import { dessineChamp, type EntreeDessinChamp } from '../src/ui/dessine-champ.ts'
 import { pointZeroSysteme } from '../src/data/equipment.ts'
 import { PanneauFile, type PanneauFileProps } from '../src/ui/PanneauFile.tsx'
-import { MENTION_PLAFOND_CHAMP, MENTION_PLAFOND_FILE } from '../src/ui/scene-overlay.ts'
 import { dureeApercuMin, etatSeance, majFile, reinitialiseSeance } from '../src/ui/seance-etat.ts'
 import { K } from '../src/registry/constants.ts'
 import { SITE_REFERENCE as SITE } from './fixtures.ts'
@@ -341,14 +340,6 @@ describe('§9 — le panneau du filé', () => {
     // Le rappel batterie remplace le budget chiffré : une durée, pas un nombre de batteries.
     expect(html).toContain('Attention à la batterie')
   })
-
-  it('annonce que la monture est ignorée : en panorama, elle est réputée coupée', () => {
-    // Le panneau ne reçoit plus aucun plafond de monture : la note dit pourquoi la pose max
-    // reste celle de la rotation du ciel, même avec un suivi déclaré au matériel.
-    const html = renderToStaticMarkup(createElement(PanneauFile, PROPS_PANNEAU))
-    expect(html).toContain('La monture n’est pas prise en compte.')
-    expect(html).not.toContain('max monture')
-  })
 })
 
 describe('§9.3 — T-0119, le filé plafonne la surface peinte', () => {
@@ -463,23 +454,6 @@ describe('§9.3 — T-0119, le filé plafonne la surface peinte', () => {
     const premier = rend({ magLimite: K('SEMIS_MAG_MAX'), couvertureMax: null }).ctx.appels
     const second = rend({ magLimite: K('SEMIS_MAG_MAX'), couvertureMax: null }).ctx.appels
     expect(JSON.stringify(second)).toBe(JSON.stringify(premier))
-  })
-
-  it('déclare le plafond dans les deux aperçus, avec la raison de chacun', () => {
-    const html = () => renderToStaticMarkup(createElement(PanneauFile, PROPS_PANNEAU))
-    try {
-      // Les deux aperçus sont plafonnés, pour deux raisons : un plafond muet se lit comme un ciel
-      // pauvre, donc comme un bug de rendu. Mais la raison n'est pas la même, donc la phrase non
-      // plus — lisibilité pour le filé, coût de lecture pour l'aperçu de champ.
-      majFile({ dureeTotaleMin: 0 })
-      expect(html()).toContain(MENTION_PLAFOND_CHAMP)
-      expect(html()).not.toContain(MENTION_PLAFOND_FILE)
-      majFile({ dureeTotaleMin: K('DUREE_FILE_SPECTACULAIRE_MIN') })
-      expect(html()).toContain(MENTION_PLAFOND_FILE)
-      expect(html()).not.toContain(MENTION_PLAFOND_CHAMP)
-    } finally {
-      reinitialiseSeance()
-    }
   })
 
   it('retire la logistique de séquence quand la durée du filé est nulle', () => {
