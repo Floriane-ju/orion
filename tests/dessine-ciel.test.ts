@@ -314,9 +314,21 @@ describe('rayon d’étoile au planétarium §3.3', () => {
     expect(RAYON_MAX_ETOILE_PX).toBeLessThan(RAYON_CORPS_PX)
   })
 
-  it('laisse les étoiles faibles suivre la loi §3.3', () => {
-    const faible = K('MAG_REFERENCE_RAYON') + 5
-    expect(rayonEtoileCielPx(faible)).toBeCloseTo(rayonEtoilePx(faible), 9)
+  it('suit la pente de la loi §3.3 entre plancher et plafond', () => {
+    const m = K('MAG_REFERENCE_RAYON') + 3
+    expect(rayonEtoileCielPx(m) / rayonEtoileCielPx(m + 1)).toBeCloseTo(
+      rayonEtoilePx(m) / rayonEtoilePx(m + 1),
+      9,
+    )
+  })
+
+  it('T-0376 — écarte magnitudes 0 et 4 au moins deux fois plus qu’avec l’ancien r0 plafonné', () => {
+    const m0 = K('MAG_REFERENCE_RAYON')
+    const m4 = m0 + 4
+    // L'ancien rendu : la loi §9.2 bornée à [0,7 ; 3] px.
+    const ancien = (m: number) => Math.min(3, Math.max(0.7, rayonEtoilePx(m)))
+    const ecartAncien = ancien(m0) - ancien(m4)
+    expect(rayonEtoileCielPx(m0) - rayonEtoileCielPx(m4)).toBeGreaterThanOrEqual(2 * ecartAncien)
   })
 })
 

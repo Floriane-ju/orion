@@ -23,15 +23,15 @@ import type { CibleEcran } from './dessine-ciel.ts'
 import { SANS_NOM } from '../registry/libelles.ts'
 import { nomCommun } from './libelles-objet.ts'
 import { POLICE_SCENE } from './couleurs.ts'
+import { K } from '../registry/constants.ts'
 
-/* T-0027 — noms des éléments trop petits à l'écran une fois le canevas 1920×1080 réduit à
-   la taille d'affichage réelle (object-fit: contain). */
-export const HAUTEUR_LABEL_PX = 18
+export const HAUTEUR_LABEL_PX = K('HAUTEUR_NOM_SCENE_PX')
 /** La police des noms peints sur la scène : une écriture, pour que tous les labels se mesurent pareil. */
 export const POLICE_LABEL = `${HAUTEUR_LABEL_PX}px ${POLICE_SCENE}`
-export const LARGEUR_CARACTERE_PX = 10
+export const LARGEUR_CARACTERE_PX = HAUTEUR_LABEL_PX * K('CHASSE_POLICE_SCENE_EM')
 export const MARQUEUR_OBJET_PX = 4
-export const RAYON_CORPS_PX = 5
+/** T-0376 — au-dessus du plafond des étoiles : Sirius ne prend pas la taille de Jupiter. */
+export const RAYON_CORPS_PX = 6
 /** La Lune porte sa phase : à la taille d'une planète, son croissant ne se lisait pas. */
 export const RAYON_LUNE_PX = 10
 

@@ -15,6 +15,8 @@ import { horsDuChamp, type ChampVisible } from './champ-visible.ts'
 import type { CoucheTraces } from '../core/constellations.ts'
 import type { EntreeDessin } from './dessine-ciel.ts'
 import { TOUR_DEG } from '../core/unites.ts'
+import { K } from '../registry/constants.ts'
+import { RAYON_MIN_ETOILE_PX, rayonEtoileCielPx } from './apparence-objets.ts'
 
 /** Échantillonnage en azimut du cercle d'horizon. */
 const PAS_AZIMUT_HORIZON_DEG = 3
@@ -157,6 +159,32 @@ function arcDevant(
   return dx * dx + dy * dy <= demiCordeCarree
 }
 
+/** T-0376 — retrait d'un trait avant l'étoile qu'il relie, proportionnel à son disque. */
+export function margeFigurePx(magV: number | null): number {
+  const rayon = magV === null ? RAYON_MIN_ETOILE_PX : rayonEtoileCielPx(magV)
+  return rayon * K('MARGE_FIGURE_RAYONS')
+}
+
+/**
+ * Le segment `a → b` raccourci de `margeA` côté `a` et `margeB` côté `b`, en
+ * `[xa, ya, xb, yb]` ; `null` quand les deux étoiles sont trop proches pour qu'il en reste
+ * un trait.
+ */
+export function retraitAuxEtoiles(
+  a: PointEcranMut,
+  b: PointEcranMut,
+  margeA: number,
+  margeB: number,
+): readonly [number, number, number, number] | null {
+  const dx = b.xPx - a.xPx
+  const dy = b.yPx - a.yPx
+  const longueur = Math.hypot(dx, dy)
+  if (longueur <= margeA + margeB) return null
+  const ux = dx / longueur
+  const uy = dy / longueur
+  return [a.xPx + ux * margeA, a.yPx + uy * margeA, b.xPx - ux * margeB, b.yPx - uy * margeB]
+}
+
 export function traceSegments(
   ctx: CanvasRenderingContext2D,
   projecteur: Projecteur,
@@ -185,8 +213,10 @@ export function traceSegments(
       if (!projecteur.projetteEn(segment.a.x, segment.a.y, segment.a.z, a)) continue
       if (!projecteur.projetteEn(segment.b.x, segment.b.y, segment.b.z, b)) continue
       if (!arcDevant(projecteur, segment.a, segment.b, a, b, m)) continue
-      ctx.moveTo(a.xPx, a.yPx)
-      ctx.lineTo(b.xPx, b.yPx)
+      const bouts = retraitAuxEtoiles(a, b, margeFigurePx(segment.magA), margeFigurePx(segment.magB))
+      if (bouts === null) continue
+      ctx.moveTo(bouts[0], bouts[1])
+      ctx.lineTo(bouts[2], bouts[3])
     }
   }
   ctx.stroke()

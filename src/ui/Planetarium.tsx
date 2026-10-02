@@ -169,9 +169,12 @@ export function Planetarium(props: PlanetariumProps) {
   const seance = useSeance()
   const { file, mode } = seance
 
-  const figures = useMemo(() => coucheFigures(props.constellations.figures), [props.constellations])
+  const figures = useMemo(
+    () => coucheFigures(props.constellations.figures, props.constellations.etoilesNommees),
+    [props.constellations],
+  )
   const asterismes = useMemo(
-    () => coucheAsterismes(props.constellations.asterismes),
+    () => coucheAsterismes(props.constellations.asterismes, props.constellations.etoilesNommees),
     [props.constellations],
   )
   const frontieres = useMemo(() => coucheFrontieres(props.constellations), [props.constellations])

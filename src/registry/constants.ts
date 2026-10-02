@@ -1364,6 +1364,55 @@ const RENDU = {
     ordreDeGrandeur: false,
     sections: ['3.3', '9.2'],
   }),
+  RAYON_ETOILE_CIEL_R0_PX: entree({
+    ref: 'C-27',
+    libelle: 'Rayon d’une étoile de magnitude de référence au planétarium',
+    valeur: 5.5,
+    unite: 'px',
+    source:
+      '§3.3 — T-0376 : même loi et même pente que §9.2, r0 propre à la carte. Avec r0 = 4, ' +
+      'magnitudes 0 et 4 ne s’écartaient que de 2 px une fois plafonnées : la hiérarchie du ' +
+      'ciel passait aux figures. r0 = 5,5 donne 4,1 px d’écart et repousse le plancher à la ' +
+      'magnitude 5,9 — référence : gradation des disques du Sky Atlas 2000.0 (Tirion)',
+    tolerance: 'convention produit — pilote l’aspect, jamais un verdict',
+    ordreDeGrandeur: false,
+    sections: ['3.3'],
+  }),
+  RAYON_MIN_ETOILE_PX: entree({
+    ref: 'C-27',
+    libelle: 'Plancher du rayon de rendu d’une étoile',
+    valeur: 0.7,
+    unite: 'px',
+    source: '§3.3 — sous ce rayon, l’antialiasing efface le disque : la plus faible reste un point',
+    tolerance: 'convention produit — pilote l’aspect, jamais un verdict',
+    ordreDeGrandeur: false,
+    sections: ['3.3', '9.2'],
+  }),
+  RAYON_MAX_ETOILE_CIEL_PX: entree({
+    ref: 'C-27',
+    libelle: 'Plafond du rayon d’une étoile au planétarium',
+    valeur: 5.5,
+    unite: 'px',
+    source:
+      '§3.3 — T-0376 : atteint vers la magnitude 0, il réunit Sirius, Canopus, Arcturus et ' +
+      'Véga dans la classe la plus brillante, comme la première classe d’un atlas. Reste sous ' +
+      'le disque d’une planète : une étoile ne se confond pas avec un corps',
+    tolerance: 'convention produit — pilote l’aspect, jamais un verdict',
+    ordreDeGrandeur: false,
+    sections: ['3.3'],
+  }),
+  MARGE_FIGURE_RAYONS: entree({
+    ref: 'C-27',
+    libelle: 'Retrait d’un trait de figure avant une étoile, en rayons de son disque',
+    valeur: 2,
+    unite: '—',
+    source:
+      '§3.4 — T-0376 : un trait qui touche le disque se lit avant l’étoile qu’il relie. ' +
+      'Retiré d’un rayon au-delà du bord, comme les figures du Sky Atlas 2000.0 (Tirion)',
+    tolerance: 'convention produit — pilote l’aspect, jamais un verdict',
+    ordreDeGrandeur: false,
+    sections: ['3.3', '3.4'],
+  }),
   CELLULE_INDEX_DEG: entree({
     ref: 'C-28',
     libelle: 'Côté d’une cellule de l’index spatial équatorial',
@@ -1424,6 +1473,28 @@ const RENDU = {
     valeur: 25,
     unite: '—',
     source: '§3.4 — « densité plafonnée à 25 labels simultanés, priorité à la magnitude »',
+    tolerance: null,
+    ordreDeGrandeur: false,
+    sections: ['3.4'],
+  }),
+  HAUTEUR_NOM_SCENE_PX: entree({
+    ref: 'C-29',
+    libelle: 'Corps des noms peints sur la scène',
+    valeur: 13.6,
+    unite: 'px',
+    source:
+      '§3.4 — T-0376 : le jeton --texte-appui (0,85rem à 16 px), sous le corps courant de ' +
+      'l’interface. Un nom plus gros que les panneaux se lit avant le ciel qu’il annote',
+    tolerance: 'convention produit — pilote l’aspect, jamais un verdict',
+    ordreDeGrandeur: false,
+    sections: ['3.4'],
+  }),
+  CHASSE_POLICE_SCENE_EM: entree({
+    ref: 'C-29',
+    libelle: 'Chasse d’un caractère de la police de la scène',
+    valeur: 0.6,
+    unite: 'em',
+    source: '§3.4 — IBM Plex Mono : 600 unités de chasse sur 1 000 par cadratin, police à chasse fixe',
     tolerance: null,
     ordreDeGrandeur: false,
     sections: ['3.4'],

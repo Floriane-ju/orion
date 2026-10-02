@@ -16,6 +16,7 @@ import { K } from '../registry/constants.ts'
 import type {
   AreteFrontiere,
   Asterisme,
+  EtoileNommee,
   Figure,
   PaquetConstellations,
   Segment,
@@ -87,12 +88,39 @@ export function ecartFrontieresDeg(anneeEpoque: number): Traced<number> {
 export interface SegmentVec {
   readonly a: Vec3
   readonly b: Vec3
+  /**
+   * T-0376 — magnitude de l'étoile à chaque bout, `null` si le paquet ne la nomme pas. Le
+   * trait s'arrête avant le disque, et le disque dépend de la magnitude.
+   */
+  readonly magA: number | null
+  readonly magB: number | null
 }
 
-function segmentsVers(segments: readonly Segment[]): readonly SegmentVec[] {
+/**
+ * Appariement par position, même raison et même tolérance que `nomEtoile` (§8.4) : les
+ * segments et les étoiles nommées sortent de la même ligne HYG.
+ * ponytail: balayage linéaire, une fois au chargement ; un sommet d'étoile non nommée reste
+ * `null` et prend la marge du plancher.
+ */
+function magnitudeEn(nommees: readonly EtoileNommee[], adDeg: number, decDeg: number): number | null {
+  const tolerance = K('TOLERANCE_APPARIEMENT_ETOILE_DEG')
+  for (const e of nommees) {
+    if (Math.abs(e.decDeg - decDeg) > tolerance) continue
+    if (Math.abs(e.adDeg - adDeg) > tolerance) continue
+    return e.magV
+  }
+  return null
+}
+
+function segmentsVers(
+  segments: readonly Segment[],
+  nommees: readonly EtoileNommee[],
+): readonly SegmentVec[] {
   return segments.map((s) => ({
     a: versVecteur(s.ad1Deg, s.dec1Deg),
     b: versVecteur(s.ad2Deg, s.dec2Deg),
+    magA: magnitudeEn(nommees, s.ad1Deg, s.dec1Deg),
+    magB: magnitudeEn(nommees, s.ad2Deg, s.dec2Deg),
   }))
 }
 
@@ -119,16 +147,22 @@ function barycentre(segments: readonly SegmentVec[]): Vec3 | null {
   return { x: x / norme, y: y / norme, z: z / norme }
 }
 
-export function coucheFigures(figures: readonly Figure[]): readonly CoucheTraces[] {
+export function coucheFigures(
+  figures: readonly Figure[],
+  nommees: readonly EtoileNommee[] = [],
+): readonly CoucheTraces[] {
   return figures.map((f) => {
-    const segments = segmentsVers(f.segments)
+    const segments = segmentsVers(f.segments, nommees)
     return { code: f.code, nom: f.nom, segments, centre: barycentre(segments) }
   })
 }
 
-export function coucheAsterismes(asterismes: readonly Asterisme[]): readonly CoucheTraces[] {
+export function coucheAsterismes(
+  asterismes: readonly Asterisme[],
+  nommees: readonly EtoileNommee[] = [],
+): readonly CoucheTraces[] {
   return asterismes.map((a) => {
-    const segments = segmentsVers(a.segments)
+    const segments = segmentsVers(a.segments, nommees)
     return { code: a.id, nom: a.nom, segments, centre: barycentre(segments) }
   })
 }

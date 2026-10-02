@@ -415,3 +415,12 @@ describe('T-0331 — les échelles de souffle, de graisse, de durée et de pile'
     expect(rang('masque')).toBeGreaterThan(rang('bulle')!)
   })
 })
+
+describe('T-0376 — les noms peints sur la scène', () => {
+  it('ne dépassent pas le corps du texte de l’interface', async () => {
+    const { HAUTEUR_LABEL_PX } = await import('../src/ui/libelles-cibles.ts')
+    const corpsRem = Number(/--texte-corps: ([\d.]+)rem;/.exec(CSS)![1])
+    const remPx = 16
+    expect(HAUTEUR_LABEL_PX).toBeLessThanOrEqual(corpsRem * remPx)
+  })
+})
