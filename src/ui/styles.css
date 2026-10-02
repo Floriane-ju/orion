@@ -1584,10 +1584,11 @@ body {
   gap: var(--pas-2);
 }
 
-/* T-0375 — la bascule et son réglage côte à côte : le tiroir de luminance s'ouvre au-dessus
-   des deux rangées, comme avant. */
+/* T-0375 — la bascule, puis son réglage, empilés comme le reste du flanc gauche : une
+   colonne de commandes, pas une rangée. Le tiroir de luminance s'ouvre au-dessus des trois. */
 .mode-nuit-commandes {
   display: flex;
+  flex-direction: column;
   gap: var(--pas-2);
 }
 
@@ -1624,9 +1625,9 @@ body {
 
 .tiroir-nuit[open] > .tiroir-contenu {
   top: auto;
-  bottom: calc(var(--jour-carte) + 2 * (var(--cible-clic) + var(--pas-2)));
+  bottom: calc(var(--jour-carte) + 3 * (var(--cible-clic) + var(--pas-2)));
   width: min(var(--carte-large), calc(100vw - var(--jour-ecran)));
-  max-height: calc(100dvh - var(--sous-barre) - 2 * (var(--cible-clic) + var(--pas-2)));
+  max-height: calc(100dvh - var(--sous-barre) - 3 * (var(--cible-clic) + var(--pas-2)));
 }
 
 /* T-0325 — la page info est une MODALE large : elle laisse un jour d'écran tout autour, et
