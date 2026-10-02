@@ -47,7 +47,8 @@ import { DOMAINES } from '../registry/domains.ts'
 import { I } from '../registry/imagerie.ts'
 import { TYPES_OBJET, type ObjetCielProfond, type TypeObjet } from '../data/deepsky.ts'
 import { RECALCUL_EN_COURS } from './app-calcul.ts'
-import { BoutonVisee } from './BoutonVisee.tsx'
+import { BoutonCadrer } from './BoutonCadrer.tsx'
+import type { ProfilCadre } from '../core/cadre.ts'
 import { BoutonChoixCible } from './BoutonChoixCible.tsx'
 import { Bulle } from './Bulle.tsx'
 import { Mention } from './Mention.tsx'
@@ -115,6 +116,9 @@ export interface PanneauCiblesProps {
    * contredits une fois — la carte notait ce que la liste laissait vide.
    */
   readonly etats: ReadonlyMap<string, EtatCible>
+  /** T-0283 — le cadre du matériel, pour que « Cadrer » fasse ici ce qu'il fait dans la fiche. */
+  readonly profil: ProfilCadre | undefined
+  readonly gaiaCharge: boolean
   /** T-0291 — vrai quand ce qui est affiché est le résultat de la saisie précédente. */
   readonly recalcul: boolean
   /** T-0188 — le champ de recherche est le repli du focus au retour de la fiche. */
@@ -314,6 +318,8 @@ export function PanneauCibles(props: PanneauCiblesProps) {
             key={ligne.objet.designation}
             ligne={ligne}
             etat={etats.get(ligne.objet.designation) ?? null}
+            profil={props.profil}
+            gaiaCharge={props.gaiaCharge}
           />
         ))}
       </ul>
@@ -353,7 +359,14 @@ function resumeTypes(offerts: readonly TypeObjet[], types: ReadonlySet<TypeObjet
  * Deux boutons distincts et non imbriqués : choisir la cible n'est pas la même intention que
  * pointer la scène dessus, et un `<button>` dans un `<button>` n'est pas du HTML valide.
  */
-function LigneListe({ ligne, etat }: { readonly ligne: LigneCible; readonly etat: EtatCible | null }) {
+interface LigneListeProps {
+  readonly ligne: LigneCible
+  readonly etat: EtatCible | null
+  readonly profil: ProfilCadre | undefined
+  readonly gaiaCharge: boolean
+}
+
+function LigneListe({ ligne, etat, profil, gaiaCharge }: LigneListeProps) {
   const { objet } = ligne
   const nom = nomCommun(objet)
 
@@ -377,10 +390,12 @@ function LigneListe({ ligne, etat }: { readonly ligne: LigneCible; readonly etat
           ))}
         </span>
       </button>
-      <BoutonVisee
+      <BoutonCadrer
         designation={objet.designation}
         azimutDeg={ligne.azimutDeg}
         hauteurDeg={ligne.hauteurDeg}
+        profil={profil}
+        gaiaCharge={gaiaCharge}
       />
       {/* §8.3 — ajouter au plan sans ouvrir la fiche : empiler trois cibles est un geste de
           liste. Offert sous le même critère que la fiche — la pose que le moteur annonce. */}

@@ -31,7 +31,7 @@ import { PanneauFile } from './PanneauFile.tsx'
 import { FicheCible } from './FicheCible.tsx'
 import { Pastilles } from './Pastilles.tsx'
 import { Bulle } from './Bulle.tsx'
-import { AlignementCible, CadrerCible } from './BoutonVisee.tsx'
+import { AlignementCible, CadrerCible } from './BoutonCadrer.tsx'
 import { BoutonChoixCible } from './BoutonChoixCible.tsx'
 import { useCiblesChoisies } from './cibles-choisies.ts'
 import { PlanSessionVue } from './PlanSession.tsx'
@@ -349,6 +349,8 @@ export function LateralSeance(props: RegionSeanceProps) {
           site={chaine.site}
           contexteSession={chaine.contexteSession}
           etats={chaine.etatsCibles}
+          profil={chaine.profilsCadre[0]}
+          gaiaCharge={props.gaiaCharge}
           recalcul={chaine.recalculEnCours}
           inputRef={rechercheRef}
         />

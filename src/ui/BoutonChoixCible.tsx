@@ -2,7 +2,7 @@
  * §6.4 puis §8.3 — « je veux photographier celle-là ». Le geste qui compose le plan de nuit.
  *
  * Un seul composant pour les deux endroits où la cible se rencontre — la ligne de la liste et
- * l'en-tête de la fiche —, pour la raison que `BoutonVisee` énonce déjà : deux dessins du même
+ * l'en-tête de la fiche —, pour la raison que `BoutonCadrer` énonce déjà : deux dessins du même
  * geste finiraient par annoncer deux choses.
  *
  * §11.1 — L'ÉTAT ACTIF NE SE SIGNALE PAS PAR LA SEULE COULEUR. En mode nuit la palette est
@@ -25,7 +25,7 @@ export function BoutonChoixCible({ designation }: BoutonChoixCibleProps) {
   const choisie = useCiblesChoisies().has(designation)
   return (
     // `nomme` : la phrase de la bulle EST le nom accessible du bouton. Un `aria-label` en plus
-    // la ferait annoncer deux fois — c'est le contrat de `Bulle`, et celui de `BoutonVisee`.
+    // la ferait annoncer deux fois — c'est le contrat de `Bulle`, et celui de `BoutonCadrer`.
     <BoutonGlyphe
       icone="photo_camera"
       aide={libelleChoix(designation, choisie)}

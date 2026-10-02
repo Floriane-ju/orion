@@ -76,6 +76,8 @@ function liste(): string {
       site={SITE}
       contexteSession={CONTEXTE}
       etats={ETATS}
+      profil={undefined}
+      gaiaCharge={false}
       recalcul={false}
     />,
   )

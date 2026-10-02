@@ -8,7 +8,7 @@
 
 import { beforeEach, describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { AlignementCible } from '../src/ui/BoutonVisee.tsx'
+import { AlignementCible } from '../src/ui/BoutonCadrer.tsx'
 import { etatScene, majVue, minuteAffichee, reinitialiseScene } from '../src/ui/scene-etat.ts'
 import { MS_PAR_MINUTE } from '../src/core/unites.ts'
 import { cielInstantane } from '../src/core/horloges.ts'
