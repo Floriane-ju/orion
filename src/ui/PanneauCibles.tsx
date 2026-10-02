@@ -51,13 +51,19 @@ import { BoutonCadrer } from './BoutonCadrer.tsx'
 import type { ProfilCadre } from '../core/cadre.ts'
 import { BoutonChoixCible } from './BoutonChoixCible.tsx'
 import { Bulle } from './Bulle.tsx'
+import {
+  BoutonProchainCreneau,
+  causesCarte,
+  CibleImpossible,
+  HORS_SAISON,
+} from './CibleImpossible.tsx'
 import { Mention } from './Mention.tsx'
 import { Curseur } from './Curseur.tsx'
 import { Icone } from './Icone.tsx'
 import { Interrupteur } from './Interrupteur.tsx'
+import { Pastilles } from './Pastilles.tsx'
 import { VignetteCible } from './ImageCible.tsx'
 import { prechargeVignettes } from './image-cible-memoire.ts'
-import { Pastilles } from './Pastilles.tsx'
 import { LIBELLE_TYPE_OBJET, nomCommun } from './libelles-objet.ts'
 import { ouvreCible, poseMode } from './seance-etat.ts'
 import { ouvreCarte } from './coque-etat.ts'
@@ -318,6 +324,7 @@ export function PanneauCibles(props: PanneauCiblesProps) {
             key={ligne.objet.designation}
             ligne={ligne}
             etat={etats.get(ligne.objet.designation) ?? null}
+            contexte={contexteSession}
             profil={props.profil}
             gaiaCharge={props.gaiaCharge}
           />
@@ -351,87 +358,120 @@ function resumeTypes(offerts: readonly TypeObjet[], types: ReadonlySet<TypeObjet
 }
 
 /**
- * Une ligne : ce qui décide, dans l'ordre où on le lit. Le nom, la note, puis l'encombrement
- * sur le capteur et le temps de pose. Magnitude, hauteur et brillance de surface n'y sont plus :
- * elles filtrent et ordonnent la liste, elles ne disent rien de la prise de vue que la note et
- * le temps de pose ne disent mieux.
+ * Une carte : l'image à gauche — c'est elle qu'on reconnaît avant de lire —, puis la
+ * désignation et sa note, le nom, et ce qui décide de la prise de vue : la part du cadre et le
+ * temps de pose, ou, pour une cible écartée, pourquoi elle l'est.
  *
- * Deux boutons distincts et non imbriqués : choisir la cible n'est pas la même intention que
- * pointer la scène dessus, et un `<button>` dans un `<button>` n'est pas du HTML valide.
+ * Trois boutons distincts et non imbriqués : cadrer la scène, ouvrir la fiche et ajouter au
+ * plan sont trois intentions, et un `<button>` dans un `<button>` n'est pas du HTML valide.
  */
 interface LigneListeProps {
   readonly ligne: LigneCible
   readonly etat: EtatCible | null
+  readonly contexte: ContexteSession
   readonly profil: ProfilCadre | undefined
   readonly gaiaCharge: boolean
 }
 
-function LigneListe({ ligne, etat, profil, gaiaCharge }: LigneListeProps) {
+function LigneListe({ ligne, etat, contexte, profil, gaiaCharge }: LigneListeProps) {
   const { objet } = ligne
   const nom = nomCommun(objet)
+  const pose = etat?.pose ?? null
+  // Mémorisé : la carte se redessine à chaque minute de la scène, la saison ne change pas.
+  const ecart = useMemo(
+    () => (etat !== null && pose === null ? causesCarte(contexte, objet, etat) : null),
+    [contexte, objet, etat, pose],
+  )
 
   return (
     <li className="cible-item">
-      {/* §6.4 — depuis le cache seulement : le défilement de la liste n'émet aucune requête.
-          C'est le préchargement du haut de liste qui garnit ce cache, en une salve plafonnée.
-          Hors du bouton, pour que l'image ne soit pas un contenu cliquable de plus. */}
-      <VignetteCible objet={objet} />
       <button type="button" className="cible-ligne" onClick={() => ouvreCible(objet)}>
-        <span className="cible-designation">{objet.designation}</span>
-        {/* Sans note, aucune pastille : cinq pastilles vides se lisent « impossible », ce qui
-            serait faux d'une cible que le moteur n'a simplement pas évaluée. */}
-        {etat !== null && (
-          <Pastilles note={etat.note} libelle={etat.libelle} cause={etat.cause} />
-        )}
-        <span className="cible-commun">{nom === '' ? LIBELLE_TYPE_OBJET[objet.type] : nom}</span>
-        <span className="cible-lectures">
-          {lectures(ligne, etat).map((mesure) => (
-            <span key={mesure}>{mesure}</span>
-          ))}
+        {/* §6.4 — depuis le cache seulement : le défilement de la liste n'émet aucune requête.
+            C'est le préchargement du haut de liste qui garnit ce cache, en une salve plafonnée. */}
+        <VignetteCible objet={objet} />
+        <span className="cible-corps">
+          <span className="cible-titre">
+            <span className="cible-designation">{objet.designation}</span>
+            {/* Sans note, aucune pastille : cinq pastilles vides se lisent « impossible », ce
+                qui serait faux d'une cible que le moteur n'a simplement pas évaluée. */}
+            {etat !== null && (
+              <Pastilles note={etat.note} libelle={etat.libelle} cause={etat.cause} />
+            )}
+          </span>
+          <span className="cible-commun">
+            {nom === '' ? LIBELLE_TYPE_OBJET[objet.type] : nom}
+          </span>
+          {ecart !== null ? (
+            // §8.3 — une écartée dit pourquoi, sur la carte même : un zéro muet ne dit pas
+            // quel levier tirer (T-0379, T-0380).
+            <CibleImpossible
+              phrases={ecart.phrases.filter((p) => !ecart.horsSaison || p !== HORS_SAISON)}
+            />
+          ) : (
+            <span className="cible-lectures">
+              {/* Le glyphe porte seul le nom de la mesure : il est donc nommé, pas masqué. */}
+              <span className="cible-puce">
+                <Icone nom="crop_free" libelle="Part du cadre" />
+                {libelleEncombrement(ligne)}
+              </span>
+              {pose !== null && (
+                <span className="cible-puce">
+                  <Icone nom="timer" libelle="Temps de pose" />
+                  {libellePose(pose)}
+                </span>
+              )}
+            </span>
+          )}
         </span>
       </button>
-      <BoutonCadrer
-        designation={objet.designation}
-        azimutDeg={ligne.azimutDeg}
-        hauteurDeg={ligne.hauteurDeg}
-        profil={profil}
-        gaiaCharge={gaiaCharge}
-      />
+      {/* Posé SUR l'image, mais frère du bouton de fiche et non son enfant : un `<button>` dans
+          un `<button>` n'est pas du HTML valide. Après lui dans le DOM, donc dans l'ordre du
+          focus : on lit la carte avant d'en cadrer la cible. */}
+      <div className="cible-cadrer">
+        <BoutonCadrer
+          designation={objet.designation}
+          azimutDeg={ligne.azimutDeg}
+          hauteurDeg={ligne.hauteurDeg}
+          profil={profil}
+          gaiaCharge={gaiaCharge}
+          variante="flottant"
+        />
+      </div>
       {/* §8.3 — ajouter au plan sans ouvrir la fiche : empiler trois cibles est un geste de
           liste. Offert sous le même critère que la fiche — la pose que le moteur annonce. */}
       {photographiable(etat ?? undefined) && (
-        <BoutonChoixCible designation={objet.designation} />
+        <div className="cible-pied">
+          <BoutonChoixCible designation={objet.designation} avecLibelle />
+        </div>
+      )}
+      {ecart?.horsSaison === true && (
+        <div className="cible-pied cible-pied-saison">
+          <span className="cible-cause">{HORS_SAISON}</span>
+          <BoutonProchainCreneau
+            objet={objet}
+            contexte={contexte}
+            profil={profil}
+            gaiaCharge={gaiaCharge}
+          />
+        </div>
       )}
     </li>
   )
 }
 
-/**
- * Les lectures d'une ligne, séparées : chacune doit pouvoir tenir sur une ligne. Le temps de
- * pose vient en dernier parce qu'il dépend de tout le reste — sans évaluation du moteur, il ne
- * s'invente pas, et la lecture disparaît plutôt que d'annoncer un tiret de plus.
- */
-function lectures(ligne: LigneCible, etat: EtatCible | null): readonly string[] {
-  const pose = etat?.pose ?? null
-  return [
-    libelleEncombrement(ligne),
-    ...(pose === null ? [] : [libellePose(pose)]),
-  ]
-}
-
 /** §7.3 — plus d'une nuit change la nature du plan, pas seulement sa durée : ça se dit. */
 function libellePose(pose: PoseCible): string {
-  const total = `temps de pose ${dureeLisible(pose.tRequisS)}`
+  const total = dureeLisible(pose.tRequisS)
   return pose.nNuits > 1 ? `${total} · ${pose.nNuits} nuits` : total
 }
 
 /**
- * La place sur la photo, et rien d'autre : c'est la question qu'on se pose devant une ligne de
+ * La place sur la photo, et rien d'autre : c'est la question qu'on se pose devant une carte de
  * catalogue. Le diamètre en pixels reste sur la fiche cible (§6.2), où il tranche le détail —
  * sur une liste il se lisait comme un encombrement, ce qu'il n'est pas.
  */
 function libelleEncombrement(ligne: LigneCible): string {
   const { remplissage } = ligne
   if (remplissage === null) return 'dimensions absentes'
-  return `${pourcentage(remplissage)} du cadre`
+  return pourcentage(remplissage)
 }

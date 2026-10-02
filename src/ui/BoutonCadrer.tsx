@@ -19,7 +19,7 @@ import type { Site } from '../core/ephem.ts'
 import { matriceALaMinute } from '../core/horloges.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { bornesZoom } from '../core/projection.ts'
-import { BoutonGlyphe } from './BoutonGlyphe.tsx'
+import { BoutonGlyphe, type VarianteGlyphe } from './BoutonGlyphe.tsx'
 import { champPourCadrer } from './planetarium-gestes.ts'
 import { etatScene, majVue, minuteAffichee, useTrancheScene, vueScene } from './scene-etat.ts'
 
@@ -86,13 +86,41 @@ export interface BoutonCadrerProps {
   /** Le cadre du matériel déclaré ; absent tant que le matériel n'est pas chiffrable. */
   readonly profil: ProfilCadre | undefined
   readonly gaiaCharge: boolean
+  /** La carte de liste le pose sur l'image, comme une commande sur le ciel : `flottant`. */
+  readonly variante?: VarianteGlyphe
+}
+
+/**
+ * Le geste « Cadrer » lui-même, partagé avec « Prochain créneau » (T-0380) : sauter à une nuit
+ * sans tourner la vue vers la cible laisserait chercher, dans un ciel nouveau, ce qu'on vient
+ * de demander. Sans cadre du matériel, la vue se centre sans changer de champ.
+ */
+export function cadreScene(
+  azimutDeg: number,
+  hauteurDeg: number,
+  profil: ProfilCadre | undefined,
+  gaiaCharge: boolean,
+): void {
+  if (profil === undefined) {
+    majVue({ azimutDeg, hauteurDeg })
+    return
+  }
+  const fovDeg = champPourCadrer(profil.fovLDeg, bornesZoom(gaiaCharge, etatScene().vue.mode))
+  majVue({ azimutDeg, hauteurDeg, fovDeg })
 }
 
 /**
  * La ligne de liste fournit déjà la direction. Le mode de vue n'est lu qu'au clic : s'y
  * abonner ferait redessiner chaque ligne à chaque glissé de la scène.
  */
-export function BoutonCadrer({ designation, azimutDeg, hauteurDeg, profil, gaiaCharge }: BoutonCadrerProps) {
+export function BoutonCadrer({
+  designation,
+  azimutDeg,
+  hauteurDeg,
+  profil,
+  gaiaCharge,
+  variante,
+}: BoutonCadrerProps) {
   if (profil === undefined) return null
   const aide = `Cadrer ${designation} avec le cadre du matériel`
   return (
@@ -100,10 +128,8 @@ export function BoutonCadrer({ designation, azimutDeg, hauteurDeg, profil, gaiaC
       icone="center_focus_strong"
       aide={hauteurDeg > 0 ? aide : `${aide} — sous l’horizon`}
       place="gauche"
-      onClick={() => {
-        const fovDeg = champPourCadrer(profil.fovLDeg, bornesZoom(gaiaCharge, etatScene().vue.mode))
-        majVue({ azimutDeg, hauteurDeg, fovDeg })
-      }}
+      {...(variante === undefined ? {} : { variante })}
+      onClick={() => cadreScene(azimutDeg, hauteurDeg, profil, gaiaCharge)}
     />
   )
 }

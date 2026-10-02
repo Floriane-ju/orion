@@ -15,14 +15,37 @@
  */
 
 import { BoutonGlyphe } from './BoutonGlyphe.tsx'
+import { Bulle } from './Bulle.tsx'
+import { Icone } from './Icone.tsx'
 import { basculeChoixCible, useCiblesChoisies } from './cibles-choisies.ts'
 
 export interface BoutonChoixCibleProps {
   readonly designation: string
+  /**
+   * La carte de liste nomme le geste en toutes lettres : en pied de carte, il a la largeur
+   * pour un mot, et c'est l'action que la carte propose. La fiche garde le glyphe seul.
+   */
+  readonly avecLibelle?: boolean
 }
 
-export function BoutonChoixCible({ designation }: BoutonChoixCibleProps) {
+export function BoutonChoixCible({ designation, avecLibelle = false }: BoutonChoixCibleProps) {
   const choisie = useCiblesChoisies().has(designation)
+  if (avecLibelle)
+    return (
+      // Le nom reste « Photographier » dans les deux états — c'est le contrat d'une bascule :
+      // `aria-pressed` dit l'état, la bulle dit ce que le clic fera.
+      <Bulle texte={libelleChoix(designation, choisie)} place="haut">
+        <button
+          type="button"
+          className="cible-photographier"
+          aria-pressed={choisie}
+          onClick={() => basculeChoixCible(designation)}
+        >
+          <Icone nom="add_a_photo" />
+          Photographier
+        </button>
+      </Bulle>
+    )
   return (
     // `nomme` : la phrase de la bulle EST le nom accessible du bouton. Un `aria-label` en plus
     // la ferait annoncer deux fois — c'est le contrat de `Bulle`, et celui de `BoutonCadrer`.

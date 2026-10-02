@@ -897,6 +897,30 @@ const PLANIFICATION = {
     ordreDeGrandeur: false,
     sections: ['6.4'],
   }),
+  PROCHAIN_CRENEAU_PAS_J: entree({
+    ref: 'C-20',
+    libelle: 'Pas de la recherche du prochain créneau d’une cible hors saison',
+    valeur: 7,
+    unite: 'j',
+    source:
+      'T-0380 — une saison de visibilité dure des mois : un pas d’une semaine ne l’enjambe ' +
+      'pas, et la nuit exacte est ensuite affinée au jour dans le dernier pas',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: false,
+    sections: ['6.4', '8.1'],
+  }),
+  PROCHAIN_CRENEAU_HORIZON_J: entree({
+    ref: 'C-20',
+    libelle: 'Horizon de la recherche du prochain créneau',
+    valeur: 366,
+    unite: 'j',
+    source:
+      'T-0380 — une année couvre toutes les saisons : une cible sans créneau sur un an ne ' +
+      'se montre jamais de nuit depuis ce site',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: false,
+    sections: ['6.4', '8.1'],
+  }),
   FACILITE_NOTE_MAX: entree({
     ref: 'C-20',
     libelle: 'Note maximale de facilité de prise de vue',

@@ -27,6 +27,25 @@ export const LIBELLE_TYPE_OBJET: Readonly<Record<TypeObjet, string>> = Object.fr
 })
 
 /**
+ * Le glyphe d'un type, en ligature Material Symbols. La police n'a aucun dessin astronomique :
+ * chacun est le plus proche par la FORME (une spirale, des points épars, un nuage), pour que la
+ * carte de liste se reconnaisse avant d'être lue. Même `Record` complet que les libellés : un
+ * type ajouté sans glyphe ne compile pas.
+ */
+export const ICONE_TYPE_OBJET: Readonly<Record<TypeObjet, string>> = Object.freeze({
+  INCONNU: 'help',
+  GALAXIE: 'cyclone',
+  AMAS_OUVERT: 'scatter_plot',
+  AMAS_GLOB: 'blur_on',
+  NEB_PLANETAIRE: 'trip_origin',
+  EMISSION: 'cloud',
+  REFLEXION: 'filter_drama',
+  NEB_OBSCURE: 'contrast',
+  RESTE_SUPERNOVA: 'flare',
+  AUTRE: 'star',
+})
+
+/**
  * Le premier nom commun, ou la chaîne vide : beaucoup d'entrées n'en portent aucun.
  *
  * Deux séparateurs, parce que la source en emploie deux : `|` sépare les noms qu'Orion

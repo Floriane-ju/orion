@@ -94,9 +94,9 @@ describe('lisibilité en mode nuit §11.1', () => {
     expect(CSS.match(/mix-blend-mode:\s*multiply/g)).toHaveLength(1)
   })
 
-  it('garde à la vignette de liste la hauteur d’une cible de clic', () => {
-    // Sans hauteur fixe, une ligne avec image sauterait par rapport à celles sans.
-    expect(regle('.cible-vignette')).toMatch(/height: var\(--cible-clic\)/)
+  it('garde à la vignette de carte une forme fixe, garnie ou non', () => {
+    // T-0378 — sans proportion fixe, une carte avec image sauterait par rapport à sa voisine.
+    expect(regle('.cible-vignette')).toMatch(/aspect-ratio: 1;/)
   })
 })
 

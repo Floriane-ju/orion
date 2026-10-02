@@ -27,6 +27,7 @@ import {
   normalisePoids,
   poidsParDefaut,
   type Candidate,
+  type CauseEcart,
   type CibleEcartee,
   type ContexteSession,
   type PoidsScoring,
@@ -282,6 +283,11 @@ export interface EtatCible {
   readonly pose: PoseCible | null
   /** Renseignée pour la note 0 seulement — la cause vient du moteur, jamais d'ici. */
   readonly cause: string | null
+  /**
+   * T-0379, T-0380 — le code de cette cause : la carte de liste en déduit quel levier chiffrer
+   * (focale, date) sans relire la phrase. `null` avec la cause.
+   */
+  readonly code: CauseEcart | null
 }
 
 /**
@@ -375,7 +381,13 @@ function etat(r: Candidate | CibleEcartee): EtatCible | null {
   const facilite = faciliteCible(r)
   if (facilite === null) return null
   if (!('objet' in r)) {
-    return { note: facilite.note, libelle: facilite.libelle, pose: null, cause: r.cause }
+    return {
+      note: facilite.note,
+      libelle: facilite.libelle,
+      pose: null,
+      cause: r.cause,
+      code: r.code,
+    }
   }
   return {
     note: facilite.note,
@@ -388,6 +400,7 @@ function etat(r: Candidate | CibleEcartee): EtatCible | null {
       nNuits: r.integration.nNuits?.value ?? 1,
     },
     cause: null,
+    code: null,
   }
 }
 

@@ -27,7 +27,7 @@ import { cadreSurImage } from '../data/imagerie-cible.ts'
 import { I } from '../registry/imagerie.ts'
 import { Icone } from './Icone.tsx'
 import { useImageCible } from './image-cible-memoire.ts'
-import { LIBELLE_TYPE_OBJET, nomCommun } from './libelles-objet.ts'
+import { ICONE_TYPE_OBJET, LIBELLE_TYPE_OBJET, nomCommun } from './libelles-objet.ts'
 import { POURCENT } from '../core/unites.ts'
 
 
@@ -122,9 +122,9 @@ function EncartCadre({
  *
  * La case en attente porte un GLYPHE, pas du vide. Un carré sombre entre deux vignettes de
  * ciel profond ne se lit pas comme une place réservée : il se lit comme une pose ratée, ou
- * comme une nébuleuse trop faible pour ressortir. Le pictogramme dit « il y aura une image
- * ici », ce qu'un fond uni ne peut pas dire. Ce n'est pas pour autant un signalement d'échec
- * (§12.5) : le glyphe est celui d'une image, pas d'une erreur, et il reste atténué.
+ * comme une nébuleuse trop faible pour ressortir. Le glyphe est celui du TYPE, en grand : la
+ * carte reste reconnaissable sans image. Ce n'est pas pour autant un signalement d'échec
+ * (§12.5) : rien n'y parle d'erreur, et il reste atténué.
  *
  * L'état vide ne porte pas `.image-cible-vue` : le fond clair que cette classe prend en mode
  * nuit n'existe que pour le fondu multiplicatif de l'image. Sans image à fondre, il ne
@@ -135,7 +135,7 @@ export function VignetteCible({ objet }: { readonly objet: ObjetCielProfond }) {
   if (affichable === null)
     return (
       <span className="cible-vignette cible-vignette-vide">
-        <Icone nom="image" />
+        <Icone nom={ICONE_TYPE_OBJET[objet.type]} />
       </span>
     )
   return (

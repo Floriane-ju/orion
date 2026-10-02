@@ -103,12 +103,12 @@ describe('§8.3 — ajouter au plan depuis la liste', () => {
   })
 
   it('offre le geste sur la cible que la nuit permet', () => {
-    expect(ligne(liste(), CADRABLE.designation)).toContain('photo_camera')
+    expect(ligne(liste(), CADRABLE.designation)).toContain('cible-photographier')
   })
 
   it('ne l’offre pas sur une cible que le cadre refuse', () => {
     const refusee = ligne(liste(), TROP_GRANDE.designation)
-    expect(refusee).not.toContain('photo_camera')
+    expect(refusee).not.toContain('cible-photographier')
     // La ligne existe toujours, et elle dit pourquoi : §6.4 n'efface aucun objet.
     expect(refusee).toContain(TROP_GRANDE.designation)
   })
