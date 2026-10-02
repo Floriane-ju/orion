@@ -217,6 +217,7 @@ function rend(
     poseCadre?: OptiquePose
     enAvant?: ReadonlySet<string>
     parcours?: ParcoursScene
+    cibleOuverte?: ObjetCielProfond
   } = {},
 ) {
   const ctx = contexteEspion()
@@ -273,6 +274,7 @@ function rend(
     poseCadre: options.poseCadre,
     enAvant: options.enAvant,
     parcours: options.parcours,
+    cibleOuverte: options.cibleOuverte,
   }
   return { ctx, sortie: dessineCiel(entree), entree }
 }
@@ -1827,5 +1829,33 @@ describe('T-0324 — l’aperçu §9.5 l’emporte sur le parcours', () => {
     })
     expect(ctx.couleurs).toContain(TEINTES.sol)
     expect(ctx.couleurs).toContain(TEINTES.horizon)
+  })
+})
+
+describe('repère de la cible ouverte — T-0283', () => {
+  const textes = (r: ReturnType<typeof rend>) =>
+    r.ctx.appels.filter((a) => a.nom === 'fillText').map((a) => a.args[0])
+
+  it('marque la cible ouverte et la nomme, une seule fois', () => {
+    const r = rend({ objets: [OBJET_AU_CENTRE], cibleOuverte: OBJET_AU_CENTRE })
+    expect(r.sortie.repere?.texte).toBe(OBJET_AU_CENTRE.designation)
+    expect(textes(r).filter((t) => t === OBJET_AU_CENTRE.designation)).toHaveLength(1)
+  })
+
+  it('tient à grand champ, où le nom de l’objet serait masqué', () => {
+    const r = rend({ objets: [], cibleOuverte: OBJET_AU_CENTRE, fovDeg: 180 })
+    expect(r.sortie.repere).not.toBeNull()
+    expect(textes(r)).toContain(OBJET_AU_CENTRE.designation)
+  })
+
+  it('marque aussi une cible trop faible pour le plafond des marqueurs', () => {
+    const faible = { ...OBJET_AU_CENTRE, vMag: null }
+    expect(rend({ objets: [faible], cibleOuverte: faible }).sortie.repere).not.toBeNull()
+  })
+
+  it('ne marque rien sans cible ouverte, ni hors du champ', () => {
+    expect(rend({ objets: [OBJET_AU_CENTRE] }).sortie.repere).toBeNull()
+    const dos = rend({ cibleOuverte: OBJET_AU_CENTRE, vise: { azimutDeg: 0, hauteurDeg: -45 } })
+    expect(dos.sortie.repere).toBeNull()
   })
 })

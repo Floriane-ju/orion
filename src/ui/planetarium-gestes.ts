@@ -60,6 +60,15 @@ export function fovBorne(fovDeg: number, bornes: BornesZoom): number {
   return encadre(fovDeg, bornes.fovMinDeg, bornes.fovMaxDeg)
 }
 
+/**
+ * §6.4, T-0283 — le champ où le cadre du matériel se juge : quelques cadres de large, dans
+ * les bornes du zoom. Huit crans de molette menaient à 93°, une vingtaine à 30° : le geste
+ * « Cadrer » y va d'un coup.
+ */
+export function champPourCadrer(fovLDeg: number, bornes: BornesZoom): number {
+  return fovBorne(fovLDeg * K('CHAMP_CADRER_FACTEUR'), bornes)
+}
+
 /** Ce qu'un `wheel` doit déclencher sur la scène. */
 export type SourceGeste = 'PINCEMENT' | 'MOLETTE' | 'DEFILEMENT'
 

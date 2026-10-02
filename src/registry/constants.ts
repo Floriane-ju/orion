@@ -1332,6 +1332,18 @@ const RENDU = {
     ordreDeGrandeur: false,
     sections: ['3.3'],
   }),
+  CHAMP_CADRER_FACTEUR: entree({
+    ref: 'C-26',
+    libelle: 'Champ de la scène après « Cadrer », en multiple de la grande dimension du cadre',
+    valeur: 3,
+    unite: '—',
+    source:
+      '§6.4 — convention produit (T-0283) : le cadre occupe un tiers de la largeur, assez ' +
+      'pour juger le cadrage, et il reste deux cadres de ciel pour se repérer autour',
+    tolerance: 'convention produit — pilote le confort du geste, jamais un verdict',
+    ordreDeGrandeur: false,
+    sections: ['6.4', '3.3'],
+  }),
   RAYON_ETOILE_R0_PX: entree({
     ref: 'C-27',
     libelle: 'Rayon de rendu d’une étoile à la magnitude de référence',

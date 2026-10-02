@@ -77,7 +77,7 @@ export {
 const ID_DESCRIPTION = 'planetarium-description'
 export type { MaterielFile } from './planetarium-materiel.ts'
 
-import { poseCadreAffichee, type MaterielFile } from './planetarium-materiel.ts'
+import { cibleMarquee, poseCadreAffichee, type MaterielFile } from './planetarium-materiel.ts'
 
 export interface PlanetariumProps {
   readonly site: Site
@@ -319,6 +319,7 @@ export function Planetarium(props: PlanetariumProps) {
     poseCadre: poseCadreAffichee(mode, file.poseDansCadre, props.file),
     enAvant: props.enAvant,
     parcours: rendu.parcours,
+    cibleOuverte: cibleMarquee(mode, seance.vueCibles, seance.cible),
     magLimite: jour ? Number.NEGATIVE_INFINITY : profondeur.magLimite.value,
     apparition:
       rendu.vueRealiste && soleil !== null ? apparitionReperes(soleil.altitudeDeg) : 1,

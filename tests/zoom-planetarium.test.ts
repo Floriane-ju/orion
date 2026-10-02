@@ -13,6 +13,8 @@ import {
   signaturePave,
   sourceMolette,
 } from '../src/ui/Planetarium.tsx'
+import { champPourCadrer } from '../src/ui/planetarium-gestes.ts'
+import { K } from '../src/registry/constants.ts'
 
 describe('facteur de zoom — un cran de molette, un geste continu', () => {
   it('garde le cran fixe de la molette, dans les deux sens', () => {
@@ -148,5 +150,19 @@ describe('rotation du cadre au glisser §3.5', () => {
 
   it('ne bouge pas le cadre sans déplacement du pointeur', () => {
     expect(roulisApresGlisser(42, BOITE, droite, droite)).toBeCloseTo(42, 9)
+  })
+})
+
+describe('champ du geste « Cadrer » — T-0283', () => {
+  const BORNES = { fovMinDeg: K('FOV_MIN_AVEC_GAIA_DEG'), fovMaxDeg: K('FOV_MAX_STEREOGRAPHIQUE_DEG') }
+
+  it('montre le cadre sur une part lisible de la scène', () => {
+    const fovL = 17
+    expect(champPourCadrer(fovL, BORNES)).toBe(fovL * K('CHAMP_CADRER_FACTEUR'))
+  })
+
+  it('reste dans les bornes du zoom pour un très petit ou très grand cadre', () => {
+    expect(champPourCadrer(BORNES.fovMinDeg / 100, BORNES)).toBe(BORNES.fovMinDeg)
+    expect(champPourCadrer(BORNES.fovMaxDeg, BORNES)).toBe(BORNES.fovMaxDeg)
   })
 })

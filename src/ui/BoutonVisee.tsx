@@ -11,6 +11,10 @@
  * tourner le boîtier pour poser son grand axe sur la longueur du capteur. Il n'est offert que
  * si la cible est dans le cadre et que le moteur trouve un angle — une cible ronde ou sans
  * angle de position n'a rien à aligner, et un bouton qui ne ferait rien serait un mensonge.
+ *
+ * T-0283 — « Cadrer » centre ET règle le champ sur le cadre du matériel. « Voir » garde la vue
+ * d'ensemble : on y cherche de quel côté du ciel tombe la cible, champ inchangé. Deux
+ * intentions, deux boutons — fondre les deux ferait perdre l'une à chaque usage de l'autre.
  */
 
 import { cibleDominante, rotationSuggeree, type ProfilCadre } from '../core/cadre.ts'
@@ -18,7 +22,9 @@ import { coordonneesHorizon } from '../core/cibles-liste.ts'
 import type { Site } from '../core/ephem.ts'
 import { matriceALaMinute } from '../core/horloges.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
+import { bornesZoom } from '../core/projection.ts'
 import { BoutonGlyphe } from './BoutonGlyphe.tsx'
+import { champPourCadrer } from './planetarium-gestes.ts'
 import { majVue, minuteAffichee, useTrancheScene, vueScene } from './scene-etat.ts'
 
 export interface BoutonViseeProps {
@@ -77,6 +83,31 @@ export function AlignementCible({ objet, site, profil }: AlignementCibleProps) {
       aide={message}
       place="gauche"
       onClick={() => majVue({ rotationCadreDeg: angleDeg })}
+    />
+  )
+}
+
+export interface CadrerCibleProps {
+  readonly objet: ObjetCielProfond
+  readonly site: Site
+  /** Le cadre du matériel déclaré ; absent tant que le matériel n'est pas chiffrable. */
+  readonly profil: ProfilCadre | undefined
+  readonly gaiaCharge: boolean
+}
+
+/** §6.4 — un geste montre la cible avec le cadre sur une part lisible de la scène. */
+export function CadrerCible({ objet, site, profil, gaiaCharge }: CadrerCibleProps) {
+  const minute = useTrancheScene(minuteAffichee)
+  const vue = useTrancheScene(vueScene)
+  if (profil === undefined) return null
+  const { azimutDeg, hauteurDeg } = coordonneesHorizon(objet, matriceALaMinute(site, minute))
+  const fovDeg = champPourCadrer(profil.fovLDeg, bornesZoom(gaiaCharge, vue.mode))
+  return (
+    <BoutonGlyphe
+      icone="center_focus_strong"
+      aide={`Cadrer ${objet.designation} avec le cadre du matériel`}
+      place="gauche"
+      onClick={() => majVue({ azimutDeg, hauteurDeg, fovDeg })}
     />
   )
 }
