@@ -5,10 +5,11 @@
  * trace porte les cinq termes. Aucun n'est caché : la fiche du plan les affiche tels quels.
  */
 
-import { K } from '../registry/constants.ts'
+import { K, type ConstantId } from '../registry/constants.ts'
 import { trace } from './traced.ts'
 import type { Traced } from './traced.ts'
 import type { DetailScore, PoidsScoring } from './session-types.ts'
+import type { ToleranceLune } from './detectability.ts'
 import { encadre } from './unites.ts'
 
 const borne = (valeur: number): number => encadre(valeur, 0, 1)
@@ -32,8 +33,15 @@ export function scoreFenetre(dureeCreneauMin: number, dureeNuitMin: number): num
   return dureeNuitMin <= 0 ? 0 : borne(dureeCreneauMin / dureeNuitMin)
 }
 
-export function scoreLune(deltaSb: number): number {
-  return borne(1 - deltaSb / K('TOLERANCE_LUNE_DELTA_SB_MAG'))
+/** §8.3 « tolérance selon type d'objet » : la même Lune coûte plus à une galaxie qu'à une Hα. */
+const DIVISEUR_LUNE = Object.freeze({
+  FORTE: 'TOLERANCE_LUNE_DELTA_SB_MAG',
+  MOYENNE: 'TOLERANCE_LUNE_MOYENNE_DELTA_SB_MAG',
+  FAIBLE: 'TOLERANCE_LUNE_FAIBLE_DELTA_SB_MAG',
+} as const satisfies Record<ToleranceLune, ConstantId>)
+
+export function scoreLune(deltaSb: number, tolerance: ToleranceLune): number {
+  return borne(1 - deltaSb / K(DIVISEUR_LUNE[tolerance]))
 }
 
 export function scoreGlobal(detail: DetailScore, poids: PoidsScoring): Traced<number> {

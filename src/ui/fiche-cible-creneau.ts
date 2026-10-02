@@ -13,9 +13,9 @@
  */
 
 import { prepareEvaluation } from '../core/cibles-liste.ts'
-import { creneauCible, type CreneauCible } from '../core/creneaux.ts'
+import type { CreneauCible } from '../core/creneaux.ts'
 import { masseAir } from '../core/site.ts'
-import { entreeCreneau, instantLune } from '../core/session-candidates.ts'
+import { creneauSousLaLune, instantLune } from '../core/session-candidates.ts'
 import type { ContexteSession } from '../core/session-types.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { CaptureNuit, LuneFiche } from './fiche-cible-calcul.ts'
@@ -59,7 +59,14 @@ export function nuitFiche(
     }
   }
 
-  const creneau = creneauCible(entreeCreneau(contexte, objet, entree.fenetre))
+  // T-0382 — recoupé par la fenêtre utile comme au plan : une galaxie sous la Lune n'a pas le
+  // même créneau qu'une nébuleuse en émission la même nuit.
+  const { creneau, exclusionLune } = creneauSousLaLune(
+    contexte,
+    objet,
+    entree.fenetre,
+    entree.sbCielBase,
+  )
   const lune = lunePourCible({
     site: contexte.site,
     instant: instantLune(creneau, entree.fenetre.debut),
@@ -74,16 +81,17 @@ export function nuitFiche(
   // cause plutôt que de replier sur la culmination. Le repli chiffrait une intégration pour
   // une nuit qui n'en offre aucune — la cible cachée par le relief affichait 24 h de pose.
   const sansCreneau = creneau.causeExclusion !== undefined || creneau.dureeTotaleMin.value <= 0
+  const exclusion = sansCreneau ? creneau.message : exclusionLune
 
   return {
     creneau: { chiffre: true, creneau },
     lune,
-    capture: sansCreneau
+    capture: exclusion !== null
       ? {
           masseAir: masseAir(null),
           dureeCreneauS: null,
           plusHaut: null,
-          exclusion: creneau.message,
+          exclusion,
         }
       : {
           masseAir: creneau.masseAirMoyenne,

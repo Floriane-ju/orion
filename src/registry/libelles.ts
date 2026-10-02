@@ -111,6 +111,7 @@ export const LIBELLE_CAUSE_ECART: Readonly<Record<CauseEcart, string>> = Object.
   HORS_PORTEE: 'hors de portée de ce matériel',
   CONFLIT_CRENEAU: 'créneau déjà pris',
   SUIVI: 'sans suivi, pas de ciel profond',
+  LUNE: 'Lune trop gênante',
 })
 
 /** §7.4 — les lots de calibration. Le jargon d'atelier fait foi : personne ne dit « noirs ». */

@@ -14,7 +14,9 @@ import { DOMAINES } from '../registry/domains.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { creneauCible, type CauseExclusion } from './creneaux.ts'
 import { fenetreNocturne } from './nuit.ts'
-import { bornesTailleCadre, entreeCreneau } from './session-candidates.ts'
+import { fenetreUtile } from './moon.ts'
+import { prepareEvaluation } from './cibles-liste.ts'
+import { bornesTailleCadre, creneauSousLaLune, entreeCreneau } from './session-candidates.ts'
 import type { ContexteSession } from './session-types.ts'
 import { MS_PAR_JOUR } from './horloges.ts'
 import { DEG } from './mat3.ts'
@@ -105,8 +107,8 @@ function creneauDeLaNuit(contexte: ContexteSession, objet: ObjetCielProfond, dep
  * pas : une saison de visibilité dure des mois, un pas d'une semaine ne l'enjambe pas, et la
  * recherche coûte une quinzaine de nuits au lieu de trois cent soixante-cinq.
  *
- * Même moteur, mêmes critères que l'écart — la Lune n'y entre pas : elle note un créneau,
- * elle ne l'exclut pas. `null` au-delà de `PROCHAIN_CRENEAU_HORIZON_J` (nuit polaire, cible
+ * Même moteur, mêmes critères que l'écart de créneau — la Lune n'y entre pas : une cible
+ * écartée pour la Lune a sa propre recherche, `prochaineNuitSansLune`. `null` au-delà de `PROCHAIN_CRENEAU_HORIZON_J` (nuit polaire, cible
  * que la latitude ne montre que de jour).
  */
 export function prochainCreneau(contexte: ContexteSession, objet: ObjetCielProfond): Date | null {
@@ -124,6 +126,42 @@ export function prochainCreneau(contexte: ContexteSession, objet: ObjetCielProfo
       const instant = creneauDeLaNuit(contexte, objet, departJour(k))
       if (instant !== null) return instant
     }
+  }
+  return null
+}
+
+/**
+ * T-0382 — la première nuit, après celle du contexte, où une cible écartée pour la Lune ne
+ * l'est plus. Même porte que l'écart (`creneauSousLaLune`, fenêtre utile de CETTE nuit) : la
+ * nuit proposée ne peut pas être refusée à son tour pour la Lune.
+ *
+ * Au jour près, sans pas plus large : la Lune avance de douze degrés par nuit, une semaine
+ * enjamberait toute la fenêtre noire. `null` au-delà d'un cycle lunaire.
+ */
+export function prochaineNuitSansLune(
+  contexte: ContexteSession,
+  objet: ObjetCielProfond,
+): Date | null {
+  const origine = contexte.nuit.leverSoleil ?? contexte.nuit.finReference
+  if (origine === null) return null
+  for (let j = 1; j <= K('PROCHAINE_NUIT_SANS_LUNE_HORIZON_J'); j++) {
+    const nuit = fenetreNocturne(contexte.site, new Date(origine.getTime() + j * MS_PAR_JOUR))
+    const ceSoir: ContexteSession = {
+      ...contexte,
+      nuit,
+      fenetreUtile: fenetreUtile(contexte.site, nuit),
+    }
+    const entree = prepareEvaluation(ceSoir)
+    if (entree === null) continue
+    const { creneau, exclusionLune } = creneauSousLaLune(
+      ceSoir,
+      objet,
+      entree.fenetre,
+      entree.sbCielBase,
+    )
+    if (exclusionLune !== null) continue
+    if (creneau.causeExclusion !== undefined || creneau.dureeTotaleMin.value <= 0) continue
+    return creneau.plusHaut.instant ?? entree.fenetre.debut
   }
   return null
 }

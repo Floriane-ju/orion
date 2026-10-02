@@ -863,6 +863,41 @@ const PLANIFICATION = {
     ordreDeGrandeur: false,
     sections: ['8.3'],
   }),
+  // §8.3 nomme « tolérance selon type d'objet » sans la chiffrer : 3,0 est la tolérance
+  // FORTE (émission, planétaire, filtre bi-bande), les deux autres en sont des parts.
+  TOLERANCE_LUNE_MOYENNE_DELTA_SB_MAG: entree({
+    ref: 'C-15',
+    libelle: 'Dégradation lunaire annulant le score de Lune — tolérance moyenne (amas)',
+    valeur: 2.0,
+    unite: 'mag/arcsec²',
+    source: 'convention, réglable — §8.3 « tolérance selon type d’objet », §6.3',
+    tolerance: null,
+    ordreDeGrandeur: false,
+    sections: ['6.3', '8.3'],
+  }),
+  TOLERANCE_LUNE_FAIBLE_DELTA_SB_MAG: entree({
+    ref: 'C-15',
+    libelle: 'Dégradation lunaire annulant le score de Lune — tolérance faible (galaxie)',
+    valeur: 1.0,
+    unite: 'mag/arcsec²',
+    source: 'convention, réglable — §8.3 « tolérance selon type d’objet », §6.3',
+    tolerance: null,
+    ordreDeGrandeur: false,
+    sections: ['6.3', '8.3'],
+  }),
+  // §8.1 « Lune sous l'horizon OU tolérance du type » : appliqué au pied de la lettre, un fin
+  // croissant bas et loin de la cible écarterait une galaxie. Le seuil porte sur ΔSB_lune de
+  // Krisciunas & Schaefer, qui compte déjà phase, hauteur et séparation.
+  SEUIL_GENE_LUNE_DELTA_SB_MAG: entree({
+    ref: 'C-15',
+    libelle: 'Gêne lunaire au-delà de laquelle une tolérance faible exige la Lune couchée',
+    valeur: 0.5,
+    unite: 'mag/arcsec²',
+    source: 'convention, réglable — §6.3 « exige ciel noir ET Lune couchée », §8.1',
+    tolerance: null,
+    ordreDeGrandeur: false,
+    sections: ['6.3', '8.1'],
+  }),
   ETENDUE_SCORE_HAUTEUR_DEG: entree({
     ref: 'C-15',
     libelle: 'Étendue de hauteur au-dessus du seuil saturant le score',
@@ -917,6 +952,18 @@ const PLANIFICATION = {
     source:
       'T-0380 — une année couvre toutes les saisons : une cible sans créneau sur un an ne ' +
       'se montre jamais de nuit depuis ce site',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: false,
+    sections: ['6.4', '8.1'],
+  }),
+  PROCHAINE_NUIT_SANS_LUNE_HORIZON_J: entree({
+    ref: 'C-20',
+    libelle: 'Horizon de la recherche de la prochaine nuit sans Lune gênante',
+    valeur: 30,
+    unite: 'j',
+    source:
+      'T-0382 — un mois synodique (29,53 j) passe par toutes les phases : sans nuit sans Lune ' +
+      'gênante sur un cycle, c\'est la saison qui manque, pas la Lune',
     tolerance: 'convention produit',
     ordreDeGrandeur: false,
     sections: ['6.4', '8.1'],

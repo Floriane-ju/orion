@@ -83,6 +83,11 @@ const MODULATIONS: Readonly<Record<TypeObjet, ModulationType>> = Object.freeze({
   },
 })
 
+/** La modulation §6.3 d'un type : le plan en lit la tolérance, la fiche le conseil. */
+export function modulationDuType(type: TypeObjet): ModulationType {
+  return MODULATIONS[type]
+}
+
 export interface EtatLune {
   /** Hauteur de la Lune au moment évalué. Négative : elle n'entre pas dans le calcul. */
   readonly altitudeDeg: number

@@ -31,6 +31,7 @@ export type CauseEcart =
   | 'HORS_PORTEE'
   | 'CONFLIT_CRENEAU'
   | 'SUIVI'
+  | 'LUNE'
 
 export interface CibleEcartee {
   readonly designation: string

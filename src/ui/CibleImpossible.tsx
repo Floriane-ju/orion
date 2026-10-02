@@ -16,6 +16,7 @@ import {
   exclusionCreneau,
   focaleRequise,
   prochainCreneau,
+  prochaineNuitSansLune,
   type ExclusionCreneau,
   type FocaleRequise,
 } from '../core/cible-ecartee.ts'
@@ -39,6 +40,26 @@ export const HORS_SAISON = 'Invisible aujourd’hui'
  */
 export const NON_PHOTOGRAPHIABLE_ICI = 'Non photographiable d’ici'
 export const AUCUN_CRENEAU = 'Aucun créneau de nuit dans l’année qui vient'
+export const AUCUNE_NUIT_SANS_LUNE = 'Aucune nuit sans Lune gênante dans le mois qui vient'
+
+/**
+ * T-0380, T-0382 — les deux dates qu'une carte écartée sait chercher : la saison qui revient,
+ * la Lune qui se couche. Même geste, même bouton ; seuls la recherche et ses mots changent.
+ */
+const RECHERCHES = Object.freeze({
+  SAISON: {
+    icone: 'fast_forward',
+    aide: 'Prochain créneau',
+    introuvable: AUCUN_CRENEAU,
+    chercher: prochainCreneau,
+  },
+  LUNE: {
+    icone: 'dark_mode',
+    aide: 'Prochaine nuit sans Lune',
+    introuvable: AUCUNE_NUIT_SANS_LUNE,
+    chercher: prochaineNuitSansLune,
+  },
+})
 
 /** Arrondi du côté qui tient la promesse : « au moins » vers le haut, « au plus » vers le bas. */
 export function phraseFocale(f: FocaleRequise): string {
@@ -122,6 +143,8 @@ export interface BoutonProchainCreneauProps {
   /** Pour cadrer la cible à l'arrivée, comme le fait « Cadrer ». */
   readonly profil: ProfilCadre | undefined
   readonly gaiaCharge: boolean
+  /** Ce qui écarte la cible ce soir : la saison (par défaut) ou la Lune. */
+  readonly attendre?: keyof typeof RECHERCHES
 }
 
 export function BoutonProchainCreneau({
@@ -129,17 +152,19 @@ export function BoutonProchainCreneau({
   contexte,
   profil,
   gaiaCharge,
+  attendre = 'SAISON',
 }: BoutonProchainCreneauProps) {
   const [introuvable, setIntrouvable] = useState(false)
+  const recherche = RECHERCHES[attendre]
   return (
     <BoutonGlyphe
-      icone="fast_forward"
-      aide={introuvable ? AUCUN_CRENEAU : 'Prochain créneau'}
+      icone={recherche.icone}
+      aide={introuvable ? recherche.introuvable : recherche.aide}
       place="gauche"
       eteinte={introuvable}
       onClick={() => {
         if (introuvable) return
-        const instant = prochainCreneau(contexte, objet)
+        const instant = recherche.chercher(contexte, objet)
         if (instant === null) {
           setIntrouvable(true)
           return

@@ -17,10 +17,10 @@ import {
   type EntreeCreneau,
   type Intervalle,
 } from './creneaux.ts'
-import { detectabilite } from './detectability.ts'
+import { detectabilite, modulationDuType } from './detectability.ts'
 import { ficheCadrage } from './cadrage.ts'
 import { fluxCiel, fluxObjet, fluxObjetReel, planIntegration, poseUnitaire } from './exposure.ts'
-import { cielSousLaLune } from './moon.ts'
+import { cielSousLaLune, type CielSousLaLune } from './moon.ts'
 import { altitudeCulmination } from './site.ts'
 import {
   scoreCadrage,
@@ -72,6 +72,75 @@ export function entreeCreneau(
     typeMonture: contexte.typeMonture,
     ...(contexte.seuilHauteurDeg === undefined ? {} : { seuilHauteurDeg: contexte.seuilHauteurDeg }),
   }
+}
+
+function creneauVide(creneau: CreneauCible): boolean {
+  return creneau.causeExclusion !== undefined || creneau.dureeTotaleMin.value <= 0
+}
+
+/** La dégradation lunaire au milieu du créneau, sur la cible — la convention de §8.1. */
+function lunePourCreneau(
+  contexte: ContexteSession,
+  objet: ObjetCielProfond,
+  creneau: CreneauCible,
+  fenetre: Intervalle,
+  sbCielBase: number,
+): CielSousLaLune {
+  return cielSousLaLune({
+    site: contexte.site,
+    instant: instantLune(creneau, fenetre.debut),
+    adH: objet.adDeg / DEG_PAR_HEURE,
+    decDeg: objet.decDeg,
+    altitudeCibleDeg: creneau.altCulminationDeg.value,
+    sbCielNoirMag: sbCielBase,
+  })
+}
+
+export interface CreneauLunaire {
+  readonly creneau: CreneauCible
+  /** La phrase d'écart quand la Lune gêne tout le passage d'une cible qui l'exige couchée. */
+  readonly exclusionLune: string | null
+}
+
+/**
+ * §8.1 — « FENÊTRE UTILE = nuit_noire ∩ (Lune sous l'horizon OU tolérance du type) ».
+ *
+ * Une tolérance FAIBLE (galaxie, réflexion, obscure — §6.3) sous une Lune qui gêne vraiment
+ * ne se photographie que Lune couchée : son créneau est recoupé par la fenêtre utile. Sans
+ * reste, la Lune est la cause d'écart. Les autres tolérances gardent la nuit entière, la Lune
+ * leur coûte des points et du temps d'intégration, pas la possibilité.
+ *
+ * Exporté parce que la fiche doit tenir le MÊME créneau que le plan (T-0268).
+ */
+export function creneauSousLaLune(
+  contexte: ContexteSession,
+  objet: ObjetCielProfond,
+  fenetre: Intervalle,
+  sbCielBase: number,
+): CreneauLunaire {
+  const creneau = creneauCible(entreeCreneau(contexte, objet, fenetre))
+  const modulation = modulationDuType(objet.type)
+  if (creneauVide(creneau) || modulation.toleranceLune !== 'FAIBLE') {
+    return { creneau, exclusionLune: null }
+  }
+  const { delta } = lunePourCreneau(contexte, objet, creneau, fenetre, sbCielBase)
+  if (delta.value <= K('SEUIL_GENE_LUNE_DELTA_SB_MAG')) return { creneau, exclusionLune: null }
+
+  const exclusionLune =
+    `Lune trop gênante pendant tout son passage (ciel plus clair de ` +
+    `${nombre(delta.value, 1)} mag/arcsec²). ${modulation.conseil}`
+  const { debut, fin } = contexte.fenetreUtile
+  const debutUtile = debut === null ? null : Math.max(debut.getTime(), fenetre.debut.getTime())
+  const finUtile = fin === null ? null : Math.min(fin.getTime(), fenetre.fin.getTime())
+  if (debutUtile === null || finUtile === null || finUtile <= debutUtile) {
+    return { creneau, exclusionLune }
+  }
+  const sansLune = creneauCible(
+    entreeCreneau(contexte, objet, { debut: new Date(debutUtile), fin: new Date(finUtile) }),
+  )
+  return creneauVide(sansLune)
+    ? { creneau, exclusionLune }
+    : { creneau: sansLune, exclusionLune: null }
 }
 
 /** Le code d'écart que porte un créneau refusé : la cause vient du moteur, pas d'ici. */
@@ -153,23 +222,25 @@ function evalue(
     }
   }
 
-  const creneau = creneauCible(entreeCreneau(contexte, objet, fenetre))
-  if (creneau.causeExclusion !== undefined || creneau.dureeTotaleMin.value <= 0) {
+  const { creneau, exclusionLune } = creneauSousLaLune(contexte, objet, fenetre, sbCielBase)
+  if (creneauVide(creneau)) {
     return {
       designation: objet.designation,
       code: codeExclusionCreneau(creneau),
       cause: creneau.message,
     }
   }
+  if (exclusionLune !== null) {
+    return { designation: objet.designation, code: 'LUNE', cause: exclusionLune }
+  }
 
-  const { delta, sbCielEffectif, altLuneDeg, separationDeg } = cielSousLaLune({
-    site: contexte.site,
-    instant: instantLune(creneau, fenetre.debut),
-    adH: objet.adDeg / DEG_PAR_HEURE,
-    decDeg: objet.decDeg,
-    altitudeCibleDeg: creneau.altCulminationDeg.value,
-    sbCielNoirMag: sbCielBase,
-  })
+  const { delta, sbCielEffectif, altLuneDeg, separationDeg } = lunePourCreneau(
+    contexte,
+    objet,
+    creneau,
+    fenetre,
+    sbCielBase,
+  )
 
   const detect = detectabilite({
     mInt: objet.vMag,
@@ -243,7 +314,7 @@ function evalue(
       creneau.dureeTotaleMin.value,
       contexte.nuit.dureeReferenceH * MIN_PAR_H,
     ),
-    lune: scoreLune(delta.value),
+    lune: scoreLune(delta.value, detect.toleranceLune),
   }
 
   return {

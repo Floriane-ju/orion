@@ -65,6 +65,7 @@ import { Pastilles } from './Pastilles.tsx'
 import { VignetteCible } from './ImageCible.tsx'
 import { prechargeVignettes } from './image-cible-memoire.ts'
 import { LIBELLE_TYPE_OBJET, nomCommun } from './libelles-objet.ts'
+import { LIBELLE_CAUSE_ECART } from '../registry/libelles.ts'
 import { ouvreCible, poseMode } from './seance-etat.ts'
 import { ouvreCarte } from './coque-etat.ts'
 import { majCatalogue, useCatalogue } from './catalogue-etat.ts'
@@ -404,8 +405,14 @@ function LigneListe({ ligne, etat, contexte, profil, gaiaCharge }: LigneListePro
           {ecart !== null ? (
             // §8.3 — une écartée dit pourquoi, sur la carte même : un zéro muet ne dit pas
             // quel levier tirer (T-0379, T-0380).
+            // T-0382 — écartée pour la Lune : le pied dit la cause à côté de son bouton, la
+            // gêne chiffrée reste sur la fiche.
             <CibleImpossible
-              phrases={ecart.phrases.filter((p) => !ecart.horsSaison || p !== HORS_SAISON)}
+              phrases={
+                etat?.code === 'LUNE'
+                  ? []
+                  : ecart.phrases.filter((p) => !ecart.horsSaison || p !== HORS_SAISON)
+              }
             />
           ) : (
             <span className="cible-lectures">
@@ -452,6 +459,19 @@ function LigneListe({ ligne, etat, contexte, profil, gaiaCharge }: LigneListePro
             contexte={contexte}
             profil={profil}
             gaiaCharge={gaiaCharge}
+          />
+        </div>
+      )}
+      {/* T-0382 — la Lune passe en quelques nuits : la date est le levier, comme la saison. */}
+      {etat?.code === 'LUNE' && (
+        <div className="cible-pied cible-pied-saison">
+          <span className="cible-cause">{LIBELLE_CAUSE_ECART.LUNE}</span>
+          <BoutonProchainCreneau
+            objet={objet}
+            contexte={contexte}
+            profil={profil}
+            gaiaCharge={gaiaCharge}
+            attendre="LUNE"
           />
         </div>
       )}
