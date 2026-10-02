@@ -31,3 +31,17 @@ Les cinq WOFF2 sont les sous-ensembles **latins** (`U+0000-00FF` et les signes
 typographiques) servis par l'API Google Fonts pour ces deux familles — le français y tient
 entièrement. Ils ne sont pas régénérés par `pnpm data:build` : ce sont des binaires amont
 versionnés tels quels, à remplacer par un nouveau téléchargement si une graisse s'ajoute.
+
+## Noto Sans Mono — `NotoSansMono-couverture.woff2`
+
+> Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic)
+
+SIL Open Font License 1.1 — texte intégral dans [`OFL-1.1.txt`](./OFL-1.1.txt).
+Source amont : <https://github.com/notofonts/latin-greek-cyrillic>.
+
+Sous-ensemble variable (axe `wght`) servi par l'API Google Fonts avec le paramètre `text=` :
+grec, flèches, exposants et indices, signes mathématiques, U+2009 et U+202F — ce que le
+sous-ensemble latin de Plex ne dessine pas (T-0389). Déclaré sous la famille
+`'IBM Plex Mono'` avec une `unicode-range` : il comble Plex, il ne le remplace jamais. Pour
+couvrir un signe de plus, le retélécharger avec le texte élargi et mettre la plage à jour
+dans `styles.css` ; `tests/polices.test.ts` dira s'il en manque un.

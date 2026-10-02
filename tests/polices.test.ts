@@ -9,9 +9,11 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { readFileSync, statSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { nombre } from '../src/registry/ecriture.ts'
+import { litWoff2 } from './woff2.ts'
 
 const DOSSIER_UI = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'ui')
 const FEUILLE = readFileSync(join(DOSSIER_UI, 'styles.css'), 'utf8')
@@ -79,6 +81,68 @@ describe('polices livrées (§12.2)', () => {
     )
     for (const element of ['code', 'kbd', 'samp', 'pre']) {
       expect({ element, herite: selecteurs.has(element) }).toEqual({ element, herite: true })
+    }
+  })
+})
+
+/** Tous les caractères non ASCII écrits hors commentaire dans `src/` : ce que l'écran peut afficher. */
+function caracteresDesSources(dossier: string): ReadonlyMap<string, string> {
+  const trouves = new Map<string, string>()
+  for (const entree of readdirSync(dossier, { withFileTypes: true, recursive: true })) {
+    if (!entree.isFile() || !/\.(tsx?|css)$/.test(entree.name)) continue
+    const chemin = join(entree.parentPath, entree.name)
+    // ponytail: `//` coupe aussi une URL dans une chaîne — on y perd des caractères à
+    // vérifier, jamais on n'en invente.
+    const code = readFileSync(chemin, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
+    for (const c of code) if (c.codePointAt(0)! > 0x7f && !trouves.has(c)) trouves.set(c, chemin)
+  }
+  return trouves
+}
+
+describe('couverture de la mono (T-0389)', () => {
+  const faces = facesDeclarees().filter((f) => f.famille === 'IBM Plex Mono')
+  const fontes = faces.map((f) => ({ ...f, fonte: litWoff2(join(DOSSIER_UI, f.url)) }))
+  const couverts = new Set(fontes.flatMap((f) => [...f.fonte.points]))
+
+  it('chaque caractère écrit dans les sources a son glyphe dans une fonte livrée', () => {
+    const sources = caracteresDesSources(join(DOSSIER_UI, '..'))
+    // Le grec et le moins typographique y sont : sans eux le test ne verrait rien.
+    expect(sources.has('δ') && sources.has('−')).toBe(true)
+    const manquants = [...sources]
+      .filter(([c]) => !couverts.has(c.codePointAt(0)!))
+      .map(([c, chemin]) => `${c} U+${c.codePointAt(0)!.toString(16).toUpperCase()} (${chemin})`)
+    expect(manquants).toEqual([])
+  })
+
+  it('le séparateur de milliers et les lettres de Bayer sont couverts', () => {
+    // Ni l'un ni les autres ne s'écrivent dans les sources : `Intl` produit l'un, les
+    // catalogues binaires portent les autres.
+    const separateur = nombre(13132).replace(/\d/g, '')
+    const bayer = String.fromCodePoint(...Array.from({ length: 25 }, (_, i) => 0x3b1 + i))
+    for (const c of separateur + bayer) expect([c, couverts.has(c.codePointAt(0)!)]).toEqual([c, true])
+  })
+
+  it('la couverture a la chasse de Plex : une colonne reste alignée', () => {
+    const chasses = new Set(fontes.map((f) => f.fonte.chasse))
+    expect(fontes.length).toBeGreaterThan(3)
+    expect([...chasses]).toEqual([0.6])
+  })
+
+  it('la plage unicode-range ne promet que des glyphes présents dans le fichier', () => {
+    const plages = [...FEUILLE.matchAll(/@font-face\s*\{([^}]*)\}/g)].flatMap(([, corps]) => {
+      const url = /url\('([^']+)'\)/.exec(corps!)?.[1]
+      const plage = /unicode-range:\s*([^;]+);/.exec(corps!)?.[1]
+      return url === undefined || plage === undefined ? [] : [{ url, plage }]
+    })
+    expect(plages.length).toBeGreaterThan(0)
+    for (const { url, plage } of plages) {
+      const { points } = litWoff2(join(DOSSIER_UI, url))
+      for (const morceau of plage.split(',')) {
+        const [debut, fin = debut] = morceau.trim().replace('U+', '').split('-')
+        for (let c = parseInt(debut!, 16); c <= parseInt(fin!, 16); c++) {
+          expect([url, c.toString(16), points.has(c)]).toEqual([url, c.toString(16), true])
+        }
+      }
     }
   })
 })

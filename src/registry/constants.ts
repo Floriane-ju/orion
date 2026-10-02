@@ -683,7 +683,7 @@ const LUNE = {
     valeur: -10.17,
     unite: 'mag',
     source:
-      'V☉ = −26,74 (Allen, Astrophysical Quantities) décalé de +16,57, le même décalage que ' +
+      'V du Soleil = −26,74 (Allen, Astrophysical Quantities) décalé de +16,57, le même décalage que ' +
       'L-01 (3,84 = −12,73 + 16,57) : I* est en footcandles, pas en flux V. Extension de rendu ' +
       '— KS91 est calibré sur la Lune, sa diffusion appliquée au Soleil donne un zénith de jour ' +
       'à 4–5,5 mag/as², l’ordre de grandeur mesuré d’un ciel bleu clair.',
@@ -2085,7 +2085,7 @@ const GRAND_CHAMP = {
     valeur: 0.6,
     unite: '1/mag',
     source:
-      '§9.2 — répartition euclidienne N(<m) ∝ 10^(0,6 m), utilisée pour tirer les magnitudes ' +
+      '§9.2 — répartition euclidienne N(<m) proportionnel à 10^(0,6 m), utilisée pour tirer les magnitudes ' +
       'du semis génératif',
     tolerance: 'ordre de grandeur',
     ordreDeGrandeur: true,

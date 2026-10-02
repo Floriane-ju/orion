@@ -402,6 +402,45 @@ pre {
   src: url('../fonts/IBMPlexMono-700.woff2') format('woff2');
 }
 
+/* T-0389 — LA COUVERTURE DE PLEX. Le sous-ensemble latin de Plex n'a ni grec (δ des
+   coordonnées, lettres de Bayer peintes sur la scène, Δ des écarts), ni flèches, ni
+   exposants (e⁻), ni signes mathématiques, ni l'espace fine U+202F que `Intl.NumberFormat`
+   met entre les milliers : ces signes tombaient dans le repli système (Menlo, Consolas,
+   DejaVu), et une colonne de relevés perdait sa chasse fixe. Plex n'existe pas en grec.
+
+   Noto Sans Mono les dessine sur la même avance (600 / 1000, vérifiée par
+   `tests/polices.test.ts`) : déclarée sous le nom de famille de Plex avec sa plage
+   `unicode-range`, elle n'est téléchargée que si la page affiche l'un de ses signes, et
+   elle ne touche à aucun glyphe latin. Un seul fichier variable, d'où trois faces pour les
+   trois graisses de Plex, sur la même URL. Déclarée après Plex : pour un même jeu de
+   descripteurs, la dernière face déclarée est consultée la première. */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/NotoSansMono-couverture.woff2') format('woff2');
+  unicode-range: U+0391-03A1, U+03A3-03A9, U+03B1-03C9, U+2009, U+202F, U+2032-2033, U+2070, U+2074-207B, U+2080-2089, U+2190-2194, U+2202, U+2212, U+221A, U+221E, U+2229, U+2248, U+2264-2265, U+2308-230B;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/NotoSansMono-couverture.woff2') format('woff2');
+  unicode-range: U+0391-03A1, U+03A3-03A9, U+03B1-03C9, U+2009, U+202F, U+2032-2033, U+2070, U+2074-207B, U+2080-2089, U+2190-2194, U+2202, U+2212, U+221A, U+221E, U+2229, U+2248, U+2264-2265, U+2308-230B;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/NotoSansMono-couverture.woff2') format('woff2');
+  unicode-range: U+0391-03A1, U+03A3-03A9, U+03B1-03C9, U+2009, U+202F, U+2032-2033, U+2070, U+2074-207B, U+2080-2089, U+2190-2194, U+2202, U+2212, U+221A, U+221E, U+2229, U+2248, U+2264-2265, U+2308-230B;
+}
+
 @font-face {
   font-family: 'Barlow Condensed';
   font-style: normal;
