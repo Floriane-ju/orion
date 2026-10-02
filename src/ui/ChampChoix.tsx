@@ -26,8 +26,8 @@ import { Etiquette } from './Terme.tsx'
 export interface ChampChoixProps<T extends string> {
   /** Le terme du glossaire qui nomme le champ — jamais une chaîne écrite à la main. */
   readonly cle: TermeGlossaire
-  /** Glose de remplacement, calculée au contact plutôt que générique. */
-  readonly glose?: string | undefined
+  /** Précision calculée au contact, ajoutée à la bulle du terme. */
+  readonly precision?: string | undefined
   readonly valeur: T
   readonly surChangement: (valeur: T) => void
   /** Les `<option>` et `<optgroup>`, écrits au site d'appel. */
@@ -36,7 +36,7 @@ export interface ChampChoixProps<T extends string> {
 
 export function ChampChoix<T extends string>({
   cle,
-  glose,
+  precision,
   valeur,
   surChangement,
   children,
@@ -44,7 +44,7 @@ export function ChampChoix<T extends string>({
   return (
     <label>
       <span className="libelle">
-        <Etiquette cle={cle} glose={glose} />
+        <Etiquette cle={cle} precision={precision} />
       </span>
       <select value={valeur} onChange={(e) => surChangement(e.target.value as T)}>
         {children}

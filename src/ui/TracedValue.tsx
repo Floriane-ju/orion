@@ -2,13 +2,15 @@
  * §1.5 critère 2, §10.2 — tout nombre affiché porte sa formule et sa constante source, et
  * §10.1 — le libellé porte sa définition au contact.
  *
- * Plus de repli au clic : glose, explication, formule, entrées et constantes sortent toutes
- * dans la bulle du libellé. Contenu volontairement exhaustif, à trier ensuite.
+ * T-0386 — la bulle du libellé ne porte que la glose, et ce que le glossaire y garde
+ * (`bulle`). La chaîne complète — valeur, formule, entrées, constantes — s'inscrit dans
+ * `traces-affichees.ts`, et la rubrique « Calcul » de la modale info la rend (§10.2 N3).
  *
  * Quand une constante consommée est un ordre de grandeur, la valeur s'accompagne de sa
  * plage : l'affichage ne présente jamais comme exacte une sortie qui ne peut pas l'être.
  */
 
+import { useEffect, useId } from 'react'
 import type { Traced } from '../core/traced.ts'
 import { dependDUnOrdreDeGrandeur } from '../core/traced.ts'
 import type { TermeGlossaire } from '../registry/glossaire.ts'
@@ -17,6 +19,7 @@ import { degres, nombre, nombreLibre } from '../registry/ecriture.ts'
 import { POURCENT } from '../core/unites.ts'
 import { sansSection } from './sans-section.ts'
 import { Etiquette } from './Terme.tsx'
+import { inscritTrace, retireTrace } from './traces-affichees.ts'
 import { MENTION_DONNEE_MANQUANTE, libelleEntree, libelleFlag } from '../registry/libelles.ts'
 
 interface TracedValueProps {
@@ -38,27 +41,61 @@ function formate(valeur: number | null, decimales: number, unite?: string): stri
   return `${nombre(valeur, decimales)}${unite === undefined ? '' : ` ${unite}`}`
 }
 
-/** Tout ce que le repli dépliait, en lignes de bulle : des `span`, la bulle vit dans un `<p>`. */
-function DetailTrace({
-  terme,
-  trace,
-  valeur,
-}: {
+/** `{cle}` de l'explication, remplacé par l'entrée tracée de même clé. */
+function explicationAvec(
+  explication: string | undefined,
+  inputs: Traced<number | null>['inputs'],
+): string | undefined {
+  return explication?.replace(/\{([a-z_]+)\}/g, (marque, cle: string) => {
+    const entree = inputs[cle]
+    if (entree === undefined) return marque
+    return entree === null ? MENTION_DONNEE_MANQUANTE : nombreLibre(entree)
+  })
+}
+
+interface DetailTraceProps {
   readonly terme: TermeGlossaire
   readonly trace: Traced<number | null>
   readonly valeur: string | null
-}) {
+}
+
+/** Ce que la bulle garde : la glose, puis ce que le glossaire y ajoute. */
+function BulleTrace({ terme, trace }: Omit<DetailTraceProps, 'valeur'>) {
+  const entree = GLOSSAIRE[terme]
+  const ajouts = entree.bulle ?? []
+  return (
+    <>
+      {entree.glose !== undefined && <span className="bulle-ligne">{entree.glose}</span>}
+      {ajouts.includes('explication') && entree.explication !== undefined && (
+        <span className="bulle-ligne">{explicationAvec(entree.explication, trace.inputs)}</span>
+      )}
+      {ajouts.includes('consequence') && entree.consequence !== undefined && (
+        <span className="bulle-ligne">{entree.consequence}</span>
+      )}
+    </>
+  )
+}
+
+/** La chaîne complète, en lignes : des `span`, la rubrique les pose dans un `<p>`. */
+export function DetailTrace({
+  terme,
+  trace,
+  valeur,
+}: DetailTraceProps) {
   const entree = GLOSSAIRE[terme]
   return (
     <>
-      <span className="bulle-ligne">{entree.glose}</span>
-      <span className="bulle-ligne">{entree.explication}</span>
+      {entree.explication !== undefined && (
+        <span className="bulle-ligne">{explicationAvec(entree.explication, trace.inputs)}</span>
+      )}
       <span className="bulle-ligne">
         {valeur === null
           ? 'Pas encore calculée : complétez le lieu ou le matériel.'
           : `Votre valeur : ${valeur}`}
       </span>
-      <span className="bulle-ligne">{entree.consequence}</span>
+      {entree.consequence !== undefined && (
+        <span className="bulle-ligne">{entree.consequence}</span>
+      )}
       <span className="bulle-ligne">
         <code>{trace.formula.expression}</code>
       </span>
@@ -103,10 +140,16 @@ export function TracedValue({
       ? null
       : `${nombre(trace.range[0] * echelle, decimales)} à ${formate(trace.range[1] * echelle, decimales, unite) ?? ''}`
 
+  const id = useId()
+  useEffect(() => {
+    inscritTrace(id, { terme, suffixe, trace, valeur })
+  }, [id, terme, suffixe, trace, valeur])
+  useEffect(() => () => retireTrace(id), [id])
+
   return (
     <p className="tracee tracee-vide">
       <span>
-        <Etiquette cle={terme} glose={<DetailTrace terme={terme} trace={trace} valeur={valeur} />} />
+        <Etiquette cle={terme} bulle={<BulleTrace terme={terme} trace={trace} />} />
         {suffixe !== undefined && <span className="tracee-suffixe"> — {suffixe}</span>}
       </span>
       <span className="tracee-valeur">

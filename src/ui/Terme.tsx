@@ -5,8 +5,9 @@
  * qui tient la règle « aucun terme affiché ne peut être absent du glossaire » — un libellé
  * sans entrée ne compile pas, et le compilateur nomme la clé manquante.
  *
- * Une seule surface d'explication : tout sort au survol. Le repli « en savoir plus » au clic
- * a été retiré, son contenu versé dans la bulle en attendant d'être trié.
+ * Une seule surface d'explication : tout sort au survol. T-0386 — la bulle d'un terme porte
+ * tout ce que son entrée écrit : glose, explication, conséquence. Celle d'une valeur tracée
+ * est composée par `TracedValue`, qui la passe entière (`bulle`).
  */
 
 import type { ReactNode } from 'react'
@@ -17,10 +18,12 @@ import { GLOSSAIRE } from '../registry/glossaire.ts'
 interface EtiquetteProps {
   readonly cle: TermeGlossaire
   /**
-   * Glose de remplacement, calculée au contact plutôt que générique — ex. l'ISO retenu et sa
-   * justification. Absente, la glose du glossaire fait foi.
+   * Précision calculée au contact, ajoutée sous l'entrée du glossaire — ex. l'ISO retenu et
+   * sa justification. T-0386 : elle ne remplace plus la glose, qui disparaissait avec elle.
    */
-  readonly glose?: ReactNode
+  readonly precision?: ReactNode
+  /** Contenu complet de la bulle, qui remplace glose, explication et conséquence. */
+  readonly bulle?: ReactNode
 }
 
 /** Une lettre grecque est un symbole : δ en capitale, Δ, désigne un écart (T-0276). */
@@ -42,15 +45,30 @@ function libelleProtege(libelle: string) {
 }
 
 /** Libellé d'un terme, glose au survol — le pointillé sous le mot annonce qu'il y a une aide. */
-export function Etiquette({ cle, glose }: EtiquetteProps) {
+export function Etiquette({ cle, precision, bulle }: EtiquetteProps) {
   const entree = GLOSSAIRE[cle]
-  // Une glose fournie (le détail d'une valeur tracée) l'emporte : sans bulle, elle serait perdue.
-  if (entree.sansBulle === true && glose === undefined) {
+  // Une précision fournie passe outre `sansBulle` : sans bulle, elle serait perdue.
+  const lignes = [
+    ...(entree.sansBulle === true ? [] : [entree.glose, entree.explication, entree.consequence]),
+    precision,
+  ].filter((ligne) => ligne !== undefined && ligne !== null && ligne !== '')
+  const texte =
+    bulle ??
+    (lignes.length === 0 ? undefined : (
+      <>
+        {lignes.map((ligne, rang) => (
+          <span key={rang} className="bulle-ligne">
+            {ligne}
+          </span>
+        ))}
+      </>
+    ))
+  if (texte === undefined) {
     return <span className="terme">{libelleProtege(entree.libelle)}</span>
   }
   return (
     <span className="terme">
-      <Bulle texte={glose ?? entree.glose} place="bas">
+      <Bulle texte={texte} place="bas">
         <abbr>{libelleProtege(entree.libelle)}</abbr>
       </Bulle>
     </span>

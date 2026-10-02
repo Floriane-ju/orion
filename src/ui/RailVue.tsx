@@ -102,7 +102,7 @@ const NOTE_PARCOURS = 'masqué pendant le parcours de pointage'
 
 /* T-0097 — la bascule ne plafonne plus seulement la magnitude : elle peint le fond de ciel
    du site, son halo d'horizon et celui de la Lune. */
-const AIDE_REALISTE = 'le ciel tel qu’on le voit depuis ce site'
+const AIDE_REALISTE = 'Simulation du ciel tel qu’on le voit depuis ce site'
 
 /** Une phrase par bulle : le libellé du contrôle, puis ce qu'il faut savoir avant de cliquer. */
 function aide(libelle: string, ...notes: readonly (string | undefined)[]): string {

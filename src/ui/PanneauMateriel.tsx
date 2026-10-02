@@ -182,7 +182,7 @@ function ChampsSuivi(props: PanneauMaterielProps) {
             périmètre au lieu d'un paragraphe fixe — elle ne concerne que le suivi choisi. */}
         <ChampChoix
           cle="type_monture"
-          glose={
+          precision={
             props.suiviActif ? 'Les montures altazimutales ne sont pas encore gérées.' : undefined
           }
           valeur={choixMonture(props)}

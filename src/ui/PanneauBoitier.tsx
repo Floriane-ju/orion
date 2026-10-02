@@ -243,14 +243,14 @@ function LigneIso({
     <>
       {fige ? (
         <p className="etat">
-          <Etiquette cle="iso_recommande" glose={lecture?.message} /> :{' '}
+          <Etiquette cle="iso_recommande" precision={lecture?.message} /> :{' '}
           {lecture === undefined ? '—' : lecture.iso}
         </p>
       ) : (
         <ChampDomaine
           domaine="iso_capture"
           cle="iso_recommande"
-          glose={lecture?.message}
+          precision={lecture?.message}
           valeur={iso}
           surValeur={surIso}
           inputMode="numeric"

@@ -10,7 +10,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { App } from '../src/App.tsx'
-import { TracedValue } from '../src/ui/TracedValue.tsx'
+import { DetailTrace } from '../src/ui/TracedValue.tsx'
 import { trace } from '../src/core/traced.ts'
 import {
   fluxCiel,
@@ -76,14 +76,16 @@ describe('entrées tracées sans valeur — §6.3', () => {
   })
 
   it('rend une entrée absente avec la convention d’une valeur absente', () => {
+    // T-0386 — les entrées ne se lisent plus dans la bulle, mais dans la rubrique « Calcul ».
     const markup = renderToStaticMarkup(
-      <TracedValue
-        terme="masse_air"
+      <DetailTrace
+        terme="extinction_atmospherique"
         trace={trace({
           value: 1,
           formula: 'ATTENUATION_ATMOSPHERIQUE',
           inputs: { masse_air: null },
         })}
+        valeur="1,00"
       />,
     )
     expect(markup).not.toContain('NaN')

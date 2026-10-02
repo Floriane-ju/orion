@@ -941,14 +941,16 @@ describe('T-0228 / T-0325 — la page « info » porte les sources', () => {
     expect(page).toMatch(/Profondeur affichée (<!-- -->)?\d+,\d(<!-- -->)? mag/)
   })
 
-  it('T-0325 — ses sept rubriques sont des accordéons fermés à l’ouverture', () => {
+  it('T-0325 — ses huit rubriques sont des accordéons fermés à l’ouverture', () => {
     const page = pageInfo(ecran())
-    expect(page.match(/<details class="accordeon"/g)).toHaveLength(7)
+    expect(page.match(/<details class="accordeon"/g)).toHaveLength(8)
     // La légende ouvre la liste.
     expect(page.indexOf('Légende')).toBeLessThan(page.indexOf('Vérification'))
     expect(page).not.toMatch(/<details class="accordeon"[^>]* open/)
-    // Un seul ouvert à la fois : les sept forment un groupe exclusif natif.
-    expect(page.match(/<details class="accordeon" name="page-info"/g)).toHaveLength(7)
+    // Un seul ouvert à la fois : les huit forment un groupe exclusif natif.
+    expect(page.match(/<details class="accordeon" name="page-info"/g)).toHaveLength(8)
+    // T-0386 — la chaîne complète des valeurs tracées quitte leur bulle pour la page info.
+    expect(page).toContain('<h2>Calcul</h2>')
     // T-0368 — les seuils de déclinaison quittent la carte Site pour la page info.
     expect(page).toContain('Déclinaisons du site')
   })
@@ -966,8 +968,9 @@ describe('T-0228 / T-0325 — la page « info » porte les sources', () => {
     // §6.4 — l'attribution de l'image est une condition d'affichage, pas une bibliographie.
     ouvreCible(M31)
     expect(CREDIT_RELEVE.licence).toContain('CDS')
-    // §10.2 niveau 3 — la source d'une CONSTANTE reste lisible dans la bulle de la valeur.
-    expect(ecran()).toContain('— source : ')
+    // §10.2 niveau 3 — la source d'une CONSTANTE se lit désormais dans la rubrique « Calcul »
+    // de la page info (T-0386) : `traces-affichees.test.tsx` le vérifie, le rendu statique
+    // ne joue pas l'inscription des valeurs montées.
   })
 })
 

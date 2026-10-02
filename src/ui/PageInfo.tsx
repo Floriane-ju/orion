@@ -22,6 +22,7 @@ import type { Persistance } from './app-donnees.ts'
 import type { SaisiePoids } from './app-saisie.ts'
 import { GLOSSAIRE } from '../registry/glossaire.ts'
 import { Bulle } from './Bulle.tsx'
+import { CalculsAffiches } from './CalculsAffiches.tsx'
 import { Icone } from './Icone.tsx'
 import { LegendeCouleurs } from './LegendeCouleurs.tsx'
 import { MenuReglages } from './MenuReglages.tsx'
@@ -94,10 +95,18 @@ function LectureProfondeur(props: LectureProfondeurProps) {
   const vueRealiste = useTrancheScene(vueRealisteScene)
   const profondeur = etatProfondeur(fovDeg, props.profondeurMag, props.sbCiel, vueRealiste)
   const entree = GLOSSAIRE.magnitude_limite_rendue
-  const aide =
-    profondeur.cause === undefined
-      ? entree.explication
-      : `${entree.explication} ${profondeur.cause}`
+  const aide = (
+    <>
+      <span className="bulle-ligne">
+        {profondeur.cause === undefined
+          ? entree.explication
+          : `${entree.explication} ${profondeur.cause}`}
+      </span>
+      {entree.consequence !== undefined && (
+        <span className="bulle-ligne">{entree.consequence}</span>
+      )}
+    </>
+  )
 
   return (
     <p className="etat page-info-profondeur">
@@ -147,6 +156,7 @@ export function PageInfo(props: PageInfoProps) {
           surImport={props.persistance.surImport}
         />
         {props.seuils !== undefined && <SeuilsDeclinaison seuils={props.seuils} />}
+        <CalculsAffiches />
         <MenuReglages poids={props.poids} />
         <Sources />
       </div>
