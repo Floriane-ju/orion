@@ -22,7 +22,8 @@ import {
 import type { Etoile } from '../data/catalog.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { EtoileNommee } from '../data/constellations.ts'
-import type { CoucheFrontieres, CoucheTraces } from '../core/constellations.ts'
+import type { CoucheFrontieres, CoucheTraces, EtoileTrace } from '../core/constellations.ts'
+import { etoilesDesTraces } from '../core/constellations.ts'
 import type { IndexCiel, StatistiquesSelection } from '../core/index-ciel.ts'
 import { selectionne } from '../core/index-ciel.ts'
 import {
@@ -374,6 +375,20 @@ function passeTraces(passe: Passe): CandidatLabel | null {
   return repereCentreGalactique(entree, teintes.voieLactee, pointEcran())
 }
 
+/**
+ * Appariement des sommets au catalogue, une fois par couche et par index : les couches sont
+ * construites au chargement du paquet et ne se réallouent pas (même clé que `calottesDe`).
+ */
+const etoilesTracesMemo = new WeakMap<object, { index: IndexCiel; etoiles: readonly EtoileTrace[] }>()
+
+function etoilesTraces(couches: readonly CoucheTraces[], index: IndexCiel): readonly EtoileTrace[] {
+  const connu = etoilesTracesMemo.get(couches)
+  if (connu !== undefined && connu.index === index) return connu.etoiles
+  const etoiles = etoilesDesTraces(couches, index)
+  etoilesTracesMemo.set(couches, { index, etoiles })
+  return etoiles
+}
+
 /** §3.3 — les étoiles du paquet, regroupées par teinte : huit tracés, pas seize mille. */
 function passeEtoiles(passe: Passe): { stats: StatistiquesSelection; etoilesDessinees: number } {
   const { entree, opaciteEtoiles, largeur, hauteur, p, cibles } = passe
@@ -408,6 +423,24 @@ function passeEtoiles(passe: Passe): { stats: StatistiquesSelection; etoilesDess
       }
     },
   )
+  // Un trait de figure qui aboutit dans le vide se lit comme une erreur : les étoiles des
+  // tracés affichés passent outre la limite du zoom. Celles qui la tiennent sont déjà peintes.
+  // Une limite à −∞ (le jour) n'en laisse aucune : il n'y a alors pas d'étoile à rejoindre.
+  if (opaciteEtoiles > 0 && entree.magLimite > Number.NEGATIVE_INFINITY) {
+    const tracees = [
+      ...(passe.couches.figures ? etoilesTraces(entree.figures, index) : []),
+      ...(passe.couches.asterismes ? etoilesTraces(entree.asterismes, index) : []),
+    ]
+    for (const { v, magV, bv } of tracees) {
+      if (magV <= entree.magLimite) continue
+      if (!projecteur.projetteEn(v.x, v.y, v.z, p)) continue
+      if (horsCanevas(p, largeur, hauteur)) continue
+      const rayon = rayonEtoileCielPx(magV)
+      const chemin = chemins[teinte(bv)]!
+      chemin.moveTo(p.xPx + rayon, p.yPx)
+      chemin.arc(p.xPx, p.yPx, rayon, 0, TOUR_RAD)
+    }
+  }
   if (opaciteEtoiles > 0) {
     ctx.globalAlpha = opaciteEtoiles
     for (let t = 0; t < TEINTES; t++) {

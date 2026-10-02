@@ -17,11 +17,14 @@ import {
   coucheFigures,
   coucheFrontieres,
   ecartFrontieresDeg,
+  etoilesDesTraces,
   longueurAreteDeg,
   matriceB1875VersJ2000,
   polyligneFrontiere,
 } from '../src/core/constellations.ts'
 import { decodeConstellations } from '../src/data/constellations.ts'
+import { decodeEtoiles } from '../src/data/catalog.ts'
+import { construitIndex } from '../src/core/index-ciel.ts'
 import { matricePrecession } from '../src/core/horloges.ts'
 import { applique, separationDeg, versVecteur } from '../src/core/mat3.ts'
 import {
@@ -268,5 +271,29 @@ describe('labels §3.4', () => {
     expect(composeLabels(candidats, 60).map((l) => l.texte)).toEqual(['Orion'])
     expect(composeLabels(candidats, 20).map((l) => l.texte)).toEqual(['Orion', 'α Ori'])
     expect(composeLabels(candidats, 5).map((l) => l.texte)).toEqual(['Orion', 'α Ori', 'M42'])
+  })
+})
+
+describe('étoiles des tracés §3.4', () => {
+  const ETOILES = decodeEtoiles(
+    readFileSync(join(import.meta.dirname, '..', 'public', 'data', 'hyg-1.bin')).buffer as ArrayBuffer,
+  )
+  const INDEX = construitIndex(ETOILES)
+
+  it('retrouve dans le catalogue l’étoile de chaque sommet de figure', () => {
+    const couches = coucheFigures(PAQUET.figures)
+    const sommets = new Set(
+      couches.flatMap((c) => c.segments.flatMap((s) => [s.a, s.b])).map((v) => `${v.x},${v.y},${v.z}`),
+    )
+    const etoiles = etoilesDesTraces(couches, INDEX)
+    // Les sommets viennent de la même ligne HYG que le catalogue : aucun ne reste orphelin.
+    expect(etoiles.length).toBe(sommets.size)
+    for (const e of etoiles) expect(Number.isFinite(e.magV)).toBe(true)
+  })
+
+  it('porte les étoiles faibles des astérismes, que la magnitude limite écarterait', () => {
+    const etoiles = etoilesDesTraces(coucheAsterismes(PAQUET.asterismes), INDEX)
+    expect(etoiles.length).toBeGreaterThan(0)
+    expect(Math.max(...etoiles.map((e) => e.magV))).toBeGreaterThan(K('MAG_LABEL_BAYER_MAX'))
   })
 })

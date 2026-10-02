@@ -22,6 +22,7 @@ import type {
   Segment,
 } from '../data/constellations.ts'
 import { decalagePrecessionDeg, matricePrecession } from './horloges.ts'
+import { selectionne, type IndexCiel } from './index-ciel.ts'
 import { DEG, applique, transpose, versVecteur, type Mat3, type Vec3 } from './mat3.ts'
 import { trace, type Traced } from './traced.ts'
 import { ecartCourt, TOUR_DEG } from './unites.ts'
@@ -165,6 +166,50 @@ export function coucheAsterismes(
     const segments = segmentsVers(a.segments, nommees)
     return { code: a.id, nom: a.nom, segments, centre: barycentre(segments) }
   })
+}
+
+export interface EtoileTrace {
+  readonly v: Vec3
+  readonly magV: number
+  readonly bv: number
+}
+
+/**
+ * Les étoiles du catalogue qui portent les sommets des tracés, une par sommet distinct.
+ *
+ * Un trait qui aboutit dans le vide se lit comme une erreur : la magnitude limite asservie au
+ * zoom (§3.3) éteint les étoiles faibles d'un astérisme — Quadrant mural, Cintre — alors que
+ * le trait reste. Le rendu les peint donc quelle que soit la limite. L'appariement se fait
+ * dans l'index, par la même tolérance que `magnitudeEn` : sommets et catalogue sortent de la
+ * même ligne HYG. Un sommet sans étoile dans le paquet chargé est écarté — on ne dessine pas
+ * une étoile dont on ignore l'éclat.
+ */
+export function etoilesDesTraces(couches: readonly CoucheTraces[], index: IndexCiel): readonly EtoileTrace[] {
+  const tolerance = K('TOLERANCE_APPARIEMENT_ETOILE_DEG')
+  // Corde plutôt que cosinus : l'index range ses directions en float32, et un cosinus proche
+  // de 1 perd à cette précision bien plus que la tolérance elle-même.
+  const cordeMaxCarree = (tolerance * DEG) ** 2
+  const vus = new Set<string>()
+  const etoiles: EtoileTrace[] = []
+  for (const couche of couches) {
+    for (const segment of couche.segments) {
+      for (const v of [segment.a, segment.b]) {
+        const cle = `${v.x},${v.y},${v.z}`
+        if (vus.has(cle)) continue
+        vus.add(cle)
+        let meilleur: EtoileTrace | null = null
+        let cordeMeilleure = cordeMaxCarree
+        selectionne(index, v, tolerance, Infinity, (x, y, z, magV, bv) => {
+          const corde = (x - v.x) ** 2 + (y - v.y) ** 2 + (z - v.z) ** 2
+          if (corde > cordeMeilleure) return
+          cordeMeilleure = corde
+          meilleur = { v, magV, bv }
+        })
+        if (meilleur !== null) etoiles.push(meilleur)
+      }
+    }
+  }
+  return Object.freeze(etoiles)
 }
 
 /**
