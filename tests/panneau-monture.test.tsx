@@ -140,7 +140,7 @@ describe('T-0236 — la monture se choisit en un champ', () => {
 describe('carte Boîtier repliée — T-0282', () => {
   it('nomme le boîtier et l’état du suivi', () => {
     expect(resumeBoitier('', PROFILS_MONTURE.AUCUN)).toBe('Boîtier personnalisé · Pas de suivi')
-    expect(resumeBoitier('', PROFILS_MONTURE.TRACKER_SOIGNE)).toContain('Tracker')
+    expect(resumeBoitier('', PROFILS_MONTURE.TRACKER_SOIGNE)).toBe('Boîtier personnalisé · Monture de suivi')
   })
 
   it('reprend le libellé de la base pour un boîtier connu', () => {

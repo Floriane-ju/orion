@@ -100,13 +100,16 @@ export const LIBELLE_MONTURE: Readonly<Record<ChoixMonture, string>> = Object.fr
  * T-0282 — la carte Boîtier repliée dit ce qui DÉCIDE de la pose : quel capteur, et s'il est
  * suivi. Le mode de recadrage seul laissait, cartes repliées pour dégager la scène, aucun
  * moyen de vérifier que le tracker était pris en compte.
+ *
+ * Seul le fait d'être suivi y figure, pas le détail de la monture : celui-ci se relit dans le
+ * sélecteur, et l'intitulé complet allongeait le résumé au point de le tronquer.
  */
 export function resumeBoitier(
   boitierId: string,
   profil: Parameters<typeof choixMonture>[0],
 ): string {
   const boitier = ligneBoitier(boitierId)?.libelle ?? 'Boîtier personnalisé'
-  return `${boitier} · ${LIBELLE_MONTURE[choixMonture(profil)]}`
+  return `${boitier} · ${profil.suiviActif ? 'Monture de suivi' : LIBELLE_MONTURE.AUCUN}`
 }
 
 export interface LecturesMateriel {
