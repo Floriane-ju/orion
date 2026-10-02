@@ -12,9 +12,7 @@ non-négociables.
 - Installer une dépendance sans accord. `pnpm` uniquement (`pnpm add`, `pnpm dlx`).
 - Modifier `prd.md` ou éditer `public/data/*.bin` à la main.
 - Ajouter de la télémétrie ou un ajustement automatique du registre.
-- Créer une branche ou un worktree, même si un skill le propose (`using-git-worktrees`,
-  `finishing-a-development-branch`…). Développeuse seule sur le projet : tout se fait et se
-  commite directement sur `main`, sans PR.
+- Hors demande explicite : Créer une branche ou un worktree, même si un skill le propose (`using-git-worktrees`, `finishing-a-development-branch`…). Développeuse seule sur le projet : tout se fait et se commite directement sur `main`, sans PR.
 
 ## Avant de coder
 
