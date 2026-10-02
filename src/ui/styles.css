@@ -1092,17 +1092,18 @@ body {
 /* T-0375 — LA NUIT, L'ENFONCÉ NE S'ALLUME PAS. Un aplat de --texte est une lampe sur un œil
    adapté — la raison qui éteint déjà les barres de titre. Cinq bascules enfoncées faisaient
    cinq carrés rouges pleins au bord du ciel. L'état se lit par la FORME : le glyphe rempli
-   (plus haut) et un filet doublé, comme la barre de titre tient par son filet. */
+   (plus haut) et un filet doublé, comme la barre de titre tient par son filet. Un fond LÉGER
+   s'y ajoute — la teinte de survol, un dixième du rouge plein : il désigne sans éclairer. */
 :root[data-mode-nuit='true'] .bouton-glyphe-flottant[aria-pressed='true'] {
-  background: var(--surface);
-  background: var(--voile);
+  background: var(--surface-survol);
   border-color: var(--texte);
   box-shadow: inset 0 0 0 var(--trait) var(--texte);
   color: var(--texte);
 }
 
+/* Sous la main, le fond enfoncé s'atténue — comme l'aplat du jour, seul retour possible. */
 :root[data-mode-nuit='true'] .bouton-glyphe-flottant[aria-pressed='true']:not(:disabled):hover {
-  background: var(--surface-survol);
+  background: var(--surface-haute);
   border-color: var(--texte);
   color: var(--texte);
 }
