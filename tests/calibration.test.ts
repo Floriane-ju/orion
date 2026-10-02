@@ -10,8 +10,9 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { planCalibration } from '../src/core/calibration.ts'
+import { S_PAR_MIN } from '../src/core/unites.ts'
 
-const SESSION = { tPoseS: 13, iso: 640, nPoses: 252 }
+const SESSION = { tPosesS: [13], iso: 640, nPoses: 252 }
 
 describe('plan de calibration §7.4', () => {
   const plan = planCalibration(SESSION)
@@ -38,6 +39,18 @@ describe('plan de calibration §7.4', () => {
   it('recommande le dithering à chaque pose sans autoguidage, et dit ce qu’il supprime', () => {
     expect(plan.dithering).toMatch(/à chaque pose/)
     expect(plan.dithering).toMatch(/dérive naturelle/)
+  })
+
+  it('prescrit un lot de darks par durée de pose distincte du plan, flats et offsets une fois', () => {
+    const nuit = planCalibration({ ...SESSION, tPosesS: [13, 30, 13] })
+    expect(nuit.lots.map((l) => [l.type, l.tPoseS])).toEqual([
+      ['FLATS', undefined],
+      ['DARKS', 30],
+      ['DARKS', 13],
+      ['OFFSETS', undefined],
+    ])
+    const nDarks = plan.lots.find((l) => l.type === 'DARKS')!.nombre
+    expect(nuit.surcoutTempsMin.value).toBeCloseTo((nDarks * (13 + 30)) / S_PAR_MIN, 6)
   })
 
   it('invalide les flats au changement de focale ou d’orientation', () => {

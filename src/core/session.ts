@@ -294,14 +294,13 @@ function plafondCapture(
 }
 
 /**
- * La calibration est prise une fois pour la session : même ISO, même optique, et des darks à
- * la pose de la première cible du plan (§7.4).
+ * La calibration est prise une fois pour la session : même ISO, même optique, et un lot de
+ * darks par durée de pose des cibles du plan (§7.4).
  */
 function calibrationDeSession(contexte: ContexteSession, etapes: readonly EtapePlan[]) {
-  const premiere = etapes[0]
-  if (premiere === undefined) return null
+  if (etapes.length === 0) return null
   return planCalibration({
-    tPoseS: premiere.tPoseS,
+    tPosesS: etapes.map((e) => e.tPoseS),
     iso: contexte.isoSession,
     nPoses: etapes.reduce((somme, e) => somme + e.nPoses, 0),
     autoguidage: false,

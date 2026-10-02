@@ -24,6 +24,7 @@ import type { EtoileNommee } from '../data/constellations.ts'
 import { K } from '../registry/constants.ts'
 import { Icone } from './Icone.tsx'
 import { Pastilles } from './Pastilles.tsx'
+import { PlanCalibration } from './PlanCalibration.tsx'
 import { TracedValue } from './TracedValue.tsx'
 import { Etiquette } from './Terme.tsx'
 import { heure } from './horaire.ts'
@@ -99,6 +100,8 @@ export function PlanSessionVue(props: PlanSessionProps) {
           <Etape key={etape.objet.designation} etape={etape} rang={index + 1} {...props} />
         ))}
       </section>
+
+      <PlanCalibration calibration={plan.calibration} />
 
       <Ecartees ecartees={plan.ciblesEcartees} />
 

@@ -113,6 +113,7 @@ export function planEnTexte(plan: PlanSession, enTete: EnTetePlan): string {
     for (const lot of plan.calibration.lots) {
       lignes.push(
         `  ${LIBELLE_LOT_CALIBRATION[lot.type].padEnd(LARGEUR_LOT)} : ${lot.nombre} images ` +
+          (lot.tPoseS === undefined ? '' : `de ${nombreLibre(lot.tPoseS)} s `) +
           `(${lot.plage[0]} à ${lot.plage[1]}) — ${lot.consigne}`,
       )
     }

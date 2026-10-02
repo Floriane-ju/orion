@@ -1,5 +1,5 @@
 /**
- * Fiche d'une cible : §6.2 cadrage, §6.3 détectabilité, §7 pose, intégration et calibration,
+ * Fiche d'une cible : §6.2 cadrage, §6.3 détectabilité, §7 pose et intégration,
  * §10.2 explication dépliable.
  *
  * Toute la valeur de l'application tient dans cet écran, et il se livre avant le

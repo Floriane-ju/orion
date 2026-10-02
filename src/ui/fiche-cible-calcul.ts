@@ -22,7 +22,6 @@ import {
   type PlanIntegration,
   type PoseUnitaire,
 } from '../core/exposure.ts'
-import { planCalibration, type PlanCalibration } from '../core/calibration.ts'
 import type { PlusHautDuCreneau } from '../core/creneaux.ts'
 import type { CielSousLaLune } from '../core/moon.ts'
 import { explication, type Explication } from '../core/explain.ts'
@@ -129,7 +128,6 @@ export interface Resultat {
    * prévision ferait croire à un arbitrage là où il n'y en a pas.
    */
   readonly plancher: Plancher | null
-  readonly calibration: PlanCalibration | null
   readonly explique: Explication | null
 }
 
@@ -222,7 +220,6 @@ export function evalue(
       exclusionCreneau: capture.exclusion,
       integration: null,
       plancher: null,
-      calibration: null,
       explique: null,
     }
   }
@@ -255,7 +252,6 @@ export function evalue(
       exclusionCreneau: capture.exclusion,
       integration: null,
       plancher: null,
-      calibration: null,
       explique: null,
     }
   }
@@ -289,7 +285,6 @@ export function evalue(
       exclusionCreneau: capture.exclusion,
       integration: null,
       plancher: null,
-      calibration: null,
       explique: null,
     }
   }
@@ -313,13 +308,6 @@ export function evalue(
 
   const plancher = plancherAuMeilleurInstant(plusHaut, eObj, integrationCommune)
 
-  const calibration = planCalibration({
-    tPoseS: pose.tAfficheeS,
-    iso: iso.iso,
-    nPoses: integration.nPoses.value,
-    autoguidage: false,
-  })
-
   return {
     lune,
     sbCielEffectif: sbCiel,
@@ -333,7 +321,6 @@ export function evalue(
     exclusionCreneau: null,
     integration,
     plancher,
-    calibration,
     explique: expliqueVerdict(contexte, objet, snrCible, {
       cadrage,
       detect,

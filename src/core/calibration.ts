@@ -12,6 +12,10 @@
  * Aucune bibliothèque de darks réutilisable n'est validée (T-0152) : un dark ne vaut que pour
  * la température du capteur, que l'application ne mesure pas. Prescrire un lot à chaque séance,
  * en fin de séance capteur encore froid, est la consigne qui ne peut pas se tromper.
+ *
+ * Le plan couvre toute la nuit, pas une cible : un dark ne vaut que pour SA durée de pose,
+ * donc un lot par durée distincte du plan. Flats et offsets restent uniques — même optique,
+ * même ISO de session.
  */
 
 import { DITHERING_PX, PRESCRIPTIONS_CALIBRATION } from '../registry/verdicts.ts'
@@ -21,7 +25,8 @@ import { S_PAR_MIN } from './unites.ts'
 
 
 export interface EntreeCalibration {
-  readonly tPoseS: number
+  /** Durées de pose du plan ; un lot de darks par durée distincte. */
+  readonly tPosesS: readonly number[]
   readonly iso: number
   readonly nPoses: number
   readonly autoguidage?: boolean
@@ -34,6 +39,8 @@ export interface LotCalibration {
   readonly nombre: number
   readonly plage: readonly [number, number]
   readonly consigne: string
+  /** Darks seulement : la durée de pose qu'ils doivent reproduire. */
+  readonly tPoseS?: number
 }
 
 export interface PlanCalibration {
@@ -50,8 +57,11 @@ function nombrePrescrit(type: LotCalibration['type']): LotCalibration {
 }
 
 export function planCalibration(entree: EntreeCalibration): PlanCalibration {
-  const lots = [nombrePrescrit('FLATS'), nombrePrescrit('DARKS'), nombrePrescrit('OFFSETS')]
-  const darks = lots.find((l) => l.type === 'DARKS')!
+  const durees = [...new Set(entree.tPosesS)].sort((a, b) => b - a)
+  const darks = durees.map((tPoseS) => ({ ...nombrePrescrit('DARKS'), tPoseS }))
+  const lots = [nombrePrescrit('FLATS'), ...darks, nombrePrescrit('OFFSETS')]
+  const nDarks = nombrePrescrit('DARKS').nombre
+  const sommePosesS = durees.reduce((somme, t) => somme + t, 0)
 
   const avertissements = [
     'Ne touchez plus à la bague de mise au point avant les flats.',
@@ -64,9 +74,9 @@ export function planCalibration(entree: EntreeCalibration): PlanCalibration {
   return {
     lots,
     surcoutTempsMin: trace({
-      value: (darks.nombre * entree.tPoseS) / S_PAR_MIN,
+      value: (nDarks * sommePosesS) / S_PAR_MIN,
       formula: 'TEMPS_DARKS',
-      inputs: { n_darks: darks.nombre, t_pose_s: entree.tPoseS },
+      inputs: { n_darks: nDarks, t_pose_s: sommePosesS },
       note: 'Darks à prendre en fin de séance, capteur encore froid.',
     }),
     dithering:

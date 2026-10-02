@@ -214,7 +214,7 @@ export const FORMULES = Object.freeze({
     section: '7.3',
   },
   TEMPS_DARKS: {
-    expression: 'temps_darks_min = n_darks × t_pose_s / 60',
+    expression: 'temps_darks_min = n_darks × Σ t_pose_s / 60, une somme sur les durées de pose distinctes',
     unite: 'min',
     section: '7.4',
   },

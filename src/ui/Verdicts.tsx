@@ -1,6 +1,6 @@
 /**
  * Ce que la chaîne de calcul répond, région par région : §6.2 cadrage,
- * §6.3 détectabilité, §7 pose, intégration et calibration, §10.2 explication dépliable.
+ * §6.3 détectabilité, §7 pose et intégration, §10.2 explication dépliable.
  *
  * Aucune de ces régions ne calcule quoi que ce soit : elles lisent le `Resultat` produit par
  * `fiche-cible-calcul.ts`, et chaque nombre reste dépliable jusqu'à sa formule.
@@ -23,7 +23,6 @@ import type { Conseils, Resultat } from './fiche-cible-calcul.ts'
 import type { CreneauFiche } from './fiche-cible-creneau.ts'
 import { Mention } from './Mention.tsx'
 import {
-  LIBELLE_LOT_CALIBRATION,
   LIBELLE_REGIME_POSE,
   LIBELLE_TOLERANCE_LUNE,
   LIBELLE_VERDICT_CADRAGE,
@@ -67,7 +66,6 @@ export function Verdicts(props: VerdictsProps) {
         />
       )}
       <CombienDePhotos r={r} snrCible={props.snrCible} surSnr={props.surSnr} />
-      <PlanDeCalibration r={r} />
       <PourquoiCeVerdict
         r={r}
         conseils={props.conseils}
@@ -371,54 +369,6 @@ function CombienDePhotos({
       {integration.messages.map((m) => (
         <Mention key={m} ton={integration.horsDePortee ? 'cause' : 'etat'}>
           {m}
-        </Mention>
-      ))}
-    </section>
-  )
-}
-
-/** §7.4 — les lots de calibration que la session exige, et ce qu'ils coûtent en temps. */
-function PlanDeCalibration({ r }: { readonly r: Resultat }) {
-  const calibration = r.calibration
-  if (calibration === null) return null
-  return (
-    <section>
-      <h2>Plan de calibration</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Type</th>
-            <th>Nombre</th>
-            <th>Plage</th>
-            <th>Consigne</th>
-          </tr>
-        </thead>
-        <tbody>
-          {calibration.lots.map((lot) => (
-            <tr key={lot.type}>
-              <td>{LIBELLE_LOT_CALIBRATION[lot.type]}</td>
-              <td>{lot.nombre}</td>
-              <td>
-                {lot.plage[0]} à {lot.plage[1]}
-              </td>
-              <td>{lot.consigne}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <TracedValue
-        terme="plan_calibration"
-        suffixe="surcoût de temps"
-        trace={calibration.surcoutTempsMin}
-        decimales={0}
-        unite="min"
-      />
-      <p className="etat">
-        <Etiquette cle="dithering" /> : {calibration.dithering}
-      </p>
-      {calibration.avertissements.map((a) => (
-        <Mention key={a} ton="cause">
-          {a}
         </Mention>
       ))}
     </section>

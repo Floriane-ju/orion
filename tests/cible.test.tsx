@@ -1,7 +1,7 @@
 /**
  * Livrable vérifiable du Lot 2 : pour une cible et un setup, l'écran produit un verdict
  * dépliable jusqu'à sa formule, une pose avec sa plage utile, une durée d'intégration et un
- * plan de calibration.
+ * plan de calibration — ce dernier vit désormais dans le plan de nuit.
  *
  * Le rendu statique suffit : rien n'est à cliquer pour que la chaîne §6 → §7 → §10.2
  * produise ses sorties. T-0156 — la fiche n'a plus de cible par défaut : c'est le magasin de
@@ -116,11 +116,10 @@ describe('fiche de cible — écran par défaut, M33 depuis le site de l’Annex
     expect(ecran).toMatch(/Premier levier : se déplacer vers un site plus sombre/)
   })
 
-  it('prescrit un plan de calibration, sans jamais offrir d’écran de calibration', () => {
-    expect(ecran).toContain(LIBELLE_LOT_CALIBRATION.FLATS)
-    expect(ecran).toContain(LIBELLE_LOT_CALIBRATION.DARKS)
-    expect(ecran).toContain(LIBELLE_LOT_CALIBRATION.OFFSETS)
-    expect(ecran).toMatch(/bague de mise au point/)
+  it('laisse le plan de calibration au plan de nuit, sans jamais offrir d’écran de calibration', () => {
+    expect(ecran).not.toContain(LIBELLE_LOT_CALIBRATION.FLATS)
+    expect(ecran).not.toContain(LIBELLE_LOT_CALIBRATION.DARKS)
+    expect(ecran).not.toContain(LIBELLE_LOT_CALIBRATION.OFFSETS)
     // Le point zéro système reste une lecture : aucun champ de saisie ne le vise.
     expect(ecran).not.toMatch(/<input[^>]*(zp|calibr)/i)
   })
