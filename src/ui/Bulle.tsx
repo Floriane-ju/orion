@@ -27,7 +27,7 @@
  * son libellé — elle le décrit.
  */
 
-import { cloneElement, useId, type CSSProperties, type ReactElement } from 'react'
+import { cloneElement, useId, type CSSProperties, type ReactElement, type ReactNode } from 'react'
 
 /** Le côté où la bulle se déplie, relatif au contrôle qui l'ouvre. */
 export type PlaceBulle = 'haut' | 'bas' | 'gauche' | 'droite'
@@ -39,7 +39,8 @@ interface LienAria {
 }
 
 interface BulleProps {
-  readonly texte: string
+  /** Une phrase le plus souvent ; le détail complet d'une valeur tracée (TracedValue) sinon. */
+  readonly texte: ReactNode
   readonly place?: PlaceBulle
   /** La bulle porte le nom accessible du contrôle, au lieu de le décrire. */
   readonly nomme?: boolean

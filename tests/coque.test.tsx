@@ -966,8 +966,8 @@ describe('T-0228 / T-0325 — la page « info » porte les sources', () => {
     // §6.4 — l'attribution de l'image est une condition d'affichage, pas une bibliographie.
     ouvreCible(M31)
     expect(CREDIT_RELEVE.licence).toContain('CDS')
-    // §10.2 niveau 3 — la source d'une CONSTANTE reste dépliable sous la valeur qu'elle porte.
-    expect(ecran()).toContain('tracee-source')
+    // §10.2 niveau 3 — la source d'une CONSTANTE reste lisible dans la bulle de la valeur.
+    expect(ecran()).toContain('— source : ')
   })
 })
 

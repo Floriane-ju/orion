@@ -595,7 +595,7 @@ describe('contraste des bordures de controle - WCAG 2.2 1.4.11', () => {
 describe('ergonomie de consultation nocturne §11.2', () => {
   it('donne aux cibles de clic la taille d’un usage ganté', () => {
     expect(CSS).toMatch(/--cible-clic:\s*44px/)
-    for (const selecteur of ['button,', '.tracee summary', '.terme-detail summary']) {
+    for (const selecteur of ['button,']) {
       const index = CSS.indexOf(selecteur)
       expect(index, selecteur).toBeGreaterThan(-1)
       expect(CSS.slice(index, CSS.indexOf('}', index))).toMatch(/min-height: var\(--cible-clic\)/)

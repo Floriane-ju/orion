@@ -1991,7 +1991,7 @@ label {
  *
  * `button` et les `summary` gardent la leur : ces deux-là ne contiennent QUE leur propre
  * libellé, leurs capitales sont donc justes, et les annulations qui subsistent chez eux
- * protègent des contenus riches délibérément imbriqués (`.cible-ligne`, `.tracee-detail`).
+ * protègent des contenus riches délibérément imbriqués (`.cible-ligne`).
  * Le défaut était que `label` enveloppe ce qu'il ne possède pas — pas que les capitales
  * héritent. */
 .libelle {
@@ -2327,6 +2327,14 @@ th {
 /* Le focus autant que le survol : un contrôle atteint au clavier doit dire ce qu'il fait.
    T-0240 — `:focus-visible` et non `:focus-within` : un clic focalise le bouton, et la
    bulle restait ouverte une fois la souris partie, jusqu'au clic suivant ailleurs. */
+.bulle-ligne {
+  display: block;
+}
+
+.bulle-ligne + .bulle-ligne {
+  margin-block-start: var(--pas-1);
+}
+
 .bulle-ancre:hover > .bulle,
 .bulle-ancre:has(:focus-visible) > .bulle {
   visibility: visible;
@@ -2431,8 +2439,7 @@ th {
   }
 }
 
-/* §10.1 — la glose sort au survol. Aucune information critique n'en dépend seule : tout
-   s'ouvre aussi au clic (§11.2). */
+/* §10.1 — la glose sort au survol, avec tout le détail d'une valeur tracée. */
 /* Un titre de carte qui porte une aide au survol (`.aide`) prend le même repère qu'un terme : le
    pointillé annonce qu'il y a quelque chose à lire, le curseur le confirme. */
 .terme abbr,
@@ -2440,42 +2447,6 @@ th {
   text-decoration: underline dotted var(--attenue);
   text-underline-offset: var(--decalage-souligne);
   cursor: help;
-}
-
-.terme-detail summary {
-  cursor: pointer;
-  min-height: var(--cible-clic);
-  padding: var(--pas-1) 0;
-  color: var(--attenue);
-  font-size: var(--texte-legende);
-}
-
-/* Le même retour qu'une lecture tracée : deux replis qui s'ouvrent au clic répondent pareil. */
-.terme-detail summary:hover {
-  color: var(--texte);
-}
-
-.glossaire {
-  letter-spacing: 0;
-  text-transform: none;
-  margin: 0 0 var(--pas-3);
-  padding: var(--pas-2) var(--pas-3);
-  border-left: var(--trait-marque) solid var(--bordure);
-  background: var(--surface-haute);
-  font-size: var(--texte-legende);
-  color: var(--attenue);
-}
-
-.glossaire p {
-  margin: 0 0 var(--pas-2);
-}
-
-.glossaire-contexte {
-  color: var(--texte);
-}
-
-.glossaire-consequence {
-  font-style: italic;
 }
 
 .tracee-suffixe,
@@ -2493,7 +2464,6 @@ th {
 
 /* La lecture qui ne se calcule pas encore garde la ligne de sa voisine tracée :
    elle ne se déplie pas, faute de formule, mais elle occupe la même place — la même règle. */
-.tracee summary,
 .tracee-vide {
   display: flex;
   justify-content: space-between;
@@ -2507,14 +2477,6 @@ th {
   color: var(--attenue);
 }
 
-.tracee summary {
-  cursor: pointer;
-}
-
-.tracee summary:hover {
-  color: var(--texte);
-}
-
 /* La valeur est ce qu'on vient lire : elle garde sa casse, monte en taille et prend le
    jeton le plus lumineux. L'étiquette qui la précède fait l'inverse. */
 .tracee-valeur {
@@ -2523,44 +2485,6 @@ th {
   letter-spacing: 0;
   text-transform: none;
   color: var(--texte);
-}
-
-.tracee-detail {
-  padding: var(--pas-2) 0 var(--pas-3) var(--pas-4);
-  font-size: var(--texte-legende);
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--attenue);
-}
-
-.tracee-formule code {
-  color: var(--texte);
-}
-
-.tracee-entrees {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-  gap: var(--pas-1) var(--pas-4);
-  margin: var(--pas-2) 0;
-}
-
-.tracee-entrees div {
-  display: flex;
-  gap: var(--pas-2);
-}
-
-.tracee-entrees dt,
-.tracee-entrees dd {
-  margin: 0;
-}
-
-.tracee-constantes {
-  margin: var(--pas-2) 0;
-  padding-left: var(--pas-4);
-}
-
-.tracee-flags {
-  color: var(--alerte);
 }
 
 .depreciee td {
@@ -3636,8 +3560,6 @@ button,
 .onglet,
 .bouton-info,
 .tiroir > summary,
-.terme-detail summary,
-.tracee summary,
 .carte-entete,
 .cible-ligne,
 .compteur,
@@ -3656,8 +3578,6 @@ button:not(:disabled):active,
 .onglet:active,
 .bouton-info:active,
 .tiroir > summary:active,
-.terme-detail summary:active,
-.tracee summary:active,
 .cible-ligne:active {
   background: var(--surface-haute);
   color: var(--texte);

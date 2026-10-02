@@ -20,7 +20,7 @@ export interface EntreeGlossaire {
   readonly glose: string
   /** Vrai si le libellé s'affiche sans bulle au survol : le nom seul suffit déjà. */
   readonly sansBulle?: boolean
-  /** Deux à quatre phrases, au clic. */
+  /** Deux à quatre phrases, dans la bulle d'une valeur tracée. */
   readonly explication: string
   /** Ce que ça change pour l'utilisateur, en une phrase actionnable. */
   readonly consequence: string
