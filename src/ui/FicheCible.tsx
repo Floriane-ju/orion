@@ -22,7 +22,11 @@ import type { CibleEcartee, ContexteSession, EtapePlan } from '../core/session-t
 import { ChampsCible, Lecture } from './ChampsCible.tsx'
 import { syntheseFiche, type SyntheseFiche } from './fiche-synthese.ts'
 import { heure } from './horaire.ts'
-import { nombreLibre } from '../registry/ecriture.ts'
+import { degres, nombreLibre, pourcentage } from '../registry/ecriture.ts'
+import { LIBELLE_VERDICT_CADRAGE } from '../registry/libelles.ts'
+import type { EtatCible } from '../core/cibles-liste.ts'
+import { Icone } from './Icone.tsx'
+import { Pastilles } from './Pastilles.tsx'
 import { ImageCible } from './ImageCible.tsx'
 import { Verdicts } from './Verdicts.tsx'
 import { nuitFiche } from './fiche-cible-creneau.ts'
@@ -30,6 +34,8 @@ import { conseilsCible, evalue, type ContexteFiche, type Resultat } from './fich
 import { Mention } from './Mention.tsx'
 import { Etiquette } from './Terme.tsx'
 import { majFiche, useSeance } from './seance-etat.ts'
+
+import { LIBELLE_TYPE_OBJET, nomCommun } from './libelles-objet.ts'
 
 export { LIBELLE_TYPE_OBJET, libelleObjet } from './libelles-objet.ts'
 
@@ -58,20 +64,90 @@ export interface FicheCibleProps extends ContexteFiche {
   readonly ecarteePlan?: CibleEcartee | null
   /** T-0282 — l'étape de cette cible au plan : la tête de fiche en reprend les valeurs. */
   readonly etapePlan?: EtapePlan | null
+  /** T-0381 — la note de la liste pour cette cible, lue dans la même map, jamais recalculée. */
+  readonly facilite?: EtatCible | null
 }
 
-/** T-0282 — les trois réponses, avant tout le reste ; le détail et ses traces suivent. */
-function EnTete({ s }: { readonly s: SyntheseFiche }) {
-  const nonChiffre = '—'
+const NON_CHIFFRE = '—'
+
+/**
+ * T-0381 — la première carte dit QUOI et QUAND, comme la carte de liste dont on vient : la
+ * désignation et son nom d'usage, le type, puis le créneau et la culmination. Sans titre de
+ * rubrique — elle ne range rien, elle nomme. Le type est dit ici une fois, la carte suivante
+ * ne le redit pas.
+ */
+function Resume({
+  objet,
+  s,
+  culmination,
+}: {
+  readonly objet: ObjetCielProfond
+  readonly s: SyntheseFiche | null
+  /** L'heure du plus haut de la nuit, `null` sans nuit chiffrée : la ligne ne meuble pas. */
+  readonly culmination: Date | null
+}) {
+  const nom = nomCommun(objet)
+  const creneau = s?.creneau ?? null
   return (
     <section>
-      <h2>{s.auPlan ? 'Au plan ce soir' : 'Ce soir'}</h2>
-      <Lecture libelle="Pose" valeur={s.poseS === null ? nonChiffre : `${nombreLibre(s.poseS)} s`} />
-      <Lecture libelle="Images" valeur={s.nPoses === null ? nonChiffre : String(s.nPoses)} />
+      <div className="fiche-tete">
+        <p className="fiche-resume-nom">
+          <span className="cible-designation">{objet.designation}</span>
+          {nom !== '' && <span>{nom}</span>}
+        </p>
+        <p className="fiche-resume-type">{LIBELLE_TYPE_OBJET[objet.type]}</p>
+      </div>
       <Lecture
-        libelle="Créneau"
-        valeur={s.creneau === null ? nonChiffre : `${heure(s.creneau.debut)} → ${heure(s.creneau.fin)}`}
+        libelle="Créneau d’observation"
+        valeur={creneau === null ? NON_CHIFFRE : `${heure(creneau.debut)} → ${heure(creneau.fin)}`}
       />
+      {culmination !== null && (
+        <Lecture libelle={<Etiquette cle="culmination" />} valeur={heure(culmination)} />
+      )}
+    </section>
+  )
+}
+
+/**
+ * T-0381 — la troisième carte résume la photographie : la facilité en tête, puis ce qui décide
+ * du cadre (taille, inclinaison) et ce qu'on règle (pose, images). Le détail et ses traces
+ * suivent dans les verdicts. T-0282 — pose et images restent ici, en tête de fiche : sur une
+ * cible au plan, ce sont celles de son étape.
+ */
+function Photographie({
+  r,
+  s,
+  facilite,
+}: {
+  readonly r: Resultat
+  readonly s: SyntheseFiche
+  readonly facilite: EtatCible | null
+}) {
+  const cadrage = r.cadrage
+  return (
+    <section>
+      <div className="fiche-tete">
+        <p className="fiche-tete-titre">
+          <Icone nom="photo_camera" />
+          {facilite === null ? 'Photographie' : `Photographie ${facilite.libelle}`}
+        </p>
+        {/* Sans note, aucune pastille : cinq vides se liraient « impossible ». */}
+        {facilite !== null && (
+          <Pastilles note={facilite.note} libelle={facilite.libelle} cause={facilite.cause} />
+        )}
+      </div>
+      {cadrage !== null && (
+        <Lecture
+          libelle="Taille dans le cadre"
+          valeur={`${pourcentage(cadrage.remplissage.value)} — ${LIBELLE_VERDICT_CADRAGE[cadrage.verdict]}`}
+        />
+      )}
+      {/* Une cible presque ronde, ou d'orientation inconnue, n'a pas d'angle à conseiller. */}
+      {cadrage !== null && cadrage.angleBoitierDeg !== null && (
+        <Lecture libelle="Inclinaison objet" valeur={degres(cadrage.angleBoitierDeg)} />
+      )}
+      <Lecture libelle="Pose" valeur={s.poseS === null ? NON_CHIFFRE : `${nombreLibre(s.poseS)} s`} />
+      <Lecture libelle="Images" valeur={s.nPoses === null ? NON_CHIFFRE : String(s.nPoses)} />
     </section>
   )
 }
@@ -124,17 +200,26 @@ export function FicheCible(props: FicheCibleProps) {
         }
       : null
 
+  const synthese = calcul.ok
+    ? syntheseFiche(calcul.r, nuit.creneau, props.etapePlan ?? null)
+    : null
+
   return (
-    <>
-      {calcul.ok && (
-        <EnTete s={syntheseFiche(calcul.r, nuit.creneau, props.etapePlan ?? null)} />
-      )}
+    <div className="fiche">
       {/* §6.4, §6.2 — l'objet avant ses nombres, et le cadre du capteur posé dessus. Sans
           image disponible, le composant ne rend rien : une cible sans image reste une cible
           complète. Sans cadrage calculé — pas de dimensions au catalogue — l'image reste, mais
           nue : un rectangle tracé contre un champ de repli mentirait sur l'échelle. */}
       <ImageCible objet={objet} cadre={cadre} />
+      <Resume
+        objet={objet}
+        s={synthese}
+        culmination={nuit.creneau.chiffre ? nuit.creneau.creneau.heureCulmination : null}
+      />
       <ChampsCible objet={objet} />
+      {calcul.ok && synthese !== null && (
+        <Photographie r={calcul.r} s={synthese} facilite={props.facilite ?? null} />
+      )}
       {(props.ecarteePlan ?? null) !== null && (
         <Mention ton="cause">
           <Etiquette cle="cause_exclusion" /> : {props.ecarteePlan!.cause}
@@ -157,6 +242,6 @@ export function FicheCible(props: FicheCibleProps) {
           surDeplie={(explicationDepliee) => majFiche({ explicationDepliee })}
         />
       )}
-    </>
+    </div>
   )
 }

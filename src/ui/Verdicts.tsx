@@ -1,6 +1,9 @@
 /**
- * Ce que la chaîne de calcul répond, région par région : §6.2 cadrage,
- * §6.3 détectabilité, §7 pose et intégration, §10.2 explication dépliable.
+ * Ce que la chaîne de calcul répond, région par région : §6.3 détectabilité, §7 pose et
+ * intégration, §10.2 explication dépliable.
+ *
+ * T-0381 — la région « Cadrage de la cible » (§6.2) est partie : la carte « Photographie »
+ * de la fiche en résume la taille dans le cadre et l'inclinaison.
  *
  * Aucune de ces régions ne calcule quoi que ce soit : elles lisent le `Resultat` produit par
  * `fiche-cible-calcul.ts`, et chaque nombre reste dépliable jusqu'à sa formule.
@@ -25,7 +28,6 @@ import { Mention } from './Mention.tsx'
 import {
   LIBELLE_REGIME_POSE,
   LIBELLE_TOLERANCE_LUNE,
-  LIBELLE_VERDICT_CADRAGE,
   LIBELLE_VERDICT_DETECTABILITE,
   libelleEntree,
 } from '../registry/libelles.ts'
@@ -52,7 +54,6 @@ export function Verdicts(props: VerdictsProps) {
   const { r } = props
   return (
     <>
-      <CadrageDeLaCible r={r} />
       <Detectabilite r={r} creneau={props.creneau} />
       {/* Sans donnée de détectabilité, aucune pose n'est chiffrable : la région n'aurait plus
           que le point zéro du boîtier et le fond de ciel à montrer, deux grandeurs du setup
@@ -75,37 +76,6 @@ export function Verdicts(props: VerdictsProps) {
         surDeplie={props.surDeplie}
       />
     </>
-  )
-}
-
-/** §6.2 — comment la cible tombe dans le cadre : remplissage, diamètre, orientation. */
-function CadrageDeLaCible({ r }: { readonly r: Resultat }) {
-  // Pas de dimensions au catalogue, donc pas de cadrage calculé (§6.2) : la région entière
-  // disparaît, et l'image de tête de fiche perd son cadre pour la même raison. Un remplissage
-  // ou un diamètre en pixels tirés d'une taille absente décriraient une autre cible.
-  const cadrage = r.cadrage
-  if (cadrage === null) return null
-
-  return (
-    <section>
-      <h2>Cadrage de la cible</h2>
-      <p className="etat">verdict : {LIBELLE_VERDICT_CADRAGE[cadrage.verdict]}</p>
-      <TracedValue terme="remplissage" trace={cadrage.remplissage} decimales={0} pourcent />
-      <TracedValue terme="diametre_pixels" trace={cadrage.diamPx} decimales={0} unite="px" />
-      {cadrage.nTuiles !== undefined && (
-        <TracedValue terme="mosaique" trace={cadrage.nTuiles} decimales={0} unite="tuiles" />
-      )}
-      {/* La ligne « Mosaïque » porte déjà le message du verdict dans sa glose : le répéter
-          en clair sous elle ferait lire deux fois la même phrase. */}
-      {cadrage.nTuiles === undefined && (
-        <Mention ton={cadrage.faisable ? 'etat' : 'cause'}>{cadrage.message}</Mention>
-      )}
-      <p className="etat">{cadrage.noteOrientation}</p>
-      {cadrage.cause !== undefined && <Mention ton="cause">{cadrage.cause}</Mention>}
-      {cadrage.focaleIdealeMm !== undefined && (
-        <TracedValue terme="focale_ideale" trace={cadrage.focaleIdealeMm} decimales={0} unite="mm" />
-      )}
-    </section>
   )
 }
 
@@ -175,7 +145,7 @@ function Detectabilite({
   // Verdict nul = magnitude ou dimensions absentes du catalogue. Tout ce que la région
   // porterait alors — brillance de surface, contraste, magnitude limite — vaut lui aussi
   // « donnée manquante », et quatre fois la même absence n'en apprend pas plus qu'une. La
-  // région se nomme une fois vide, comme les dimensions de « À propos ».
+  // région se nomme une fois vide, comme les dimensions de la carte qui décrit la cible.
   if (r.detect.verdict === null) {
     return (
       <section>

@@ -269,44 +269,6 @@ export const GLOSSAIRE = Object.freeze({
     consequence: 'Sans monture, ne posez pas plus longtemps.',
     sections: ['9.1'],
   }),
-  // §6.2 — cadrage
-  remplissage: terme({
-    libelle: 'Remplissage du champ',
-    glose: 'part du cadre occupée',
-    explication:
-      'C’est la taille de la cible comparée au petit côté de l’image. Au-delà de cent pour cent, ' +
-      'elle déborde ; très en dessous, elle se perd.',
-    consequence: 'Visez une cible qui occupe du tiers à la moitié du cadre.',
-    sections: ['6.2'],
-  }),
-  diametre_pixels: terme({
-    libelle: 'Diamètre en pixels',
-    sansBulle: true,
-    glose: 'taille de l’objet en pixels',
-    explication:
-      'C’est la taille de la cible sur la photo. Sous une cinquantaine de pixels, on ne ' +
-      'distingue aucun détail.',
-    consequence: 'Recadrer ensuite n’ajoute rien : seule une focale plus longue aide.',
-    sections: ['6.2'],
-  }),
-  focale_ideale: terme({
-    libelle: 'Focale nécessaire',
-    glose: 'focale pour bien cadrer',
-    explication:
-      'C’est la focale qui ferait bien remplir le cadre à cette cible. La plage donne les ' +
-      'limites acceptables.',
-    consequence: 'Elle dit de combien votre focale est trop courte.',
-    sections: ['6.1'],
-  }),
-  mosaique: terme({
-    libelle: 'Mosaïque',
-    glose: 'plusieurs photos assemblées',
-    explication:
-      'La cible déborde du cadre : il faut plusieurs photos qui se chevauchent. Chaque photo ' +
-      'demande son propre temps de pose.',
-    consequence: 'Quatre tuiles demandent quatre fois plus de temps.',
-    sections: ['6.2'],
-  }),
 
   // §6.3 — détectabilité
   magnitude_integree: terme({
@@ -542,6 +504,15 @@ export const GLOSSAIRE = Object.freeze({
       'C’est le moment où la cible est assez haute, hors du relief et de nuit. Avec une ' +
       'équatoriale allemande, le retournement au méridien le coupe en deux.',
     consequence: 'Il dit si la cible tient en une nuit.',
+    sections: ['8.2'],
+  }),
+  culmination: terme({
+    libelle: 'Culminant',
+    glose: 'heure où l’objet est au plus haut',
+    explication:
+      'C’est l’instant où la cible passe au méridien, plein sud depuis l’hémisphère nord. ' +
+      'Elle y traverse le moins d’atmosphère : l’image est la plus nette et la moins voilée.',
+    consequence: 'Centrez la séance sur cette heure quand la nuit le permet.',
     sections: ['8.2'],
   }),
   cause_exclusion: terme({

@@ -1,5 +1,7 @@
 /**
- * La région « À propos » de la fiche : ce qu'on vise, et d'où viennent ses valeurs.
+ * La carte magnitude et dimensions de la fiche : ce qu'on vise, et d'où viennent ses valeurs.
+ *
+ * T-0381 — sans titre : comme le résumé qui la précède, elle ne range rien, elle décrit.
  *
  * T-0156 — la cible ne se saisit plus. Elle venait du catalogue OU de la main, et le second
  * régime coûtait plus qu'il ne rendait : une magnitude retouchée produit un verdict dont
@@ -17,12 +19,15 @@
  * T-0233 — le sous-titre « Dimensions » disparaît (redondant avec les libellés), et
  * « Grand axe » / « Petit axe » deviennent « Dimension grand axe » / « Dimension petit
  * axe » pour rester lisibles sans lui.
+ *
+ * T-0381 — la désignation et le type passent dans le résumé en tête de fiche : les redire ici
+ * faisait lire deux fois les deux premières lignes.
  */
 
+import type { ReactNode } from 'react'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
-import { degres, nombre } from '../registry/ecriture.ts'
+import { nombre } from '../registry/ecriture.ts'
 import { Etiquette } from './Terme.tsx'
-import { LIBELLE_TYPE_OBJET } from './libelles-objet.ts'
 import { MENTION_DONNEE_MANQUANTE } from '../registry/libelles.ts'
 
 /** §6.3 — ce que le catalogue ne porte pas se nomme, et aucune saisie n'y changera rien. */
@@ -36,7 +41,8 @@ export function Lecture({
   libelle,
   valeur,
 }: {
-  readonly libelle: string
+  /** Un texte, ou une `Etiquette` quand le libellé porte sa bulle de glossaire. */
+  readonly libelle: ReactNode
   readonly valeur: string
 }) {
   return (
@@ -47,24 +53,21 @@ export function Lecture({
   )
 }
 
-/** Les dimensions que le catalogue porte réellement — une absente ne produit pas de ligne. */
+/**
+ * T-0381 — les dimensions que le catalogue porte réellement, résumées : grand axe × petit
+ * axe sur une ligne, comme on les lit partout ailleurs. Une absente ne produit rien. L'angle
+ * de position ne s'affiche plus : l'« Inclinaison objet » de la carte photo le porte déjà.
+ */
 function lignesDimensions(objet: ObjetCielProfond) {
-  return [
-    objet.majAxArcmin === null
-      ? null
-      : { libelle: 'Dimension grand axe', valeur: `${nombre(objet.majAxArcmin, 1)}’` },
-    objet.minAxArcmin === null
-      ? null
-      : { libelle: 'Dimension petit axe', valeur: `${nombre(objet.minAxArcmin, 1)}’` },
-    objet.posAngDeg === null
-      ? null
-      : { libelle: 'Angle de position', valeur: degres(objet.posAngDeg) },
-  ].filter((ligne) => ligne !== null)
+  const axes = [objet.majAxArcmin, objet.minAxArcmin]
+    .filter((axe) => axe !== null)
+    .map((axe) => `${nombre(axe, 1)}’`)
+  return axes.length === 0 ? [] : [{ libelle: 'Dimensions', valeur: axes.join(' × ') }]
 }
 
 /**
  * Les dimensions apparentes du catalogue. Une valeur absente ne s'affiche pas : OpenNGC en
- * manque souvent, et trois lignes de « donnée manquante » occupent la place de trois lectures
+ * manque souvent, et des lignes de « donnée manquante » occupent la place de trois lectures
  * sans rien en dire. Le vide complet, lui, se nomme une fois.
  */
 function Dimensions({ objet }: ChampsCibleProps) {
@@ -86,9 +89,6 @@ function Dimensions({ objet }: ChampsCibleProps) {
 export function ChampsCible({ objet }: ChampsCibleProps) {
   return (
     <section>
-      <h2>À propos</h2>
-      <Lecture libelle="Désignation" valeur={objet.designation} />
-      <Lecture libelle="Type d’objet" valeur={LIBELLE_TYPE_OBJET[objet.type]} />
       <p className="tracee tracee-vide">
         <span>
           <Etiquette cle="magnitude_integree" />

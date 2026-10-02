@@ -331,6 +331,7 @@ export function LateralSeance(props: RegionSeanceProps) {
             contexteSession={chaine.contexteSession}
             ecarteePlan={ecarteePlan}
             etapePlan={etapePlan}
+            facilite={facilite}
           />
         )
       ) : mode === 'PANORAMA' ? (

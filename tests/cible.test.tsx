@@ -35,6 +35,14 @@ import { ouvreCible, reinitialiseSeance } from '../src/ui/seance-etat.ts'
 import type { Site } from '../src/core/ephem.ts'
 import type { CibleEcartee } from '../src/core/session-types.ts'
 import { TYPES_OBJET, type ObjetCielProfond } from '../src/data/deepsky.ts'
+import { degres } from '../src/registry/ecriture.ts'
+import { GLOSSAIRE } from '../src/registry/glossaire.ts'
+import { fenetreNocturne } from '../src/core/nuit.ts'
+import { fenetreUtile } from '../src/core/moon.ts'
+import { masquePlat } from '../src/core/site.ts'
+import type { ContexteSession } from '../src/core/session.ts'
+import { nuitFiche } from '../src/ui/fiche-cible-creneau.ts'
+import { heure } from '../src/ui/horaire.ts'
 import {
   LIBELLE_LOT_CALIBRATION,
   LIBELLE_REGIME_POSE,
@@ -161,28 +169,30 @@ function objetForge(
 
 const AU_DESSUS = objetForge('CIRCUMPOLAIRE', 85)
 
+function propsFiche(objet: ObjetCielProfond, ecarteePlan: CibleEcartee | null = null) {
+  return {
+    objet,
+    site: SITE,
+    contexteSession: null,
+    optique: OPTIQUE,
+    capteurHMm: CAPTEUR.capteurHMm,
+    pitchUm: CAPTEUR.pitchUm,
+    ouvertureN: 2.8,
+    boitier: BOITIER_REFERENCE,
+    zeroSysteme: pointZeroSysteme(BOITIER_REFERENCE),
+    iso: isoRecommande(BOITIER_REFERENCE),
+    sbCiel: 21,
+    mLimOeil: 6.1,
+    tMaxS: 2.1,
+    bortle: 4,
+    suiviActif: false,
+    focaleMm: 120,
+    ecarteePlan,
+  }
+}
+
 function ficheDe(objet: ObjetCielProfond, ecarteePlan: CibleEcartee | null = null): string {
-  return renderToStaticMarkup(
-    <FicheCible
-      objet={objet}
-      site={SITE}
-      contexteSession={null}
-      optique={OPTIQUE}
-      capteurHMm={CAPTEUR.capteurHMm}
-      pitchUm={CAPTEUR.pitchUm}
-      ouvertureN={2.8}
-      boitier={BOITIER_REFERENCE}
-      zeroSysteme={pointZeroSysteme(BOITIER_REFERENCE)}
-      iso={isoRecommande(BOITIER_REFERENCE)}
-      sbCiel={21}
-      mLimOeil={6.1}
-      tMaxS={2.1}
-      bortle={4}
-      suiviActif={false}
-      focaleMm={120}
-      ecarteePlan={ecarteePlan}
-    />,
-  )
+  return renderToStaticMarkup(<FicheCible {...propsFiche(objet, ecarteePlan)} />)
 }
 
 describe('T-0128 — la fiche décrit la cible, elle ne la choisit plus', () => {
@@ -198,16 +208,16 @@ describe('T-0128 — la fiche décrit la cible, elle ne la choisit plus', () => 
   })
 
   it('garde les champs qui décrivent la cible', () => {
-    for (const champ of ['Désignation', 'Type d’objet', 'Dimension grand axe', 'Dimension petit axe']) {
+    for (const champ of ['CIRCUMPOLAIRE', 'galaxie', 'Dimensions']) {
       expect(rendu, champ).toContain(champ)
     }
   })
 })
 
 describe('T-0158 — « À propos », et des dimensions qui ne meublent pas', () => {
-  it('titre la section « À propos » et groupe les dimensions sans sous-titre', () => {
+  it('T-0381 — la carte magnitude et dimensions n’a pas de titre, ni de sous-titre', () => {
     const rendu = ficheDe(AU_DESSUS)
-    expect(rendu).toContain('<h2>À propos</h2>')
+    expect(rendu).not.toContain('À propos')
     expect(rendu).not.toContain('<h3>Dimensions</h3>')
   })
 
@@ -215,16 +225,104 @@ describe('T-0158 — « À propos », et des dimensions qui ne meublent pas', ()
     // AU_DESSUS n'a pas d'angle de position : une ligne « [DONNÉE MANQUANTE] » de plus
     // n'apprendrait rien de la cible.
     const rendu = ficheDe(AU_DESSUS)
-    expect(rendu).toContain('Dimension grand axe')
+    expect(rendu).toContain('Dimensions')
     expect(rendu).not.toContain('Angle de position')
   })
 
-  it('T-0282 — répond en tête : pose, images et créneau avant tout le reste', () => {
+  it('T-0381 — résume les dimensions en une lecture, grand axe × petit axe', () => {
     const rendu = ficheDe(AU_DESSUS)
-    const tete = rendu.slice(0, rendu.indexOf('</section>'))
-    expect(tete).toMatch(/<h2>(Au plan ce soir|Ce soir)<\/h2>/)
-    for (const libelle of ['Pose', 'Images', 'Créneau']) expect(tete).toContain(libelle)
-    expect(rendu.indexOf('Ce soir')).toBeLessThan(rendu.indexOf('À propos'))
+    expect(rendu).toMatch(/Dimensions<\/span><span class="tracee-valeur">10,0’ × 6,0’</)
+    const seul = ficheDe(objetForge('SANS_PETIT_AXE', 85, { minAxArcmin: null }))
+    expect(seul).toMatch(/Dimensions<\/span><span class="tracee-valeur">10,0’</)
+  })
+
+  it('T-0381 — ne donne pas l’angle de position : l’inclinaison de la carte photo le porte', () => {
+    const rendu = ficheDe(objetForge('ORIENTEE', 85, { posAngDeg: 35 }))
+    expect(rendu).not.toContain('Angle de position')
+  })
+
+  it('T-0381 — magnitude et dimensions en deuxième carte, juste après le résumé', () => {
+    const rendu = ficheDe(AU_DESSUS)
+    const debut = rendu.indexOf('</section>')
+    const seconde = rendu.slice(debut, rendu.indexOf('</section>', debut + 1))
+    expect(seconde).toContain('Magnitude intégrée')
+    expect(seconde).toContain('Dimensions')
+  })
+
+  it('T-0381 — ouvre sur le résumé : désignation, nom commun, type, créneau d’observation', () => {
+    const rendu = ficheDe(objetForge('M 45', 85, { nomsCommuns: 'Pléiades', type: 'AMAS_OUVERT' }))
+    const resume = rendu.slice(0, rendu.indexOf('</section>'))
+    for (const attendu of ['M 45', 'Pléiades', 'amas ouvert', 'Créneau d’observation']) {
+      expect(resume, attendu).toContain(attendu)
+    }
+    // La désignation et le type sont dits en tête : la carte suivante ne les redit pas.
+    expect(rendu).not.toContain('Désignation')
+    expect(rendu).not.toContain('Type d’objet')
+  })
+
+  it('T-0381 — le résumé donne l’heure de culmination, avec sa bulle', () => {
+    const nuit = fenetreNocturne(SITE, new Date('2026-08-14T12:00:00Z'))
+    const contexte: ContexteSession = {
+      site: SITE,
+      nuit,
+      fenetreUtile: fenetreUtile(SITE, nuit),
+      masque: masquePlat(),
+      fovHDeg: 11.38,
+      echApx: 8.8,
+      dMm: 42.9,
+      capteurHMm: 23.9,
+      pitchUm: 5.12,
+      ouvertureN: 2.8,
+      zpSys: 20.2,
+      zpEstime: true,
+      readNoiseE: 1.5,
+      tailleRawMo: 33,
+      isoSession: 640,
+      sbCielNoir: 20.95,
+      mLimOeil: 6.05,
+      tMaxS: 200,
+      domaineCpFerme: null,
+      snrCible: 10,
+      typeMonture: 'TRACKER',
+    }
+    const cible = objetForge('ETE', 0, { adDeg: 314.75, decDeg: 44.52 })
+    const attendu = nuitFiche(contexte, cible).creneau
+    if (!attendu.chiffre || attendu.creneau.heureCulmination === null) {
+      throw new Error('la nuit de référence doit chiffrer une culmination')
+    }
+    const rendu = renderToStaticMarkup(
+      <FicheCible {...propsFiche(cible)} contexteSession={contexte} />,
+    )
+    const resume = rendu.slice(0, rendu.indexOf('</section>'))
+    expect(resume).toContain('Culminant')
+    expect(resume).toContain(GLOSSAIRE.culmination.glose)
+    expect(resume).toContain(heure(attendu.creneau.heureCulmination))
+  })
+
+  it('T-0381 — résume la photographie en troisième carte : facilité, cadre, pose, images', () => {
+    const allongee = objetForge('ALLONGEE', 85, { minAxArcmin: 3, posAngDeg: 35 })
+    const rendu = renderToStaticMarkup(
+      <FicheCible {...propsFiche(allongee)} facilite={{ note: 4, libelle: 'confortable', pose: null, cause: null, code: null }} />,
+    )
+    const sections = rendu.split('</section>')
+    const photo = sections[2] ?? ''
+    expect(photo).toContain('Photographie confortable')
+    expect(photo).toContain('facilité 4 sur')
+    for (const libelle of ['Taille dans le cadre', 'Inclinaison objet', 'Pose', 'Images']) {
+      expect(photo, libelle).toContain(libelle)
+    }
+    expect(photo).toContain(degres(35))
+    expect(rendu.indexOf('Photographie')).toBeLessThan(rendu.indexOf('<h2>Détectabilité</h2>'))
+    // T-0381 — la carte photo résume le cadrage : la rubrique « Cadrage de la cible » est partie.
+    expect(rendu).not.toContain('Cadrage de la cible')
+  })
+
+  it('T-0381 — sans note ni orientation, la carte photo ne meuble pas', () => {
+    const rendu = ficheDe(AU_DESSUS)
+    const photo = rendu.split('</section>')[2] ?? ''
+    expect(photo).toContain('Photographie')
+    expect(photo).not.toContain('class="facilite"')
+    expect(photo).not.toContain('Inclinaison objet')
   })
 
   it('ne nomme qu’une fois l’absence quand les trois dimensions manquent', () => {
@@ -232,21 +330,20 @@ describe('T-0158 — « À propos », et des dimensions qui ne meublent pas', ()
       objetForge('SANS_FORME', 85, { majAxArcmin: null, minAxArcmin: null, posAngDeg: null }),
     )
     // Les verdicts en aval nomment aussi ce qui leur manque : on ne juge que la section.
-    const debut = rendu.indexOf('À propos')
+    const debut = rendu.indexOf('Magnitude intégrée')
     const aPropos = rendu.slice(debut, rendu.indexOf('</section>', debut))
-    expect(aPropos).not.toContain('Dimension grand axe')
-    expect(aPropos).not.toContain('Dimension petit axe')
+    expect(aPropos).not.toContain('Dimensions')
     expect(aPropos.match(/DONNÉE MANQUANTE/g) ?? []).toHaveLength(1)
   })
 
-  it('retire la région « Cadrage de la cible » quand le catalogue ne donne pas les dimensions', () => {
+  it('retire la taille dans le cadre quand le catalogue ne donne pas les dimensions', () => {
     // Sans grand axe, §6.2 n'a aucune entrée : remplissage, diamètre en pixels et focale
     // nécessaire décriraient la taille nulle qu'on aurait substituée, pas la cible. Le reste
     // de la fiche, lui, ne dépend pas des dimensions et reste dû.
     const rendu = ficheDe(objetForge('SANS_DIMENSIONS', 85, { majAxArcmin: null, minAxArcmin: null }))
-    expect(rendu).not.toContain('Cadrage de la cible')
+    expect(rendu).not.toContain('Taille dans le cadre')
     expect(rendu).not.toContain('focale')
-    expect(ficheDe(AU_DESSUS)).toContain('Cadrage de la cible')
+    expect(ficheDe(AU_DESSUS)).toContain('Taille dans le cadre')
   })
 
   it('réduit « Détectabilité » à une seule absence et retire « Pose » faute de donnée source', () => {
@@ -351,7 +448,7 @@ describe('T-0156 — sans cible désignée, il n’y a pas de fiche', () => {
     const sansCible = renderToStaticMarkup(<App />)
     // T-0182 — le panneau rend la liste : une fiche sans cible désignée n'existe plus.
     expect(sansCible).toContain('Ne montrer que les objets photographiables')
-    expect(sansCible).not.toContain('Cadrage de la cible')
+    expect(sansCible).not.toContain('Taille dans le cadre')
     ouvreCible(CIBLE_REFERENCE)
   })
 })

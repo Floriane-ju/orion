@@ -3455,6 +3455,65 @@ button:disabled {
   color: var(--attenue);
 }
 
+/* T-0381 — les rubriques de la fiche se lisent comme les cartes de la liste dont on vient :
+   un aplat, sans filet ni barre de titre. L'image les coiffe, hors carte — c'est elle qu'on
+   reconnaît avant de lire. Le titre perd sa barre et garde la voix d'une barre (mono, micro) :
+   un aplat `--texte` posé sur l'aplat gris ferait un damier. La barre s'éteint par ses
+   jetons, pas en recolorant le titre : une seule règle encre le titre de section. */
+.fiche > section:not([class]) {
+  --barre-fond: transparent;
+  --barre-encre: var(--attenue);
+  margin-block-start: var(--pas-2);
+  border: 0;
+  background: var(--surface-survol);
+}
+.fiche > section:not([class]) > h2:first-child {
+  border-bottom: 0;
+}
+/* Le filet discret d'une lecture tracée disparaît sur l'aplat (même constat que
+   `.cible-pied-saison`) : celui d'un contrôle sépare encore les lignes. */
+.fiche :is(.tracee, .tracee-vide) {
+  border-bottom-color: var(--bordure-controle);
+}
+/* Le filet SÉPARE deux lectures : sous la dernière, il ne sépare plus rien, et le bas de
+   l'aplat borne déjà la carte. */
+.fiche > section > .tracee:last-child {
+  border-bottom: 0;
+}
+
+/* T-0381 — la tête d'une carte de fiche : ce qu'elle nomme à gauche, une qualification au bord
+   droit (type, pastilles), un filet, puis les lectures. Le nom d'usage est entier ici, à la
+   ligne s'il le faut — la liste le coupe, pas la fiche. */
+.fiche-tete {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pas-2);
+  padding-bottom: var(--pas-2);
+  border-bottom: var(--trait) solid var(--bordure-controle);
+}
+.fiche-tete p {
+  margin: 0;
+}
+.fiche-tete-titre {
+  display: flex;
+  align-items: center;
+  gap: var(--pas-1);
+}
+.fiche-resume-nom {
+  display: grid;
+  gap: var(--pas-0);
+  min-width: 0;
+}
+.fiche-resume-type {
+  color: var(--attenue);
+  font-size: var(--texte-legende);
+  text-align: end;
+}
+.fiche-resume-type::first-letter {
+  text-transform: uppercase;
+}
+
 /* La vignette de carte occupe toute la colonne de gauche, au moins carrée, garnie ou non :
    l'arrivée de l'image ne décale rien. Elle s'étire si le corps est plus haut qu'elle. */
 .cible-vignette {
