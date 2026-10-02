@@ -9,8 +9,8 @@
  * survol le dit à l'instant pointé. Tout texte posé à demeure repoussait la liste d'autant.
  *
  * T-0390 — la frise commande aussi le temps : un clic, un appui ou une flèche y règle
- * l'instant de la scène (§3.2). Une seule ligne reste à demeure, l'heure et la phase de
- * l'instant affiché : §11.2 ne laisse rien de critique au seul survol, et un écran tactile
+ * l'instant de la scène (§3.2). Une seule ligne reste à demeure, de jour comme de nuit,
+ * l'heure et la phase de l'instant affiché : §11.2 ne laisse rien de critique au seul survol, et un écran tactile
  * n'en a pas.
  */
 
@@ -132,13 +132,16 @@ function Frise({
   const curseur = curseurInstant(frise, new Date(instantMs))
   const debut = frise.debut.getTime()
   const fin = frise.fin.getTime()
+  // La frise est la nuit DE l'instant (`PanneauTemps` la suit) : hors de ses bornes, c'est
+  // le jour qui l'encadre. La ligne reste donc écrite à toute heure.
   const phaseAffichee = useMemo(
     () =>
       instantMs < debut || instantMs > fin
-        ? null
+        ? 'JOUR'
         : lectureFrise(site, frise, (instantMs - debut) / (fin - debut)).phase,
     [site, frise, instantMs, debut, fin],
   )
+  const lectureAffichee = `${heure(new Date(instantMs))} · ${LIBELLE_PHASE_CIEL[phaseAffichee]}`
 
   const pointe = (e: MouseEvent<HTMLDivElement>): Survol => {
     const cadre = e.currentTarget.getBoundingClientRect()
@@ -178,11 +181,7 @@ function Frise({
           aria-valuemin={debut}
           aria-valuemax={fin}
           aria-valuenow={encadre(instantMs, debut, fin)}
-          aria-valuetext={
-            phaseAffichee === null
-              ? `${heure(new Date(instantMs))}, hors de la nuit`
-              : `${heure(new Date(instantMs))}, ${LIBELLE_PHASE_CIEL[phaseAffichee].toLowerCase()}`
-          }
+          aria-valuetext={lectureAffichee}
           onPointerMove={(e) => setSurvol(pointe(e))}
           onPointerLeave={() => setSurvol(null)}
           onClick={surClic}
@@ -237,11 +236,9 @@ function Frise({
           </span>
         ))}
       </div>
-      {phaseAffichee !== null && (
-        <p className="nuit-lecture" aria-hidden="true">
-          {heure(new Date(instantMs))} · {LIBELLE_PHASE_CIEL[phaseAffichee]}
-        </p>
-      )}
+      <p className="nuit-lecture" aria-hidden="true">
+        {lectureAffichee}
+      </p>
     </div>
   )
 }
