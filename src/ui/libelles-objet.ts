@@ -38,6 +38,12 @@ export function nomCommun(objet: ObjetCielProfond): string {
   return objet.nomsCommuns === '' ? '' : (objet.nomsCommuns.split(/[|,]/)[0]?.trim() ?? '')
 }
 
+/** T-0282 — l'en-tête de la fiche : la désignation, puis le nom qu'on cherche. */
+export function titreFiche(objet: ObjetCielProfond): string {
+  const nom = nomCommun(objet)
+  return nom === '' ? objet.designation : `${objet.designation} — ${nom}`
+}
+
 export function libelleObjet(objet: ObjetCielProfond): string {
   const nom = nomCommun(objet) === '' ? '' : ` — ${nomCommun(objet)}`
   const mag = objet.vMag === null ? '' : ` · mag ${nombre(objet.vMag, 1)}`

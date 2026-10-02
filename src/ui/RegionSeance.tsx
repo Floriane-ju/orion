@@ -45,6 +45,7 @@ import { RECALCUL_EN_COURS, type ChaineCalcul } from './app-calcul.ts'
 import { Mention } from './Mention.tsx'
 import { cibleFocus, idLigneCible } from './focus-panneau.ts'
 import { nombreDeTexte } from '../registry/domains.ts'
+import { titreFiche } from './libelles-objet.ts'
 
 export interface RegionSeanceProps {
   readonly chaine: ChaineCalcul
@@ -246,6 +247,11 @@ export function LateralSeance(props: RegionSeanceProps) {
           (c) => c.designation === cible.designation && c.code === 'CONFLIT_CRENEAU',
         ) ?? null)
 
+  const etapePlan =
+    cible === null || chaine.plan === null
+      ? null
+      : (chaine.plan.etapes.find((e) => e.objet.designation === cible.designation) ?? null)
+
   // T-0188 — le focus suit le contenu du panneau. La liste et la fiche ne coexistent jamais :
   // au moment où l'effet s'exécute, celle qui portait le focus est déjà démontée.
   const titreRef = useRef<HTMLHeadingElement | null>(null)
@@ -283,7 +289,8 @@ export function LateralSeance(props: RegionSeanceProps) {
       fiche={
         fiche && props.cibleDuCiel !== null
           ? {
-              titre: props.cibleDuCiel.designation,
+              // T-0282 — « M31 » ne dit rien à qui cherche Andromède : le nom commun suit.
+              titre: titreFiche(props.cibleDuCiel),
               retour: montreListeCibles,
               rappel: (
                 <span className="lateral-actions">
@@ -318,6 +325,7 @@ export function LateralSeance(props: RegionSeanceProps) {
             site={chaine.site}
             contexteSession={chaine.contexteSession}
             ecarteePlan={ecarteePlan}
+            etapePlan={etapePlan}
           />
         )
       ) : mode === 'PANORAMA' ? (

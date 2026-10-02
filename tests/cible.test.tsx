@@ -220,12 +220,21 @@ describe('T-0158 — « À propos », et des dimensions qui ne meublent pas', ()
     expect(rendu).not.toContain('Angle de position')
   })
 
+  it('T-0282 — répond en tête : pose, images et créneau avant tout le reste', () => {
+    const rendu = ficheDe(AU_DESSUS)
+    const tete = rendu.slice(0, rendu.indexOf('</section>'))
+    expect(tete).toMatch(/<h2>(Au plan ce soir|Ce soir)<\/h2>/)
+    for (const libelle of ['Pose', 'Images', 'Créneau']) expect(tete).toContain(libelle)
+    expect(rendu.indexOf('Ce soir')).toBeLessThan(rendu.indexOf('À propos'))
+  })
+
   it('ne nomme qu’une fois l’absence quand les trois dimensions manquent', () => {
     const rendu = ficheDe(
       objetForge('SANS_FORME', 85, { majAxArcmin: null, minAxArcmin: null, posAngDeg: null }),
     )
     // Les verdicts en aval nomment aussi ce qui leur manque : on ne juge que la section.
-    const aPropos = rendu.slice(0, rendu.indexOf('</section>'))
+    const debut = rendu.indexOf('À propos')
+    const aPropos = rendu.slice(debut, rendu.indexOf('</section>', debut))
     expect(aPropos).not.toContain('Dimension grand axe')
     expect(aPropos).not.toContain('Dimension petit axe')
     expect(aPropos.match(/DONNÉE MANQUANTE/g) ?? []).toHaveLength(1)

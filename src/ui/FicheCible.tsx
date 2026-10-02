@@ -18,8 +18,11 @@ import { useMemo } from 'react'
 import { SaisieRefuseeError } from '../registry/domains.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { Site } from '../core/ephem.ts'
-import type { CibleEcartee, ContexteSession } from '../core/session-types.ts'
-import { ChampsCible } from './ChampsCible.tsx'
+import type { CibleEcartee, ContexteSession, EtapePlan } from '../core/session-types.ts'
+import { ChampsCible, Lecture } from './ChampsCible.tsx'
+import { syntheseFiche, type SyntheseFiche } from './fiche-synthese.ts'
+import { heure } from './horaire.ts'
+import { nombreLibre } from '../registry/ecriture.ts'
 import { ImageCible } from './ImageCible.tsx'
 import { Verdicts } from './Verdicts.tsx'
 import { nuitFiche } from './fiche-cible-creneau.ts'
@@ -53,6 +56,24 @@ export interface FicheCibleProps extends ContexteFiche {
    * pourtant pas au plan ce soir.
    */
   readonly ecarteePlan?: CibleEcartee | null
+  /** T-0282 — l'étape de cette cible au plan : la tête de fiche en reprend les valeurs. */
+  readonly etapePlan?: EtapePlan | null
+}
+
+/** T-0282 — les trois réponses, avant tout le reste ; le détail et ses traces suivent. */
+function EnTete({ s }: { readonly s: SyntheseFiche }) {
+  const nonChiffre = '—'
+  return (
+    <section>
+      <h2>{s.auPlan ? 'Au plan ce soir' : 'Ce soir'}</h2>
+      <Lecture libelle="Pose" valeur={s.poseS === null ? nonChiffre : `${nombreLibre(s.poseS)} s`} />
+      <Lecture libelle="Images" valeur={s.nPoses === null ? nonChiffre : String(s.nPoses)} />
+      <Lecture
+        libelle="Créneau"
+        valeur={s.creneau === null ? nonChiffre : `${heure(s.creneau.debut)} → ${heure(s.creneau.fin)}`}
+      />
+    </section>
+  )
 }
 
 export function FicheCible(props: FicheCibleProps) {
@@ -105,6 +126,9 @@ export function FicheCible(props: FicheCibleProps) {
 
   return (
     <>
+      {calcul.ok && (
+        <EnTete s={syntheseFiche(calcul.r, nuit.creneau, props.etapePlan ?? null)} />
+      )}
       {/* §6.4, §6.2 — l'objet avant ses nombres, et le cadre du capteur posé dessus. Sans
           image disponible, le composant ne rend rien : une cible sans image reste une cible
           complète. Sans cadrage calculé — pas de dimensions au catalogue — l'image reste, mais

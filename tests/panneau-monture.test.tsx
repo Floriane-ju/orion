@@ -13,12 +13,14 @@ import {
   choixMonture,
   PanneauMateriel,
   PROFILS_MONTURE,
+  resumeBoitier,
   type ChoixMonture,
 } from '../src/ui/PanneauMateriel.tsx'
 import { profilSuivi, type QualiteMiseEnStation, type TypeMonture } from '../src/core/suivi.ts'
 import { DEFAUT, type SaisieMateriel } from '../src/ui/app-saisie.ts'
 import { evalueMateriel, grandeursMateriel } from '../src/ui/app-calcul.ts'
 import { ouvreCarte } from '../src/ui/coque-etat.ts'
+import { BASE_BOITIERS } from '../src/data/boitiers.ts'
 
 const rien = () => undefined
 
@@ -132,5 +134,17 @@ describe('T-0236 — la monture se choisit en un champ', () => {
     for (const [qualiteMes, typeMonture, attendu] of anciens) {
       expect(choixMonture({ suiviActif: true, qualiteMes, typeMonture }), attendu).toBe(attendu)
     }
+  })
+})
+
+describe('carte Boîtier repliée — T-0282', () => {
+  it('nomme le boîtier et l’état du suivi', () => {
+    expect(resumeBoitier('', PROFILS_MONTURE.AUCUN)).toBe('Boîtier personnalisé · Pas de suivi')
+    expect(resumeBoitier('', PROFILS_MONTURE.TRACKER_SOIGNE)).toContain('Tracker')
+  })
+
+  it('reprend le libellé de la base pour un boîtier connu', () => {
+    const ligne = BASE_BOITIERS[0]!
+    expect(resumeBoitier(ligne.id, PROFILS_MONTURE.GEM_APPROX)).toContain(ligne.libelle)
   })
 })

@@ -32,7 +32,7 @@ export interface ChampsCibleProps {
   readonly objet: ObjetCielProfond
 }
 
-function Lecture({
+export function Lecture({
   libelle,
   valeur,
 }: {

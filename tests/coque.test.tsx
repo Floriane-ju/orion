@@ -28,7 +28,6 @@ import {
 import { MenuReglages } from '../src/ui/MenuReglages.tsx'
 import { BoutonInfo } from '../src/ui/PageInfo.tsx'
 import { DEFAUT } from '../src/ui/app-saisie.ts'
-import { LIBELLE_RECADRAGE } from '../src/ui/PanneauBoitier.tsx'
 import { ALERTE_VERIFICATION } from '../src/ui/Verification.tsx'
 import { SOURCES } from '../src/registry/sources.ts'
 import { CREDIT_RELEVE } from '../src/registry/imagerie.ts'
@@ -197,15 +196,14 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
 
   // Repliée, une carte du matériel garde sa réponse à droite du titre ; dépliée, elle la montre
   // déjà dans ses champs et ne la répète pas.
-  it('résume le recadrage et l’objectif à droite du titre, carte repliée seulement', () => {
+  it('résume le boîtier et l’objectif à droite du titre, carte repliée seulement', () => {
     const html = ecran()
     const entete = (cle: string) => {
       const debut = html.indexOf(`carte-${cle}"`)
       return html.slice(debut, html.indexOf('</button>', debut))
     }
-    expect(entete('boitier')).toContain(
-      `<span class="carte-resume">${LIBELLE_RECADRAGE.FULL_FRAME}</span>`,
-    )
+    // T-0282 — le boîtier et son suivi : ce qui décide de la pose.
+    expect(entete('boitier')).toMatch(/<span class="carte-resume">[^<]+ · [^<]+<\/span>/)
     expect(entete('optique')).toMatch(/<span class="carte-resume">[^<?]+ mm f\/[^<?]+<\/span>/)
     // Le plan replié dit combien de cibles il ordonne — aucune au démarrage.
     expect(entete('plan')).toContain('<span class="carte-resume">aucune cible choisie</span>')
@@ -472,7 +470,7 @@ describe('§11.3 — la bascule de mode forme les onglets du panneau latéral', 
     const aside = html.slice(html.indexOf('<aside class="coque-lateral"'))
     const onglets = aside.indexOf('class="onglets"')
     expect(onglets).toBeGreaterThan(-1)
-    expect(onglets).toBeLessThan(aside.indexOf('<h2 tabindex="-1">M31</h2>'))
+    expect(onglets).toBeLessThan(aside.indexOf('<h2 tabindex="-1">M31 — '))
   })
 
   it('garde la cible de clic gantée sur les deux positions (§11.2)', () => {
@@ -545,7 +543,7 @@ describe('§3.4 — un objet cliqué ouvre sa fiche', () => {
     // La bulle nomme le bouton (`BoutonGlyphe`) : son texte est le nom accessible.
     expect(fiche).toContain('role="tooltip" data-place="bas">Revenir à la liste des cibles<')
     // L'en-tête nomme la cible et porte sa note, hors de tout bouton : elle est annoncée.
-    expect(fiche).toContain('<h2 tabindex="-1">M31</h2>')
+    expect(fiche).toContain('<h2 tabindex="-1">M31 — ')
   })
 
   it('garde l’état du panneau d’un mode à l’autre', () => {
@@ -554,7 +552,7 @@ describe('§3.4 — un objet cliqué ouvre sa fiche', () => {
     expect(ecran()).toContain('Séquence de filé')
     poseMode('CIEL_PROFOND')
     expect(etatSeance().vueCibles).toBe('FICHE')
-    expect(ecran()).toContain('<h2 tabindex="-1">M31</h2>')
+    expect(ecran()).toContain('<h2 tabindex="-1">M31 — ')
   })
 
   it('ne pose plus aucune carte Cible sur la scène', () => {

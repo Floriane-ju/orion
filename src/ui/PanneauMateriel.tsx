@@ -34,7 +34,8 @@ import type {
 } from '../data/equipment.ts'
 import { TracedValue } from './TracedValue.tsx'
 import { Carte } from './Carte.tsx'
-import { LIBELLE_RECADRAGE, PanneauBoitier } from './PanneauBoitier.tsx'
+import { PanneauBoitier } from './PanneauBoitier.tsx'
+import { ligneBoitier } from '../data/boitiers.ts'
 import { ChampChoix } from './ChampChoix.tsx'
 import { ChampDomaine } from './ChampDomaine.tsx'
 import { Interrupteur } from './Interrupteur.tsx'
@@ -83,6 +84,31 @@ export function choixMonture(profil: ProfilMonture): ChoixMonture {
 }
 
 /** Ce que le matériel saisi produit. Absent tant que la saisie est refusée. */
+/**
+ * T-0264 — quatre intitulés courts, qui DISTINGUENT : le type de monture, puis comment elle
+ * est mise en station. Une table, lue par le sélecteur et par la carte repliée (T-0282).
+ */
+export const LIBELLE_MONTURE: Readonly<Record<ChoixMonture, string>> = Object.freeze({
+  AUCUN: 'Pas de suivi',
+  TRACKER_SOIGNE: 'Tracker — viseur polaire',
+  TRACKER_APPROX: 'Tracker — à la boussole',
+  GEM_SOIGNE: 'Équatoriale — viseur polaire',
+  GEM_APPROX: 'Équatoriale — à la boussole',
+})
+
+/**
+ * T-0282 — la carte Boîtier repliée dit ce qui DÉCIDE de la pose : quel capteur, et s'il est
+ * suivi. Le mode de recadrage seul laissait, cartes repliées pour dégager la scène, aucun
+ * moyen de vérifier que le tracker était pris en compte.
+ */
+export function resumeBoitier(
+  boitierId: string,
+  profil: Parameters<typeof choixMonture>[0],
+): string {
+  const boitier = ligneBoitier(boitierId)?.libelle ?? 'Boîtier personnalisé'
+  return `${boitier} · ${LIBELLE_MONTURE[choixMonture(profil)]}`
+}
+
 export interface LecturesMateriel {
   readonly optique: ProfilOptique
   readonly suivi: ProfilSuivi
@@ -159,17 +185,11 @@ function ChampsSuivi(props: PanneauMaterielProps) {
           valeur={choixMonture(props)}
           surChangement={surMonture}
         >
-          {/* T-0264 — quatre intitulés courts. Ils demandaient jusqu'à 490 px là où un
-              `<select>` fermé en offre 276 : « mise en station » tombait de la moitié
-              d'entre eux, et rien dans un champ fermé ne dit qu'il manque une fin. Ce qui
-              reste est ce qui DISTINGUE — le type de monture, puis comment elle est mise en
-              station. Le reste (le retournement au méridien, ce que la boussole coûte en
-              pose) est la glose de `type_monture`, à un survol du champ. */}
-          <option value="AUCUN">Pas de suivi</option>
-          <option value="TRACKER_SOIGNE">Tracker — viseur polaire</option>
-          <option value="TRACKER_APPROX">Tracker — à la boussole</option>
-          <option value="GEM_SOIGNE">Équatoriale — viseur polaire</option>
-          <option value="GEM_APPROX">Équatoriale — à la boussole</option>
+          {(Object.keys(LIBELLE_MONTURE) as ChoixMonture[]).map((choix) => (
+            <option key={choix} value={choix}>
+              {LIBELLE_MONTURE[choix]}
+            </option>
+          ))}
         </ChampChoix>
       </div>
       {/* §5.2 — fermer le ciel profond et le justifier sont un seul geste (core/suivi.ts) :
@@ -205,7 +225,7 @@ export function PanneauMateriel(props: PanneauMaterielProps) {
   const lectures = props.lectures
   return (
     <div className="cartes-materiel">
-      <Carte cle="BOITIER" titre="Boîtier" resume={LIBELLE_RECADRAGE[props.capteurMode]}>
+      <Carte cle="BOITIER" titre="Boîtier" resume={resumeBoitier(props.boitierId, props)}>
         <PanneauBoitier
           boitierId={props.boitierId}
           surBoitierId={props.surBoitierId}
