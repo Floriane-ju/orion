@@ -9,13 +9,20 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../src/App.tsx'
 import { majCatalogue, reinitialiseCatalogue } from '../src/ui/catalogue-etat.ts'
 import { RIEN_SOUS_CE_NOM } from '../src/ui/PanneauCibles.tsx'
 import { reinitialiseScene } from '../src/ui/scene-etat.ts'
 import { reinitialiseSeance } from '../src/ui/seance-etat.ts'
 import { reinitialiseCoque } from '../src/ui/coque-etat.ts'
+
+// T-0297 — ce fichier teste la liste d'un catalogue ARRIVÉ (vide sous le rendu serveur) : sans
+// ce drapeau, la liste dirait seulement que le catalogue est en route.
+vi.mock('../src/ui/app-donnees.ts', async (importeReel) => {
+  const reel = await importeReel<typeof import('../src/ui/app-donnees.ts')>()
+  return { ...reel, useCatalogues: () => ({ ...reel.useCatalogues(), enCharge: false }) }
+})
 
 function ecran(): string {
   return renderToStaticMarkup(<App />)

@@ -198,6 +198,7 @@ function AppPrete({
       sbCiel={ciel.ciel.sbCiel.value}
       gaiaCharge={gaia}
       modeNuit={modeNuit.actif}
+      etoilesEnCharge={catalogues.enCharge && catalogues.etoiles.length === 0}
       {...(chaine.materielFile === null ? {} : { file: chaine.materielFile })}
       surSelectionObjet={ouvreCible}
     />
@@ -210,6 +211,7 @@ function AppPrete({
     lieu,
     materiel,
     catalogue: catalogues.objets,
+    catalogueEnCharge: catalogues.enCharge,
     etoiles: catalogues.etoiles,
     constellations: catalogues.constellations,
     cibleDuCiel: cibleDuCiel ?? null,

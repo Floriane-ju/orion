@@ -807,6 +807,16 @@ body {
   white-space: nowrap;
 }
 
+/* T-0297 — la phrase qui dit que les étoiles arrivent, posée au milieu du ciel vide. Elle
+   disparaît quand elles sont décodées : un ciel noir sans elle se lirait comme un ciel couvert. */
+.scene-attente {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  margin: 0;
+}
+
 /* Le canevas remplit sa boîte, sans `object-fit` : sa définition de rendu suit la
    boîte (`resolutionRendu`), donc l'image n'a plus à s'y loger. Un rendu 16/9 figé se logeait
    en `contain` et laissait des bandes noires en haut et en bas dès que la place disponible

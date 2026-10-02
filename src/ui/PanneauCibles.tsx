@@ -85,6 +85,9 @@ export const RIEN_SOUS_CE_NOM =
   'Aucune désignation ni aucun nom d’usage ne correspond. La recherche porte sur les ' +
   'désignations (M42, NGC 7000) et sur les noms d’usage, français comme anglais.'
 
+/** T-0297 — ce que la liste dit tant que le catalogue est en route. */
+export const CATALOGUE_EN_CHARGE = 'Chargement du catalogue d’objets…'
+
 /**
  * Ce que la case « photographiables » coupe, en une glose de survol plutôt qu'en paragraphe
  * sous la liste (T-0278 en avait fait un texte permanent) : la phrase décrit le contrôle,
@@ -129,6 +132,8 @@ export interface PanneauCiblesProps {
   readonly gaiaCharge: boolean
   /** T-0291 — vrai quand ce qui est affiché est le résultat de la saisie précédente. */
   readonly recalcul: boolean
+  /** T-0297 — le catalogue n'est pas encore décodé : ni compte ni « aucun objet » à dire. */
+  readonly enCharge?: boolean
   /** T-0188 — le champ de recherche est le repli du focus au retour de la fiche. */
   readonly inputRef?: React.RefObject<HTMLInputElement | null>
 }
@@ -203,6 +208,7 @@ export function PanneauCibles(props: PanneauCiblesProps) {
   const taille = useMemo(() => bornesTailleCadre(fovHDeg), [fovHDeg])
   const tropPetites = useMemo(() => compteTropPetites(catalogue, fovHDeg), [catalogue, fovHDeg])
 
+  const attendCatalogue = props.enCharge === true && catalogue.length === 0
   const plafond = K('CIBLES_LISTEES_MAX')
   const listees = retenues.slice(0, plafond)
   const seuil = contexteSession.seuilHauteurDeg ?? K('SEUIL_HAUTEUR_IMAGERIE_DEG')
@@ -285,12 +291,16 @@ export function PanneauCibles(props: PanneauCiblesProps) {
       {/* T-0187 — une seule région vive pour le compte ET le message de liste vide.
           Deux régions annonceraient deux fois le même changement. */}
       <div aria-live="polite" aria-atomic="true">
-        <p className="etat">
-          {compte(retenues.length)} objet{retenues.length > 1 ? 's' : ''}
-          {retenues.length > plafond ? `, les ${plafond} plus brillants affichés` : ''}.
-        </p>
+        {attendCatalogue ? (
+          <p className="etat">{CATALOGUE_EN_CHARGE}</p>
+        ) : (
+          <p className="etat">
+            {compte(retenues.length)} objet{retenues.length > 1 ? 's' : ''}
+            {retenues.length > plafond ? `, les ${plafond} plus brillants affichés` : ''}.
+          </p>
+        )}
 
-        {listees.length === 0 && (
+        {listees.length === 0 && !attendCatalogue && (
           <p className="etat">
             {/* §5.2 — domaine fermé : la liste vide n'est pas un filtre trop serré, c'est le
                 suivi qui manque. Le dire ici évite de chercher le levier dans les filtres. */}
@@ -311,7 +321,7 @@ export function PanneauCibles(props: PanneauCiblesProps) {
 
           Hors de la région vive de T-0187 : ces boutons ne changent pas quand le compte
           change, et les réannoncer à chaque frappe de la recherche ne dirait rien de neuf. */}
-      {listees.length === 0 && domaineCpFerme !== null && (
+      {listees.length === 0 && !attendCatalogue && domaineCpFerme !== null && (
         <div className="cibles-issues">
           {/* La carte Boîtier s'ouvre SUR ce champ : T-0280 l'a mis en tête de son corps. */}
           <button type="button" onClick={() => ouvreCarte('BOITIER')}>

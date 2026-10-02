@@ -52,6 +52,8 @@ export interface RegionSeanceProps {
   readonly lieu: SaisieLieu
   readonly materiel: SaisieMateriel
   readonly catalogue: readonly ObjetCielProfond[]
+  /** T-0297 — le catalogue n'est pas encore décodé : une liste vide n'est pas un résultat. */
+  readonly catalogueEnCharge: boolean
   readonly etoiles: readonly Etoile[]
   /** §3.4 — figures, frontières et étoiles nommées ; §8.4 y prend le nom de ses ancrages. */
   readonly constellations: PaquetConstellations
@@ -353,6 +355,7 @@ export function LateralSeance(props: RegionSeanceProps) {
           profil={chaine.profilsCadre[0]}
           gaiaCharge={props.gaiaCharge}
           recalcul={chaine.recalculEnCours}
+          enCharge={props.catalogueEnCharge}
           inputRef={rechercheRef}
         />
       ) : (

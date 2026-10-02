@@ -79,12 +79,17 @@ export type { MaterielFile } from './planetarium-materiel.ts'
 
 import { cibleMarquee, poseCadreAffichee, type MaterielFile } from './planetarium-materiel.ts'
 
+/** T-0297 — ce que la scène dit tant que le catalogue d'étoiles est en route. */
+export const ETOILES_EN_CHARGE = 'Chargement des étoiles…'
+
 export interface PlanetariumProps {
   readonly site: Site
   /** §4.1 — relief relevé du site : c'est lui que la couche Sol masque, pas un horizon plat. */
   readonly masque: MasqueHorizon
   /** T-0369 — le relief du lieu saisi se charge : la couche Sol s'aplatit en l'attendant. */
   readonly horizonEnAttente: boolean
+  /** T-0297 — le catalogue d'étoiles n'est pas encore décodé : la scène le dit. */
+  readonly etoilesEnCharge?: boolean
   readonly etoiles: readonly Etoile[]
   /** Index de sélection du catalogue, construit une fois par l'application. */
   readonly index: IndexCiel
@@ -384,6 +389,12 @@ export function Planetarium(props: PlanetariumProps) {
           Hors flux visuel — la colonne centrale ne réserve aucune hauteur sous le canevas
           (T-0040) — mais présente dans l'arbre d'accessibilité. */}
       <DescriptionScene site={props.site} />
+      {/* T-0297 — un ciel sans étoile ressemble à un ciel couvert : il faut dire qu'elles arrivent. */}
+      {props.etoilesEnCharge === true && (
+        <p className="etat scene-attente" role="status">
+          {ETOILES_EN_CHARGE}
+        </p>
+      )}
     </section>
   )
 }

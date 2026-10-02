@@ -193,7 +193,9 @@ export function* construitIndexPas(etoiles: readonly Etoile[]): Decoupable<Index
   return {
     cellules,
     nombreEtoiles: etoiles.length,
-    profondeurMag: Number.isFinite(profondeur) ? profondeur : 0,
+    // T-0297 — un index sans étoile n'a pas de profondeur, pas une profondeur nulle : à 0, la
+    // scène déclarait « le catalogue s'arrête à la magnitude 0.0 » tant qu'il n'était pas décodé.
+    profondeurMag: Number.isFinite(profondeur) ? profondeur : Number.POSITIVE_INFINITY,
     cumulMag: yield* construitCumulMag(
       etoiles,
       magMin,

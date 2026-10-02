@@ -52,6 +52,12 @@ export interface Catalogues {
   /** §3.3 — l'index spatial des étoiles, construit hors du rendu (T-0296). */
   readonly index: IndexCiel
   readonly constellations: PaquetConstellations
+  /**
+   * T-0297 — vrai tant que la séquence de chargement n'a pas abouti (ni échoué). Une liste
+   * vide ne dit rien d'autre : sans ce drapeau, « 0 objet » se lisait pendant que le
+   * catalogue était encore en route.
+   */
+  readonly enCharge: boolean
 }
 
 /**
@@ -93,6 +99,7 @@ export function useCatalogues(): Catalogues {
   const [etoiles, setEtoiles] = useState<readonly Etoile[]>([])
   const [index, setIndex] = useState<IndexCiel>(INDEX_VIDE)
   const [constellations, setConstellations] = useState<PaquetConstellations>(PAQUET_VIDE)
+  const [enCharge, setEnCharge] = useState(true)
 
   useEffect(() => {
     void chargeCatalogues({
@@ -101,10 +108,12 @@ export function useCatalogues(): Catalogues {
       index: setIndex,
       constellations: setConstellations,
       objets: setObjets,
-    }).catch(() => setEtat(demarrageEchoue()))
+    })
+      .catch(() => setEtat(demarrageEchoue()))
+      .finally(() => setEnCharge(false))
   }, [])
 
-  return { etat, objets, etoiles, index, constellations }
+  return { etat, objets, etoiles, index, constellations, enCharge }
 }
 
 /** Ce que la relecture du démarrage rend à la saisie. */

@@ -11,13 +11,20 @@
  */
 
 import { renderToStaticMarkup } from 'react-dom/server'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../src/App.tsx'
 import { majCatalogue, reinitialiseCatalogue } from '../src/ui/catalogue-etat.ts'
 import { reinitialiseScene } from '../src/ui/scene-etat.ts'
 import { reinitialiseSeance } from '../src/ui/seance-etat.ts'
 import { ouvreCarte, reinitialiseCoque } from '../src/ui/coque-etat.ts'
 import { GLOSSAIRE } from '../src/registry/glossaire.ts'
+
+// T-0297 — ce fichier teste la liste d'un catalogue ARRIVÉ (vide sous le rendu serveur) : sans
+// ce drapeau, la liste dirait seulement que le catalogue est en route.
+vi.mock('../src/ui/app-donnees.ts', async (importeReel) => {
+  const reel = await importeReel<typeof import('../src/ui/app-donnees.ts')>()
+  return { ...reel, useCatalogues: () => ({ ...reel.useCatalogues(), enCharge: false }) }
+})
 
 function panneauCibles(): string {
   const html = renderToStaticMarkup(<App />)
