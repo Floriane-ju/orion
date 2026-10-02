@@ -4,7 +4,20 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { aimante, libelleLuneInstant, type MarqueLune } from '../src/ui/carte-nuit-calcul.ts'
+import {
+  aimante,
+  curseurInstant,
+  instantClavier,
+  instantFraction,
+  libelleLuneInstant,
+  pourcentCss,
+  type MarqueLune,
+} from '../src/ui/carte-nuit-calcul.ts'
+import { fenetreNocturne } from '../src/core/nuit.ts'
+import { friseNuit } from '../src/core/frise-nuit.ts'
+import { MS_PAR_MINUTE } from '../src/core/unites.ts'
+import { K } from '../src/registry/constants.ts'
+import { SITE_REFERENCE } from './fixtures.ts'
 
 function marque(fraction: number, texte: string): MarqueLune {
   return { cle: texte, position: `${fraction * 100}%`, fraction, texte }
@@ -39,5 +52,40 @@ describe('la Lune à l’instant pointé', () => {
     expect(libelleLuneInstant(-2.4)).toBe('Lune à 2° sous l’horizon')
     expect(libelleLuneInstant(-0.3)).toBe('Lune à l’horizon')
     expect(libelleLuneInstant(0.4)).toBe('Lune à l’horizon')
+  })
+})
+
+describe('T-0390 — la frise règle l’instant', () => {
+  const nuit = fenetreNocturne(SITE_REFERENCE, new Date('2026-09-28T12:00:00Z'))
+  const frise = friseNuit(SITE_REFERENCE, nuit)!
+  const debut = frise.debut.getTime()
+  const fin = frise.fin.getTime()
+  const pas = K('PAS_FRISE_CLAVIER_MIN') * MS_PAR_MINUTE
+
+  it('un clic vise l’instant sous le pointeur, et le curseur revient à la même place', () => {
+    const vise = instantFraction(frise, 0.37)
+    expect(curseurInstant(frise, new Date(vise))).toBe(pourcentCss(0.37))
+    expect(instantFraction(frise, -1)).toBe(debut)
+    expect(instantFraction(frise, 2)).toBe(fin)
+  })
+
+  it('les flèches avancent ou reculent d’un pas, sans sortir de la nuit', () => {
+    const milieu = (debut + fin) / 2
+    expect(instantClavier(frise, milieu, 'ArrowRight')).toBe(milieu + pas)
+    expect(instantClavier(frise, milieu, 'ArrowUp')).toBe(milieu + pas)
+    expect(instantClavier(frise, milieu, 'ArrowLeft')).toBe(milieu - pas)
+    expect(instantClavier(frise, milieu, 'ArrowDown')).toBe(milieu - pas)
+    expect(instantClavier(frise, fin, 'ArrowRight')).toBe(fin)
+    expect(instantClavier(frise, debut, 'ArrowLeft')).toBe(debut)
+  })
+
+  it('Début et Fin mènent aux bornes ; un instant hors de la nuit y rentre', () => {
+    expect(instantClavier(frise, (debut + fin) / 2, 'Home')).toBe(debut)
+    expect(instantClavier(frise, (debut + fin) / 2, 'End')).toBe(fin)
+    expect(instantClavier(frise, debut - 10 * pas, 'ArrowRight')).toBe(debut + pas)
+  })
+
+  it('une autre touche ne règle rien', () => {
+    expect(instantClavier(frise, debut, 'Enter')).toBeNull()
   })
 })

@@ -6,7 +6,8 @@
 
 import type { FriseNuit, LuneDeLaNuit, PhaseCiel } from '../core/frise-nuit.ts'
 import { degres, pourcentage } from '../registry/ecriture.ts'
-import { MS_PAR_H, POURCENT, QUART_TOUR_DEG as ZENITH_DEG } from '../core/unites.ts'
+import { encadre, MS_PAR_H, MS_PAR_MINUTE, POURCENT, QUART_TOUR_DEG as ZENITH_DEG } from '../core/unites.ts'
+import { K } from '../registry/constants.ts'
 import { heure, LOCALE } from './horaire.ts'
 
 /** Le nombre de l'heure, sans son suffixe : « 22 h » ne tient pas dans une graduation. */
@@ -70,6 +71,37 @@ export interface IncrustationLune {
 function fraction(frise: FriseNuit, instant: Date): number {
   const duree = frise.fin.getTime() - frise.debut.getTime()
   return (instant.getTime() - frise.debut.getTime()) / duree
+}
+
+/** L'instant (ms) d'une fraction de la frise : ce que vise un clic ou un appui. */
+export function instantFraction(frise: FriseNuit, x: number): number {
+  const debut = frise.debut.getTime()
+  return debut + encadre(x, 0, 1) * (frise.fin.getTime() - debut)
+}
+
+/**
+ * T-0390 — où mène une touche sur la frise, ou `null` si elle ne la règle pas. Un instant
+ * hors de la nuit repart de la borne la plus proche : la première flèche ramène dans la frise.
+ */
+export function instantClavier(frise: FriseNuit, ms: number, touche: string): number | null {
+  const debut = frise.debut.getTime()
+  const fin = frise.fin.getTime()
+  const pas = K('PAS_FRISE_CLAVIER_MIN') * MS_PAR_MINUTE
+  const depuis = encadre(ms, debut, fin)
+  switch (touche) {
+    case 'ArrowLeft':
+    case 'ArrowDown':
+      return encadre(depuis - pas, debut, fin)
+    case 'ArrowRight':
+    case 'ArrowUp':
+      return encadre(depuis + pas, debut, fin)
+    case 'Home':
+      return debut
+    case 'End':
+      return fin
+    default:
+      return null
+  }
 }
 
 /** Une fraction écrite pour le CSS (« 42.00% ») : une machine la relit, d'où le point. */

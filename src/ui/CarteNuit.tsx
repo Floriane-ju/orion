@@ -7,6 +7,11 @@
  *
  * La frise ne porte ni légende ni note : ce qu'un motif ou un trait signifie, la bulle de
  * survol le dit à l'instant pointé. Tout texte posé à demeure repoussait la liste d'autant.
+ *
+ * T-0390 — la frise commande aussi le temps : un clic, un appui ou une flèche y règle
+ * l'instant de la scène (§3.2). Une seule ligne reste à demeure, l'heure et la phase de
+ * l'instant affiché : §11.2 ne laisse rien de critique au seul survol, et un écran tactile
+ * n'en a pas.
  */
 
 import {
@@ -15,7 +20,8 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type PointerEvent,
+  type KeyboardEvent,
+  type MouseEvent,
 } from 'react'
 import {
   friseNuit,
@@ -29,7 +35,7 @@ import type { Site } from '../core/ephem.ts'
 import { encadre, MS_PAR_MINUTE } from '../core/unites.ts'
 import { Mention } from './Mention.tsx'
 import { heure } from './horaire.ts'
-import { minuteAffichee, useTrancheScene } from './scene-etat.ts'
+import { minuteAffichee, useTrancheScene, vaA } from './scene-etat.ts'
 import {
   aimante,
   bandesPhases,
@@ -37,6 +43,8 @@ import {
   disqueLune,
   type DisqueLune,
   incrustationsLune,
+  instantClavier,
+  instantFraction,
   LIBELLE_PHASE_CIEL,
   libelleLuneInstant,
   libellePhaseLune,
@@ -74,11 +82,7 @@ export function CarteNuit({ site, nuit }: CarteNuitProps) {
     <section ref={cadre} className="panneau-nuit" role="region" aria-label="La nuit">
       {nuit.cause !== undefined && <Mention ton="cause">{nuit.cause}</Mention>}
       {frise !== null && (
-        <Frise
-          frise={frise}
-          site={site}
-          curseur={curseurInstant(frise, new Date(minute * MS_PAR_MINUTE))}
-        />
+        <Frise frise={frise} site={site} instantMs={minute * MS_PAR_MINUTE} />
       )}
     </section>
   )
@@ -115,18 +119,28 @@ interface Survol {
 function Frise({
   frise,
   site,
-  curseur,
+  instantMs,
 }: {
   readonly frise: FriseNuit
   readonly site: Site
-  readonly curseur: string | null
+  readonly instantMs: number
 }) {
   const [survol, setSurvol] = useState<Survol | null>(null)
   const phases = bandesPhases(frise)
   const marques = marquesLune(frise)
   const lecture = survol === null ? null : lectureFrise(site, frise, survol.fraction)
+  const curseur = curseurInstant(frise, new Date(instantMs))
+  const debut = frise.debut.getTime()
+  const fin = frise.fin.getTime()
+  const phaseAffichee = useMemo(
+    () =>
+      instantMs < debut || instantMs > fin
+        ? null
+        : lectureFrise(site, frise, (instantMs - debut) / (fin - debut)).phase,
+    [site, frise, instantMs, debut, fin],
+  )
 
-  const surPointeur = (e: PointerEvent<HTMLDivElement>) => {
+  const pointe = (e: MouseEvent<HTMLDivElement>): Survol => {
     const cadre = e.currentTarget.getBoundingClientRect()
     // La portée de l'aimant est un pas d'espacement (`--pas-2`), lu dans la feuille plutôt que
     // recopié : la moitié d'une cible gantée happait le pointeur de trop loin, et la bulle
@@ -135,7 +149,17 @@ function Frise({
       parseFloat(getComputedStyle(e.currentTarget).getPropertyValue('--pas-2')) *
       parseFloat(getComputedStyle(document.documentElement).fontSize) /
       cadre.width
-    setSurvol(aimante(encadre((e.clientX - cadre.left) / cadre.width, 0, 1), marques, portee))
+    return aimante(encadre((e.clientX - cadre.left) / cadre.width, 0, 1), marques, portee)
+  }
+
+  // L'aimant vaut pour le clic comme pour le survol : un appui près d'un lever de Lune y va.
+  const surClic = (e: MouseEvent<HTMLDivElement>) => vaA(instantFraction(frise, pointe(e).fraction))
+
+  const surTouche = (e: KeyboardEvent<HTMLDivElement>) => {
+    const cible = instantClavier(frise, instantMs, e.key)
+    if (cible === null) return
+    e.preventDefault()
+    vaA(cible)
   }
 
   const resume =
@@ -148,10 +172,21 @@ function Frise({
       <div className="nuit-frise-zone">
         <div
           className="nuit-frise-ciel"
-          role="img"
+          role="slider"
+          tabIndex={0}
           aria-label={resume}
-          onPointerMove={surPointeur}
+          aria-valuemin={debut}
+          aria-valuemax={fin}
+          aria-valuenow={encadre(instantMs, debut, fin)}
+          aria-valuetext={
+            phaseAffichee === null
+              ? `${heure(new Date(instantMs))}, hors de la nuit`
+              : `${heure(new Date(instantMs))}, ${LIBELLE_PHASE_CIEL[phaseAffichee].toLowerCase()}`
+          }
+          onPointerMove={(e) => setSurvol(pointe(e))}
           onPointerLeave={() => setSurvol(null)}
+          onClick={surClic}
+          onKeyDown={surTouche}
         >
           {phases.map((b) => (
             <span
@@ -202,6 +237,11 @@ function Frise({
           </span>
         ))}
       </div>
+      {phaseAffichee !== null && (
+        <p className="nuit-lecture" aria-hidden="true">
+          {heure(new Date(instantMs))} · {LIBELLE_PHASE_CIEL[phaseAffichee]}
+        </p>
+      )}
     </div>
   )
 }

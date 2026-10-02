@@ -2923,6 +2923,19 @@ button:disabled {
   /* Un aplat sous la nuit seule : sans lui, les étoiles de la scène se lisaient dans la frise. */
   background: var(--surface);
 }
+/* T-0390 — la frise règle l'instant : elle se clique. */
+.nuit-frise-ciel {
+  cursor: pointer;
+}
+/* T-0390 — l'heure et la phase de l'instant affiché, à demeure : §11.2 ne laisse rien de
+   critique au seul survol. Une ligne, au corps des repères d'heure qu'elle prolonge. */
+.nuit-lecture {
+  margin: 0;
+  color: var(--texte);
+  font-size: var(--texte-mini);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--interligne-serre);
+}
 .nuit-bande {
   position: absolute;
   inset-block: 0;

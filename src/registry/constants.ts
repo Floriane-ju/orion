@@ -1461,6 +1461,19 @@ const RENDU = {
     ordreDeGrandeur: false,
     sections: ['3.3'],
   }),
+  PAS_FRISE_CLAVIER_MIN: entree({
+    ref: 'C-26',
+    libelle: 'Pas d’une touche fléchée sur la frise de la nuit',
+    valeur: 10,
+    unite: 'min',
+    source:
+      '§8.1, T-0390 — convention produit : un crépuscule dure de trente à quarante minutes ' +
+      'aux latitudes moyennes, dix minutes en lisent les étapes sans traverser une phase ' +
+      'd’un seul appui',
+    tolerance: 'convention produit — pilote le confort du geste, jamais un verdict',
+    ordreDeGrandeur: false,
+    sections: ['8.1'],
+  }),
   CHAMP_CADRER_FACTEUR: entree({
     ref: 'C-26',
     libelle: 'Champ de la scène après « Cadrer », en multiple de la grande dimension du cadre',
