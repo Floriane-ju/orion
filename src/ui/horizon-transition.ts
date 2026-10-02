@@ -19,8 +19,8 @@ export interface TransitionHorizon {
   readonly debutMs: number
 }
 
-/** Smoothstep : la silhouette démarre et s'arrête sans à-coup. */
-function adoucit(t: number): number {
+/** Smoothstep : la silhouette démarre et s'arrête sans à-coup. C'est `--courbe` de la feuille. */
+export function adoucit(t: number): number {
   return t * t * (3 - 2 * t)
 }
 

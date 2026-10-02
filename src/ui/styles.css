@@ -168,7 +168,7 @@
 
 /* Passage progressif, jamais un basculement brutal ni un flash (§11.1). */
 body {
-  transition: background-color var(--fondu-nuit) ease, color var(--fondu-nuit) ease;
+  transition: background-color var(--fondu-nuit) var(--courbe), color var(--fondu-nuit) var(--courbe);
 }
 
 /* Arbitrage entre §11.1 et WCAG 2.3.3.
@@ -287,6 +287,12 @@ pre {
      regard suive le contenu sans l'attendre. */
   --fondu-nuit: 600ms;
   --fondu-depli: 180ms;
+  /* T-0391 — LA COURBE, une seule. La feuille mêlait `ease` et `ease-out` pendant que le
+     canevas adoucissait par un smoothstep (`horizon-transition.ts`) : deux mouvements de la
+     même interface ne partaient pas de la même façon. Ce bézier EST le smoothstep 3t² − 2t³
+     (points de contrôle à x = 1/3 et 2/3, x(t) = t) : CSS et canevas suivent la même
+     courbe, et `echelles.test.ts` le vérifie point par point. */
+  --courbe: cubic-bezier(0.3333, 0, 0.6667, 1);
   /* T-0331 — L'INTERLIGNAGE, trois rangs. Il y en avait six entre 1,35 et 1,6 : une phrase
      d'erreur et le corps du texte n'avaient pas le même souffle sans que rien ne le veuille.
      Serré pour une ligne unique (glyphe, compteur), contrôle pour ce qui se clique et les
@@ -3668,8 +3674,8 @@ button,
 input,
 select,
 .curseur-rail {
-  transition: background-color var(--fondu-etat) ease, color var(--fondu-etat) ease,
-    border-color var(--fondu-etat) ease;
+  transition: background-color var(--fondu-etat) var(--courbe), color var(--fondu-etat) var(--courbe),
+    border-color var(--fondu-etat) var(--courbe);
 }
 
 /* L'appui, pour tout ce qui se clique. Les survols restent auprès de leur composant : ils
@@ -3710,24 +3716,24 @@ button:not(:disabled):active,
      plusieurs pixels, et sans fondu le trait paraissait se téléporter. Le fondu d'état,
      court, suit le pointeur sans traîner. Mouvement de position : il ne vit qu'ici. */
   .nuit-frise-zone:hover .nuit-survol-trait {
-    transition: inset-inline-start var(--fondu-etat) ease-out,
-      border-color var(--fondu-etat) ease;
+    transition: inset-inline-start var(--fondu-etat) var(--courbe),
+      border-color var(--fondu-etat) var(--courbe);
   }
 
   .nuit-frise-zone:hover .nuit-bulle-trait {
-    transition: inset-inline-start var(--fondu-etat) ease-out;
+    transition: inset-inline-start var(--fondu-etat) var(--courbe);
   }
 
   .nuit-frise-zone:hover .nuit-bulle-corps {
-    transition: inset-inline-start var(--fondu-etat) ease-out;
+    transition: inset-inline-start var(--fondu-etat) var(--courbe);
   }
 
   .image-cible-encart {
-    transition: width var(--fondu-etat) ease;
+    transition: width var(--fondu-etat) var(--courbe);
   }
 
   .image-cible-encart-mention {
-    transition: opacity var(--fondu-etat) ease;
+    transition: opacity var(--fondu-etat) var(--courbe);
   }
 
   /* T-0325 — une rubrique de la modale info se déplie au lieu d'apparaître d'un bloc : le
@@ -3740,7 +3746,7 @@ button:not(:disabled):active,
   .accordeon::details-content {
     display: grid;
     grid-template-rows: 0fr;
-    transition: grid-template-rows var(--fondu-depli) ease,
+    transition: grid-template-rows var(--fondu-depli) var(--courbe),
       content-visibility var(--fondu-depli) allow-discrete;
   }
 
@@ -3749,7 +3755,7 @@ button:not(:disabled):active,
   }
 
   .accordeon > summary > .icone {
-    transition: transform var(--fondu-depli) ease;
+    transition: transform var(--fondu-depli) var(--courbe);
   }
 }
 

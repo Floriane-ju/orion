@@ -231,6 +231,8 @@ la scène, et celui de la page info)
 **Fondus** — `--fondu-etat` 150ms (retour d'état d'un contrôle, 80ms sous
 `prefers-reduced-motion`) · `--fondu-depli` 180ms (un dépli) · `--fondu-nuit` 600ms (le
 basculement de §11.1, 120ms sous la préférence : raccourci, jamais supprimé).
+Tous suivent `--courbe` (le smoothstep 3t² − 2t³, celui du canevas) : aucun `ease` ni
+`linear` écrit en dur (`echelles.test.ts`).
 
 **Interlignage** — `--interligne-serre` 1 (une ligne unique : glyphe, compteur) ·
 `--interligne-controle` 1,4 (ce qui se clique, les bulles) · `--interligne-texte` 1,6 (ce qui

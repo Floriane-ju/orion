@@ -14,6 +14,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { adoucit } from '../src/ui/horizon-transition.ts'
 
 const CSS = readFileSync(join(import.meta.dirname, '..', 'src', 'ui', 'styles.css'), 'utf8')
 
@@ -420,5 +421,30 @@ describe('T-0376 — les noms peints sur la scène', () => {
     const corpsRem = Number(/--texte-corps: ([\d.]+)rem;/.exec(CSS)![1])
     const remPx = 16
     expect(HAUTEUR_LABEL_PX).toBeLessThanOrEqual(corpsRem * remPx)
+  })
+})
+
+describe('T-0391 — une seule courbe d’accélération', () => {
+  it('aucune transition n’écrit sa courbe en dur : toutes citent --courbe', () => {
+    const enDur = [...REGLES.matchAll(/\b(?:ease(?:-in|-out|-in-out)?|linear(?!-)|steps\(|cubic-bezier\()/g)]
+      .map((m) => m[0])
+    // Le seul cubic-bezier permis est la définition du jeton.
+    expect(enDur).toEqual(['cubic-bezier('])
+    expect(REGLES).toMatch(/--courbe: cubic-bezier\(/)
+  })
+
+  it('--courbe est le smoothstep du canevas', () => {
+    const [x1, y1, x2, y2] = /--courbe: cubic-bezier\(([^)]+)\)/
+      .exec(REGLES)![1]!
+      .split(',')
+      .map(Number) as [number, number, number, number]
+    const bezier = (a: number, b: number, t: number): number =>
+      3 * (1 - t) ** 2 * t * a + 3 * (1 - t) * t ** 2 * b + t ** 3
+    for (let i = 0; i <= 20; i++) {
+      const t = i / 20
+      // x(t) = t à 1e-4 près : la progression du temps se lit directement en ordonnée.
+      expect(bezier(x1, x2, t)).toBeCloseTo(t, 3)
+      expect(bezier(y1, y2, t)).toBeCloseTo(adoucit(t), 6)
+    }
   })
 })
