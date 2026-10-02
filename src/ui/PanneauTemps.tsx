@@ -40,7 +40,7 @@ import {
 import { BoutonGlyphe } from './BoutonGlyphe.tsx'
 import { Compteur } from './Compteur.tsx'
 import {
-  borneInstant,
+  etatScene,
   type EtatScene,
   majTemps,
   reprend,
@@ -210,10 +210,18 @@ function useCompteurs(props: PanneauTempsProps): {
   const depart = useRef<Date | null>(null)
   const date = new Date(seconde * 1000)
 
-  function va(champ: ChampInstant, valeur: number): void {
-    const choisi = dateAvec(depart.current ?? date, champ, valeur).getTime()
-    vaA(choisi)
-    props.surNuitIso(nuitDeLInstant(new Date(borneInstant(choisi))))
+  /**
+   * T-0292 — la nuit suit l'instant, mais pas à chaque cran d'un glisser : changer de nuit
+   * recalcule le ciel de la séance, et tirer les jours en enchaînait un par cran. Le ciel et
+   * l'horloge suivent le geste (`vaA`) ; la nuit se règle au relâchement (`soldeNuit`).
+   */
+  function va(champ: ChampInstant, valeur: number, enGlisse = false): void {
+    vaA(dateAvec(depart.current ?? date, champ, valeur).getTime())
+    if (!enGlisse) soldeNuit()
+  }
+
+  function soldeNuit(): void {
+    props.surNuitIso(nuitDeLInstant(new Date(etatScene().msAffiche)))
   }
 
   /** Les littéraux de la locale restent du texte : seuls les nombres deviennent des compteurs. */
@@ -235,7 +243,8 @@ function useCompteurs(props: PanneauTempsProps): {
           {...(champ === 'annee'
             ? { min: DOMAINES.annee_affichee.min, max: DOMAINES.annee_affichee.max }
             : {})}
-          sur={(valeur) => va(champ, valeur)}
+          sur={(valeur, enGlisse) => va(champ, valeur, enGlisse)}
+          surFin={soldeNuit}
           surDebut={() => {
             depart.current = date
           }}

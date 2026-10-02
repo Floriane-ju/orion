@@ -344,11 +344,15 @@ export function etatScene(): EtatScene {
 
 type Retouche<T> = Partial<T> | ((precedent: T) => Partial<T>)
 
+/**
+ * T-0292 — une retouche qui ne change rien rend la tranche PRÉCÉDENTE, même identité. Sans
+ * cela, chaque cran d'un compteur réécrivait `modeTemps: 'FIGE'` sur un temps déjà figé, et
+ * tout abonné au magasin se redessinait pour rien.
+ */
 function applique<T extends object>(precedent: T, retouche: Retouche<T>): T {
-  return {
-    ...precedent,
-    ...(typeof retouche === 'function' ? retouche(precedent) : retouche),
-  }
+  const partiel = typeof retouche === 'function' ? retouche(precedent) : retouche
+  const change = (Object.keys(partiel) as (keyof T)[]).some((cle) => !Object.is(partiel[cle], precedent[cle]))
+  return change ? { ...precedent, ...partiel } : precedent
 }
 
 function pose(suivant: EtatScene): void {
@@ -367,6 +371,7 @@ function pose(suivant: EtatScene): void {
 export function majVue(retouche: Retouche<VueScene>): void {
   const vue = applique(etat.vue, retouche)
   const fovMaxDeg = fovMaxSelonMode(vue.mode)
+  if (vue === etat.vue && vue.fovDeg <= fovMaxDeg) return
   pose({
     ...etat,
     vue: vue.fovDeg <= fovMaxDeg ? vue : { ...vue, fovDeg: fovMaxDeg },
@@ -374,15 +379,18 @@ export function majVue(retouche: Retouche<VueScene>): void {
 }
 
 export function majTemps(retouche: Retouche<TempsScene>): void {
-  pose({ ...etat, temps: applique(etat.temps, retouche) })
+  const temps = applique(etat.temps, retouche)
+  if (temps !== etat.temps) pose({ ...etat, temps })
 }
 
 export function majRendu(retouche: Retouche<RenduScene>): void {
-  pose({ ...etat, rendu: applique(etat.rendu, retouche) })
+  const rendu = applique(etat.rendu, retouche)
+  if (rendu !== etat.rendu) pose({ ...etat, rendu })
 }
 
 export function majLectures(retouche: Retouche<LecturesScene>): void {
-  pose({ ...etat, lectures: applique(etat.lectures, retouche) })
+  const lectures = applique(etat.lectures, retouche)
+  if (lectures !== etat.lectures) pose({ ...etat, lectures })
 }
 
 /**

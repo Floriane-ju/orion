@@ -59,9 +59,14 @@ export interface CompteurProps {
    */
   readonly largeur?: number
   readonly classe?: string
-  readonly sur: (valeur: number) => void
+  readonly sur: (valeur: number, enGlisse?: boolean) => void
   /** Appelé au début de tout réglage : le geste est absolu, l'appelant gèle sa référence. */
   readonly surDebut?: () => void
+  /**
+   * T-0292 — appelé au relâchement d'un glisser qui a bougé. Pendant le geste, `sur` reçoit
+   * `enGlisse` : l'appelant peut y différer ce qui coûte, et le solder ici une seule fois.
+   */
+  readonly surFin?: () => void
 }
 
 interface Depart {
@@ -69,6 +74,8 @@ interface Depart {
   readonly valeur: number
   /** Un geste qui a bougé n'est plus un clic : c'est ce qui distingue les deux intentions. */
   bouge: boolean
+  /** La dernière valeur envoyée : un mouvement qui reste au même cran n'envoie rien (T-0292). */
+  envoyee: number
   /** Où serait le pointeur sans bord d'écran : sous verrou, `clientX` ne bouge plus. */
   xPxCumule: number
   yPxCumule: number
@@ -106,16 +113,27 @@ export function Compteur(props: CompteurProps) {
   /** Vrai du premier appui au relâchement, que le geste devienne un clic ou un glisser. */
   const [appuye, setAppuye] = useState(false)
   const initiale = useRef('')
-  /** Le curseur qui remplace la souris verrouillée ; `null` hors verrou. */
-  const [fantome, setFantome] = useState<Point | null>(null)
+  /**
+   * Le curseur qui remplace la souris verrouillée. Seule sa présence est un état React : sa
+   * position s'écrit dans le DOM, sans quoi chaque `pointermove` sous verrou rendrait le
+   * compteur (T-0292).
+   */
+  const [fantome, setFantome] = useState(false)
+  const placeFantome = useRef<Point>({ x: 0, y: 0 })
+  const elFantome = useRef<HTMLSpanElement>(null)
+  // L'écoute du verrou est posée une fois : elle lit le dernier `surFin`, pas celui du montage.
+  const surFin = useRef(props.surFin)
+  surFin.current = props.surFin
 
   // Échap rend la souris en plein geste : le glisser s'arrête là où il en est.
   useEffect(() => {
     function surVerrou(): void {
-      if (document.pointerLockElement !== null || depart.current === null) return
+      const d = depart.current
+      if (document.pointerLockElement !== null || d === null) return
       depart.current = null
+      if (d.bouge) surFin.current?.()
       setAppuye(false)
-      setFantome(null)
+      setFantome(false)
     }
     document.addEventListener('pointerlockchange', surVerrou)
     return () => document.removeEventListener('pointerlockchange', surVerrou)
@@ -152,6 +170,7 @@ export function Compteur(props: CompteurProps) {
       xPx: e.clientX,
       valeur: props.valeur,
       bouge: false,
+      envoyee: props.valeur,
       xPxCumule: e.clientX,
       yPxCumule: e.clientY,
     }
@@ -165,10 +184,16 @@ export function Compteur(props: CompteurProps) {
     if (document.pointerLockElement === e.currentTarget) {
       d.xPxCumule += e.movementX
       d.yPxCumule += e.movementY
-      setFantome({
+      placeFantome.current = {
         x: ramene(d.xPxCumule, window.innerWidth),
         y: ramene(d.yPxCumule, window.innerHeight),
-      })
+      }
+      const el = elFantome.current
+      if (el === null) setFantome(true)
+      else {
+        el.style.left = `${placeFantome.current.x}px`
+        el.style.top = `${placeFantome.current.y}px`
+      }
     } else {
       d.xPxCumule = e.clientX
       d.yPxCumule = e.clientY
@@ -179,19 +204,23 @@ export function Compteur(props: CompteurProps) {
     if (crans === 0 && !d.bouge) return
     if (!d.bouge && e.pointerType === 'mouse') verrouille(e.currentTarget)
     d.bouge = true
-    props.sur(borne(d.valeur + crans * props.pas))
+    const valeur = borne(d.valeur + crans * props.pas)
+    if (valeur === d.envoyee) return
+    d.envoyee = valeur
+    props.sur(valeur, true)
   }
 
   function surPointerUp(e: PointerEvent<HTMLSpanElement>): void {
     const d = depart.current
     depart.current = null
     setAppuye(false)
-    setFantome(null)
+    setFantome(false)
     deverrouille(e.currentTarget)
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId)
     }
     if (d !== null && !d.bouge) ouvreSaisie()
+    if (d?.bouge === true) props.surFin?.()
   }
 
   function surClavier(e: KeyboardEvent<HTMLSpanElement>): void {
@@ -262,9 +291,10 @@ export function Compteur(props: CompteurProps) {
       onPointerMove={surPointerMove}
       onPointerUp={surPointerUp}
       onPointerCancel={(e) => {
+        if (depart.current?.bouge === true) props.surFin?.()
         depart.current = null
         setAppuye(false)
-        setFantome(null)
+        setFantome(false)
         deverrouille(e.currentTarget)
       }}
       onKeyDown={surClavier}
@@ -274,9 +304,13 @@ export function Compteur(props: CompteurProps) {
         {props.texte}
       </span>
       {/* Hors de la barre : un ancêtre filtré ou transformé ferait du `fixed` un `absolute`. */}
-      {fantome !== null &&
+      {fantome &&
         createPortal(
-          <span className="compteur-fantome" style={{ left: fantome.x, top: fantome.y }}>
+          <span
+            ref={elFantome}
+            className="compteur-fantome"
+            style={{ left: placeFantome.current.x, top: placeFantome.current.y }}
+          >
             <Icone nom="arrow_range" />
           </span>,
           document.body,

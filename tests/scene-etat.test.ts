@@ -348,3 +348,33 @@ describe('T-0324 — le parcours rend l’horloge qu’il a empruntée', () => {
     expect(instant.ms).toBe(avantMs)
   })
 })
+
+describe('T-0292 — une écriture qui ne change rien ne notifie pas', () => {
+  beforeEach(() => reinitialiseScene())
+
+  it('majTemps sur un temps déjà figé rend le même état', () => {
+    majTemps({ modeTemps: 'FIGE' })
+    const avant = etatScene()
+    majTemps({ modeTemps: 'FIGE' })
+    expect(etatScene()).toBe(avant)
+  })
+
+  it('majVue sans changement rend le même état', () => {
+    const avant = etatScene()
+    majVue({ fovDeg: avant.vue.fovDeg })
+    expect(etatScene()).toBe(avant)
+  })
+
+  it('vaA répété au même instant ne réécrit rien', () => {
+    vaA(instant.ms)
+    const avant = etatScene()
+    vaA(avant.msAffiche)
+    expect(etatScene()).toBe(avant)
+  })
+
+  it('une écriture qui change quelque chose rend un état neuf', () => {
+    const avant = etatScene()
+    majVue({ fovDeg: avant.vue.fovDeg / 2 })
+    expect(etatScene()).not.toBe(avant)
+  })
+})
