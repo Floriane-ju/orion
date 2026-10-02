@@ -12,9 +12,9 @@
  * si la cible est dans le cadre et que le moteur trouve un angle — une cible ronde ou sans
  * angle de position n'a rien à aligner, et un bouton qui ne ferait rien serait un mensonge.
  *
- * T-0283 — « Cadrer » centre ET règle le champ sur le cadre du matériel. « Voir » garde la vue
- * d'ensemble : on y cherche de quel côté du ciel tombe la cible, champ inchangé. Deux
- * intentions, deux boutons — fondre les deux ferait perdre l'une à chaque usage de l'autre.
+ * T-0283 — dans la fiche, « Cadrer » centre ET règle le champ sur le cadre du matériel ; il
+ * remplace « Voir », qui ne faisait que la moitié du même geste. La ligne de liste garde
+ * « Voir » : on y cherche de quel côté du ciel tombe une cible, champ inchangé.
  */
 
 import { cibleDominante, rotationSuggeree, type ProfilCadre } from '../core/cadre.ts'
@@ -42,16 +42,6 @@ export function BoutonVisee({ designation, azimutDeg, hauteurDeg }: BoutonViseeP
       onClick={() => majVue({ azimutDeg, hauteurDeg })}
     />
   )
-}
-
-/** La fiche n'a pas de ligne de liste : elle tire la direction de la minute affichée. */
-export function ViseeCible({ objet, site }: { readonly objet: ObjetCielProfond; readonly site: Site }) {
-  const minute = useTrancheScene(minuteAffichee)
-  const { azimutDeg, hauteurDeg } = coordonneesHorizon(
-    objet,
-    matriceALaMinute(site, minute),
-  )
-  return <BoutonVisee designation={objet.designation} azimutDeg={azimutDeg} hauteurDeg={hauteurDeg} />
 }
 
 export interface AlignementCibleProps {
@@ -95,17 +85,23 @@ export interface CadrerCibleProps {
   readonly gaiaCharge: boolean
 }
 
-/** §6.4 — un geste montre la cible avec le cadre sur une part lisible de la scène. */
+/**
+ * §6.4 — un geste montre la cible avec le cadre sur une part lisible de la scène. Sans
+ * matériel chiffrable, il n'y a pas de cadre à ajuster : le geste ne fait que centrer.
+ */
 export function CadrerCible({ objet, site, profil, gaiaCharge }: CadrerCibleProps) {
   const minute = useTrancheScene(minuteAffichee)
   const vue = useTrancheScene(vueScene)
-  if (profil === undefined) return null
   const { azimutDeg, hauteurDeg } = coordonneesHorizon(objet, matriceALaMinute(site, minute))
+  if (profil === undefined) {
+    return <BoutonVisee designation={objet.designation} azimutDeg={azimutDeg} hauteurDeg={hauteurDeg} />
+  }
   const fovDeg = champPourCadrer(profil.fovLDeg, bornesZoom(gaiaCharge, vue.mode))
+  const aide = `Cadrer ${objet.designation} avec le cadre du matériel`
   return (
     <BoutonGlyphe
       icone="center_focus_strong"
-      aide={`Cadrer ${objet.designation} avec le cadre du matériel`}
+      aide={hauteurDeg > 0 ? aide : `${aide} — sous l’horizon`}
       place="gauche"
       onClick={() => majVue({ azimutDeg, hauteurDeg, fovDeg })}
     />

@@ -31,7 +31,7 @@ import { PanneauFile } from './PanneauFile.tsx'
 import { FicheCible } from './FicheCible.tsx'
 import { Pastilles } from './Pastilles.tsx'
 import { Bulle } from './Bulle.tsx'
-import { AlignementCible, CadrerCible, ViseeCible } from './BoutonVisee.tsx'
+import { AlignementCible, CadrerCible } from './BoutonVisee.tsx'
 import { BoutonChoixCible } from './BoutonChoixCible.tsx'
 import { useCiblesChoisies } from './cibles-choisies.ts'
 import { PlanSessionVue } from './PlanSession.tsx'
@@ -295,8 +295,7 @@ export function LateralSeance(props: RegionSeanceProps) {
               rappel: (
                 <span className="lateral-actions">
                   {facilite !== null && <RappelFacilite etat={facilite} />}
-                  {/* T-0221 — viser depuis la fiche, sans repasser par la ligne de liste. */}
-                  <ViseeCible objet={props.cibleDuCiel} site={chaine.site} />
+                  {/* T-0221, T-0283 — viser et cadrer depuis la fiche, d'un seul geste. */}
                   <CadrerCible
                     objet={props.cibleDuCiel}
                     site={chaine.site}
