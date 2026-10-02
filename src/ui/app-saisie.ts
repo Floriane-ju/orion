@@ -100,7 +100,6 @@ export function useSaisieLieu(depart: DepartLieu | null): SaisieLieu {
 const BOITIER_VIDE = {
   readNoiseE: '',
   seuilDoubleGainIso: '',
-  fullWellE: '',
   zpSys: '',
   tailleRawMo: '',
 } as const

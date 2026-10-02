@@ -52,7 +52,6 @@ const MATERIEL: SaisieMateriel = {
     resolutionMpx: DEFAUT.resolutionMpx,
     readNoiseE: '',
     seuilDoubleGainIso: '',
-    fullWellE: '',
     zpSys: '',
     tailleRawMo: '',
   },

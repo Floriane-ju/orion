@@ -207,7 +207,6 @@ const FORME_PROFIL: Forme = {
   resolutionMpx: optionnel(nombre('resolution_mpx')),
   readNoiseE: optionnel(nombre('read_noise_e')),
   seuilDoubleGainIso: optionnel(nombre('seuil_double_gain_iso')),
-  fullWellE: optionnel(nombre('full_well_e')),
   zpSys: optionnel(nombre('zp_sys')),
   tailleRawMo: optionnel(nombre('taille_raw_mo')),
   isoCapture: optionnel(nombre('iso_capture')),

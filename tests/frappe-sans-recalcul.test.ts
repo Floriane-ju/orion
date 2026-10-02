@@ -163,7 +163,6 @@ const SAISIE_BOITIER = Object.freeze({
   resolutionMpx: DEFAUT.resolutionMpx,
   readNoiseE: '',
   seuilDoubleGainIso: '',
-  fullWellE: '',
   zpSys: '',
   tailleRawMo: '',
 })

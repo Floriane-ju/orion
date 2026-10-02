@@ -87,15 +87,6 @@ export const DOMAINES = Object.freeze({
     unite: 'ISO',
     section: '5.1',
   }),
-  // T-0202 — 200 000 e⁻ excluait le Sony α7S III, mesuré à 227 834 e⁻ : de très gros
-  // photosites saturent tard, c'est leur raison d'être. Source : Photons to Photos.
-  full_well_e: domaine({
-    champ: 'la capacité de saturation',
-    min: 5000,
-    max: 250000,
-    unite: 'e⁻',
-    section: '5.1',
-  }),
   zp_sys: domaine({ champ: 'le point zéro système', min: 18, max: 22, unite: 'mag', section: '5.1' }),
   taille_raw_mo: domaine({
     champ: 'le poids d’une image',

@@ -39,7 +39,6 @@ export interface Boitier {
   readonly readNoiseE: Readonly<Record<number, number>>
   /** Absent → aucun palier ne justifie l'ISO retenu : c'est la saisie qui le fixe (§7.2). */
   readonly seuilDoubleGainIso?: number
-  readonly fullWellE?: number
   /** Absent → point zéro générique C-14, affiché [ESTIMÉ] (§2.3). */
   readonly zpSys?: number
   readonly tailleRawMo: number
@@ -194,7 +193,7 @@ function messageIso(
 
 /**
  * Boîtier de référence de l'Annexe A : plein format 35,9 × 23,9 mm, 7008 × 4672 px.
- * Bruit de lecture, capacité de saturation et point zéro système sont marqués `[À VÉRIFIER]`
+ * Bruit de lecture et point zéro système sont marqués `[À VÉRIFIER]`
  * par le PRD — seule la valeur de travail sourcée est portée ici.
  *
  * Ne se choisit plus dans une interface : §5.1 ne propose qu'un type de capteur et une
@@ -230,7 +229,6 @@ export interface SaisieBoitier {
   readonly resolutionMpx: string
   readonly readNoiseE: string
   readonly seuilDoubleGainIso: string
-  readonly fullWellE: string
   readonly zpSys: string
   readonly tailleRawMo: string
 }
@@ -273,12 +271,6 @@ export function notesEstimation(
     ? {
         tailleRawMo:
           `Vide : ${K('TAILLE_RAW_MO_GENERIQUE')} Mo par défaut [ESTIMÉ].`,
-      }
-    : {}),
-  ...(vide(saisie.fullWellE)
-    ? {
-        fullWellE:
-          'Vide : aucun calcul ne l’utilise pour l’instant.',
       }
     : {}),
   })
@@ -329,7 +321,6 @@ export function resoutBoitier(saisie: SaisieBoitier, origine?: OrigineBoitier): 
   const pitchUm = valide('pitch_um', pitchDepuisFormat(format, resolutionMpx))
   const readNoiseE = champ(saisie.readNoiseE, 'read_noise_e')
   const seuilDoubleGainIso = champ(saisie.seuilDoubleGainIso, 'seuil_double_gain_iso')
-  const fullWellE = champ(saisie.fullWellE, 'full_well_e')
   const zpSys = champ(saisie.zpSys, 'zp_sys')
   const tailleRawMo = champ(saisie.tailleRawMo, 'taille_raw_mo')
 
@@ -353,7 +344,6 @@ export function resoutBoitier(saisie: SaisieBoitier, origine?: OrigineBoitier): 
           : { [seuilDoubleGainIso]: readNoiseE },
       ),
     ...(seuilDoubleGainIso === null ? {} : { seuilDoubleGainIso }),
-    ...(fullWellE === null ? {} : { fullWellE }),
     ...(zpSys === null ? {} : { zpSys }),
     tailleRawMo: tailleRawMo ?? K('TAILLE_RAW_MO_GENERIQUE'),
     source: origine?.source ?? 'saisie utilisateur — mode custom',

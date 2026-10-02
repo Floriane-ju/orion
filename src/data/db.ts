@@ -61,7 +61,6 @@ export interface ProfilMateriel {
   readonly resolutionMpx?: number
   readonly readNoiseE?: number
   readonly seuilDoubleGainIso?: number
-  readonly fullWellE?: number
   readonly zpSys?: number
   readonly tailleRawMo?: number
   /** §7.2 — ISO de capture retenu, quand il n'est pas celui du seuil de double gain. */

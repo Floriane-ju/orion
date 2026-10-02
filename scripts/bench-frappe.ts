@@ -81,7 +81,6 @@ const BOITIER: SaisieBoitier = {
   resolutionMpx: '33',
   readNoiseE: '',
   seuilDoubleGainIso: '',
-  fullWellE: '',
   zpSys: '',
   tailleRawMo: '',
 }

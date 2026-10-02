@@ -73,7 +73,6 @@ const AIDE_AVANCEES =
 const CHAMPS_AVANCES = Object.freeze([
   { champ: 'readNoiseE', domaine: 'read_noise_e', cle: 'bruit_de_lecture' },
   { champ: 'seuilDoubleGainIso', domaine: 'seuil_double_gain_iso', cle: 'seuil_double_gain' },
-  { champ: 'fullWellE', domaine: 'full_well_e', cle: 'capacite_saturation' },
   { champ: 'zpSys', domaine: 'zp_sys', cle: 'point_zero_systeme' },
 ] as const satisfies readonly {
   readonly champ: keyof SaisieBoitier

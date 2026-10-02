@@ -65,7 +65,6 @@ function materiel(champs: Partial<Record<'focale' | 'ouverture' | 'iso', string>
       resolutionMpx: DEFAUT.resolutionMpx,
       readNoiseE: '',
       seuilDoubleGainIso: '',
-      fullWellE: '',
       zpSys: '',
       tailleRawMo: '',
     },

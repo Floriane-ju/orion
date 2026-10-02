@@ -55,7 +55,9 @@ function courbeReadNoise(cellule: string): Readonly<Record<number, number>> {
 }
 
 function ligneBoitierDepuis(cellules: readonly string[]): LigneBoitier {
-  const [id, libelle, formatCapteur, resolutionMpx, tailleRawMo, seuilDoubleGainIso, courbe, fullWellE, zpSys, src] =
+  // La capacité de saturation reste une colonne de la base, mais aucun calcul ne la lit :
+  // elle n'entre pas dans la saisie.
+  const [id, libelle, formatCapteur, resolutionMpx, tailleRawMo, seuilDoubleGainIso, courbe, , zpSys, src] =
     cellules as [string, string, string, string, string, string, string, string, string, string]
   const readNoiseE = courbeReadNoise(courbe)
   // T-0343 — la base est un fichier : un format mal orthographié y devenait plein format.
@@ -74,7 +76,6 @@ function ligneBoitierDepuis(cellules: readonly string[]): LigneBoitier {
       // sert au repassage en mode personnalisé, où il n'y a qu'un champ à remplir.
       readNoiseE: String(readNoiseE[Number(seuilDoubleGainIso)] ?? ''),
       seuilDoubleGainIso,
-      fullWellE,
       zpSys,
       tailleRawMo,
     }),

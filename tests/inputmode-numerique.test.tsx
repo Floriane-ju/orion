@@ -50,7 +50,6 @@ const ECRAN_MATERIEL = renderToStaticMarkup(
       resolutionMpx: '24',
       readNoiseE: '',
       seuilDoubleGainIso: '',
-      fullWellE: '',
       zpSys: '',
       tailleRawMo: '',
     }}
@@ -90,8 +89,8 @@ describe('inputMode des champs numériques §4.1 + §5.1 (T-0192)', () => {
   })
 
   it('l’écran Matériel expose bien les champs numériques attendus', () => {
-    // résolution, poids RAW, ISO, focale, ouverture, + les quatre du mode avancé.
-    expect(champsMateriel.length).toBe(9)
+    // résolution, poids RAW, ISO, focale, ouverture, + les trois du mode avancé.
+    expect(champsMateriel.length).toBe(8)
   })
 
   it.each([...champsSite, ...champsMateriel])(

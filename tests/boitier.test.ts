@@ -31,7 +31,6 @@ function saisie(partiel: Partial<SaisieBoitier> = {}): SaisieBoitier {
     resolutionMpx: '24',
     readNoiseE: '',
     seuilDoubleGainIso: '',
-    fullWellE: '',
     zpSys: '',
     tailleRawMo: '',
     ...partiel,
@@ -159,12 +158,11 @@ describe('§7.2 — l’ISO retenu se voit, se justifie et se change', () => {
 describe('§5.1 — les notes d’estimation, champ par champ', () => {
   it('ne note que les grandeurs vides, et sous leur propre clé', () => {
     expect(Object.keys(notesEstimation(saisie())).sort()).toEqual(
-      ['fullWellE', 'readNoiseE', 'seuilDoubleGainIso', 'tailleRawMo', 'zpSys'].sort(),
+      ['readNoiseE', 'seuilDoubleGainIso', 'tailleRawMo', 'zpSys'].sort(),
     )
     const complet = saisie({
       readNoiseE: '2.4',
       seuilDoubleGainIso: '800',
-      fullWellE: '50000',
       zpSys: '20.5',
       tailleRawMo: '30',
     })

@@ -50,7 +50,6 @@ function materiel(champs: Partial<SaisieMateriel> = {}): SaisieMateriel {
       resolutionMpx: DEFAUT.resolutionMpx,
       readNoiseE: '',
       seuilDoubleGainIso: '',
-      fullWellE: '',
       zpSys: '',
       tailleRawMo: '',
     },

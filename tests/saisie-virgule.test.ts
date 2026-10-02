@@ -60,7 +60,6 @@ describe('§5.1 — le boîtier saisi lit aussi la virgule', () => {
       resolutionMpx: ecritureFrancaise(valeurDecimale(DOMAINES.resolution_mpx)),
       readNoiseE: '',
       seuilDoubleGainIso: '',
-      fullWellE: '',
       zpSys: '',
       tailleRawMo: '',
       ...partiel,

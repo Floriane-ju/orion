@@ -211,15 +211,6 @@ export const GLOSSAIRE = Object.freeze({
     consequence: 'Il désigne le meilleur ISO pour vos poses.',
     sections: ['5.1', '7.2'],
   }),
-  capacite_saturation: terme({
-    libelle: 'Capacité de saturation',
-    glose: 'lumière maximale par pixel',
-    explication:
-      'C’est la quantité de lumière qu’un pixel encaisse avant de saturer. Elle se trouve sur ' +
-      'Photons to Photos.',
-    consequence: 'Facultatif : aucun calcul ne l’utilise pour l’instant.',
-    sections: ['5.1'],
-  }),
   poids_image: terme({
     libelle: 'Poids d’une image',
     glose: 'taille d’un fichier RAW',
