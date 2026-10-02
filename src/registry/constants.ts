@@ -885,6 +885,40 @@ const PLANIFICATION = {
     ordreDeGrandeur: false,
     sections: ['6.3', '8.3'],
   }),
+  // La fiche dit la gêne lunaire en mots, pas en magnitudes. Les classes coupent la
+  // part de S_lune perdue (1 − S_lune) : la même ΔSB_lune pèse donc selon la tolérance du
+  // type. La borne « forte » vaut 0,5 pour qu'une galaxie écartée par SEUIL_GENE_LUNE (0,5 mag
+  // sur un diviseur de 1) se lise toujours « forte », jamais « moyenne ».
+  DEGRADATION_LUNE_AUCUNE_MAX: entree({
+    ref: 'C-15',
+    libelle: 'Part de note de Lune perdue en deçà de laquelle la dégradation lunaire est nulle',
+    valeur: 0.05,
+    unite: '—',
+    source: 'convention, réglable — §8.3 S_lune, §6.3 tolérance du type',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: false,
+    sections: ['6.3', '8.3'],
+  }),
+  DEGRADATION_LUNE_FAIBLE_MAX: entree({
+    ref: 'C-15',
+    libelle: 'Part de note de Lune perdue en deçà de laquelle la dégradation lunaire est faible',
+    valeur: 0.25,
+    unite: '—',
+    source: 'convention, réglable — §8.3 S_lune, §6.3 tolérance du type',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: false,
+    sections: ['6.3', '8.3'],
+  }),
+  DEGRADATION_LUNE_MOYENNE_MAX: entree({
+    ref: 'C-15',
+    libelle: 'Part de note de Lune perdue en deçà de laquelle la dégradation lunaire est moyenne',
+    valeur: 0.5,
+    unite: '—',
+    source: 'convention, réglable — §8.3 S_lune, §6.3, §8.1 seuil de gêne lunaire',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: false,
+    sections: ['6.3', '8.1', '8.3'],
+  }),
   // §8.1 « Lune sous l'horizon OU tolérance du type » : appliqué au pied de la lettre, un fin
   // croissant bas et loin de la cible écarterait une galaxie. Le seuil porte sur ΔSB_lune de
   // Krisciunas & Schaefer, qui compte déjà phase, hauteur et séparation.

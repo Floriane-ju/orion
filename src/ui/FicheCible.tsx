@@ -23,7 +23,8 @@ import { ChampsCible, Lecture } from './ChampsCible.tsx'
 import { syntheseFiche, type SyntheseFiche } from './fiche-synthese.ts'
 import { heure } from './horaire.ts'
 import { degres, nombreLibre, pourcentage } from '../registry/ecriture.ts'
-import { LIBELLE_VERDICT_CADRAGE } from '../registry/libelles.ts'
+import { LIBELLE_DEGRADATION_LUNE, LIBELLE_VERDICT_CADRAGE } from '../registry/libelles.ts'
+import { degradationLune } from '../core/session-score.ts'
 import type { EtatCible } from '../core/cibles-liste.ts'
 import { Icone } from './Icone.tsx'
 import { Pastilles } from './Pastilles.tsx'
@@ -146,6 +147,15 @@ function Photographie({
       {cadrage !== null && cadrage.angleBoitierDeg !== null && (
         <Lecture libelle="Inclinaison objet" valeur={degres(cadrage.angleBoitierDeg)} />
       )}
+      {/* La même ΔSB_lune que le plan, pesée par la tolérance du type (§6.3). */}
+      <Lecture
+        libelle="Dégradation lunaire"
+        valeur={
+          r.lune.evaluee
+            ? LIBELLE_DEGRADATION_LUNE[degradationLune(r.lune.ciel.delta.value, r.detect.toleranceLune)]
+            : NON_CHIFFRE
+        }
+      />
       <Lecture libelle="Pose" valeur={s.poseS === null ? NON_CHIFFRE : `${nombreLibre(s.poseS)} s`} />
       <Lecture libelle="Images" valeur={s.nPoses === null ? NON_CHIFFRE : String(s.nPoses)} />
     </section>

@@ -44,6 +44,17 @@ export function scoreLune(deltaSb: number, tolerance: ToleranceLune): number {
   return borne(1 - deltaSb / K(DIVISEUR_LUNE[tolerance]))
 }
 
+export type DegradationLune = 'AUCUNE' | 'FAIBLE' | 'MOYENNE' | 'FORTE'
+
+/** Ce que la Lune ôte à CETTE cible : la part de S_lune perdue, rangée en classe. */
+export function degradationLune(deltaSb: number, tolerance: ToleranceLune): DegradationLune {
+  const perte = 1 - scoreLune(deltaSb, tolerance)
+  if (perte < K('DEGRADATION_LUNE_AUCUNE_MAX')) return 'AUCUNE'
+  if (perte < K('DEGRADATION_LUNE_FAIBLE_MAX')) return 'FAIBLE'
+  if (perte < K('DEGRADATION_LUNE_MOYENNE_MAX')) return 'MOYENNE'
+  return 'FORTE'
+}
+
 export function scoreGlobal(detail: DetailScore, poids: PoidsScoring): Traced<number> {
   const valeur =
     poids.cadrage * detail.cadrage +

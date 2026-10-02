@@ -21,6 +21,7 @@
 import type { LotCalibration } from '../core/calibration.ts'
 import type { VerdictDetectabilite, ToleranceLune } from '../core/detectability.ts'
 import type { RegimePose } from '../core/exposure.ts'
+import type { DegradationLune } from '../core/session-score.ts'
 import type { EtatNuit } from '../core/nuit.ts'
 import type { ModePointage } from '../core/pointage.ts'
 import type { CauseEcart } from '../core/session-types.ts'
@@ -55,6 +56,14 @@ export const LIBELLE_TOLERANCE_LUNE: Readonly<Record<ToleranceLune, string>> = O
   FORTE: 'forte',
   MOYENNE: 'moyenne',
   FAIBLE: 'faible',
+})
+
+/** Ce que la Lune ôte à la photographie de la cible. */
+export const LIBELLE_DEGRADATION_LUNE: Readonly<Record<DegradationLune, string>> = Object.freeze({
+  AUCUNE: 'aucune',
+  FAIBLE: 'faible',
+  MOYENNE: 'moyenne',
+  FORTE: 'forte',
 })
 
 /** §7.2 — ce qui borne la pose unitaire. */
