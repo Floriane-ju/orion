@@ -77,7 +77,7 @@ export {
 const ID_DESCRIPTION = 'planetarium-description'
 export type { MaterielFile } from './planetarium-materiel.ts'
 
-import type { MaterielFile } from './planetarium-materiel.ts'
+import { poseCadreAffichee, type MaterielFile } from './planetarium-materiel.ts'
 
 export interface PlanetariumProps {
   readonly site: Site
@@ -316,9 +316,7 @@ export function Planetarium(props: PlanetariumProps) {
     frontieres,
     couches: couchesScene,
     jour,
-    // T-0142 — la carte de pose ne se peint que si elle est demandée ET chiffrable : sans
-    // matériel, il n'y a pas de NPF, donc pas de cadre à masquer.
-    poseCadre: file.poseDansCadre && props.file !== undefined ? props.file.optique : null,
+    poseCadre: poseCadreAffichee(mode, file.poseDansCadre, props.file),
     enAvant: props.enAvant,
     parcours: rendu.parcours,
     magLimite: jour ? Number.NEGATIVE_INFINITY : profondeur.magLimite.value,
