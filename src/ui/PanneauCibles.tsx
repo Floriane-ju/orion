@@ -57,6 +57,7 @@ import {
   CibleImpossible,
   HORS_SAISON,
 } from './CibleImpossible.tsx'
+import { trieParPhotographiabilite } from '../core/cible-ecartee.ts'
 import { Mention } from './Mention.tsx'
 import { Curseur } from './Curseur.tsx'
 import { Icone } from './Icone.tsx'
@@ -166,11 +167,16 @@ export function PanneauCibles(props: PanneauCiblesProps) {
 
   const retenues = useMemo(() => {
     const filtrees = filtreLignes(lignes, { types, magMax, recherche })
-    if (!photographiablesSeules) return filtrees
+    // Une recherche garde son ordre de pertinence : le nom tapé doit rester en tête.
+    if (!photographiablesSeules) {
+      return recherche.trim() === ''
+        ? trieParPhotographiabilite(filtrees, etats, { fovHDeg, capteurHMm })
+        : filtrees
+    }
     // Le critère vit dans `cibles-liste.ts` : la liste, la scène et le bouton d'ajout au plan
     // le lisent au même endroit, faute de quoi ils finiraient par désigner trois ensembles.
     return filtrees.filter((l) => photographiable(etats.get(l.objet.designation)))
-  }, [lignes, types, magMax, recherche, photographiablesSeules, etats])
+  }, [lignes, types, magMax, recherche, photographiablesSeules, etats, fovHDeg, capteurHMm])
 
   // §6.4 — le haut de la liste est demandé au réseau, une fois, après que la saisie s'est
   // posée. Ce sont les RÉSULTATS qui déclenchent, donc les trois gestes en sont couverts :

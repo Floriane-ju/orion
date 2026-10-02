@@ -15,7 +15,7 @@ import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { creneauCible, type CauseExclusion } from './creneaux.ts'
 import { fenetreNocturne } from './nuit.ts'
 import { fenetreUtile } from './moon.ts'
-import { prepareEvaluation } from './cibles-liste.ts'
+import { prepareEvaluation, type EtatCible } from './cibles-liste.ts'
 import { bornesTailleCadre, creneauSousLaLune, entreeCreneau } from './session-candidates.ts'
 import type { ContexteSession } from './session-types.ts'
 import { MS_PAR_JOUR } from './horloges.ts'
@@ -164,4 +164,61 @@ export function prochaineNuitSansLune(
     return creneau.plusHaut.instant ?? entree.fenetre.debut
   }
   return null
+}
+
+/**
+ * §6.4 — l'ordre de la liste case « photographiables » décochée : ce qui se photographie ce
+ * soir, puis les écartées de la plus vite rattrapable à la moins. La Lune passe en quelques
+ * nuits, la saison en quelques mois ; la position ne change jamais d'ici ; la focale demande
+ * un autre objectif, le capteur un autre boîtier. Le reste — hors de portée, sans suivi,
+ * donnée manquante — vient après, et une cible non évaluée en dernier : on n'en sait rien.
+ */
+const GROUPES = Object.freeze([
+  'PHOTOGRAPHIABLE',
+  'LUNE',
+  'SAISON',
+  'POSITION',
+  'FOCALE',
+  'CAPTEUR',
+  'AUTRE',
+  'NON_EVALUEE',
+] as const)
+type Groupe = (typeof GROUPES)[number]
+
+function groupe(
+  cadre: Pick<ContexteSession, 'fovHDeg' | 'capteurHMm'>,
+  objet: ObjetCielProfond,
+  etat: EtatCible | undefined,
+): Groupe {
+  if (etat === undefined) return 'NON_EVALUEE'
+  if (etat.pose !== null) return 'PHOTOGRAPHIABLE'
+  switch (etat.code) {
+    case 'LUNE':
+      return 'LUNE'
+    case 'FENETRE':
+      return 'SAISON'
+    case 'HAUTEUR':
+    case 'RELIEF':
+      return 'POSITION'
+    case 'CADRAGE': {
+      // Un cadrage refusé sans levier de focale (taille hors domaine, mosaïque, verdict autre
+      // que la taille) ne se rattrape pas en changeant d'objectif.
+      const sens = focaleRequise(cadre, objet)?.sens
+      return sens === 'AU_MOINS' || sens === 'AU_PLUS' ? 'FOCALE' : 'CAPTEUR'
+    }
+    default:
+      return 'AUTRE'
+  }
+}
+
+/** Tri stable : à l'intérieur d'un groupe, l'ordre reçu — magnitude ou pertinence — tient. */
+export function trieParPhotographiabilite<L extends { readonly objet: ObjetCielProfond }>(
+  lignes: readonly L[],
+  etats: ReadonlyMap<string, EtatCible>,
+  cadre: Pick<ContexteSession, 'fovHDeg' | 'capteurHMm'>,
+): readonly L[] {
+  const rang = new Map(
+    lignes.map((l) => [l, GROUPES.indexOf(groupe(cadre, l.objet, etats.get(l.objet.designation)))]),
+  )
+  return lignes.toSorted((a, b) => rang.get(a)! - rang.get(b)!)
 }
