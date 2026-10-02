@@ -1390,12 +1390,23 @@ describe('couche Sol — §4.1', () => {
     // Le défaut rapporté ne se voyait qu'à CERTAINES hauteurs : l'antipode de la visée tombait
     // au milieu d'une maille, le sol débordait sur le ciel et la bande de §3.7 disparaissait.
     // La fenêtre fautive faisait deux ou trois degrés de large — un cas isolé la manque, et un
-    // balayage grossier aussi. D'où le pas fin.
+    // balayage grossier aussi. D'où le pas fin — et la scène réduite au seul sol : `dessineSol`
+    // ne lit aucune autre couche, et peindre 141 fois étoiles et tracés dépassait le délai de
+    // la CI sans rien vérifier de plus.
+    const solSeul: CouchesActives = {
+      figures: false,
+      frontieres: false,
+      asterismes: false,
+      cadre: false,
+      horizon: false,
+      voieLactee: false,
+      sol: true,
+    }
     let sous = 0
     let ciel = 0
     for (let hauteurDeg = -88; hauteurDeg <= 88; hauteurDeg += 1.25) {
       const compte = verifieCouverture(
-        rend({ couches: SOL, vise: { azimutDeg: 180, hauteurDeg }, fovDeg: 120 }),
+        rend({ couches: solSeul, etoiles: [], vise: { azimutDeg: 180, hauteurDeg }, fovDeg: 120 }),
         `visée ${hauteurDeg}°`,
         60,
       )
