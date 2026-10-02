@@ -5,7 +5,8 @@
  * un budget, une aide au pointage sans GoTo, et un export texte qui survit à l'écran éteint.
  */
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { degres, dureeMinLisible, nombre } from '../registry/ecriture.ts'
 import { faciliteCible } from '../core/facilite.ts'
 import {
@@ -58,8 +59,30 @@ export interface PlanSessionProps {
   readonly enTete: EnTetePlan
 }
 
+/**
+ * T-0288 — vrai pendant une impression. L'aide au pointage ne se calcule qu'à la demande
+ * (un parcours sur le catalogue par étape) : sur la feuille, elle doit pourtant figurer pour
+ * TOUTES les étapes. `flushSync` : le navigateur fige la page à la sortie de `beforeprint`,
+ * un rendu planifié arriverait après.
+ */
+function useImpression(): boolean {
+  const [imprime, setImprime] = useState(false)
+  useEffect(() => {
+    const avant = () => flushSync(() => setImprime(true))
+    const apres = () => setImprime(false)
+    window.addEventListener('beforeprint', avant)
+    window.addEventListener('afterprint', apres)
+    return () => {
+      window.removeEventListener('beforeprint', avant)
+      window.removeEventListener('afterprint', apres)
+    }
+  }, [])
+  return imprime
+}
+
 export function PlanSessionVue(props: PlanSessionProps) {
   const { plan } = props
+  const imprime = useImpression()
   const texte = useMemo(() => planEnTexte(plan, props.enTete), [plan, props.enTete])
 
   function surTelecharge() {
@@ -97,7 +120,13 @@ export function PlanSessionVue(props: PlanSessionProps) {
         )}
 
         {plan.etapes.map((etape, index) => (
-          <Etape key={etape.objet.designation} etape={etape} rang={index + 1} {...props} />
+          <Etape
+            key={etape.objet.designation}
+            etape={etape}
+            rang={index + 1}
+            imprime={imprime}
+            {...props}
+          />
         ))}
       </section>
 
@@ -154,9 +183,10 @@ function Ecartees({ ecartees }: { readonly ecartees: readonly CibleEcartee[] }) 
 interface EtapeProps extends PlanSessionProps {
   readonly etape: EtapePlan
   readonly rang: number
+  readonly imprime: boolean
 }
 
-function Etape({ etape, rang, ...props }: EtapeProps) {
+export function Etape({ etape, rang, imprime, ...props }: EtapeProps) {
   const [pointageOuvert, setPointageOuvert] = useState(false)
   const nom =
     etape.objet.nomsCommuns === ''
@@ -199,7 +229,7 @@ function Etape({ etape, rang, ...props }: EtapeProps) {
       >
         {pointageOuvert ? 'Masquer' : 'Afficher'} l’aide au pointage
       </button>
-      {pointageOuvert && (
+      {(pointageOuvert || imprime) && (
         <Pointage
           objet={etape.objet}
           date={etape.creneauAlloue.debut}

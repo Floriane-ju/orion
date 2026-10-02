@@ -2747,6 +2747,41 @@ button:disabled {
   .carte-plan .carte-corps > *:not(.plan-session) {
     display: none;
   }
+
+  /* T-0288 — la feuille de terrain ne porte rien qui se clique : ni rail, ni frise, ni
+     commandes de la nuit, ni bouton d'étape, ni la zone de l'export texte qui sortait
+     tronquée — la section entière, puisqu'elle n'a plus rien à montrer. */
+  .coque-rail,
+  .panneau-nuit,
+  .coque-nuit,
+  .etape-pointage,
+  section:has(> .plan-export) {
+    display: none;
+  }
+
+  /* T-0288 — DU NOIR SUR LE BLANC DU PAPIER, DANS LES DEUX MODES.
+     La palette d'écran est claire sur noir : imprimée, elle sortait quasi invisible, et en
+     rouge sur blanc la nuit. Le papier ne s'éclaire pas — l'encre rouge ne protège aucune
+     vision nocturne, elle ne fait que pâlir le texte. `--fond` est le noir pur dans les deux
+     palettes : c'est l'encre. Les aplats tombent, le masque de nuit aussi. */
+  *,
+  *::before,
+  *::after {
+    color: var(--fond) !important;
+    background: transparent !important;
+    border-color: var(--fond) !important;
+  }
+
+  :root[data-mode-nuit='true'] body::after {
+    display: none;
+  }
+
+  /* Le nom de la cible est un bouton à l'écran (il ouvre la fiche) ; sur papier, un titre. */
+  .etape-lien {
+    border: 0;
+    padding: 0;
+    min-height: 0;
+  }
 }
 
 /* Les cinq poids C-15 dans l'accordéon des réglages. Le poids effectif se lit au bout
