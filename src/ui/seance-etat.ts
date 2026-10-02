@@ -71,7 +71,7 @@ export interface RenduFile {
 
 /**
  * T-0362 — ce que la fiche règle pour la cible lue : objectif de qualité, mode permissif,
- * filtre, explication dépliée. Tenus ici plutôt que dans la fiche pour survivre au
+ * explication dépliée. Tenus ici plutôt que dans la fiche pour survivre au
  * rechargement ; remis au défaut quand on ouvre une AUTRE cible, comme quand la fiche les
  * tenait — une fiche neuve s'ouvre sur l'objectif que le plan alloue (T-0268).
  */
@@ -79,7 +79,6 @@ export interface ReglagesFiche {
   readonly snrCible: number
   /** §7.2 — mode permissif C-03 = 3, désactivé par défaut : il se choisit, il ne se subit pas. */
   readonly permissif: boolean
-  readonly filtreDualBand: boolean
   readonly explicationDepliee: boolean
 }
 
@@ -109,7 +108,6 @@ const ETAT_INITIAL: EtatSeance = {
   fiche: {
     snrCible: PRESET_SNR_DEFAUT,
     permissif: false,
-    filtreDualBand: false,
     explicationDepliee: false,
   },
   renduFile: null,
@@ -151,7 +149,6 @@ function restaure(depart: EtatSeance): EtatSeance {
         garde<Partial<ReglagesFiche>>(fiche, {
           snrCible: (v) => PRESETS_SNR.some((p) => p.valeur === v),
           permissif: booleen,
-          filtreDualBand: booleen,
           explicationDepliee: booleen,
         })),
     },

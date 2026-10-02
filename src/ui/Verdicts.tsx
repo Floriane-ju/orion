@@ -21,7 +21,6 @@
  */
 
 import { nombre } from '../registry/ecriture.ts'
-import { Interrupteur } from './Interrupteur.tsx'
 import { Etiquette } from './Terme.tsx'
 import type { Conseils, Resultat } from './fiche-cible-calcul.ts'
 import { Mention } from './Mention.tsx'
@@ -30,8 +29,6 @@ import { libelleEntree } from '../registry/libelles.ts'
 export interface VerdictsProps {
   readonly r: Resultat
   readonly conseils: Conseils | null
-  readonly filtreDualBand: boolean
-  readonly surFiltre: (valeur: boolean) => void
   readonly explicationDepliee: boolean
   readonly surDeplie: (valeur: boolean) => void
 }
@@ -43,8 +40,6 @@ export function Verdicts(props: VerdictsProps) {
       <PourquoiCeVerdict
         r={r}
         conseils={props.conseils}
-        filtreDualBand={props.filtreDualBand}
-        surFiltre={props.surFiltre}
         explicationDepliee={props.explicationDepliee}
         surDeplie={props.surDeplie}
       />
@@ -56,15 +51,11 @@ export function Verdicts(props: VerdictsProps) {
 function PourquoiCeVerdict({
   r,
   conseils,
-  filtreDualBand,
-  surFiltre,
   explicationDepliee,
   surDeplie,
 }: {
   readonly r: Resultat
   readonly conseils: Conseils | null
-  readonly filtreDualBand: boolean
-  readonly surFiltre: (valeur: boolean) => void
   readonly explicationDepliee: boolean
   readonly surDeplie: (valeur: boolean) => void
 }) {
@@ -74,9 +65,6 @@ function PourquoiCeVerdict({
     <section>
       <h2>Pourquoi ce verdict</h2>
       <p className="etat">{explique.n1}</p>
-      <Interrupteur actif={filtreDualBand} surChangement={surFiltre}>
-        Je possède un filtre bi-bande Hα / OIII
-      </Interrupteur>
       <details
         className="tracee"
         open={explicationDepliee}

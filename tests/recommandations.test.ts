@@ -18,7 +18,6 @@ import {
 function entree(surcharge: Partial<EntreeConseilFiltre> = {}): EntreeConseilFiltre {
   return {
     typeObjet: 'EMISSION',
-    filtresPossedes: [],
     bortle: 4.5,
     deltaSbLuneMag: 1.2,
     cadragePlanifiable: true,
@@ -56,12 +55,6 @@ describe('conseil filtre §7.5', () => {
     expect(conseilFiltre(entree({ typeObjet: 'REFLEXION' })).declenche).toBe(false)
     expect(conseilFiltre(entree({ typeObjet: 'AMAS_GLOB' })).declenche).toBe(false)
     expect(conseilFiltre(entree({ typeObjet: 'NEB_OBSCURE' })).declenche).toBe(false)
-  })
-
-  it('disparaît quand le filtre est déjà déclaré, et l’intègre au calcul', () => {
-    const conseil = conseilFiltre(entree({ filtresPossedes: ['DUAL_BAND'] }))
-    expect(conseil.declenche).toBe(false)
-    expect(conseil.message).toMatch(/déjà pris en compte/)
   })
 
   it('reste muet tant que l’explication n’est pas dépliée', () => {

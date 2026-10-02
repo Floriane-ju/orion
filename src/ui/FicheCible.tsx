@@ -115,7 +115,7 @@ function Resume({
 
 export function FicheCible(props: FicheCibleProps) {
   // T-0362 — les réglages de la fiche vivent dans la séance : ils survivent au rechargement.
-  const { snrCible, permissif, filtreDualBand, explicationDepliee } = useSeance().fiche
+  const { snrCible, permissif, explicationDepliee } = useSeance().fiche
 
   const objet = props.objet
   const iso = props.iso
@@ -145,11 +145,10 @@ export function FicheCible(props: FicheCibleProps) {
         ? conseilsCible(props, calcul.r, {
             typeObjet: objet.type,
             snrCible,
-            filtreDualBand,
             explicationDepliee,
           })
         : null,
-    [calcul, filtreDualBand, explicationDepliee, objet, snrCible, props],
+    [calcul, explicationDepliee, objet, snrCible, props],
   )
 
   const cadre =
@@ -201,8 +200,6 @@ export function FicheCible(props: FicheCibleProps) {
         <Verdicts
           r={calcul.r}
           conseils={conseils}
-          filtreDualBand={filtreDualBand}
-          surFiltre={(filtreDualBand) => majFiche({ filtreDualBand })}
           explicationDepliee={explicationDepliee}
           surDeplie={(explicationDepliee) => majFiche({ explicationDepliee })}
         />

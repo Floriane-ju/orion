@@ -299,7 +299,6 @@ describe('§6.3 et §7.5 — la même Lune ne pénalise pas tous les types de la
       conseils: conseilsCible(ctx, r, {
         typeObjet,
         snrCible: SNR_PLAN,
-        filtreDualBand: false,
         explicationDepliee: true,
       }),
     }

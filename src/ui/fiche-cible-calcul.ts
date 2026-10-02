@@ -32,7 +32,6 @@ import {
   type SortieRecommandations,
 } from '../core/recommandations.ts'
 import { K } from '../registry/constants.ts'
-import type { FamilleFiltre } from '../registry/filters.ts'
 import type { ProfilOptique } from '../core/optics.ts'
 import { masseAir } from '../core/site.ts'
 import type { Traced } from '../core/traced.ts'
@@ -480,15 +479,12 @@ export function conseilsCible(
   entree: {
     readonly typeObjet: TypeObjet
     readonly snrCible: number
-    readonly filtreDualBand: boolean
     readonly explicationDepliee: boolean
   },
 ): Conseils | null {
   if (r.pose === null || r.integration === null || r.eObj === null) return null
-  const filtres: readonly FamilleFiltre[] = entree.filtreDualBand ? ['DUAL_BAND'] : []
   const filtre = conseilFiltre({
     typeObjet: entree.typeObjet,
-    filtresPossedes: filtres,
     bortle: contexte.bortle,
     // §7.5 — la dégradation lunaire déclenche le conseil filtre au même titre que le
     // Bortle : une nébuleuse en émission reste faisable sous Lune gibbeuse avec un

@@ -49,7 +49,6 @@ export interface Recommandation {
 
 export interface EntreeConseilFiltre {
   readonly typeObjet: TypeObjet
-  readonly filtresPossedes: readonly FamilleFiltre[]
   readonly bortle: number | null
   /** Dégradation du fond de ciel par la Lune (§8.1), en mag/arcsec². */
   readonly deltaSbLuneMag: number
@@ -114,13 +113,6 @@ export function conseilFiltre(entree: EntreeConseilFiltre): ConseilFiltre {
       ...rien,
       message:
         'Aucun filtre n’aide sur cet objet : visez un ciel plus noir ou un temps de pose plus long.',
-    }
-  }
-  if (entree.filtresPossedes.includes('DUAL_BAND')) {
-    return {
-      ...rien,
-      message:
-        'Filtre bi-bande déjà pris en compte.',
     }
   }
   const cielDegrade =

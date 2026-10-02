@@ -68,7 +68,7 @@ describe('T-0362 — interface persistée', () => {
     const snr = PRESETS_SNR.at(-1)!.valeur
     const avant = await import('../src/ui/seance-etat.ts')
     avant.ouvreCible(m31)
-    avant.majFiche({ snrCible: snr, filtreDualBand: true })
+    avant.majFiche({ snrCible: snr, explicationDepliee: true })
     avant.majFile({ poseDansCadre: true })
     recharge()
 
@@ -77,7 +77,7 @@ describe('T-0362 — interface persistée', () => {
     expect(apres.etatSeance().vueCibles).toBe('FICHE')
     apres.relieCible([objetGalaxie({ designation: 'M42' }), m31])
     expect(apres.etatSeance().cible?.designation).toBe('M31')
-    expect(apres.etatSeance().fiche).toMatchObject({ snrCible: snr, filtreDualBand: true })
+    expect(apres.etatSeance().fiche).toMatchObject({ snrCible: snr, explicationDepliee: true })
     expect(apres.etatSeance().file.poseDansCadre).toBe(true)
   })
 
