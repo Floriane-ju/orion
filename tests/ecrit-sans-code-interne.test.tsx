@@ -243,20 +243,6 @@ describe('T-0275 — les surfaces principales ne montrent aucun identifiant inte
   })
 
   /**
-   * §10.2 — l'explication dépliée porte le facteur dominant et les sensibilités, la seule
-   * région où les clés de perturbation (`sb_obj`, `t_pose_s`) atteignaient l'écran. Le rendu
-   * statique monte les `<details>` fermés mais leur CONTENU est bien dans le balisage : c'est
-   * ce contenu-là qu'on examine.
-   */
-  it('l’explication du verdict : facteur dominant et sensibilités', () => {
-    ouvreCible(M31)
-    const html = renderToStaticMarkup(<App />)
-    // Le critère du ticket, mot pour mot : c'est la grandeur qui est nommée, pas sa clé.
-    expect(html).toContain('Facteur dominant : brillance de surface de l’objet')
-    expect(codesRendus(html)).toEqual([])
-  })
-
-  /**
    * §11.2 — l'export part sur une feuille et sur le terrain, loin de toute infobulle. Il ne
    * passe par aucun composant, donc le rendu HTML ne le couvre pas : il porte ses propres
    * verdicts, ses lots de calibration et ses causes d'écart, et les portait en clair.

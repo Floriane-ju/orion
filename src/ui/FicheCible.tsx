@@ -1,6 +1,5 @@
 /**
- * Fiche d'une cible : §6.2 cadrage, §6.3 détectabilité, §7 pose et intégration,
- * §10.2 explication dépliable.
+ * Fiche d'une cible : §6.2 cadrage, §6.3 détectabilité, §7 pose et intégration.
  *
  * Toute la valeur de l'application tient dans cet écran, et il se livre avant le
  * planétarium. Ce qui est vérifiable ici, c'est la chaîne complète : d'un lieu et d'un
@@ -8,7 +7,7 @@
  * formule et sa constante source.
  *
  * Ce fichier n'assemble que les régions. Le calcul est dans `fiche-cible-calcul.ts`, la
- * description de la cible dans `ChampsCible.tsx` et les verdicts dans `Verdicts.tsx`.
+ * description de la cible dans `ChampsCible.tsx`.
  *
  * T-0156 — la cible vient toujours du catalogue : sans objet désigné, il n'y a pas de fiche,
  * et c'est la carte qui le dit.
@@ -24,11 +23,10 @@ import { syntheseFiche, type SyntheseFiche } from './fiche-synthese.ts'
 import { heure } from './horaire.ts'
 import type { EtatCible } from '../core/cibles-liste.ts'
 import { ImageCible } from './ImageCible.tsx'
-import { Verdicts } from './Verdicts.tsx'
 import { Photographie } from './FichePhotographie.tsx'
 import { TracedValue } from './TracedValue.tsx'
 import { nuitFiche } from './fiche-cible-creneau.ts'
-import { conseilsCible, evalue, type ContexteFiche, type Resultat } from './fiche-cible-calcul.ts'
+import { evalue, type ContexteFiche, type Resultat } from './fiche-cible-calcul.ts'
 import { Mention } from './Mention.tsx'
 import { Etiquette } from './Terme.tsx'
 import { majFiche, useSeance } from './seance-etat.ts'
@@ -115,7 +113,7 @@ function Resume({
 
 export function FicheCible(props: FicheCibleProps) {
   // T-0362 — les réglages de la fiche vivent dans la séance : ils survivent au rechargement.
-  const { snrCible, permissif, explicationDepliee } = useSeance().fiche
+  const { snrCible, permissif } = useSeance().fiche
 
   const objet = props.objet
   const iso = props.iso
@@ -138,18 +136,6 @@ export function FicheCible(props: FicheCibleProps) {
       throw erreur
     }
   }, [props, objet, snrCible, iso.iso, nuit, permissif])
-
-  const conseils = useMemo(
-    () =>
-      calcul.ok
-        ? conseilsCible(props, calcul.r, {
-            typeObjet: objet.type,
-            snrCible,
-            explicationDepliee,
-          })
-        : null,
-    [calcul, explicationDepliee, objet, snrCible, props],
-  )
 
   const cadre =
     calcul.ok && calcul.r.cadrage !== null
@@ -196,14 +182,6 @@ export function FicheCible(props: FicheCibleProps) {
         </Mention>
       )}
       {!calcul.ok && <Mention ton="erreur">{calcul.erreur}</Mention>}
-      {calcul.ok && (
-        <Verdicts
-          r={calcul.r}
-          conseils={conseils}
-          explicationDepliee={explicationDepliee}
-          surDeplie={(explicationDepliee) => majFiche({ explicationDepliee })}
-        />
-      )}
     </div>
   )
 }

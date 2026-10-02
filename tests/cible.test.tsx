@@ -43,11 +43,7 @@ import { masquePlat } from '../src/core/site.ts'
 import type { ContexteSession } from '../src/core/session.ts'
 import { nuitFiche } from '../src/ui/fiche-cible-creneau.ts'
 import { heure } from '../src/ui/horaire.ts'
-import {
-  LIBELLE_LOT_CALIBRATION,
-  LIBELLE_VERDICT_DETECTABILITE,
-  libelleEntree,
-} from '../src/registry/libelles.ts'
+import { LIBELLE_LOT_CALIBRATION } from '../src/registry/libelles.ts'
 
 /**
  * La chaîne de référence de §6.3 : magnitude intégrée 5,7, grand axe 71’, petit axe 42’,
@@ -90,36 +86,11 @@ ouvreCible(CIBLE_REFERENCE)
 const ecran = renderToStaticMarkup(<App />)
 
 describe('fiche de cible — écran par défaut, M33 depuis le site de l’Annexe A', () => {
-  it('produit le verdict de détectabilité de M33 avec sa brillance et son contraste', () => {
-    // 23,0148 mag/arcsec² et −2,0648 : le PRD écrit 23,02 et −2,07, arrondis obtenus avec
-    // le facteur 8,63 plutôt qu’avec π/4 × 3600 calculé.
-    expect(ecran).toContain('23,01')
-    expect(ecran).toContain('-2,06')
-    expect(ecran).toContain(LIBELLE_VERDICT_DETECTABILITE.PHOTO_SEULE)
-  })
-
-  it('ne présente jamais photo seulement comme un refus, mais comme une durée', () => {
-    expect(ecran).toMatch(/une longue pose le fera apparaître/)
-    expect(ecran).toMatch(/d’intégration/)
-  })
-
   it('affiche la pose unitaire retenue, et la monture qui la bride', () => {
     // Le profil par défaut est sans suivi : c'est la NPF, 2,10 s, qui plafonne la pose. La
     // carte annonce cette pose-là, pas l'optimum que le suivi ne tiendrait pas.
     expect(ecran).toMatch(/Pose unitaire.*?2,1 s/s)
     expect(ecran).toMatch(/La monture limite la pose/)
-  })
-
-  it('déplie chaque nombre jusqu’à sa formule et sa constante source', () => {
-    expect(ecran).toContain('SB_obj = m_int + 2,5 × log10( aire_arcsec2 )')
-    expect(ecran).toContain('t_opt = C × RN² / E_ciel')
-    expect(ecran).toContain('T_requis = SNR_cible² × ( E_obj + E_ciel + RN² / t_pose ) / E_obj²')
-    expect(ecran).toContain('C-03')
-  })
-
-  it('nomme le facteur dominant et propose un levier gratuit avant tout achat', () => {
-    expect(ecran).toContain(libelleEntree('sb_obj'))
-    expect(ecran).toMatch(/Premier levier : se déplacer vers un site plus sombre/)
   })
 
   it('laisse le plan de calibration au plan de nuit, sans jamais offrir d’écran de calibration', () => {
@@ -130,9 +101,8 @@ describe('fiche de cible — écran par défaut, M33 depuis le site de l’Annex
     expect(ecran).not.toMatch(/<input[^>]*(zp|calibr)/i)
   })
 
-  it('affiche le budget de stockage et la loi en racine du temps', () => {
-    expect(ecran).toMatch(/Go de carte/)
-    expect(ecran).toMatch(/quatre fois plus de temps/)
+  it('ne porte plus la carte « Pourquoi ce verdict »', () => {
+    expect(ecran).not.toContain('Pourquoi ce verdict')
   })
 })
 

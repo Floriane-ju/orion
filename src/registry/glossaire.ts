@@ -395,17 +395,6 @@ export const GLOSSAIRE = Object.freeze({
     sections: ['7.4'],
   }),
 
-  // §10.2 — explication de verdict
-  facteur_dominant: terme({
-    libelle: 'Facteur dominant',
-    glose: 'ce qui décide du verdict',
-    explication:
-      'C’est la condition qui pèse le plus sur le résultat. Quand deux pèsent autant, les deux ' +
-      'sont citées.',
-    consequence: 'C’est là qu’il faut agir en premier.',
-    sections: ['10.2'],
-  }),
-
   // §8.1 — fenêtre nocturne et Lune
   // §8.2 — créneau
   creneau: terme({
