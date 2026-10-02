@@ -158,6 +158,8 @@ function Photographie({
       />
       <Lecture libelle="Pose" valeur={s.poseS === null ? NON_CHIFFRE : `${nombreLibre(s.poseS)} s`} />
       <Lecture libelle="Images" valeur={s.nPoses === null ? NON_CHIFFRE : String(s.nPoses)} />
+      {/* T-0383 — une pose courte malgré le suivi se lit comme un oubli : la carte en dit la cause. */}
+      {r.pose?.limiteeParCiel === true && <Mention ton="conseil">{r.pose.message}</Mention>}
     </section>
   )
 }

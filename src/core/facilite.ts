@@ -5,6 +5,8 @@
  * critères — cadrage, hauteur, signal, fenêtre, Lune — et `evalueCandidate` le produit pour
  * chaque cible du catalogue. Ce fichier le discrétise, et c'est tout : un sixième critère
  * aurait été un jugement de plus à défendre, alors que la question posée est déjà tranchée.
+ * Seule exception, T-0383 : la classe de dégradation lunaire plafonne la note — le poids de
+ * la Lune dans le score est trop faible pour qu'une Lune proche y descende seule.
  *
  * Les classes sont des parts ÉGALES de l'échelle : `floor(score × max) + 1`. Une table de
  * seuils aurait été cinq nombres arbitraires dans un moteur, et — la plage réelle du score
@@ -19,6 +21,7 @@
 import { K } from '../registry/constants.ts'
 import { TABLE_FACILITE } from '../registry/verdicts.ts'
 import type { Candidate, CauseEcart, CibleEcartee } from './session-types.ts'
+import { degradationLune, type DegradationLune } from './session-score.ts'
 
 export interface Facilite {
   readonly note: number
@@ -53,9 +56,25 @@ export function libelleFacilite(note: number): string | null {
   return TABLE_FACILITE.find((ligne) => ligne.note === note)?.libelle ?? null
 }
 
+/**
+ * T-0383 — le plafond qu'une Lune gênante impose à la note. Le score seul ne suffit pas : son
+ * poids lunaire (0,1) laissait « idéale » une cible dont la fiche disait la dégradation forte.
+ */
+export function plafondLune(degradation: DegradationLune): number {
+  if (degradation === 'FORTE') return K('FACILITE_NOTE_MAX_LUNE_FORTE')
+  if (degradation === 'MOYENNE') return K('FACILITE_NOTE_MAX_LUNE_MOYENNE')
+  return K('FACILITE_NOTE_MAX')
+}
+
 /** La facilité d'une cible telle que le moteur l'a évaluée, ou `null` faute de donnée. */
 export function faciliteCible(r: Candidate | CibleEcartee): Facilite | null {
-  const note = 'objet' in r ? noteDepuisScore(r.score.value) : noteEcartee(r.code)
+  const note =
+    'objet' in r
+      ? Math.min(
+          noteDepuisScore(r.score.value),
+          plafondLune(degradationLune(r.deltaSbLuneMag.value, r.detect.toleranceLune)),
+        )
+      : noteEcartee(r.code)
   if (note === null) return null
   const libelle = libelleFacilite(note)
   return libelle === null ? null : { note, libelle }

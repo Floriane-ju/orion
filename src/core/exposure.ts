@@ -241,6 +241,8 @@ export interface PoseUnitaire {
   /** [t/2 ; t×2], présentée comme équivalente (§2.3). */
   readonly plageUtileS: Traced<readonly [number, number]>
   readonly regime: RegimePose
+  /** T-0383 — t_opt tombe sur la plus courte vitesse : le fond de ciel limite, pas la monture. */
+  readonly limiteeParCiel: boolean
   readonly message: string
   /** Perte de rapport signal sur bruit quand la monture bride la pose. */
   readonly perteSnrBridee?: number
@@ -256,6 +258,14 @@ export interface PoseUnitaire {
 /** Perte de rapport signal sur bruit consentie pour un facteur C donné (§2.3). */
 function perteSnr(c: number): number {
   return 1 - Math.sqrt(c / (c + 1))
+}
+
+/**
+ * T-0383 — la pose arrondie tombe sur la plus courte vitesse de la table : sous un ciel que la
+ * Lune éclaire, t_opt peut passer sous la seconde, et « 1 s » se lirait comme un choix.
+ */
+function auPlancherObturateur(tS: number): boolean {
+  return arrondiObturateur(tS) === Math.min(...VALEURS_OBTURATEUR_S)
 }
 
 /** Valeur d'obturateur usuelle la plus proche (§2.3). */
@@ -294,6 +304,7 @@ export function poseUnitaire(entree: EntreePose): PoseUnitaire {
   const bride = tMax !== null && tMax < tOpt
   const tRecommande = bride ? tMax : tOpt
   const regime: RegimePose = bride ? 'LIMITE_SUIVI' : 'NOMINAL'
+  const limiteeParCiel = !bride && auPlancherObturateur(tRecommande)
 
   // C effectif atteint quand la monture bride : E_ciel × t / RN², d'où la perte de §2.3.
   const cEffectif = bride ? (entree.eCiel * tMax) / rn ** 2 : K(constanteC)
@@ -319,9 +330,13 @@ export function poseUnitaire(entree: EntreePose): PoseUnitaire {
         `${plage[0]} s, ${arrondiObturateur(tRecommande)} s ou ${plage[1]} s : même résultat.`,
     }),
     regime,
+    limiteeParCiel,
     message: bride
       ? `La monture limite la pose : environ ${nombre(perte * 100, 0)} % de qualité perdue. ` +
         'Le grand champ reste possible.'
+      : limiteeParCiel
+        ? `Ciel très lumineux : dès ${nombre(tRecommande, 2)} s, le bruit du fond de ciel ` +
+          'couvre celui du capteur.'
       : entree.permissif === true
         ? 'Pose raccourcie à votre demande : moins de photos perdues, un peu moins de qualité.'
         : 'Poser plus longtemps n’apporterait presque rien.',

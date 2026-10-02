@@ -167,9 +167,11 @@ function Detectabilite({
       <TracedValue terme="magnitude_limite_instrument" trace={r.detect.mLimInstr} unite="mag" />
       <p>{r.detect.explication}</p>
       <p className="etat">
-        <Etiquette cle="tolerance_lune" /> : {LIBELLE_TOLERANCE_LUNE[r.detect.toleranceLune]} — {r.detect.conseilType}
+        <Etiquette cle="tolerance_lune" /> : {LIBELLE_TOLERANCE_LUNE[r.detect.toleranceLune]}
       </p>
       {r.detect.noteLune !== undefined && <p className="etat">{r.detect.noteLune}</p>}
+      {/* T-0383 — le conseil du type, à part : il parle de ciel pollué, pas de la Lune. */}
+      <p className="etat">{r.detect.conseilType}</p>
     </section>
   )
 }

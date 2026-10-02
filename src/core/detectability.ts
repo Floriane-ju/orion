@@ -123,6 +123,14 @@ export interface Detectabilite {
   readonly mLimInstr: Traced<number | null>
 }
 
+/**
+ * T-0383 — un amas ouvert se voit par ses étoiles, une à une : étaler sa magnitude sur un
+ * disque uniforme donnait aux Pléiades une brillance de surface sous le ciel, donc « en photo
+ * seulement ». Un globulaire, lui, reste une tache non résolue à l'œil et aux jumelles : le
+ * critère de contraste lui convient.
+ */
+const TYPES_RESOLUS: readonly TypeObjet[] = Object.freeze(['AMAS_OUVERT'])
+
 /** Aire d'une ellipse donnée par ses deux axes, en secondes d'arc au carré. */
 export function aireEllipseArcsec2(aArcmin: number, bArcmin: number): number {
   return (
@@ -154,8 +162,10 @@ function detecteVisuellement(
   mLim: number,
   deltaSb: number,
   tailleApparenteArcmin: number,
+  resolu: boolean,
 ): boolean {
   if (mInt > mLim) return false
+  if (resolu) return true
   const seuil = seuilContraste(tailleApparenteArcmin)
   return seuil === null || deltaSb >= seuil
 }
@@ -174,7 +184,9 @@ export function detectabilite(entree: EntreeDetectabilite): Detectabilite {
   const { mInt, aArcmin, typeObjet, sbCiel, mLimOeil, dMm } = entree
   const bArcmin = entree.bArcmin ?? aArcmin
   const modulation = MODULATIONS[typeObjet]
-  const noteLune = messageLune(entree.lune, modulation)
+  // T-0383 — le conseil du type parle souvent de pollution lumineuse : collé à la ligne Lune,
+  // il contredisait la dégradation lunaire. La fiche l'affiche à part.
+  const noteLune = messageLune(entree.lune)
 
   if (mInt === null || aArcmin === null || bArcmin === null) {
     const champ = mInt === null ? 'Magnitude intégrée' : 'Dimensions'
@@ -222,12 +234,14 @@ export function detectabilite(entree: EntreeDetectabilite): Detectabilite {
       : {}),
   })
 
+  const resolu = TYPES_RESOLUS.includes(typeObjet)
   const verdict = verdictVisuel({
     mInt,
     mLimOeil,
     deltaSb: deltaSbValeur,
     tailleReelleArcmin,
     dMm,
+    resolu,
   })
 
   return {
@@ -236,7 +250,7 @@ export function detectabilite(entree: EntreeDetectabilite): Detectabilite {
     verdict,
     toleranceLune: modulation.toleranceLune,
     conseilType: modulation.conseil,
-    explication: explique(verdict, mInt, sbObjValeur, sbCiel, deltaSbValeur, mLimOeil),
+    explication: explique(verdict, mInt, sbObjValeur, sbCiel, deltaSbValeur, mLimOeil, resolu),
     mLimInstr,
     ...(noteLune === undefined ? {} : { noteLune }),
   }
@@ -248,13 +262,16 @@ interface EntreeVerdict {
   readonly deltaSb: number
   readonly tailleReelleArcmin: number
   readonly dMm: number
+  readonly resolu: boolean
 }
 
 /** Les quatre verdicts, évalués dans l'ordre : le premier satisfait gagne. */
 function verdictVisuel(e: EntreeVerdict): VerdictDetectabilite {
   if (e.mLimOeil === null) return 'PHOTO_SEULE'
 
-  if (detecteVisuellement(e.mInt, e.mLimOeil, e.deltaSb, e.tailleReelleArcmin)) return 'OEIL_NU'
+  if (detecteVisuellement(e.mInt, e.mLimOeil, e.deltaSb, e.tailleReelleArcmin, e.resolu)) {
+    return 'OEIL_NU'
+  }
 
   const dJumelles = K('PUPILLE_JUMELLES_MM')
   const mLimJumelles = e.mLimOeil + gainInstrumental(dJumelles)
@@ -264,6 +281,7 @@ function verdictVisuel(e: EntreeVerdict): VerdictDetectabilite {
       mLimJumelles,
       e.deltaSb,
       e.tailleReelleArcmin * grossissement(dJumelles),
+      e.resolu,
     )
   ) {
     return 'JUMELLES'
@@ -271,7 +289,13 @@ function verdictVisuel(e: EntreeVerdict): VerdictDetectabilite {
 
   const mLimInstr = e.mLimOeil + gainInstrumental(e.dMm)
   if (
-    detecteVisuellement(e.mInt, mLimInstr, e.deltaSb, e.tailleReelleArcmin * grossissement(e.dMm))
+    detecteVisuellement(
+      e.mInt,
+      mLimInstr,
+      e.deltaSb,
+      e.tailleReelleArcmin * grossissement(e.dMm),
+      e.resolu,
+    )
   ) {
     return 'TELESCOPE'
   }
@@ -291,8 +315,15 @@ function explique(
   sbCiel: number,
   deltaSb: number,
   mLimOeil: number | null,
+  resolu: boolean,
 ): string {
-  if (verdict === 'PHOTO_SEULE' && deltaSb < 0) {
+  if (resolu && verdict !== 'PHOTO_SEULE') {
+    return (
+      `Amas d’étoiles : ce sont ses étoiles qui se voient, et sa magnitude ` +
+      `${nombre(mInt, 1)} le met à portée — sa brillance de surface ne compte pas.`
+    )
+  }
+  if (verdict === 'PHOTO_SEULE' && deltaSb < 0 && !resolu) {
     return (
       `Objet ${nombre(rapportAuFondDeCiel(deltaSb), 0)} fois plus pâle que le ciel ` +
       `(${nombre(sbObj, 2)} contre ${nombre(sbCiel, 2)}) : invisible à l’œil, mais une ` +
@@ -310,7 +341,7 @@ function explique(
   )
 }
 
-function messageLune(lune: EtatLune | undefined, modulation: ModulationType): string | undefined {
+function messageLune(lune: EtatLune | undefined): string | undefined {
   if (lune === undefined) return undefined
   if (lune.altitudeDeg <= 0) {
     return (
@@ -320,6 +351,6 @@ function messageLune(lune: EtatLune | undefined, modulation: ModulationType): st
   return (
     `Lune levée à ${degres(lune.altitudeDeg, 0)} de hauteur` +
     `${lune.separationDeg === undefined ? '' : `, à ${degres(lune.separationDeg, 0)} de la cible`}` +
-    `. ${modulation.conseil}`
+    '.'
   )
 }

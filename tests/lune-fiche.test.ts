@@ -311,8 +311,8 @@ describe('§6.3 et §7.5 — la même Lune ne pénalise pas tous les types de la
   it('porte la tolérance lunaire du type d’objet dans la fiche', () => {
     expect(emission.r.detect.toleranceLune).toBe('FORTE')
     expect(galaxie.r.detect.toleranceLune).toBe('FAIBLE')
-    expect(emission.r.detect.noteLune).toMatch(/bi-bande/)
-    expect(galaxie.r.detect.noteLune).toMatch(/Lune couchée/)
+    expect(emission.r.detect.conseilType).toMatch(/bi-bande/)
+    expect(galaxie.r.detect.conseilType).toMatch(/Lune couchée/)
   })
 
   it('déclenche le conseil bi-bande sur la nébuleuse en émission, par la Lune et non par le Bortle', () => {

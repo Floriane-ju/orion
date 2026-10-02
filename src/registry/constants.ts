@@ -919,6 +919,30 @@ const PLANIFICATION = {
     ordreDeGrandeur: false,
     sections: ['6.3', '8.1', '8.3'],
   }),
+  // Le poids de la Lune dans C-15 (0,1) ne peut ôter qu'un dixième du score : une cible haute
+  // et bien cadrée restait « idéale » sous une Lune à 10°. La note se plafonne donc par la
+  // classe de dégradation, qui pèse déjà la tolérance du type (§6.3) — une Hα sous Lune
+  // gibbeuse n'y tombe pas.
+  FACILITE_NOTE_MAX_LUNE_FORTE: entree({
+    ref: 'C-20',
+    libelle: 'Note de facilité maximale sous une dégradation lunaire forte',
+    valeur: 2,
+    unite: '—',
+    source: 'convention, réglable — §6.4 échelle, §8.3 S_lune, §6.3 tolérance du type',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: false,
+    sections: ['6.3', '6.4', '8.3'],
+  }),
+  FACILITE_NOTE_MAX_LUNE_MOYENNE: entree({
+    ref: 'C-20',
+    libelle: 'Note de facilité maximale sous une dégradation lunaire moyenne',
+    valeur: 4,
+    unite: '—',
+    source: 'convention, réglable — §6.4 échelle, §8.3 S_lune, §6.3 tolérance du type',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: false,
+    sections: ['6.3', '6.4', '8.3'],
+  }),
   // §8.1 « Lune sous l'horizon OU tolérance du type » : appliqué au pied de la lettre, un fin
   // croissant bas et loin de la cible écarterait une galaxie. Le seuil porte sur ΔSB_lune de
   // Krisciunas & Schaefer, qui compte déjà phase, hauteur et séparation.
