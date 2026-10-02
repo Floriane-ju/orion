@@ -1840,6 +1840,13 @@ h3 {
   grid-column: 1 / -1;
 }
 
+/* T-0305 — le message de refus vit dans le `label` de son champ : dans une demi-colonne de
+ * `.paire`, il s'empilait sur autant de lignes que la cellule est étroite. Le champ refusé
+ * prend la rangée le temps du refus, et son explication la largeur de la carte. */
+.champs > label:has(input[aria-invalid='true']) {
+  grid-column: 1 / -1;
+}
+
 /* DEUX CHAMPS QUI SE LISENT ENSEMBLE TIENNENT SUR UNE LIGNE.
  *
  * `auto-fit` ne fait tenir qu'une colonne dans les 19 rem de la colonne matériel : la focale
@@ -2023,6 +2030,17 @@ select:hover {
 /* Un champ qui se tire le dit au survol ; en frappe, il redevient un champ de texte. */
 input.champ-glisse:not(:focus) {
   cursor: ew-resize;
+}
+
+/* T-0305 — UN CHAMP REFUSÉ SE REPÈRE D'UN COUP D'ŒIL, LA NUIT COMME LE JOUR.
+ *
+ * La nuit, `--alerte` et `--bordure-controle` sont deux rouges : la teinte seule ne
+ * distinguerait plus le champ fautif de son voisin (§11.1). Le filet épais à gauche est celui
+ * de la `Mention` d'erreur posée dessous — le champ et son explication se lisent comme un
+ * seul bloc. Après `input:hover`, qui le repeindrait sinon au survol. */
+input[aria-invalid='true'] {
+  border-color: var(--alerte);
+  border-left-width: var(--trait-marque);
 }
 
 /* §11.1 — la case est DESSINÉE, pas laissée au navigateur. La case native ne prend de la
