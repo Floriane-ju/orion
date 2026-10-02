@@ -11,7 +11,7 @@
  * luminance réglée, canevas et photos compris. Le masque seul sur une interface claire
  * laisserait ses aplats trop lumineux.
  *
- * T-0140 — le tiroir ne porte plus que ce qui se décide : une bascule et une luminance. Le
+ * T-0140 — le tiroir ne porte plus que ce qui se décide : la luminance. Le
  * pourquoi du rouge ne s'arbitre pas, il reste ici. Le type de dalle ne changeait aucun
  * calcul — faire saisir une donnée pour n'obtenir qu'une phrase, c'est afficher la phrase.
  * L'auto-activation au crépuscule décidait à la place de l'observateur, écran basculé au
@@ -24,7 +24,7 @@ import { K } from '../registry/constants.ts'
 import { Bulle } from './Bulle.tsx'
 import { Curseur } from './Curseur.tsx'
 import { Icone } from './Icone.tsx'
-import { Interrupteur } from './Interrupteur.tsx'
+import { BoutonGlyphe } from './BoutonGlyphe.tsx'
 import { Tiroir } from './Tiroir.tsx'
 import { Etiquette } from './Terme.tsx'
 import { LUMINANCE_NOMINALE, ecritEtatPersiste, type EtatModeNuit } from '../data/mode-nuit.ts'
@@ -56,12 +56,6 @@ export function ModeNuit({ etat, surChangement }: ModeNuitProps) {
   return (
     <section>
       <h2>Mode nuit</h2>
-      <Interrupteur
-        actif={etat.actif}
-        surChangement={(actif) => surChangement({ ...etat, actif })}
-      >
-        Activer le mode nuit
-      </Interrupteur>
       <label>
         <span className="libelle">
           <Etiquette cle="luminance_mode_nuit" />
@@ -83,24 +77,66 @@ export function ModeNuit({ etat, surChangement }: ModeNuitProps) {
 }
 
 /**
+ * T-0375 — la bascule est UN geste. Sous le ciel, en gants ou ébloui, ouvrir un tiroir pour
+ * atteindre un interrupteur est un geste de trop. L'icône et le nom disent ce que le clic
+ * PRODUIT, pas l'état courant : un bouton qui change de nom selon l'état ne porte donc pas
+ * `aria-pressed`, et n'a pas d'aplat « enfoncé » à allumer la nuit.
+ */
+export function libelleBascule(actif: boolean): { readonly icone: string; readonly nom: string } {
+  return actif
+    ? { icone: 'light_mode', nom: 'Désactiver le mode nuit' }
+    : { icone: 'dark_mode', nom: 'Activer le mode nuit' }
+}
+
+/** La touche qui bascule le mode nuit, partout sauf en saisie — listée dans l'aide clavier. */
+export const TOUCHE_MODE_NUIT = 'n'
+
+/**
+ * La règle de la touche, sans DOM : une lettre seule, sans modificateur (Ctrl+N ouvre une
+ * fenêtre), et jamais quand on écrit — un « n » tapé dans un nom de lieu n'éteint pas l'écran.
+ */
+export function toucheBasculeModeNuit(
+  touche: string,
+  avecModificateur: boolean,
+  enSaisie: boolean,
+): boolean {
+  return !avecModificateur && !enSaisie && touche.toLowerCase() === TOUCHE_MODE_NUIT
+}
+
+/** Le focus est dans un endroit où une lettre s'écrit. */
+export function cibleDeSaisie(cible: EventTarget | null): boolean {
+  if (!(cible instanceof HTMLElement)) return false
+  return cible.isContentEditable || cible.closest('input, textarea, select') !== null
+}
+
+/**
  * §11.1 — le mode nuit est un geste de terrain : il se pose en bas à gauche de la scène, sous le
- * rail de la vue, et prend l'allure de ses bascules — une icône seule, que la bulle nomme. Au
- * clic il ouvre le même tiroir qu'avant, vers le haut : la bascule et la luminance se règlent
- * sans quitter le ciel des yeux.
+ * rail de la vue, et prend l'allure de ses bascules — une icône seule, que la bulle nomme.
  *
- * La bulle DÉCRIT : le nom accessible est porté par l'icône du résumé, seul contenu du
- * `<summary>`.
+ * T-0375 — la luminance reste dans le tiroir voisin, qui s'ouvre vers le haut : deux gestes du
+ * mode actif, le ciel toujours sous les yeux. Il reste offert mode éteint, pour régler avant
+ * de sortir.
  */
 export function BoutonModeNuit({ etat, surChangement }: ModeNuitProps) {
+  const { icone, nom } = libelleBascule(etat.actif)
   return (
-    <Bulle texte="Mode nuit" place="droite">
-      <Tiroir
-        modificateur="nuit"
-        actif={etat.actif}
-        resume={<Icone nom={etat.actif ? 'dark_mode' : 'light_mode'} libelle="Mode nuit" />}
-      >
-        <ModeNuit etat={etat} surChangement={surChangement} />
-      </Tiroir>
-    </Bulle>
+    <div className="mode-nuit-commandes">
+      <BoutonGlyphe
+        icone={icone}
+        aide={nom}
+        place="droite"
+        variante="flottant"
+        classe="bouton-mode-nuit"
+        onClick={() => surChangement({ ...etat, actif: !etat.actif })}
+      />
+      <Bulle texte="Luminance du mode nuit" place="droite">
+        <Tiroir
+          modificateur="nuit"
+          resume={<Icone nom="brightness_medium" libelle="Réglages du mode nuit" />}
+        >
+          <ModeNuit etat={etat} surChangement={surChangement} />
+        </Tiroir>
+      </Bulle>
+    </div>
   )
 }

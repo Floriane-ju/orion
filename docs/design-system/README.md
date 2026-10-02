@@ -338,6 +338,8 @@ appartient à la phrase, pas au composant.
 `BoutonGlyphe` a trois variantes, nommées par le fond où il se pose : `cadre` (dans un panneau,
 par défaut), `flottant` (seul sur le ciel — le rail), `nu` (dans une rangée qui le borde — le
 transport du temps, le retour de fiche). Enfoncé (`presse`), son glyphe se remplit dans toutes.
+La nuit, le `flottant` enfoncé perd son aplat `--texte` (une lampe sur l'œil adapté) : filet
+doublé et glyphe rempli suffisent (T-0375).
 La bulle nomme le bouton ; `libelle` ne se passe que si elle dit autre chose que le geste.
 
 ```tsx

@@ -15,7 +15,13 @@ import { join } from 'node:path'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { App } from '../src/App.tsx'
-import { appliqueModeNuit } from '../src/ui/ModeNuit.tsx'
+import {
+  appliqueModeNuit,
+  BoutonModeNuit,
+  libelleBascule,
+  toucheBasculeModeNuit,
+} from '../src/ui/ModeNuit.tsx'
+import { RACCOURCIS_CLAVIER } from '../src/ui/planetarium-gestes.ts'
 import { ETAT_INITIAL, litEtatPersiste } from '../src/data/mode-nuit.ts'
 import { Mention } from '../src/ui/Mention.tsx'
 import { K } from '../src/registry/constants.ts'
@@ -762,5 +768,89 @@ describe('mouvement réduit — WCAG 2.3.3', () => {
     // §11.2 — aucune animation non sollicitée. Le défilement n'est jamais l'état de départ :
     // il ne peut donc pas démarrer de lui-même, et reste choisissable sous la préférence.
     expect(etatScene().temps.modeTemps).not.toBe('DEFILEMENT')
+  })
+})
+
+/**
+ * T-0375 — la bascule tient en un geste, et rien n'y reste allumé la nuit.
+ */
+describe('bascule du mode nuit — T-0375', () => {
+  const rendu = (actif: boolean): string =>
+    renderToStaticMarkup(
+      <BoutonModeNuit etat={{ ...ETAT_INITIAL, actif }} surChangement={() => {}} />,
+    )
+
+  it('bascule depuis un bouton, pas depuis un tiroir', () => {
+    const html = rendu(false)
+    const bouton = html.slice(html.indexOf('<button'), html.indexOf('</button>'))
+    expect(bouton).toContain('bouton-mode-nuit')
+    expect(html.indexOf('bouton-mode-nuit')).toBeLessThan(html.indexOf('<details'))
+  })
+
+  it('annonce l’action produite, pas l’état courant', () => {
+    expect(libelleBascule(false)).toEqual({ icone: 'dark_mode', nom: 'Activer le mode nuit' })
+    expect(libelleBascule(true)).toEqual({ icone: 'light_mode', nom: 'Désactiver le mode nuit' })
+    // Un nom qui change avec l'état exclut `aria-pressed` : il serait annoncé deux fois.
+    expect(rendu(true)).toContain('Désactiver le mode nuit')
+    expect(rendu(true)).not.toContain('aria-pressed')
+  })
+
+  it('garde la luminance à deux gestes du mode actif', () => {
+    const html = rendu(true)
+    const tiroir = html.slice(html.indexOf('<details'))
+    expect(tiroir).toContain('aria-label="Luminance du mode nuit"')
+  })
+
+  it('bascule à la touche N, jamais en saisie ni avec un modificateur', () => {
+    expect(toucheBasculeModeNuit('n', false, false)).toBe(true)
+    expect(toucheBasculeModeNuit('N', false, false)).toBe(true)
+    expect(toucheBasculeModeNuit('n', false, true)).toBe(false)
+    expect(toucheBasculeModeNuit('n', true, false)).toBe(false)
+    expect(toucheBasculeModeNuit('m', false, false)).toBe(false)
+    expect(RACCOURCIS_CLAVIER).toContain('N mode nuit')
+  })
+})
+
+describe('aucun aplat allumé la nuit — T-0375', () => {
+  const SANS_COMMENTAIRES = CSS.replace(/\/\*[\s\S]*?\*\//g, '')
+  const NUIT = ":root[data-mode-nuit='true'] "
+  const APLAT = /(?:^|[\s;])background(?:-color)?:\s*var\(--texte\)\s*;/
+
+  /** Ce qui garde son aplat la nuit, et pourquoi : une surface minuscule, ou l'information même. */
+  const EXCEPTIONS: Readonly<Record<string, string>> = {
+    '::selection': 'transitoire : n’existe que le temps d’un geste de sélection',
+    "input[type='checkbox']:checked": 'une case de 1,1 rem, seul signe de l’état coché',
+    '.curseur:hover .curseur-rail': 'un trait de deux pixels, sous la main',
+    '.curseur:active .curseur-rail': 'un trait de deux pixels, sous la main',
+    '.curseur:focus-visible .curseur-rail': 'un trait de deux pixels, au focus',
+    '.curseur-pouce': 'le pouce : un demi-rem, la valeur réglée',
+    '.curseur-accroche': 'un trait d’un pixel',
+    '.nuit-repere.majeur::before': 'une graduation de deux pixels',
+    '.lune-moitie': 'la part éclairée de la Lune : c’est l’information',
+    '.lune-gibbeuse .lune-terminateur': 'la part éclairée de la Lune : c’est l’information',
+  }
+
+  /** Les règles de la feuille, sélecteurs séparés — les blocs `@media` laissent leurs règles. */
+  const regles = [...SANS_COMMENTAIRES.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
+    selecteurs: m[1]!.split(',').map((x) => x.trim()),
+    corps: m[2]!,
+  }))
+  const eteinteLaNuit = (selecteur: string): boolean =>
+    regles.some(
+      (r) => r.selecteurs.includes(NUIT + selecteur) && /background/.test(r.corps) && !APLAT.test(r.corps),
+    )
+
+  it('éteint ou justifie chaque aplat de --texte', () => {
+    const allumes = regles
+      .filter((r) => APLAT.test(r.corps))
+      .flatMap((r) => r.selecteurs)
+      .filter((sel) => !sel.startsWith(NUIT))
+      .filter((sel) => !(sel in EXCEPTIONS) && !eteinteLaNuit(sel))
+    expect(allumes).toEqual([])
+  })
+
+  it('éteint l’état enfoncé des bascules flottantes et le jour de la frise', () => {
+    expect(eteinteLaNuit(".bouton-glyphe-flottant[aria-pressed='true']")).toBe(true)
+    expect(eteinteLaNuit('.phase-jour')).toBe(true)
   })
 })

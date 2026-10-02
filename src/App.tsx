@@ -34,7 +34,12 @@ import {
 import { profilAEnregistrer, siteAEnregistrer } from './ui/saisie-persistee.ts'
 import { useChaineCalcul } from './ui/app-calcul.ts'
 import { useCiblesEnAvant } from './ui/cibles-en-avant.ts'
-import { appliqueModeNuit, BoutonModeNuit } from './ui/ModeNuit.tsx'
+import {
+  appliqueModeNuit,
+  BoutonModeNuit,
+  cibleDeSaisie,
+  toucheBasculeModeNuit,
+} from './ui/ModeNuit.tsx'
 import { litEtatPersiste, type EtatModeNuit } from './data/mode-nuit.ts'
 import { installeEchap, installeFermetureDehors } from './ui/gere-echap.ts'
 import { Mention } from './ui/Mention.tsx'
@@ -60,6 +65,17 @@ function useModeNuit(): [EtatModeNuit, (etat: EtatModeNuit) => void] {
   const [modeNuit, setModeNuit] = useState<EtatModeNuit>(litEtatPersiste)
 
   useEffect(() => appliqueModeNuit(modeNuit), [modeNuit])
+
+  // T-0375 — la touche vaut partout, pas seulement scène focalisée : c'est un geste d'urgence.
+  useEffect(() => {
+    const surTouche = (e: KeyboardEvent) => {
+      const modificateur = e.ctrlKey || e.metaKey || e.altKey
+      if (!toucheBasculeModeNuit(e.key, modificateur, cibleDeSaisie(e.target))) return
+      setModeNuit((etat) => ({ ...etat, actif: !etat.actif }))
+    }
+    document.addEventListener('keydown', surTouche)
+    return () => document.removeEventListener('keydown', surTouche)
+  }, [])
 
   return [modeNuit, setModeNuit]
 }

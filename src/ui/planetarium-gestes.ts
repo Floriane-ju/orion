@@ -422,7 +422,7 @@ export function viseeApresCommande(
  * phrase promettrait un pas que le code n'applique pas.
  */
 export const RACCOURCIS_CLAVIER =
-  '← ↑ ↓ → déplacer la vue · + − zoomer · Entrée choisir l’objet au centre'
+  '← ↑ ↓ → déplacer la vue · + − zoomer · Entrée choisir l’objet au centre · N mode nuit'
 
 /**
  * T-0069 — WCAG 2.1.1 : le pilotage de la scène au clavier, dans les bornes du pointeur.

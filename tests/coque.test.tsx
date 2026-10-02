@@ -300,7 +300,7 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
     const html = ecran()
     expect(barreHaute(html)).not.toContain('Activer le mode nuit')
     const nuit = html.slice(html.indexOf('class="coque-nuit"'))
-    expect(nuit).toContain('aria-label="Mode nuit"') // l'icône, seul contenu du résumé
+    expect(nuit).toContain('aria-label="Réglages du mode nuit"') // l'icône, seul contenu du résumé
     expect(nuit).toContain('Activer le mode nuit')
     const debut = CSS_COQUE.indexOf('.coque-nuit {')
     const corps = CSS_COQUE.slice(debut, CSS_COQUE.indexOf('}', debut))

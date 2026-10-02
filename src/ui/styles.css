@@ -1038,8 +1038,7 @@ body {
    monochrome : un état actif signalé par la seule teinte y disparaît. Le glyphe se REMPLIT
    donc — l'axe `FILL` de la police est une forme, pas une couleur, et il survit au
    basculement. Le fond et la teinte s'y ajoutent, ils ne le remplacent pas. */
-.bouton-glyphe[aria-pressed='true'] > .icone,
-.tiroir-nuit[data-actif='true'] > summary > .icone {
+.bouton-glyphe[aria-pressed='true'] > .icone {
   --icone-remplissage: 1;
   --icone-graisse: 400;
 }
@@ -1084,11 +1083,28 @@ body {
    Un état SÉLECTIONNÉ est neutre : l'aplat reste à ce qui est pris, le filet à ce qu'on désigne.
    Un fond teinté se perdait sur le ciel ; un aplat se repère d'un coup d'œil, allumé ou non.
    Le survol garde le glyphe au fond — au --texte, il disparaîtrait dans l'aplat. */
-.bouton-glyphe-flottant[aria-pressed='true'],
-.tiroir-nuit[data-actif='true'] > summary {
+.bouton-glyphe-flottant[aria-pressed='true'] {
   background: var(--texte);
   border-color: var(--texte);
   color: var(--fond);
+}
+
+/* T-0375 — LA NUIT, L'ENFONCÉ NE S'ALLUME PAS. Un aplat de --texte est une lampe sur un œil
+   adapté — la raison qui éteint déjà les barres de titre. Cinq bascules enfoncées faisaient
+   cinq carrés rouges pleins au bord du ciel. L'état se lit par la FORME : le glyphe rempli
+   (plus haut) et un filet doublé, comme la barre de titre tient par son filet. */
+:root[data-mode-nuit='true'] .bouton-glyphe-flottant[aria-pressed='true'] {
+  background: var(--surface);
+  background: var(--voile);
+  border-color: var(--texte);
+  box-shadow: inset 0 0 0 var(--trait) var(--texte);
+  color: var(--texte);
+}
+
+:root[data-mode-nuit='true'] .bouton-glyphe-flottant[aria-pressed='true']:not(:disabled):hover {
+  background: var(--surface-survol);
+  border-color: var(--texte);
+  color: var(--texte);
 }
 
 /* Sous l'aperçu peint sur toute la scène, ces couches ne commandent rien. La bascule
@@ -1515,8 +1531,7 @@ body {
   background: transparent;
 }
 
-.tiroir[open] > summary,
-.tiroir-nuit[open]:not([data-actif='true']) > summary {
+.tiroir[open] > summary {
   background: var(--surface-haute);
   border-color: var(--texte);
   color: var(--texte);
@@ -1569,6 +1584,13 @@ body {
   gap: var(--pas-2);
 }
 
+/* T-0375 — la bascule et son réglage côte à côte : le tiroir de luminance s'ouvre au-dessus
+   des deux rangées, comme avant. */
+.mode-nuit-commandes {
+  display: flex;
+  gap: var(--pas-2);
+}
+
 /* L'alerte de persistance garde son rembourrage : elle porte du texte, pas un glyphe seul. */
 .coque-nuit .bouton-info:not([data-alerte='true']),
 .tiroir-nuit > summary {
@@ -1588,14 +1610,13 @@ body {
    sont déjà un aplat plein : il s'atténue sous la main, seul retour possible sur un aplat allumé. */
 .bouton-glyphe-flottant:not(:disabled):hover,
 .coque-nuit .bouton-info:not([data-alerte='true']):hover,
-.tiroir-nuit:not([data-actif='true']) > summary:hover {
+.tiroir-nuit > summary:hover {
   background: var(--surface-survol);
   border-color: var(--texte);
   color: var(--texte);
 }
 
-.bouton-glyphe-flottant[aria-pressed='true']:not(:disabled):hover,
-.tiroir-nuit[data-actif='true'] > summary:hover {
+.bouton-glyphe-flottant[aria-pressed='true']:not(:disabled):hover {
   background: var(--attenue);
   border-color: var(--attenue);
   color: var(--fond);
@@ -2984,6 +3005,15 @@ button:disabled {
 
 .phase-jour {
   background: var(--texte);
+}
+/* T-0375 — la nuit, le jour de la frise est la plus grande plage pleine du panneau : il se
+   HACHURE, motif que ni le civil ni le nautique (des points) ne portent. */
+:root[data-mode-nuit='true'] .phase-jour {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--texte) 0 var(--trait),
+    transparent 0 var(--pas-1)
+  );
 }
 .phase-civil {
   background: radial-gradient(circle, var(--texte) 0 var(--trait), transparent 0) 0 0 /
