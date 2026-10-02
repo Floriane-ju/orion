@@ -45,7 +45,6 @@ import { nuitFiche } from '../src/ui/fiche-cible-creneau.ts'
 import { heure } from '../src/ui/horaire.ts'
 import {
   LIBELLE_LOT_CALIBRATION,
-  LIBELLE_REGIME_POSE,
   LIBELLE_VERDICT_DETECTABILITE,
   libelleEntree,
 } from '../src/registry/libelles.ts'
@@ -104,11 +103,10 @@ describe('fiche de cible — écran par défaut, M33 depuis le site de l’Annex
     expect(ecran).toMatch(/d’intégration/)
   })
 
-  it('affiche la pose avec sa plage utile, présentée comme équivalente', () => {
-    // Le profil par défaut est sans suivi : c'est la NPF, 2,10 s, qui plafonne la pose, et
-    // le régime bascule en LIMITE_SUIVI avec sa cause. La plage reste [t/2 ; t×2].
-    expect(ecran).toMatch(/poser 2 s — de 1 à 4 s, même résultat/)
-    expect(ecran).toContain(LIBELLE_REGIME_POSE.LIMITE_SUIVI)
+  it('affiche la pose unitaire retenue, et la monture qui la bride', () => {
+    // Le profil par défaut est sans suivi : c'est la NPF, 2,10 s, qui plafonne la pose. La
+    // carte annonce cette pose-là, pas l'optimum que le suivi ne tiendrait pas.
+    expect(ecran).toMatch(/Pose unitaire.*?2,1 s/s)
     expect(ecran).toMatch(/La monture limite la pose/)
   })
 
@@ -312,7 +310,8 @@ describe('T-0158 — « À propos », et des dimensions qui ne meublent pas', ()
       expect(photo, libelle).toContain(libelle)
     }
     expect(photo).toContain(degres(35))
-    expect(rendu.indexOf('Photographie')).toBeLessThan(rendu.indexOf('<h2>Détectabilité</h2>'))
+    // T-0384 — la région « Détectabilité » est partie.
+    expect(rendu).not.toContain('<h2>Détectabilité</h2>')
     // T-0381 — la carte photo résume le cadrage : la rubrique « Cadrage de la cible » est partie.
     expect(rendu).not.toContain('Cadrage de la cible')
   })
@@ -346,21 +345,23 @@ describe('T-0158 — « À propos », et des dimensions qui ne meublent pas', ()
     expect(ficheDe(AU_DESSUS)).toContain('Taille dans le cadre')
   })
 
-  it('réduit « Détectabilité » à une seule absence et retire « Pose » faute de donnée source', () => {
-    // §6.3 — sans magnitude ni dimensions, brillance de surface, contraste et magnitude
-    // limite portent tous la même absence : elle se nomme une fois. La pose qui en découlait
-    // disparaît avec elle, plutôt que d'exposer le point zéro et le fond de ciel du setup
-    // comme s'ils décrivaient cette cible.
+  it('retire la pose unitaire faute de donnée source', () => {
+    // §6.3 — sans magnitude, la pose n'est pas chiffrable : la ligne disparaît plutôt que
+    // d'exposer le point zéro et le fond de ciel du setup comme s'ils décrivaient cette cible.
     const rendu = ficheDe(objetForge('SANS_MAGNITUDE', 85, { vMag: null }))
-    const detectabilite = rendu.slice(rendu.indexOf('<h2>Détectabilité</h2>'))
-    expect(detectabilite.match(/DONNÉE MANQUANTE/g) ?? []).toHaveLength(1)
-    expect(detectabilite).not.toContain('Brillance de surface')
-    expect(rendu).not.toContain('<h2>Pose</h2>')
+    expect(rendu).not.toContain('Pose unitaire')
+    expect(ficheDe(AU_DESSUS)).toContain('Pose unitaire')
+  })
 
-    // La même fiche, magnitude au catalogue : les deux régions sont dues.
-    const complet = ficheDe(AU_DESSUS)
-    expect(complet).toContain('Brillance de surface')
-    expect(complet).toContain('<h2>Pose</h2>')
+  it('T-0385 — fond Pose et Combien de photos dans la carte Photographie', () => {
+    const rendu = ficheDe(AU_DESSUS)
+    expect(rendu).not.toContain('<h2>Pose</h2>')
+    expect(rendu).not.toContain('<h2>Combien de photos</h2>')
+    const photo = rendu.split('</section>')[2] ?? ''
+    for (const libelle of ['Pose unitaire', 'Qualité visée', 'Images', 'Intégration totale', 'Volume de stockage']) {
+      expect(photo, libelle).toContain(libelle)
+    }
+    expect(rendu.split('</section>')[0]).toContain('Atténuation atmosphérique')
   })
 })
 

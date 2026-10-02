@@ -280,62 +280,8 @@ export const GLOSSAIRE = Object.freeze({
     consequence: 'Ne jugez pas une nébuleuse ou une galaxie sur ce seul chiffre.',
     sections: ['6.3'],
   }),
-  brillance_surface: terme({
-    libelle: 'Brillance de surface',
-    glose: 'éclat par zone de ciel',
-    explication:
-      'C’est la lumière de l’objet répartie sur sa surface. Plus le chiffre est grand, plus ' +
-      'l’objet est pâle.',
-    consequence: 'Comparée au fond de ciel, elle dit si l’objet ressort.',
-    sections: ['6.3'],
-  }),
-  contraste_ciel: terme({
-    libelle: 'Contraste sur le fond de ciel',
-    glose: 'écart entre objet et ciel',
-    explication:
-      'Positif, l’objet est plus lumineux que le ciel autour. Négatif, il est plus pâle et seule ' +
-      'une longue pose le révèle.',
-    consequence: 'Un contraste négatif n’empêche pas la photo, il allonge la pose.',
-    sections: ['6.3'],
-  }),
-  tolerance_lune: terme({
-    libelle: 'Tolérance à la Lune',
-    glose: 'sensibilité au clair de Lune',
-    explication:
-      'Les nébuleuses en émission supportent la Lune avec un filtre bi-bande. Les galaxies ' +
-      'demandent une nuit sans Lune.',
-    consequence: 'Par nuit de Lune, préférez une nébuleuse en émission.',
-    sections: ['6.3'],
-  }),
-  magnitude_limite_instrument: terme({
-    libelle: 'Magnitude limite de l’instrument',
-    glose: 'étoile la plus faible atteinte',
-    explication:
-      'Plus l’instrument est grand, plus il montre des étoiles faibles. Sur une nébuleuse, il ' +
-      'agrandit sans rendre plus lumineux.',
-    consequence: 'Utile pour les étoiles et les amas, pas pour les nébuleuses.',
-    sections: ['6.3'],
-  }),
 
   // §7 — moteur Pose
-  flux_ciel: terme({
-    libelle: 'Flux du fond de ciel',
-    glose: 'lumière du ciel par pixel',
-    explication:
-      'C’est la lumière du fond de ciel reçue par chaque pixel. Elle dépend de l’ouverture et de ' +
-      'la taille des pixels.',
-    consequence: 'Plus elle est forte, plus les poses doivent être courtes.',
-    sections: ['7.1'],
-  }),
-  flux_objet: terme({
-    libelle: 'Flux de l’objet',
-    glose: 'lumière de la cible par pixel',
-    explication:
-      'C’est la lumière de la cible reçue par chaque pixel. C’est le signal que la photo cherche ' +
-      'à capter.',
-    consequence: 'Deux fois moins de lumière demande quatre fois plus de temps.',
-    sections: ['7.1'],
-  }),
   masse_air: terme({
     libelle: 'Masse d’air',
     glose: 'épaisseur d’atmosphère traversée',
@@ -364,13 +310,6 @@ export const GLOSSAIRE = Object.freeze({
     consequence: 'Réglez cette durée sur l’appareil.',
     sections: ['7.2'],
   }),
-  plage_utile: terme({
-    libelle: 'Plage utile de pose',
-    glose: 'durées équivalentes',
-    explication: 'Toute durée dans cette plage donne le même résultat. Inutile d’être précis.',
-    consequence: 'Prenez la durée la plus pratique sur votre appareil.',
-    sections: ['2.3', '7.2'],
-  }),
   mode_permissif: terme({
     libelle: 'Mode permissif',
     glose: 'poses plus courtes',
@@ -379,15 +318,6 @@ export const GLOSSAIRE = Object.freeze({
       'ou un suivi imprécis gâchent des photos.',
     consequence: 'Par nuit calme, laissez-le désactivé.',
     sections: ['2.3', '7.2'],
-  }),
-  regime_pose: terme({
-    libelle: 'Régime de pose',
-    glose: 'ce qui limite la pose',
-    explication:
-      'En temps normal, la pose conseillée est la meilleure possible. Si la monture la limite, ' +
-      'la photo perd un peu en qualité.',
-    consequence: 'Si la monture limite, soignez la mise en station.',
-    sections: ['7.2'],
   }),
   mon_boitier: terme({
     libelle: 'Mon boîtier',
@@ -425,16 +355,6 @@ export const GLOSSAIRE = Object.freeze({
       'C’est la somme de toutes les poses sur une cible. Elle peut se répartir sur plusieurs ' +
       'nuits.',
     consequence: 'Elle dit si la cible tient dans une nuit.',
-    sections: ['7.3'],
-  }),
-  nombre_poses: terme({
-    libelle: 'Nombre de poses',
-    sansBulle: true,
-    glose: 'combien de photos prendre',
-    explication:
-      'C’est le temps total divisé par la durée d’une pose. Il fixe aussi la place à prévoir sur ' +
-      'la carte.',
-    consequence: 'Vérifiez la place sur la carte avant de partir.',
     sections: ['7.3'],
   }),
   volume_stockage: terme({
@@ -487,15 +407,6 @@ export const GLOSSAIRE = Object.freeze({
   }),
 
   // §8.1 — fenêtre nocturne et Lune
-  degradation_lunaire: terme({
-    libelle: 'Dégradation lunaire',
-    glose: 'ciel éclairé par la Lune',
-    explication:
-      'La Lune éclaircit le ciel, surtout pleine, haute et proche de la cible. Le chiffre dit de ' +
-      'combien.',
-    consequence: 'Une nuit de Lune reste utilisable, avec des poses plus courtes.',
-    sections: ['8.1'],
-  }),
   // §8.2 — créneau
   creneau: terme({
     libelle: 'Créneau d’observation',

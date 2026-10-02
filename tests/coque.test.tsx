@@ -518,7 +518,7 @@ describe('§3.4 — un objet cliqué ouvre sa fiche', () => {
     // (Le garnissage des champs par l'objet est posé par un effet de montage : il ne joue
     // pas en rendu statique, seule la présence de la fiche est vérifiable ici.)
     const html = ecran()
-    expect(html).toContain('Détectabilité')
+    expect(html).toContain('Photographie')
     expect(html).toContain('Cadrage')
     // La liste est démontée : elle ne reste pas vivante derrière la fiche.
     expect(html).not.toContain('Ne montrer que les objets photographiables')

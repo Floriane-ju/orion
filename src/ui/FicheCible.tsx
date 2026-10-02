@@ -22,14 +22,11 @@ import type { CibleEcartee, ContexteSession, EtapePlan } from '../core/session-t
 import { ChampsCible, Lecture } from './ChampsCible.tsx'
 import { syntheseFiche, type SyntheseFiche } from './fiche-synthese.ts'
 import { heure } from './horaire.ts'
-import { degres, nombreLibre, pourcentage } from '../registry/ecriture.ts'
-import { LIBELLE_DEGRADATION_LUNE, LIBELLE_VERDICT_CADRAGE } from '../registry/libelles.ts'
-import { degradationLune } from '../core/session-score.ts'
 import type { EtatCible } from '../core/cibles-liste.ts'
-import { Icone } from './Icone.tsx'
-import { Pastilles } from './Pastilles.tsx'
 import { ImageCible } from './ImageCible.tsx'
 import { Verdicts } from './Verdicts.tsx'
+import { Photographie } from './FichePhotographie.tsx'
+import { TracedValue } from './TracedValue.tsx'
 import { nuitFiche } from './fiche-cible-creneau.ts'
 import { conseilsCible, evalue, type ContexteFiche, type Resultat } from './fiche-cible-calcul.ts'
 import { Mention } from './Mention.tsx'
@@ -81,11 +78,14 @@ function Resume({
   objet,
   s,
   culmination,
+  extinction,
 }: {
   readonly objet: ObjetCielProfond
   readonly s: SyntheseFiche | null
   /** L'heure du plus haut de la nuit, `null` sans nuit chiffrée : la ligne ne meuble pas. */
   readonly culmination: Date | null
+  /** §7.6 — l'atténuation de la nuit, `null` sans créneau chiffrable. */
+  readonly extinction: Resultat['extinction']
 }) {
   const nom = nomCommun(objet)
   const creneau = s?.creneau ?? null
@@ -105,61 +105,10 @@ function Resume({
       {culmination !== null && (
         <Lecture libelle={<Etiquette cle="culmination" />} valeur={heure(culmination)} />
       )}
-    </section>
-  )
-}
-
-/**
- * T-0381 — la troisième carte résume la photographie : la facilité en tête, puis ce qui décide
- * du cadre (taille, inclinaison) et ce qu'on règle (pose, images). Le détail et ses traces
- * suivent dans les verdicts. T-0282 — pose et images restent ici, en tête de fiche : sur une
- * cible au plan, ce sont celles de son étape.
- */
-function Photographie({
-  r,
-  s,
-  facilite,
-}: {
-  readonly r: Resultat
-  readonly s: SyntheseFiche
-  readonly facilite: EtatCible | null
-}) {
-  const cadrage = r.cadrage
-  return (
-    <section>
-      <div className="fiche-tete">
-        <p className="fiche-tete-titre">
-          <Icone nom="photo_camera" />
-          {facilite === null ? 'Photographie' : `Photographie ${facilite.libelle}`}
-        </p>
-        {/* Sans note, aucune pastille : cinq vides se liraient « impossible ». */}
-        {facilite !== null && (
-          <Pastilles note={facilite.note} libelle={facilite.libelle} cause={facilite.cause} />
-        )}
-      </div>
-      {cadrage !== null && (
-        <Lecture
-          libelle="Taille dans le cadre"
-          valeur={`${pourcentage(cadrage.remplissage.value)} — ${LIBELLE_VERDICT_CADRAGE[cadrage.verdict]}`}
-        />
+      {/* T-0385 — la perte dans l'air est une propriété de la nuit, comme le créneau. */}
+      {extinction !== null && extinction.attenuation.value !== null && (
+        <TracedValue terme="extinction_atmospherique" trace={extinction.attenuation} decimales={3} />
       )}
-      {/* Une cible presque ronde, ou d'orientation inconnue, n'a pas d'angle à conseiller. */}
-      {cadrage !== null && cadrage.angleBoitierDeg !== null && (
-        <Lecture libelle="Inclinaison objet" valeur={degres(cadrage.angleBoitierDeg)} />
-      )}
-      {/* La même ΔSB_lune que le plan, pesée par la tolérance du type (§6.3). */}
-      <Lecture
-        libelle="Dégradation lunaire"
-        valeur={
-          r.lune.evaluee
-            ? LIBELLE_DEGRADATION_LUNE[degradationLune(r.lune.ciel.delta.value, r.detect.toleranceLune)]
-            : NON_CHIFFRE
-        }
-      />
-      <Lecture libelle="Pose" valeur={s.poseS === null ? NON_CHIFFRE : `${nombreLibre(s.poseS)} s`} />
-      <Lecture libelle="Images" valeur={s.nPoses === null ? NON_CHIFFRE : String(s.nPoses)} />
-      {/* T-0383 — une pose courte malgré le suivi se lit comme un oubli : la carte en dit la cause. */}
-      {r.pose?.limiteeParCiel === true && <Mention ton="conseil">{r.pose.message}</Mention>}
     </section>
   )
 }
@@ -227,10 +176,20 @@ export function FicheCible(props: FicheCibleProps) {
         objet={objet}
         s={synthese}
         culmination={nuit.creneau.chiffre ? nuit.creneau.creneau.heureCulmination : null}
+        extinction={calcul.ok ? calcul.r.extinction : null}
       />
       <ChampsCible objet={objet} />
       {calcul.ok && synthese !== null && (
-        <Photographie r={calcul.r} s={synthese} facilite={props.facilite ?? null} />
+        <Photographie
+          r={calcul.r}
+          s={synthese}
+          facilite={props.facilite ?? null}
+          snrCible={snrCible}
+          surSnr={(snrCible) => majFiche({ snrCible })}
+          zeroSysteme={props.zeroSysteme}
+          permissif={permissif}
+          surPermissif={(permissif) => majFiche({ permissif })}
+        />
       )}
       {(props.ecarteePlan ?? null) !== null && (
         <Mention ton="cause">
@@ -241,13 +200,7 @@ export function FicheCible(props: FicheCibleProps) {
       {calcul.ok && (
         <Verdicts
           r={calcul.r}
-          creneau={nuit.creneau}
-          snrCible={snrCible}
-          surSnr={(snrCible) => majFiche({ snrCible })}
-          zeroSysteme={props.zeroSysteme}
           conseils={conseils}
-          permissif={permissif}
-          surPermissif={(permissif) => majFiche({ permissif })}
           filtreDualBand={filtreDualBand}
           surFiltre={(filtreDualBand) => majFiche({ filtreDualBand })}
           explicationDepliee={explicationDepliee}
