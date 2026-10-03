@@ -55,7 +55,7 @@ import {
   vueScene,
   type VueScene,
 } from './scene-etat.ts'
-import { traverse } from './trajet-scene.ts'
+import { traverse, useInstantTrajet } from './trajet-scene.ts'
 import {
   aimante,
   bandesPhases,
@@ -100,6 +100,8 @@ export function CarteNuit({ site, nuit, modeNuitActif, activeModeNuit }: CarteNu
   const frise = useMemo(() => friseNuit(site, nuit), [site, nuit])
   const minute = useTrancheScene(minuteAffichee)
   const instantMs = minute * MS_PAR_MINUTE
+  // Le curseur de la frise suit le trajet image par image ; le reste, la minute publiée.
+  const trajetMs = useInstantTrajet()
   const cadre = useHauteurPubliee()
   // Ce que le dernier geste laisse à dire : un saut que la lisibilité a imposé, et la
   // proposition du mode nuit à l'arrivée. Le geste suivant efface les deux.
@@ -126,7 +128,13 @@ export function CarteNuit({ site, nuit, modeNuitActif, activeModeNuit }: CarteNu
       <section ref={cadre} className="panneau-nuit" role="region" aria-label="La nuit">
         {nuit.cause !== undefined && <Mention ton="cause">{nuit.cause}</Mention>}
         {frise !== null && (
-          <Frise frise={frise} site={site} instantMs={instantMs} va={va} efface={efface} />
+          <Frise
+            frise={frise}
+            site={site}
+            instantMs={trajetMs ?? instantMs}
+            va={va}
+            efface={efface}
+          />
         )}
         {saute && (
           <Mention ton="etat" role="status">

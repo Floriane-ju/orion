@@ -37,6 +37,7 @@ import {
   type VueScene,
 } from './scene-etat.ts'
 import { poseRenduFile, publicateurRenduFile } from './seance-etat.ts'
+import { enTrajet } from './trajet-scene.ts'
 import type { CouchesActives } from './dessine-ciel.ts'
 import { dessineChamp, type ParametresFile, type SortieDessinChamp } from './dessine-champ.ts'
 import { dessineCiel, type CibleEcran, type SurvolEcran } from './dessine-ciel.ts'
@@ -246,7 +247,9 @@ export function useBoucleRendu(entree: {
 
       // L'horloge d'affichage avance même quand rien ne se peint : la barre de temps compte
       // les secondes d'un ciel qui ne bouge pas d'un pixel.
-      if (ts - dernierePublication >= PERIODE_PUBLICATION_MS) {
+      // T-0394 — sauf pendant un trajet : il publie lui-même son arrivée, et une publication en
+      // chemin réveillerait la liste des cibles au milieu du mouvement.
+      if (!enTrajet() && ts - dernierePublication >= PERIODE_PUBLICATION_MS) {
         afficheInstant(instant.ms)
         // `parametresFile` fait foi sur l'extinction : la boîte, elle, garde la dernière passe.
         const rendu = parametresFile.current === null ? null : derniereFile.sortie

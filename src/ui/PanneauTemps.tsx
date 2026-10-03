@@ -47,6 +47,7 @@ import {
   secondeAffichee,
   type TempsScene,
   useTrancheScene,
+  vaA,
 } from './scene-etat.ts'
 import { DOMAINES } from '../registry/domains.ts'
 import { destinationTrajet, traverse } from './trajet-scene.ts'
@@ -216,15 +217,18 @@ function useCompteurs(props: PanneauTempsProps): {
    * recalcule le ciel de la séance, et tirer les jours en enchaînait un par cran. Le ciel et
    * l'horloge suivent le geste ; la nuit se règle au relâchement (`soldeNuit`).
    *
-   * T-0394 — chaque réglage TRAVERSE le temps jusqu'à l'instant demandé, glisser compris : un
-   * cran neuf relance le trajet depuis l'instant traversé. Trajet FORCÉ, plafond de §3.2 ignoré :
-   * changer de jour doit se voir, même quand le ciel y tourne plus vite qu'il ne se lit (choix
-   * produit). La nuit se règle sur la DESTINATION, pas sur l'instant que le trajet traverse.
+   * T-0394 — une saisie ou une flèche TRAVERSE le temps jusqu'à l'instant demandé, en trajet
+   * FORCÉ, plafond de §3.2 ignoré : changer de jour doit se voir (choix produit). La nuit se
+   * règle sur la DESTINATION, pas sur l'instant que le trajet traverse.
+   *
+   * Le glisser, lui, saute : le ciel suit le doigt, instantanément. Un trajet relancé à chaque
+   * cran repeignait et recalculait la scène sans fin, et le geste ramait.
    */
   function va(champ: ChampInstant, valeur: number, enGlisse = false): void {
     const cible = dateAvec(depart.current ?? date, champ, valeur).getTime()
+    if (enGlisse) return vaA(cible)
     traverse(cible, undefined, { force: true })
-    if (!enGlisse) soldeNuit()
+    soldeNuit()
   }
 
   function soldeNuit(): void {

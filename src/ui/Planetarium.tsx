@@ -31,6 +31,7 @@ import { sbEffectifRendu, sbZenithAvecCrepuscule } from '../core/fond-ciel-rendu
 import { separationDeg, versVecteur } from '../core/mat3.ts'
 import type { LuneEcran, SoleilEcran } from './dessine-fond-ciel.ts'
 import { apparitionReperes } from './apparence-objets.ts'
+import { useInstantTrajet } from './trajet-scene.ts'
 import { etatProfondeur } from '../core/projection.ts'
 import {
   ACTIONS_SCENE,
@@ -168,7 +169,11 @@ export function Planetarium(props: PlanetariumProps) {
   const pointage = useTrancheScene(vueScene)
   const temps = useTrancheScene(tempsScene)
   const rendu = useTrancheScene(renduScene)
-  const minute = useTrancheScene(minuteAffichee)
+  const minuteScene = useTrancheScene(minuteAffichee)
+  // T-0394 — pendant un trajet, la minute que le trajet traverse, image par image : le magasin
+  // ne la publie qu'à sa cadence ordinaire.
+  const trajetMs = useInstantTrajet()
+  const minute = trajetMs === null ? minuteScene : Math.floor(trajetMs / MS_PAR_MINUTE)
   const actions = ACTIONS_SCENE
   const { fovDeg, largeurPx, hauteurPx } = pointage
   const seance = useSeance()
