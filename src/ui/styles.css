@@ -1394,7 +1394,8 @@ body {
   .coque-rail,
   .coque-nuit,
   .coque-lateral,
-  .panneau-nuit {
+  .panneau-nuit,
+  .nuit-appel {
     position: static;
     inset: auto;
     width: auto;
@@ -2929,6 +2930,41 @@ button:disabled {
 }
 /* T-0390 — l'heure et la phase de l'instant affiché, à demeure : §11.2 ne laisse rien de
    critique au seul survol. Une ligne, au corps des repères d'heure qu'elle prolonge. */
+/* T-0394 — « Aller à la nuit », l'appel d'entrée : au milieu du ciel libre, entre le rail et
+   le panneau de droite, là où le regard se pose en arrivant. Le conteneur laisse passer le
+   pointeur, seul le bouton le prend : le ciel reste manipulable autour. L'accent est réservé à
+   ce qu'on vise ; l'appel se distingue par sa taille et son filet plein, posé sur le voile des
+   flottants. */
+.nuit-appel {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(var(--rail) + 2 * var(--jour-carte));
+  inset-inline-end: calc(var(--lateral) + 2 * var(--jour-carte));
+  z-index: var(--plan-panneaux);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.nuit-appel button {
+  pointer-events: auto;
+  padding: var(--pas-4) var(--pas-6);
+  background: var(--voile);
+  border-color: var(--texte);
+  font-size: var(--texte-appui);
+  letter-spacing: var(--suivi-titre);
+}
+/* T-0394 — les gestes qui suivent la lecture : aller à la nuit, puis la proposition du mode
+   nuit à l'arrivée. Ils n'existent que lorsqu'ils ont quelque chose à faire. */
+.nuit-gestes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pas-2);
+}
+.nuit-proposition {
+  margin: 0;
+  font-size: var(--texte-legende);
+}
 .nuit-lecture {
   margin: 0;
   color: var(--texte);

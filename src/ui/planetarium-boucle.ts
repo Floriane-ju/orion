@@ -156,7 +156,9 @@ export function doitDessiner(peinte: ImageLue | null, courante: ImageLue): boole
     return true
   }
   if (courante.etat.anime) return true
-  if (courante.etat.modeTemps !== 'MAINTENANT') return false
+  // T-0394 — temps figé, l'instant ne bouge que sous un geste : un trajet l'écrit à chaque
+  // image, et la minute publiée ne change pas assez vite pour repeindre ses deux extrémités.
+  if (courante.etat.modeTemps !== 'MAINTENANT') return courante.instantMs !== peinte.instantMs
   const { largeurPx, fovDeg } = courante.etat.vue
   const pxParS = vitesseEcran(1, pxParDegre(largeurPx, fovDeg)).value
   const deriveS = Math.abs(courante.instantMs - peinte.instantMs) / MS_PAR_S

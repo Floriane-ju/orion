@@ -36,7 +36,7 @@ import { BoutonChoixCible } from './BoutonChoixCible.tsx'
 import { useCiblesChoisies } from './cibles-choisies.ts'
 import { PlanSessionVue } from './PlanSession.tsx'
 import { RegionNuit } from './RegionNuit.tsx'
-import { CarteNuit } from './CarteNuit.tsx'
+import { CarteNuit, type CarteNuitProps } from './CarteNuit.tsx'
 import { modeObjectif } from '../core/optics.ts'
 import { montreListeCibles, useSeance, type VueCibles } from './seance-etat.ts'
 import { AIDE_MATERIEL_INCOMPLET } from './Inconnu.tsx'
@@ -370,6 +370,17 @@ export function LateralSeance(props: RegionSeanceProps) {
  * elle se montre quel que soit le mode et même quand le matériel manque. Hors du panneau de
  * séance, elle ne défile plus avec la liste et ne la repousse plus.
  */
-export function NuitSeance({ chaine }: RegionSeanceProps) {
-  return chaine.ciel.ok ? <CarteNuit site={chaine.site} nuit={chaine.ciel.nuit} /> : null
+export function NuitSeance({
+  chaine,
+  modeNuitActif,
+  activeModeNuit,
+}: RegionSeanceProps & Pick<CarteNuitProps, 'modeNuitActif' | 'activeModeNuit'>) {
+  return chaine.ciel.ok ? (
+    <CarteNuit
+      site={chaine.site}
+      nuit={chaine.ciel.nuit}
+      modeNuitActif={modeNuitActif}
+      activeModeNuit={activeModeNuit}
+    />
+  ) : null
 }

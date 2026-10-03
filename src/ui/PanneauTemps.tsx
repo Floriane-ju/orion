@@ -47,9 +47,9 @@ import {
   secondeAffichee,
   type TempsScene,
   useTrancheScene,
-  vaA,
 } from './scene-etat.ts'
 import { DOMAINES } from '../registry/domains.ts'
+import { destinationTrajet, traverse } from './trajet-scene.ts'
 
 /** Sélecteur défini au niveau du module — `useTrancheScene` exige une identité stable. */
 function tempsScene(etat: EtatScene): EtatScene['temps'] {
@@ -208,20 +208,28 @@ function useCompteurs(props: PanneauTempsProps): {
 } {
   const seconde = useTrancheScene(secondeAffichee)
   const depart = useRef<Date | null>(null)
-  const date = new Date(seconde * 1000)
+  // T-0394 — pendant un trajet, l'instant demandé, pas celui que le ciel traverse.
+  const date = new Date(destinationTrajet() ?? seconde * 1000)
 
   /**
    * T-0292 — la nuit suit l'instant, mais pas à chaque cran d'un glisser : changer de nuit
    * recalcule le ciel de la séance, et tirer les jours en enchaînait un par cran. Le ciel et
-   * l'horloge suivent le geste (`vaA`) ; la nuit se règle au relâchement (`soldeNuit`).
+   * l'horloge suivent le geste ; la nuit se règle au relâchement (`soldeNuit`).
+   *
+   * T-0394 — chaque réglage TRAVERSE le temps jusqu'à l'instant demandé, glisser compris : un
+   * cran neuf relance le trajet depuis l'instant traversé. Trajet FORCÉ, plafond de §3.2 ignoré :
+   * changer de jour doit se voir, même quand le ciel y tourne plus vite qu'il ne se lit (choix
+   * produit). La nuit se règle sur la DESTINATION, pas sur l'instant que le trajet traverse.
    */
   function va(champ: ChampInstant, valeur: number, enGlisse = false): void {
-    vaA(dateAvec(depart.current ?? date, champ, valeur).getTime())
+    const cible = dateAvec(depart.current ?? date, champ, valeur).getTime()
+    traverse(cible, undefined, { force: true })
     if (!enGlisse) soldeNuit()
   }
 
   function soldeNuit(): void {
-    props.surNuitIso(nuitDeLInstant(new Date(etatScene().msAffiche)))
+    const ms = destinationTrajet() ?? etatScene().msAffiche
+    props.surNuitIso(nuitDeLInstant(new Date(ms)))
   }
 
   /** Les littéraux de la locale restent du texte : seuls les nombres deviennent des compteurs. */
@@ -280,9 +288,12 @@ function Heure(props: PanneauTempsProps) {
 function BoutonMaintenant(props: PanneauTempsProps) {
   function maintenant(): void {
     const present = new Date()
-    vaA(present.getTime())
-    // `vaA` fige le temps ; la reprise réancre le décalage sur l'horloge système, à zéro.
-    reprend()
+    // T-0394 — le retour se traverse, puis le temps repart sur l'horloge système, décalage nul :
+    // le trajet a pris une seconde ou deux, la lecture reprend à l'instant présent, pas à
+    // celui du clic.
+    traverse(present.getTime(), () => majTemps({ modeTemps: 'MAINTENANT', decalageMs: 0 }), {
+      force: true,
+    })
     props.surNuitIso(nuitDeLInstant(present))
   }
 

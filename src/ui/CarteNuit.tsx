@@ -12,6 +12,17 @@
  * l'instant de la scène (§3.2). Une seule ligne reste à demeure, de jour comme de nuit,
  * l'heure et la phase de l'instant affiché : §11.2 ne laisse rien de critique au seul survol, et un écran tactile
  * n'en a pas.
+ *
+ * T-0394 — revue DA §4.2, « La tombée de la nuit ». Un clic sur la frise TRAVERSE le temps
+ * jusqu'à l'instant visé, et « Aller à la nuit » fait le même trajet jusqu'au début de la nuit
+ * de référence — astronomique, ou nautique quand la nuit noire manque (§8.1). Les flèches
+ * restent des sauts : un pas de dix minutes n'a rien à montrer en chemin. Arrivé en nuit
+ * noire, le mode nuit est PROPOSÉ, jamais imposé : T-0140 a retiré l'activation automatique.
+ *
+ * « Aller à la nuit » est l'appel d'entrée, au milieu du ciel : il s'adresse à qui arrive de
+ * jour. Ouvert la nuit, il n'a rien à proposer. Dès que le temps bouge sans lui, ou que la
+ * visée bouge, l'utilisateur a trouvé ses gestes par lui-même, et l'appel se retire pour la
+ * session.
  */
 
 import {
@@ -35,7 +46,16 @@ import type { Site } from '../core/ephem.ts'
 import { encadre, MS_PAR_MINUTE } from '../core/unites.ts'
 import { Mention } from './Mention.tsx'
 import { heure } from './horaire.ts'
-import { minuteAffichee, useTrancheScene, vaA } from './scene-etat.ts'
+import {
+  minuteAffichee,
+  tempsScene,
+  type TempsScene,
+  useTrancheScene,
+  vaA,
+  vueScene,
+  type VueScene,
+} from './scene-etat.ts'
+import { traverse } from './trajet-scene.ts'
 import {
   aimante,
   bandesPhases,
@@ -58,6 +78,9 @@ import {
 export interface CarteNuitProps {
   readonly site: Site
   readonly nuit: FenetreNocturne
+  /** T-0394 — l'état du mode nuit, pour ne proposer que ce qui n'est pas déjà fait. */
+  readonly modeNuitActif: boolean
+  readonly activeModeNuit: () => void
 }
 
 /** Des propriétés personnalisées, jamais une couleur en ligne : la feuille garde la main. */
@@ -73,19 +96,118 @@ function enPourcent(fraction: number): string {
   return pourcentCss(encadre(fraction, 0, 1))
 }
 
-export function CarteNuit({ site, nuit }: CarteNuitProps) {
+export function CarteNuit({ site, nuit, modeNuitActif, activeModeNuit }: CarteNuitProps) {
   const frise = useMemo(() => friseNuit(site, nuit), [site, nuit])
   const minute = useTrancheScene(minuteAffichee)
+  const instantMs = minute * MS_PAR_MINUTE
   const cadre = useHauteurPubliee()
+  // Ce que le dernier geste laisse à dire : un saut que la lisibilité a imposé, et la
+  // proposition du mode nuit à l'arrivée. Le geste suivant efface les deux.
+  const [saute, setSaute] = useState(false)
+  const [propose, setPropose] = useState(false)
+
+  const va = (ms: number): void => {
+    setPropose(false)
+    const plan = traverse(ms, () => setPropose(true))
+    setSaute(plan.saut && plan.raison === 'ILLISIBLE')
+  }
+  const efface = (): void => {
+    setSaute(false)
+    setPropose(false)
+  }
+
+  const debutNuit = nuit.debutReference
+  const appelRetire = useAppelRetire(minute, frise !== null && phaseA(site, frise, instantMs) !== 'JOUR')
+  const appel = !appelRetire && debutNuit !== null && instantMs < debutNuit.getTime()
+  const proposeNuit = propose && !modeNuitActif && frise !== null && phaseA(site, frise, instantMs) === 'NUIT_NOIRE'
 
   return (
-    <section ref={cadre} className="panneau-nuit" role="region" aria-label="La nuit">
-      {nuit.cause !== undefined && <Mention ton="cause">{nuit.cause}</Mention>}
-      {frise !== null && (
-        <Frise frise={frise} site={site} instantMs={minute * MS_PAR_MINUTE} />
+    <>
+      <section ref={cadre} className="panneau-nuit" role="region" aria-label="La nuit">
+        {nuit.cause !== undefined && <Mention ton="cause">{nuit.cause}</Mention>}
+        {frise !== null && (
+          <Frise frise={frise} site={site} instantMs={instantMs} va={va} efface={efface} />
+        )}
+        {saute && (
+          <Mention ton="etat" role="status">
+            Saut direct : à ce zoom, le trajet défilerait trop vite pour se lire.
+          </Mention>
+        )}
+        {proposeNuit && (
+          <div className="nuit-gestes">
+            <p className="nuit-proposition" role="status">
+              Nuit noire.
+            </p>
+            <button type="button" onClick={activeModeNuit}>
+              Passer en mode nuit
+            </button>
+            <button type="button" onClick={() => setPropose(false)}>
+              Plus tard
+            </button>
+          </div>
+        )}
+      </section>
+      {appel && (
+        <div className="nuit-appel">
+          <button type="button" onClick={() => va(debutNuit.getTime())}>
+            Aller à la nuit
+          </button>
+        </div>
       )}
-    </section>
+    </>
   )
+}
+
+/** Ce que l'appel compare à son ouverture : le temps, la minute affichée, la visée. */
+export interface ReperesAppel {
+  readonly temps: TempsScene
+  readonly minute: number
+  readonly vue: Pick<VueScene, 'azimutDeg' | 'hauteurDeg' | 'fovDeg'>
+}
+
+/**
+ * L'utilisateur a-t-il bougé le temps ou la visée depuis `depart` ?
+ *
+ * Le temps : un changement de mode, de vitesse ou de décalage — le magasin ne rend une tranche
+ * neuve que si elle change ; temps figé, une minute réécrite aussi (compteur, frise, trajet).
+ * En lecture ou en défilement la minute avance seule, elle ne compte pas.
+ *
+ * La visée : azimut, hauteur, champ — glisser, zoomer, cadrer. Pas la définition ni le
+ * décalage de centre : ils se mesurent sur la boîte après le montage, sans geste.
+ */
+export function appelABouge(depart: ReperesAppel, courant: ReperesAppel): boolean {
+  const { temps, minute, vue } = courant
+  return (
+    temps !== depart.temps ||
+    (temps.modeTemps === 'FIGE' && minute !== depart.minute) ||
+    vue.azimutDeg !== depart.vue.azimutDeg ||
+    vue.hauteurDeg !== depart.vue.hauteurDeg ||
+    vue.fovDeg !== depart.vue.fovDeg
+  )
+}
+
+/**
+ * Vrai, et pour la session, quand l'appel n'a plus lieu d'être : il faisait déjà nuit à
+ * l'ouverture, ou l'utilisateur a bougé le temps ou la visée depuis.
+ */
+function useAppelRetire(minute: number, nuitAuDepart: boolean): boolean {
+  const temps = useTrancheScene(tempsScene)
+  const vue = useTrancheScene(vueScene)
+  const depart = useRef<ReperesAppel>({ temps, minute, vue })
+  const [retire, setRetire] = useState(nuitAuDepart)
+  useEffect(() => {
+    if (!retire && appelABouge(depart.current, { temps, minute, vue })) setRetire(true)
+  }, [temps, minute, vue, retire])
+  return retire
+}
+
+/** La phase de l'instant : celle de la frise, ou le jour qui l'encadre hors de ses bornes. */
+function phaseA(site: Site, frise: FriseNuit, instantMs: number): PhaseCiel {
+  const debut = frise.debut.getTime()
+  const fin = frise.fin.getTime()
+  return instantMs < debut || instantMs > fin
+    ? 'JOUR'
+    : lectureFrise(site, frise, (instantMs - debut) / (fin - debut)).phase
 }
 
 /**
@@ -120,10 +242,16 @@ function Frise({
   frise,
   site,
   instantMs,
+  va,
+  efface,
 }: {
   readonly frise: FriseNuit
   readonly site: Site
   readonly instantMs: number
+  /** Traverse le temps jusqu'à l'instant visé. */
+  readonly va: (ms: number) => void
+  /** Retire ce que le geste précédent avait à dire. */
+  readonly efface: () => void
 }) {
   const [survol, setSurvol] = useState<Survol | null>(null)
   const phases = bandesPhases(frise)
@@ -134,13 +262,7 @@ function Frise({
   const fin = frise.fin.getTime()
   // La frise est la nuit DE l'instant (`PanneauTemps` la suit) : hors de ses bornes, c'est
   // le jour qui l'encadre. La ligne reste donc écrite à toute heure.
-  const phaseAffichee = useMemo(
-    () =>
-      instantMs < debut || instantMs > fin
-        ? 'JOUR'
-        : lectureFrise(site, frise, (instantMs - debut) / (fin - debut)).phase,
-    [site, frise, instantMs, debut, fin],
-  )
+  const phaseAffichee = useMemo(() => phaseA(site, frise, instantMs), [site, frise, instantMs])
   const lectureAffichee = `${heure(new Date(instantMs))} · ${LIBELLE_PHASE_CIEL[phaseAffichee]}`
 
   const pointe = (e: MouseEvent<HTMLDivElement>): Survol => {
@@ -156,12 +278,13 @@ function Frise({
   }
 
   // L'aimant vaut pour le clic comme pour le survol : un appui près d'un lever de Lune y va.
-  const surClic = (e: MouseEvent<HTMLDivElement>) => vaA(instantFraction(frise, pointe(e).fraction))
+  const surClic = (e: MouseEvent<HTMLDivElement>) => va(instantFraction(frise, pointe(e).fraction))
 
   const surTouche = (e: KeyboardEvent<HTMLDivElement>) => {
     const cible = instantClavier(frise, instantMs, e.key)
     if (cible === null) return
     e.preventDefault()
+    efface()
     vaA(cible)
   }
 

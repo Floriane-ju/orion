@@ -51,6 +51,11 @@ describe('T-0248 — doitDessiner', () => {
     expect(doitDessiner(peinte, image(fige, { largeurPx: VUE.largeurPx + 1 }))).toBe(true)
   })
 
+  it('T-0394 — temps figé, repeint l’instant qu’un trajet vient d’écrire', () => {
+    const peinte = image(fige)
+    expect(doitDessiner(peinte, image(fige, { instantMs: 1 }))).toBe(true)
+  })
+
   it('en défilement, chaque image est neuve', () => {
     const defile: ImageLue['etat'] = { vue: VUE, modeTemps: 'DEFILEMENT', anime: true }
     expect(doitDessiner(image(defile), image(defile))).toBe(true)

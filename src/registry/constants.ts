@@ -1278,6 +1278,97 @@ const RENDU = {
     ordreDeGrandeur: false,
     sections: ['3.2'],
   }),
+  DUREE_TRAJET_MS: entree({
+    ref: 'C-25',
+    libelle: 'Durée nominale d’un trajet dans le temps',
+    valeur: 1200,
+    unite: 'ms',
+    source:
+      '§3.2, T-0394 — revue DA §4.2 et §4.5 : du coucher à la nuit astronomique en un geste, ' +
+      'assez long pour voir les magnitudes apparaître, assez court pour rester une commande',
+    tolerance: 'convention produit — allongé pour tenir sous facteur_max, jamais raccourci',
+    ordreDeGrandeur: false,
+    sections: ['3.2'],
+  }),
+  COURBE_TRAJET_ENTREE: entree({
+    ref: 'C-25',
+    libelle: 'Puissance de l’accélération d’un trajet dans le temps',
+    valeur: 2,
+    unite: '—',
+    source: 'T-0394 — convention produit : départ franc, le geste se voit partir',
+    tolerance: 'convention produit — forme d’affichage, aucun calcul n’en dépend',
+    ordreDeGrandeur: false,
+    sections: ['3.2'],
+  }),
+  COURBE_TRAJET_SORTIE: entree({
+    ref: 'C-25',
+    libelle: 'Puissance de la décélération d’un trajet dans le temps',
+    valeur: 3,
+    unite: '—',
+    source:
+      'T-0394 — convention produit : l’arrivée se pose plus lentement que le départ, c’est là ' +
+      'que les dernières magnitudes apparaissent',
+    tolerance: 'convention produit — forme d’affichage, aucun calcul n’en dépend',
+    ordreDeGrandeur: false,
+    sections: ['3.2'],
+  }),
+  COURBE_TRAJET_BASCULE: entree({
+    ref: 'C-25',
+    libelle: 'Fraction du trajet où l’accélération cède à la décélération',
+    valeur: 0.4,
+    unite: '—',
+    source: 'T-0394 — convention produit : la décélération occupe les trois cinquièmes du trajet',
+    tolerance: 'convention produit — forme d’affichage, aucun calcul n’en dépend',
+    ordreDeGrandeur: false,
+    sections: ['3.2'],
+  }),
+  DUREE_TRAJET_PAR_DOUBLEMENT_MS: entree({
+    ref: 'C-25',
+    libelle: 'Allongement d’un trajet forcé à chaque doublement des jours traversés',
+    valeur: 600,
+    unite: 'ms',
+    source:
+      'T-0394 — convention produit : un saut d’une semaine dure plus qu’un saut d’un jour, ' +
+      'un saut d’un an plus qu’un saut d’un mois ; l’échelle est logarithmique pour que les ' +
+      'longs écarts ne saturent pas tous au plafond',
+    tolerance: 'convention produit — forme d’affichage, aucun calcul n’en dépend',
+    ordreDeGrandeur: false,
+    sections: ['3.2'],
+  }),
+  JOURS_TRAJET_FORCE_MAX: entree({
+    ref: 'C-25',
+    libelle: 'Jours qu’un trajet forcé montre au plus',
+    valeur: 3,
+    unite: 'j',
+    source:
+      'T-0394 — choix produit du 3 oct. 2026 : au-delà, le trajet saute d’abord les jours en ' +
+      'trop et ne montre que les derniers jours et nuits avant l’arrivée',
+    tolerance: 'convention produit — forme d’affichage, aucun calcul n’en dépend',
+    ordreDeGrandeur: false,
+    sections: ['3.2'],
+  }),
+  DUREE_TRAJET_FORCE_MAX_MS: entree({
+    ref: 'C-25',
+    libelle: 'Durée maximale d’un trajet forcé',
+    valeur: 5000,
+    unite: 'ms',
+    source: 'T-0394 — choix produit du 3 oct. 2026 : un changement de date ne fait pas attendre plus de cinq secondes',
+    tolerance: 'convention produit — forme d’affichage, aucun calcul n’en dépend',
+    ordreDeGrandeur: false,
+    sections: ['3.2'],
+  }),
+  DUREE_TRAJET_MAX_MS: entree({
+    ref: 'C-25',
+    libelle: 'Durée au-delà de laquelle un trajet devient un saut',
+    valeur: 3000,
+    unite: 'ms',
+    source:
+      '§3.2, T-0394 — convention produit : un trajet que le plafond de lisibilité allonge ' +
+      'au-delà de quelques secondes fait attendre ; il devient un saut, annoncé',
+    tolerance: 'convention produit — pilote le confort du geste, jamais un verdict',
+    ordreDeGrandeur: false,
+    sections: ['3.2'],
+  }),
   MAG_BASE_RENDU: entree({
     ref: 'C-26',
     libelle: 'Magnitude limite de rendu au champ de référence',

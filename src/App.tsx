@@ -235,7 +235,13 @@ function AppPrete({
         </>
       }
       lateral={<LateralSeance {...regions} />}
-      nuit={<NuitSeance {...regions} />}
+      nuit={
+        <NuitSeance
+          {...regions}
+          modeNuitActif={modeNuit.actif}
+          activeModeNuit={() => setModeNuit({ ...modeNuit, actif: true })}
+        />
+      }
       page={
         <PageInfo
           etat={catalogues.etat}
