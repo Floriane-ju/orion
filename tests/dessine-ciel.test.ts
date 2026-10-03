@@ -218,6 +218,7 @@ function rend(
     enAvant?: ReadonlySet<string>
     parcours?: ParcoursScene
     cibleOuverte?: ObjetCielProfond
+    apparition?: number
   } = {},
 ) {
   const ctx = contexteEspion()
@@ -275,6 +276,7 @@ function rend(
     enAvant: options.enAvant,
     parcours: options.parcours,
     cibleOuverte: options.cibleOuverte,
+    apparition: options.apparition,
   }
   return { ctx, sortie: dessineCiel(entree), entree }
 }
@@ -368,6 +370,34 @@ describe('passe de rendu §3.3', () => {
     )
     expect(premierTrace).toBeGreaterThan(-1)
     expect(rang).toBeLessThanOrEqual(premierTrace)
+  })
+
+  /**
+   * T-0396 — le filé du Panorama, ce sont des étoiles : de jour, elles s'éteignent avec celles
+   * du planétarium, et reviennent au même fondu au crépuscule.
+   */
+  it('peint la passe de filé sous le fondu des étoiles', () => {
+    let opaciteVue = -1
+    const passeFile = (c: CanvasRenderingContext2D) => {
+      opaciteVue = c.globalAlpha
+    }
+    const { ctx } = rend({ passeFile, apparition: 0.5 })
+    expect(opaciteVue).toBe(0.5)
+    expect(ctx.globalAlpha).toBe(1)
+  })
+
+  /** T-0396 — de jour, rien ne se verrait : le filé ne se calcule pas du tout. */
+  it('ne calcule pas la passe de filé de jour', () => {
+    let appelee = false
+    rend({ passeFile: () => (appelee = true), apparition: 0 })
+    expect(appelee).toBe(false)
+  })
+
+  /** T-0396 — une limite à −∞ (le jour) ne retient aucune étoile : l'index n'est pas parcouru. */
+  it('ne parcourt pas l’index des étoiles de jour', () => {
+    const { sortie } = rend({ magLimite: Number.NEGATIVE_INFINITY })
+    expect(sortie.stats.cellulesRetenues).toBe(0)
+    expect(sortie.etoilesDessinees).toBe(0)
   })
 
   it('ne trace une couche que si elle est active', () => {

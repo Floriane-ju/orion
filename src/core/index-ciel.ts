@@ -273,6 +273,8 @@ export function selectionne(
   magLimite: number,
   visite: VisiteEtoile,
 ): StatistiquesSelection {
+  // T-0396 — une limite à −∞ (le jour) ne retient aucune étoile : l'index ne se parcourt pas.
+  if (magLimite === Number.NEGATIVE_INFINITY) return { cellulesRetenues: 0, etoilesExaminees: 0 }
   let cellulesRetenues = 0
   let etoilesExaminees = 0
 

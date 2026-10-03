@@ -322,7 +322,14 @@ function passeFond(passe: Passe): void {
   }
   // §9.5 — la passe de filé passe APRÈS le sol, mais avec le projecteur qui l'ignore : le sol
   // reste peint par-dessus le fond, et aucune trace ne se calcule sous l'horizon (§4.1).
-  entree.passeFile?.(ctx, projecteur)
+  // T-0396 — le filé, ce sont des étoiles : il revient au même fondu qu'elles au crépuscule,
+  // et de jour, où rien ne se verrait, il ne se calcule pas. La passe porte son opacité dans
+  // ses couleurs, elle n'écrit jamais `globalAlpha`.
+  if (passe.apparition > 0) {
+    ctx.globalAlpha = passe.apparition
+    entree.passeFile?.(ctx, projecteur)
+    ctx.globalAlpha = 1
+  }
 }
 
 /** §3.3, T-0110, T-0173 — les repères tracés : constellations, horizon, plan galactique. */

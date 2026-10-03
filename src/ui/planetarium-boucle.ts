@@ -292,6 +292,8 @@ export function useBoucleRendu(entree: {
       // du cadre reste tracé par-dessus, en fin de passe : c'est lui, et lui seul, qui dit ce
       // que le capteur enregistrerait quand tout le ciel file.
       const params = parametresFile.current
+      // T-0396 — de jour, la passe de filé ne se calcule pas : ses compteurs ne survivent pas.
+      if (courant.apparition === 0) derniereFile.sortie = null
       // Ce qui reste alloué par image — le projecteur et sa fermeture, le littéral d'entrée
       // de `dessineCiel`, la fermeture `passeFile`, les cadres — dépend de la vue de cette
       // image et ne se hisse donc pas. C'est une poignée d'objets, contre les milliers que
