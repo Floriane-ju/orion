@@ -80,18 +80,18 @@ const COUCHES: readonly (readonly [keyof CouchesActives, string, string])[] = [
 ]
 
 /**
- * T-0171 — un interrupteur qui ne commande rien doit dire pourquoi. Sous l'aperçu peint sur
- * toute la scène (§9.5), seuls le sol, l'horizon, le cadre matériel et le trait du plan
- * galactique s'ajoutent : ces quatre couches-ci restent éteintes quel que soit leur état.
+ * T-0171 — sous l'aperçu peint sur toute la scène (§9.5), seuls le sol, l'horizon, le cadre
+ * matériel et le trait du plan galactique s'ajoutent : ces quatre couches-ci n'ont aucun effet
+ * en Panorama. Elles y étaient grisées avec une note ; elles quittent désormais le rail, qui ne
+ * garde que ce qui commande l'image affichée. Leur état est conservé : revenir en Ciel profond
+ * les rend telles qu'on les avait laissées.
  */
-const ETEINTES_EN_PANORAMA: readonly (keyof CouchesActives)[] = [
+const ABSENTES_EN_PANORAMA: readonly (keyof CouchesActives)[] = [
   'figures',
   'frontieres',
   'asterismes',
   'voieLactee',
 ]
-
-const NOTE_PANORAMA = 'masqué pendant l’aperçu photo'
 
 /**
  * T-0324 — sous un parcours de pointage, la scène ne garde que le trajet, la cible et le cadre
@@ -221,25 +221,27 @@ export function RailVue(props: RailVueProps) {
 
         <div className="rail-groupe" role="group" aria-label="Couches">
           {COUCHES.map(([cle, glyphe, libelle]) => {
-            const eteintePanorama =
-              modeInterface === 'PANORAMA' && ETEINTES_EN_PANORAMA.includes(cle)
-            const eteinte = parcours || eteintePanorama
+            // Une couche absente reste montée, inerte : c'est ce qui laisse au rail le temps de
+            // la faire glisser hors de la scène au lieu de la retirer d'un coup.
+            const absente = modeInterface === 'PANORAMA' && ABSENTES_EN_PANORAMA.includes(cle)
             return (
-              <Bascule
+              <div
                 key={cle}
-                nom={glyphe}
-                libelle={libelle}
-                aide={aide(
-                  libelle,
-                  notes[cle],
-                  parcours ? NOTE_PARCOURS : eteintePanorama ? NOTE_PANORAMA : undefined,
-                )}
-                actif={couches[cle]}
-                eteinte={eteinte}
-                sur={() =>
-                  majRendu((r) => ({ couches: { ...r.couches, [cle]: !r.couches[cle] } }))
-                }
-              />
+                className="rail-bascule"
+                data-absente={absente}
+                inert={absente}
+              >
+                <Bascule
+                  nom={glyphe}
+                  libelle={libelle}
+                  aide={aide(libelle, notes[cle], parcours ? NOTE_PARCOURS : undefined)}
+                  actif={couches[cle]}
+                  eteinte={parcours}
+                  sur={() =>
+                    majRendu((r) => ({ couches: { ...r.couches, [cle]: !r.couches[cle] } }))
+                  }
+                />
+              </div>
             )
           })}
         </div>

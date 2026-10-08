@@ -1077,6 +1077,31 @@ body {
   pointer-events: auto;
 }
 
+/* Une couche sans effet en Panorama quitte le rail (`RailVue`). Elle reste montée et inerte :
+   sa piste de grille tombe à `0fr` et l'écart qui la précède se résorbe, de sorte que les
+   voisines se resserrent. `0fr` plutôt que `display: none` : c'est ce qui se laisse animer
+   jusqu'à la taille du contenu dans Firefox (voir `.accordeon`). Le bouton est calé au BAS de
+   sa piste : quand elle se referme, il remonte sous son bord haut au lieu de se rogner par
+   les deux côtés à la fois. Le rognage ne vaut que pour la couche absente — posé sur la
+   présente, il couperait sa bulle. */
+.rail-bascule {
+  display: grid;
+  grid-template-rows: 1fr;
+  justify-items: center;
+}
+
+.rail-bascule > * {
+  min-height: 0;
+  align-self: end;
+}
+
+.rail-bascule[data-absente='true'] {
+  grid-template-rows: 0fr;
+  margin-block-start: calc(-1 * var(--pas-2));
+  overflow: hidden;
+  opacity: 0;
+}
+
 /* LE BOUTON-GLYPHE (`BoutonGlyphe.tsx`). Il porte un glyphe, pas un mot : il perd le
    rembourrage d'un bouton de formulaire, mais garde la cible de clic gantée de §11.2. Trois
    variantes, nommées par le fond sur lequel il se pose. */
@@ -1456,6 +1481,24 @@ body {
 
   .coque-rail > .rail-groupe {
     flex-direction: row;
+  }
+
+  /* En rangée, la couche absente se replie en largeur : c'est l'écart qui la PRÉCÈDE sur la
+     ligne qui se résorbe. */
+  .rail-bascule {
+    grid-template-columns: 1fr;
+  }
+
+  .rail-bascule > * {
+    min-width: 0;
+    justify-self: end;
+  }
+
+  .rail-bascule[data-absente='true'] {
+    grid-template-rows: 1fr;
+    grid-template-columns: 0fr;
+    margin-block-start: 0;
+    margin-inline-start: calc(-1 * var(--pas-2));
   }
 
   .carte[data-ouverte='false'] {
@@ -3760,6 +3803,28 @@ button:not(:disabled):active,
    La transition porte la règle de base, pas le survol : sans quoi l'encart s'agrandirait en
    douceur et se rétracterait d'un coup. */
 @media (prefers-reduced-motion: no-preference) {
+  /* La couche qui quitte le rail en Panorama remonte en s'effaçant pendant que ses voisines se
+     resserrent, et redescend au retour. Mouvement de taille : il ne vit qu'ici, hors de quoi
+     elle part et revient d'un coup.
+
+     Au retour, le rognage tient jusqu'à la fin du dépli : levé d'emblée, le bouton déborderait
+     à pleine taille de sa piste encore fermée et chevaucherait son voisin. `overflow` est
+     discret — il bascule à mi-course, d'où le délai d'un dépli entier. Au départ, la règle de
+     la couche absente ne le transite pas : le rognage tombe tout de suite. Un navigateur sans
+     `allow-discrete` lève le rognage d'emblée, sans rien casser. */
+  .rail-bascule {
+    transition: grid-template-rows var(--fondu-depli) var(--courbe),
+      grid-template-columns var(--fondu-depli) var(--courbe),
+      margin var(--fondu-depli) var(--courbe), opacity var(--fondu-depli) var(--courbe),
+      overflow var(--fondu-depli) var(--courbe) var(--fondu-depli) allow-discrete;
+  }
+
+  .rail-bascule[data-absente='true'] {
+    transition: grid-template-rows var(--fondu-depli) var(--courbe),
+      grid-template-columns var(--fondu-depli) var(--courbe),
+      margin var(--fondu-depli) var(--courbe), opacity var(--fondu-depli) var(--courbe);
+  }
+
   /* T-0346 — pendant le survol de la frise, le trait, son prolongement et la bulle GLISSENT
      d'une position à l'autre : quand l'aimant accroche ou relâche, la position saute de
      plusieurs pixels, et sans fondu le trait paraissait se téléporter. Le fondu d'état,
