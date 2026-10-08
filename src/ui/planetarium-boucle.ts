@@ -25,7 +25,8 @@ import {
   positionsInterpolees,
   type EtatEphemerides,
 } from '../core/horloges.ts'
-import { projecteur } from '../core/projection.ts'
+import { projecteur, type Vue } from '../core/projection.ts'
+import type { Mat3 } from '../core/mat3.ts'
 import type { Cadre, ProfilCadre } from '../core/cadre.ts'
 import type { MasqueHorizon } from '../core/site.ts'
 import { Body, type Site } from '../core/ephem.ts'
@@ -40,6 +41,8 @@ import { poseRenduFile, publicateurRenduFile } from './seance-etat.ts'
 import { enTrajet } from './trajet-scene.ts'
 import type { CouchesActives } from './dessine-ciel.ts'
 import { dessineChamp, type ParametresFile, type SortieDessinChamp } from './dessine-champ.ts'
+import { clientFile, creePortFile, type ClientFile } from './file-hors-fil.ts'
+import { etoilesReelles, indexFile } from './file-index.ts'
 import { dessineCiel, type CibleEcran, type SurvolEcran } from './dessine-ciel.ts'
 import type { OptiquePose } from './dessine-pose-cadre.ts'
 import type { LuneEcran, SoleilEcran } from './dessine-fond-ciel.ts'
@@ -218,6 +221,13 @@ export function useBoucleRendu(entree: {
       ? 0
       : R('DUREE_TRANSITION_RELIEF_MS')
     let transitionHorizon: TransitionHorizon | null = null
+    // T-0398 — la passe de filé se peint dans un worker quand la plateforme le permet.
+    const port = creePortFile()
+    const horsFil: ClientFile | null = port === null ? null : clientFile(port)
+    let versionPeinte = 0
+    let catalogueEnvoye: readonly Etoile[] | null = null
+    /** Ce qui décide d'une image de filé : sans changement, aucune demande ne repart. */
+    let derniereDemande: readonly unknown[] = []
 
     const image = (ts: number): void => {
       if (!actif) return
@@ -241,7 +251,10 @@ export function useBoucleRendu(entree: {
       transitionHorizon = versHorizon(transitionHorizon, cibleHorizon, ts, dureeHorizonMs)
       const horizon = horizonA(transitionHorizon, ts, dureeHorizonMs)
       const enTransition = horizon !== transitionHorizon.cible
-      if (enTransition || doitDessiner(peinte, courante)) {
+      // T-0398 — une image de filé reçue du worker se pose sans attendre un autre changement.
+      const recue = horsFil !== null && horsFil.version() !== versionPeinte
+      if (enTransition || recue || doitDessiner(peinte, courante)) {
+        if (horsFil !== null) versionPeinte = horsFil.version()
         dessine(courant, horizon)
         // Pendant la transition, aucune image n'est définitive : la suivante se peint aussi,
         // y compris celle qui pose la cible.
@@ -259,6 +272,43 @@ export function useBoucleRendu(entree: {
         publieFile(rendu === null ? null : { reelles: rendu.etoilesReelles })
         dernierePublication = ts
       }
+    }
+
+    /**
+     * T-0398 — demande au worker l'image de filé de cette vue. Le filtre du sol se refait de
+     * l'autre côté : seul le relief part, pas ses courbes, qui ne servent qu'à peindre le sol.
+     */
+    const demandeFile = (
+      courant: EtatBoucle,
+      params: ParametresFile,
+      vue: Vue,
+      ciel: { readonly matrice: Mat3; readonly epoqueAnnee: number },
+      masque: MasqueHorizon,
+      horizon: readonly number[],
+    ): void => {
+      if (horsFil === null) return
+      const cle = [courant, params, horizon, instant.ms, vue.largeurPx, vue.hauteurPx]
+      if (cle.length === derniereDemande.length && cle.every((v, i) => v === derniereDemande[i])) {
+        return
+      }
+      derniereDemande = cle
+      if (courant.etoiles !== catalogueEnvoye) {
+        horsFil.catalogue(etoilesReelles(courant.etoiles))
+        catalogueEnvoye = courant.etoiles
+      }
+      horsFil.demande({
+        vue,
+        matriceCiel: ciel.matrice,
+        masque: courant.couches.sol
+          ? { altitudesDeg: masque.altitudesDeg, estHypothese: masque.estHypothese }
+          : null,
+        parametres: params,
+        axePoleNord: axePoleDeDate(ciel.epoqueAnnee),
+        latitudeDeg: courant.site.latitudeDeg,
+        sbCiel: courant.sbCiel,
+        vueRealiste: courant.vueRealiste,
+        modeNuit: courant.modeNuit,
+      })
     }
 
     const dessine = (courant: EtatBoucle, horizon: readonly number[]): void => {
@@ -279,13 +329,28 @@ export function useBoucleRendu(entree: {
       const vue = courant.vue
       // §3.5 — le boîtier tourne, la vue non : c'est ce qui rend le contour du cadre mobile
       // à l'écran au lieu de faire tourner tout le ciel derrière un cadre immobile (T-0084).
-      const vueSansRoulis = vuePlanetarium(vue)
+      const vueCourante = vuePlanetarium(vue)
+      const params = parametresFile.current
+      // T-0398 — quand le filé vient du worker, toute la scène se peint avec la vue de l'image
+      // reçue : le sol, le cadre et les traces restent d'un seul tenant sous le geste. Une image
+      // d'une autre définition (canevas redimensionné) ne vaut plus, et de jour la passe ne
+      // demande rien : la vue courante reprend, sans quoi la scène resterait figée.
+      const horsFilActif =
+        params !== null && courant.apparition > 0 && horsFil !== null && !horsFil.enPanne()
+      const derniere = horsFilActif ? horsFil.derniere() : null
+      const recue =
+        derniere !== null &&
+        derniere.vue.largeurPx === vueCourante.largeurPx &&
+        derniere.vue.hauteurPx === vueCourante.hauteurPx
+          ? derniere
+          : null
+      const vueSansRoulis = recue === null ? vueCourante : recue.vue
       const cadres = courant.couches.cadre
         ? courant.profils.map(
             (profil): Cadre => ({
               profil,
-              azimutDeg: vue.azimutDeg,
-              hauteurDeg: vue.hauteurDeg,
+              azimutDeg: vueSansRoulis.azimutDeg,
+              hauteurDeg: vueSansRoulis.hauteurDeg,
               rotationDeg: vue.rotationCadreDeg,
             }),
           )
@@ -294,13 +359,16 @@ export function useBoucleRendu(entree: {
       // ici, avec la vue de CETTE image, et se peint sous les repères et les noms. Le contour
       // du cadre reste tracé par-dessus, en fin de passe : c'est lui, et lui seul, qui dit ce
       // que le capteur enregistrerait quand tout le ciel file.
-      const params = parametresFile.current
       // T-0396 — de jour, la passe de filé ne se calcule pas : ses compteurs ne survivent pas.
       if (courant.apparition === 0) derniereFile.sortie = null
       // Ce qui reste alloué par image — le projecteur et sa fermeture, le littéral d'entrée
       // de `dessineCiel`, la fermeture `passeFile`, les cadres — dépend de la vue de cette
       // image et ne se hisse donc pas. C'est une poignée d'objets, contre les milliers que
       // la boucle par étoile n'alloue plus (T-0065).
+      const masque =
+        horizon === courant.masque.altitudesDeg
+          ? courant.masque
+          : { ...courant.masque, altitudesDeg: horizon, courbesDeg: COURBES_VIDES }
       const sortie = dessineCiel({
         ctx: contexte,
         projecteur: projecteur(vueSansRoulis, ciel.matrice),
@@ -330,29 +398,35 @@ export function useBoucleRendu(entree: {
         ...(courant.lune === null || ciel.corpsMasques ? {} : { lune: courant.lune }),
         ...(courant.soleil === null || ciel.corpsMasques ? {} : { soleil: courant.soleil }),
         latitudeDeg: courant.site.latitudeDeg,
-        masque:
-          horizon === courant.masque.altitudesDeg
-            ? courant.masque
-            : { ...courant.masque, altitudesDeg: horizon, courbesDeg: COURBES_VIDES },
+        masque,
         modeNuit: courant.modeNuit,
         survol: survol.current ?? undefined,
         passeFile:
           params === null
             ? undefined
             : (ctx, proj) => {
-                derniereFile.sortie = dessineChamp({
-                  ...params,
-                  ctx,
-                  // Le projecteur de la scène, filtré du sol : les arcs tombent sur les
-                  // mêmes étoiles que le ciel qui les entoure, et rien ne se peint sous
-                  // l'horizon (§4.1).
-                  projecteur: proj,
-                  axePoleNord: axePoleDeDate(ciel.epoqueAnnee),
-                  latitudeDeg: courant.site.latitudeDeg,
-                  sbCiel: courant.sbCiel,
-                  vueRealiste: courant.vueRealiste,
-                  modeNuit: courant.modeNuit,
-                })
+                if (horsFilActif) {
+                  demandeFile(courant, params, vueCourante, ciel, masque, horizon)
+                  if (recue !== null) {
+                    ctx.drawImage(recue.bitmap, 0, 0)
+                    derniereFile.sortie = recue.sortie
+                  }
+                } else {
+                  derniereFile.sortie = dessineChamp({
+                    ...params,
+                    ...indexFile(courant.etoiles),
+                    ctx,
+                    // Le projecteur de la scène, filtré du sol : les arcs tombent sur les
+                    // mêmes étoiles que le ciel qui les entoure, et rien ne se peint sous
+                    // l'horizon (§4.1).
+                    projecteur: proj,
+                    axePoleNord: axePoleDeDate(ciel.epoqueAnnee),
+                    latitudeDeg: courant.site.latitudeDeg,
+                    sbCiel: courant.sbCiel,
+                    vueRealiste: courant.vueRealiste,
+                    modeNuit: courant.modeNuit,
+                  })
+                }
               },
       })
       cibles.current = sortie.cibles
@@ -362,6 +436,7 @@ export function useBoucleRendu(entree: {
     return () => {
       actif = false
       cancelAnimationFrame(id)
+      horsFil?.ferme()
     }
   }, [canevas, etat, instant, parametresFile, survol])
 

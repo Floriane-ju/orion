@@ -18,7 +18,7 @@ import { Coque } from './ui/Coque.tsx'
 import { Planetarium } from './ui/Planetarium.tsx'
 import { PanneauMateriel } from './ui/PanneauMateriel.tsx'
 import { useTrancheScene, type EtatScene } from './ui/scene-etat.ts'
-import { ouvreCible, planDeSeance, relieCible, useSeance } from './ui/seance-etat.ts'
+import { cibleSeance, ouvreCible, relieCible, useTrancheSeance } from './ui/seance-etat.ts'
 import { BarreHaut } from './ui/BarreHaut.tsx'
 import { BoutonInfo, PageInfo } from './ui/PageInfo.tsx'
 import { PanneauTemps } from './ui/PanneauTemps.tsx'
@@ -122,16 +122,15 @@ function AppPrete({
 
   // Pointage, temps et intention : les deux magasins que la scène et les panneaux partagent.
   const anneeEpoque = useTrancheScene(epoqueAffichee)
-  const seance = useSeance()
-  const cibleDuCiel = seance.cible
+  // T-0398 — la cible seule : la pose max du Panorama change à chaque mouvement de la visée,
+  // et s'abonner à toute la séance re-rendait l'application entière sous le geste.
+  const cibleDuCiel = useTrancheSeance(cibleSeance)
 
   const chaine = useChaineCalcul({
     lieu,
     materiel,
     catalogue: catalogues.objets,
     index: catalogues.index,
-    // §9.2 — la profondeur est celle d'UNE pose : la photo entière, ou une pose du filé.
-    tPoseFileS: planDeSeance(seance).tPoseS.value,
     poids: poids.poids,
   })
   const { calcul, ciel } = chaine

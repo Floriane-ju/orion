@@ -301,7 +301,6 @@ export function Planetarium(props: PlanetariumProps) {
   // T-0116 — le filé se peint dans la boucle, sur toute la scène : ce hook ne fournit plus que
   // ce qu'il tient du matériel et du panneau. La vue, le fond et le pôle viennent de l'image.
   const parametresFile = useParametresFile({
-    etoiles: props.etoiles,
     mode,
     seance,
     materiel: props.file,

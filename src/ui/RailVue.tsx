@@ -36,7 +36,7 @@ import {
   type EtatScene,
   vueRealisteScene,
 } from './scene-etat.ts'
-import { useSeance } from './seance-etat.ts'
+import { modeSeance, useTrancheSeance } from './seance-etat.ts'
 
 export interface RailVueProps {
   /** §5.1 — la projection de l'objectif déclaré au panneau matériel, pas un réglage de rendu. */
@@ -144,7 +144,7 @@ export function RailVue(props: RailVueProps) {
   const vueRealiste = useTrancheScene(vueRealisteScene)
   const cibleDuParcours = useTrancheScene(cibleParcours)
   const parcours = cibleDuParcours !== null
-  const { mode: modeInterface } = useSeance()
+  const modeInterface = useTrancheSeance(modeSeance)
 
   /* Les bornes de champ sont une propriété de la PROJECTION (`fovMaxSelonMode`), et leur
      plancher une propriété du paquet chargé : la cause se lit donc sur les deux boutons qui

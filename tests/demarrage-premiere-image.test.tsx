@@ -7,7 +7,8 @@
  *     au-dessus de l'attente, donc son effet est planifié par le premier rendu, celui qui
  *     affiche « Lecture des données enregistrées… », et non par le rendu d'après.
  *   - en mode Ciel profond, l'index de l'aperçu Panorama n'est pas construit. Il l'était au
- *     démarrage, pour un aperçu que personne n'avait ouvert.
+ *     démarrage, pour un aperçu que personne n'avait ouvert. T-0398 : il ne l'est plus du tout
+ *     dans un rendu React — il se construit là où la passe de filé peint (`file-index.ts`).
  *
  * `fake-indexeddb` sert à tenir la relecture en suspens : sans base, la saisie n'a rien à
  * restaurer et la coque passerait directement à l'écran complet.
@@ -18,7 +19,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { App } from '../src/App.tsx'
 import type { Etoile } from '../src/data/catalog.ts'
-import { useIndexReel, useParametresFile } from '../src/ui/planetarium-panorama.ts'
+import { useParametresFile } from '../src/ui/planetarium-panorama.ts'
+import { indexFile } from '../src/ui/file-index.ts'
 import { etatSeance } from '../src/ui/seance-etat.ts'
 import { construitIndex } from '../src/core/index-ciel.ts'
 import * as donnees from '../src/ui/app-donnees.ts'
@@ -46,14 +48,8 @@ describe('T-0296 — les catalogues partent avec la relecture de la saisie', () 
 })
 
 describe('T-0296 — l’index de Panorama n’est construit qu’en Panorama', () => {
-  /** Une sonde : elle ne fait qu'appeler le crochet et publier ce qu'il rend. */
-  function Sonde({ actif }: { readonly actif: boolean }) {
-    return <p>{useIndexReel(ETOILES, actif).nombreEtoiles}</p>
-  }
-
-  function SondeParametres({ etoiles }: { readonly etoiles: readonly Etoile[] }) {
+  function SondeParametres() {
     const parametres = useParametresFile({
-      etoiles,
       mode: etatSeance().mode,
       seance: etatSeance(),
       materiel: undefined,
@@ -61,22 +57,19 @@ describe('T-0296 — l’index de Panorama n’est construit qu’en Panorama', 
     return <p>{parametres.current === null ? 'aucun' : 'des paramètres'}</p>
   }
 
-  it('hors Panorama, aucune indexation et un index vide', () => {
+  it('la passe de filé indexe un catalogue une seule fois, quel que soit le nombre d’images', () => {
     vi.mocked(construitIndex).mockClear()
-    expect(renderToStaticMarkup(<Sonde actif={false} />)).toContain('0')
-    expect(construitIndex).not.toHaveBeenCalled()
-  })
-
-  it('en Panorama, le catalogue est bien indexé', () => {
-    vi.mocked(construitIndex).mockClear()
-    expect(renderToStaticMarkup(<Sonde actif />)).toContain(String(ETOILES.length))
-    expect(construitIndex).toHaveBeenCalledOnce()
+    const premiere = indexFile(ETOILES)
+    expect(premiere.indexReel.nombreEtoiles).toBe(ETOILES.length)
+    expect(indexFile(ETOILES)).toEqual(premiere)
+    // Le catalogue réel, puis le semis : deux constructions, et aucune à l'image suivante.
+    expect(construitIndex).toHaveBeenCalledTimes(2)
   })
 
   it('le mode Ciel profond de la séance n’indexe rien du tout', () => {
     expect(etatSeance().mode).toBe('CIEL_PROFOND')
     vi.mocked(construitIndex).mockClear()
-    expect(renderToStaticMarkup(<SondeParametres etoiles={ETOILES} />)).toContain('aucun')
+    expect(renderToStaticMarkup(<SondeParametres />)).toContain('aucun')
     expect(construitIndex).not.toHaveBeenCalled()
   })
 })

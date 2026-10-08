@@ -20,7 +20,7 @@
 
 import type { ReactNode, RefObject } from 'react'
 import { BoutonGlyphe } from './BoutonGlyphe.tsx'
-import { poseMode, useSeance, type ModeInterface } from './seance-etat.ts'
+import { modeSeance, poseMode, useTrancheSeance, type ModeInterface } from './seance-etat.ts'
 
 /**
  * Les deux positions, dans l'ordre de la rangée. L'ordre est un contrat : le défaut d'abord, à
@@ -48,7 +48,7 @@ export interface PanneauLateralProps {
 }
 
 export function PanneauLateral(props: PanneauLateralProps) {
-  const { mode } = useSeance()
+  const mode = useTrancheSeance(modeSeance)
   return (
     <aside className="coque-lateral" id="panneau-lateral" aria-label="Panneau de séance">
       {/* §11.3 — le commutateur de premier rang. `aria-pressed` plutôt qu'`aria-expanded` :

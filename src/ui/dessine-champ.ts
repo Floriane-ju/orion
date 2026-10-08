@@ -50,10 +50,6 @@ const MARQUEUR_POLE_PX = 14
  * l'axe du pôle, eux, appartiennent à l'image que la boucle est en train de peindre (T-0116).
  */
 export interface ParametresFile {
-  /** Catalogue réel : couche 1, positions exactes jusqu'au seuil catalographié. */
-  readonly indexReel: IndexCiel
-  /** Semis génératif : couche 2, au-delà du seuil. */
-  readonly indexSemis: IndexCiel
   /** Profondeur atteinte par la pose unitaire (§9.2) : borne de sélection du catalogue. */
   readonly magLimite: number
   /** Entrées de profondeur, réévaluées par étoile avec sa pose par pixel réelle (§9.3). */
@@ -85,6 +81,10 @@ export interface ParametresFile {
 }
 
 export interface EntreeDessinChamp extends ParametresFile {
+  /** Catalogue réel : couche 1, positions exactes jusqu'au seuil catalographié. */
+  readonly indexReel: IndexCiel
+  /** Semis génératif : couche 2, au-delà du seuil. */
+  readonly indexSemis: IndexCiel
   readonly ctx: CanvasRenderingContext2D
   readonly projecteur: Projecteur
   /** Direction J2000 du pôle céleste nord de l'époque : centre exact des arcs (§9.3). */

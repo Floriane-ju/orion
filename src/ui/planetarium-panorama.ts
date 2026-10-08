@@ -10,40 +10,18 @@
  * retiré le dernier report de geste : plus de signature à surveiller, plus d'attente à annoncer.
  */
 
-import { useMemo, useRef, type RefObject } from 'react'
+import { useRef, type RefObject } from 'react'
 import { K } from '../registry/constants.ts'
-import { semisGeneratif } from '../data/semis.ts'
 import { magnitudeLimitePrevisu } from '../core/galactique.ts'
-import { INDEX_VIDE, construitIndex, type IndexCiel } from '../core/index-ciel.ts'
-import type { Etoile } from '../data/catalog.ts'
 import { planDeSeance, type EtatSeance, type ModeInterface } from './seance-etat.ts'
 import type { ParametresFile } from './dessine-champ.ts'
 import type { MaterielFile } from './planetarium-materiel.ts'
 
 
 export interface EntreeParametresFile {
-  readonly etoiles: readonly Etoile[]
   readonly mode: ModeInterface
   readonly seance: Pick<EtatSeance, 'file' | 'poseMaxCadreS'>
   readonly materiel: MaterielFile | undefined
-}
-
-/**
- * L'index des étoiles réellement catalographiées sous le seuil de §9.3 : au-delà, c'est le
- * semis génératif qui garnit le champ, et il n'est construit qu'à la première passe de filé.
- *
- * T-0296 — `actif` est faux hors Panorama, et l'index n'est alors pas construit. Il l'était
- * au démarrage, dans un mode qui ne s'en sert pas : une seconde indexation du catalogue
- * entier, payée sur le fil principal pour un aperçu que personne n'avait ouvert.
- */
-export function useIndexReel(etoiles: readonly Etoile[], actif: boolean): IndexCiel {
-  return useMemo(
-    () =>
-      actif
-        ? construitIndex(etoiles.filter((e) => e.magV <= K('SEUIL_MAG_ETOILES_REELLES')))
-        : INDEX_VIDE,
-    [etoiles, actif],
-  )
 }
 
 /**
@@ -55,22 +33,22 @@ export function useParametresFile(
 ): RefObject<ParametresFile | null> {
   const { seance, materiel } = entree
   const enPanorama = entree.mode === 'PANORAMA'
-  const indexReel = useIndexReel(entree.etoiles, enPanorama)
   const parametres = useRef<ParametresFile | null>(null)
-  const indexSemis = useRef<IndexCiel | null>(null)
 
   if (!enPanorama || materiel === undefined) {
     parametres.current = null
     return parametres
   }
-  const apercu = planDeSeance(seance).mode
-  // Le semis n'est construit qu'à la première passe : sans elle, il ne sert à rien.
-  indexSemis.current ??= construitIndex(semisGeneratif())
+  const plan = planDeSeance(seance)
+  const apercu = plan.mode
+  // T-0398 — la pose unitaire se joint ici, où la séance se lit déjà : la chaîne de
+  // l'application n'a plus à se recalculer quand la pose max suit la visée.
+  const profondeur = { ...materiel.profondeur, tPoseS: plan.tPoseS.value }
+  // T-0398 — ni catalogue ni semis ici : les index se construisent là où la passe peint
+  // (`file-index.ts`), dans le worker quand il existe.
   parametres.current = {
-    indexReel,
-    indexSemis: indexSemis.current,
-    magLimite: magnitudeLimitePrevisu(materiel.profondeur).value,
-    profondeur: materiel.profondeur,
+    magLimite: magnitudeLimitePrevisu(profondeur).value,
+    profondeur,
     echApx: materiel.echApx,
     // En panorama, la monture est réputée coupée : le ciel tourne, dans le filé comme dans
     // l'aperçu de champ, quel que soit le suivi déclaré au matériel.

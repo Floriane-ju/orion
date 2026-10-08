@@ -5,10 +5,13 @@ import type { OptiquePose } from './dessine-pose-cadre.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { ModeInterface, VueCibles } from './seance-etat.ts'
 
+/** §9.2 — la profondeur d'une pose, sans la pose : elle se joint là où la séance se lit. */
+export type ProfondeurSansPose = Omit<EntreeProfondeur, 'tPoseS'>
+
 export interface MaterielFile {
   /** §9.1 / T-0142 — ce dont la carte de pose a besoin quand elle se peint dans le cadre. */
   readonly optique: OptiquePose
-  readonly profondeur: EntreeProfondeur
+  readonly profondeur: ProfondeurSansPose
   readonly echApx: number
   readonly sbCiel: number
 }

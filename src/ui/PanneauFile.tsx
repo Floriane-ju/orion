@@ -12,8 +12,8 @@
 
 import type { ModeProjection } from '../core/projection.ts'
 import type { Site } from '../core/ephem.ts'
-import { useScene } from './scene-etat.ts'
-import { useSeance } from './seance-etat.ts'
+import { useTrancheScene, vueScene } from './scene-etat.ts'
+import { fileSeance, useTrancheSeance } from './seance-etat.ts'
 import { useLecturesFile } from './panneau-file-lectures.ts'
 import {
   SequenceDePrises,
@@ -36,8 +36,8 @@ export interface PanneauFileProps {
 
 export function PanneauFile(props: PanneauFileProps) {
   // Le pointage est celui de la scène : cadrer ici cadre le planétarium de §3, et l'inverse.
-  const { vue } = useScene()
-  const { file } = useSeance()
+  const vue = useTrancheScene(vueScene)
+  const file = useTrancheSeance(fileSeance)
   const lectures = useLecturesFile(props, vue, file)
 
   return (

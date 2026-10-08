@@ -38,7 +38,13 @@ import { PlanSessionVue } from './PlanSession.tsx'
 import { RegionNuit } from './RegionNuit.tsx'
 import { CarteNuit, type CarteNuitProps } from './CarteNuit.tsx'
 import { modeObjectif } from '../core/optics.ts'
-import { montreListeCibles, useSeance, type VueCibles } from './seance-etat.ts'
+import {
+  modeSeance,
+  montreListeCibles,
+  useTrancheSeance,
+  vueCiblesSeance,
+  type VueCibles,
+} from './seance-etat.ts'
 import { AIDE_MATERIEL_INCOMPLET } from './Inconnu.tsx'
 import type { SaisieLieu, SaisieMateriel } from './app-saisie.ts'
 import { RECALCUL_EN_COURS, type ChaineCalcul } from './app-calcul.ts'
@@ -213,7 +219,8 @@ function RappelFacilite({ etat }: { readonly etat: EtatCible }) {
  */
 export function LateralSeance(props: RegionSeanceProps) {
   const { chaine, catalogue } = props
-  const { mode, vueCibles } = useSeance()
+  const mode = useTrancheSeance(modeSeance)
+  const vueCibles = useTrancheSeance(vueCiblesSeance)
 
   /* §3.4 — la fiche n'existe que sur une cible désignée : `ouvreCible` pose les deux d'un
      coup, et rien d'autre ne mène ici. */

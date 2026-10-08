@@ -12,7 +12,7 @@
  * en rendu serveur que dans le navigateur, et se teste sans DOM.
  */
 
-import { useSyncExternalStore } from 'react'
+import { useCallback, useSyncExternalStore } from 'react'
 import { K } from '../registry/constants.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { majTemps } from './scene-etat.ts'
@@ -285,4 +285,38 @@ export function reinitialiseSeance(): void {
 
 export function useSeance(): EtatSeance {
   return useSyncExternalStore(abonne, etatSeance, etatSeance)
+}
+
+/**
+ * T-0398 — s'abonner à une tranche de la séance plutôt qu'à sa totalité, comme
+ * `useTrancheScene` (T-0056) le fait pour la scène.
+ *
+ * En Panorama, la pose max suit la déclinaison visée et se republie à chaque mouvement :
+ * chaque abonné à `useSeance` se re-rendait avec elle, la racine de l'application comprise.
+ * Le sélecteur doit être défini au niveau du module et rendre une valeur comparable par
+ * `Object.is` — c'est ce que `useSyncExternalStore` compare pour sauter un rendu.
+ */
+export function useTrancheSeance<T>(selecteur: (etat: EtatSeance) => T): T {
+  const lit = useCallback(() => selecteur(etatSeance()), [selecteur])
+  return useSyncExternalStore(abonne, lit, lit)
+}
+
+export function cibleSeance(etat: EtatSeance): ObjetCielProfond | null {
+  return etat.cible
+}
+
+export function modeSeance(etat: EtatSeance): ModeInterface {
+  return etat.mode
+}
+
+export function vueCiblesSeance(etat: EtatSeance): VueCibles {
+  return etat.vueCibles
+}
+
+export function fileSeance(etat: EtatSeance): ReglagesFile {
+  return etat.file
+}
+
+export function ficheSeance(etat: EtatSeance): ReglagesFiche {
+  return etat.fiche
 }

@@ -225,7 +225,6 @@ function rendu([lieuSaisi, materielSaisi]: Saisie): void {
     materiel: materielSaisi,
     catalogue: CATALOGUE,
     index: INDEX,
-    tPoseFileS: 30,
     poids: POIDS,
   })
 }

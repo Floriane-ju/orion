@@ -32,7 +32,7 @@ import {
 import { profilOptique, type ProfilOptique } from '../core/optics.ts'
 import { fluxCiel } from '../core/exposure.ts'
 import type { IndexCiel } from '../core/index-ciel.ts'
-import type { EntreeProfondeur } from '../core/galactique.ts'
+import type { ProfondeurSansPose } from './planetarium-materiel.ts'
 import { npf, profilSuivi, type ProfilSuivi } from '../core/suivi.ts'
 import { BortleHorsTableError } from '../registry/bortle.ts'
 import { SaisieRefuseeError } from '../registry/domains.ts'
@@ -173,8 +173,6 @@ export interface EntreeChaine {
    * les catalogues (`app-donnees.ts`), par tranches.
    */
   readonly index: IndexCiel
-  /** §9.2 — la pose unitaire du filé, réglée dans le panneau du même nom. */
-  readonly tPoseFileS: number
   /** §8.3 — les poids C-15 tels qu'ils sont réglés ; le moteur les normalise. */
   readonly poids: PoidsScoring
 }
@@ -239,7 +237,7 @@ export function grandeursMateriel(materiel: SaisieMateriel): GrandeursMateriel {
 }
 
 export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
-  const { lieu, materiel, catalogue, index, tPoseFileS, poids } = entree
+  const { lieu, materiel, catalogue, index, poids } = entree
 
   // §8.3 — lue ici plutôt que reçue en prop : la sélection n'a aucun ancêtre commun avec les
   // deux boutons qui la composent, et la faire descendre depuis l'application n'ajouterait
@@ -347,13 +345,13 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
   )
 
   /**
-   * §9.2 — profondeur atteinte par la pose unitaire. Assemblée ici parce que deux régions en
-   * dépendent : le panneau du filé, qui la chiffre, et la scène, qui l'incruste dans le cadre.
+   * §9.2 — ce qui fixe la profondeur d'une pose, la pose exceptée. T-0398 : la pose unitaire
+   * suit la pose max du cadre, donc la déclinaison visée ; elle se joint dans la scène, qui
+   * lit la séance, et un panoramique ne remonte plus jusqu'à la chaîne de l'application.
    */
-  const profondeurFile: EntreeProfondeur | null = useMemo(() => {
+  const profondeurFile: ProfondeurSansPose | null = useMemo(() => {
     if (!calcul.ok || !ciel.ok) return null
     return {
-      tPoseS: tPoseFileS,
       dMm: calcul.optique.dMm.value,
       zpSys: calcul.zeroSysteme.valeur,
       eCielPxS: fluxCiel({
@@ -366,7 +364,7 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
       readNoiseE: calcul.iso.readNoiseE ?? K('READ_NOISE_DEFAUT_E'),
       zpEstime: calcul.zeroSysteme.estime,
     }
-  }, [calcul, ciel, tPoseFileS])
+  }, [calcul, ciel])
 
   /**
    * Ce que la scène doit savoir du filé pour l'incruster dans le cadre.

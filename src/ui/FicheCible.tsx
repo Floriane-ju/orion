@@ -29,7 +29,7 @@ import { nuitFiche } from './fiche-cible-creneau.ts'
 import { evalue, type ContexteFiche, type Resultat } from './fiche-cible-calcul.ts'
 import { Mention } from './Mention.tsx'
 import { Etiquette } from './Terme.tsx'
-import { majFiche, useSeance } from './seance-etat.ts'
+import { ficheSeance, majFiche, useTrancheSeance } from './seance-etat.ts'
 
 import { LIBELLE_TYPE_OBJET, nomCommun } from './libelles-objet.ts'
 
@@ -113,7 +113,7 @@ function Resume({
 
 export function FicheCible(props: FicheCibleProps) {
   // T-0362 — les réglages de la fiche vivent dans la séance : ils survivent au rechargement.
-  const { snrCible, permissif } = useSeance().fiche
+  const { snrCible, permissif } = useTrancheSeance(ficheSeance)
 
   const objet = props.objet
   const iso = props.iso
