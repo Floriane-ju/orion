@@ -112,9 +112,8 @@ export function opaciteEtoile(magV: number, magLimite: number): number {
 }
 
 export interface EntreeTableProfondeur {
+  /** Sa `tPoseS` est la pose UNITAIRE de la séquence : c'est elle qu'un pixel voit (T-0400). */
   readonly profondeur: EntreeProfondeur
-  /** Durée d'accumulation, en secondes. */
-  readonly dureeS: number
   /** Échantillonnage du capteur, en secondes d'arc par pixel. */
   readonly echApx: number
   /** Suivi actif : le pixel reçoit toute la pose, la déclinaison n'y change rien. */
@@ -140,12 +139,22 @@ export function tableProfondeurParPixel(entree: EntreeTableProfondeur): Float64A
     const decDeg = (Math.asin(z) * DEMI_TOUR_DEG) / Math.PI
     table[i] = magnitudeLimitePrevisu({
       ...entree.profondeur,
-      tPoseS: entree.suiviActif
-        ? entree.dureeS
-        : poseParPixelS(entree.dureeS, entree.echApx, decDeg),
+      tPoseS: poseParPixel(entree, decDeg),
+      tFondS: entree.profondeur.tPoseS,
     }).value
   }
   return table
+}
+
+/**
+ * T-0400 — pose vue par un pixel dans UNE pose unitaire. Le filé est une séquence empilée en
+ * éclaircir : l'image garde le maximum des poses, elle n'en additionne pas le signal. Une étoile
+ * près du pôle, qui ne quitte pas son pixel, n'y reçoit donc qu'une pose unitaire — pas huit
+ * heures. Le fond, lui, s'accumule sur toute la pose unitaire, que l'étoile soit passée ou non.
+ */
+export function poseParPixel(entree: EntreeTableProfondeur, decDeg: number): number {
+  const tPoseS = entree.profondeur.tPoseS
+  return entree.suiviActif ? tPoseS : poseParPixelS(tPoseS, entree.echApx, decDeg)
 }
 
 /** Lecture de la table : `z` est la composante polaire de la direction, dans [−1, 1]. */
@@ -155,7 +164,14 @@ export function profondeurPourZ(table: Float64Array, z: number): number {
 }
 
 export interface EntreeProfondeur {
+  /** Temps pendant lequel la source éclaire le pixel, en secondes. */
   readonly tPoseS: number
+  /**
+   * T-0400 — temps pendant lequel le FOND s'accumule dans le pixel, en secondes. Absent : celui
+   * de la source, comme pour une étoile ponctuelle. Une trace ne reste sur un pixel qu'une
+   * fraction de la pose ; le ciel, toute la pose.
+   */
+  readonly tFondS?: number
   /** Diamètre de pupille, en millimètres : c'est lui qui fixe le flux d'une source ponctuelle. */
   readonly dMm: number
   readonly zpSys: number
@@ -172,20 +188,34 @@ export interface EntreeProfondeur {
  * brillance m : le point zéro système suffit donc à la chiffrer, et la dépendance au seul
  * diamètre de pupille tombe de l'algèbre, elle n'est pas posée.
  */
-export function magnitudeLimitePrevisu(entree: EntreeProfondeur): Traced<number> {
+/**
+ * La même profondeur, en nombre nu, pour la passe de filé qui l'évalue étoile par étoile sous la
+ * Lune (T-0400) : ni objet de trace, ni littéral d'entrée par étoile. `magnitudeLimitePrevisu`
+ * en est l'unique autre appelant, donc la formule ne s'écrit qu'ici.
+ */
+export function magnitudeLimiteNue(
+  profondeur: EntreeProfondeur,
+  tSourceS: number,
+  tFondS: number,
+  eCielPxS: number,
+): number {
   const snr = K('SNR_DETECTION_PREVISU')
-  const nPx = K('PIXELS_PSF_ETOILE')
-  const bruit = nPx * (entree.eCielPxS * entree.tPoseS + entree.readNoiseE ** 2)
+  const bruit = K('PIXELS_PSF_ETOILE') * (eCielPxS * tFondS + profondeur.readNoiseE ** 2)
   // Solution positive de x² − S² x − S² × bruit = 0, avec x le nombre d'électrons collectés.
   const demi = snr ** 2 / 2
   const electrons = demi + Math.sqrt(demi ** 2 + snr ** 2 * bruit)
-  const fluxSeuil = electrons / entree.tPoseS
-  const conversion = K('RADIAN_EN_ARCSEC') / (UM_PAR_MM * entree.dMm)
+  const fluxSeuil = electrons / tSourceS
+  const conversion = K('RADIAN_EN_ARCSEC') / (UM_PAR_MM * profondeur.dMm)
+  return profondeur.zpSys - K('POGSON') * Math.log10(fluxSeuil * conversion ** 2)
+}
+
+export function magnitudeLimitePrevisu(entree: EntreeProfondeur): Traced<number> {
   return trace({
-    value: entree.zpSys - K('POGSON') * Math.log10(fluxSeuil * conversion ** 2),
+    value: magnitudeLimiteNue(entree, entree.tPoseS, entree.tFondS ?? entree.tPoseS, entree.eCielPxS),
     formula: 'MAGNITUDE_LIMITE_PREVISU',
     inputs: {
       t_pose_s: entree.tPoseS,
+      t_fond_s: entree.tFondS ?? entree.tPoseS,
       d_mm: entree.dMm,
       zp_sys: entree.zpSys,
       e_ciel_px_s: entree.eCielPxS,

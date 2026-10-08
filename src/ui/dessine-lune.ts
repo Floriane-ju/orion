@@ -107,3 +107,49 @@ export function dessineLune(
   }
   ctx.restore()
 }
+
+/**
+ * T-0399 — la trace de la Lune sur une pose à monture coupée : une bande de la largeur du
+ * disque, pleine teinte. La Lune sature le capteur en une fraction de seconde ; aucune pose
+ * ne l'estompe, contrairement à une étoile dont la trace s'éteint avec la pose par pixel.
+ *
+ * La polyligne se rompt sur tout point que le projecteur refuse — sous le relief quand il est
+ * filtré du sol, derrière l'observateur sinon. Retourne la longueur projetée, en pixels : sous
+ * le rayon, la trace n'est pas lisible et l'appelant peint le disque en phase à la place.
+ */
+export function dessineTrajetLune(
+  ctx: CanvasRenderingContext2D,
+  projecteur: Projecteur,
+  points: readonly Vec3[],
+  r: number,
+  teinte: string,
+): number {
+  const q = pointEcran()
+  ctx.beginPath()
+  let longueur = 0
+  let precedent: PointEcran | null = null
+  for (const v of points) {
+    if (!projecteur.projetteEn(v.x, v.y, v.z, q)) {
+      precedent = null
+      continue
+    }
+    if (precedent === null) ctx.moveTo(q.xPx, q.yPx)
+    else {
+      ctx.lineTo(q.xPx, q.yPx)
+      longueur += Math.hypot(q.xPx - precedent.xPx, q.yPx - precedent.yPx)
+    }
+    precedent = { xPx: q.xPx, yPx: q.yPx }
+  }
+  if (longueur > r) {
+    ctx.strokeStyle = teinte
+    ctx.lineWidth = 2 * r
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.stroke()
+    // Rendus aux valeurs par défaut : les passes suivantes tracent au trait fin.
+    ctx.lineWidth = 1
+    ctx.lineCap = 'butt'
+    ctx.lineJoin = 'miter'
+  }
+  return longueur
+}

@@ -262,7 +262,8 @@ export const FORMULES = Object.freeze({
   MAGNITUDE_LIMITE_PREVISU: {
     expression:
       'm_lim = zp_sys − 2,5 × log10( F_seuil × (206 265 / (1000 × D_mm))² ) · ' +
-      'F_seuil × t = ( S² + √(S⁴ + 4 S² n_px (E_ciel t + RN²)) ) / 2',
+      'F_seuil × t = ( S² + √(S⁴ + 4 S² n_px (E_ciel t_fond + RN²)) ) / 2 · ' +
+      't_fond = t pour une étoile ponctuelle, la pose unitaire pour une trace (T-0400)',
     unite: 'mag',
     section: '9.2',
     note: 'Dépend de la pose, de l’ouverture et du ciel.',

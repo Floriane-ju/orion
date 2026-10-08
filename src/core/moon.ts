@@ -107,7 +107,7 @@ export function nanolamberts(sbMagArcsec2: number): number {
 }
 
 /** Illuminance hors atmosphère de la Lune à l'angle de phase donné. */
-function illuminanceLune(anglePhaseDeg: number): number {
+export function illuminanceLune(anglePhaseDeg: number): number {
   const a = Math.abs(anglePhaseDeg)
   const magnitude =
     K('KS_MAGNITUDE_LUNE_PLEINE') + K('KS_COEF_PHASE') * a + K('KS_COEF_PHASE_4') * (a * a) ** 2

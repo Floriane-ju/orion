@@ -18,6 +18,7 @@
  * empiler.
  */
 
+import type { LuneFile } from '../core/fond-lune-file.ts'
 import type { Mat3, Vec3 } from '../core/mat3.ts'
 import type { Vue } from '../core/projection.ts'
 import type { MasqueHorizon } from '../core/site.ts'
@@ -36,6 +37,8 @@ export interface DemandeImageFile {
   readonly sbCiel: number
   readonly vueRealiste: boolean
   readonly modeNuit: boolean
+  /** T-0400 — la Lune retenue pour la séance, ou `null` : vue non réaliste, ou Lune couchée. */
+  readonly lune: LuneFile | null
 }
 
 export type MessageVersFile =

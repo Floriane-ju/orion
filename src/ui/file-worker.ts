@@ -52,6 +52,7 @@ portee.onmessage = ({ data }) => {
     sbCiel: d.sbCiel,
     vueRealiste: d.vueRealiste,
     modeNuit: d.modeNuit,
+    lune: d.lune,
   })
   const bitmap = toile.transferToImageBitmap()
   portee.postMessage({ type: 'image', bitmap, sortie, vue: d.vue }, [bitmap])

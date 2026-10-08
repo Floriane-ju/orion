@@ -308,6 +308,7 @@ function mesure(cas: Cas, indexReel: IndexCiel, indexSemis: IndexCiel): void {
       magLimite,
       profondeur,
       echApx: cas.profil.echApx,
+      sbSiteMag: 21.0,
       suiviActif: false,
       sbCiel: 21.0,
       dureeS: cas.dureeMin * S_PAR_MIN,

@@ -71,7 +71,7 @@ import {
   type LuneEcran,
   type SoleilEcran,
 } from './dessine-fond-ciel.ts'
-import { angleLimbeEclaireRad, dessineLune, rayonLunePx } from './dessine-lune.ts'
+import { angleLimbeEclaireRad, dessineLune, dessineTrajetLune, rayonLunePx } from './dessine-lune.ts'
 import type { OptiquePose } from './dessine-pose-cadre.ts'
 import {
   dessineCarteDansCadre,
@@ -190,6 +190,11 @@ export interface EntreeDessin {
   readonly passeFile?:
     | ((ctx: CanvasRenderingContext2D, projecteur: Projecteur) => void)
     | undefined
+  /**
+   * T-0399 — la Lune aux instants de la prise de vue, de l'instant affiché à la fin du filé.
+   * Lue seulement sous l'aperçu : la pose à monture coupée y étire le disque en trace.
+   */
+  readonly trajetLune?: readonly PositionCorps[] | undefined
   /**
    * §9.1 / T-0142 — l'optique dont la carte de pose a besoin. Présente : le cadre matériel est
    * masqué et garni de la grille de §9.1, en dernier, par-dessus tout ce qu'il recouvre.
@@ -557,6 +562,32 @@ function passeObjets(passe: Passe): void {
   ctx.lineWidth = 1
 }
 
+/**
+ * T-0399 — sous l'aperçu de filé, la Lune reste peinte : sa trace est ce qui ruine la pose.
+ * Elle se juge sur TOUT le trajet, pas sur la Lune de l'instant : une Lune encore sous l'horizon
+ * ou hors du champ peut s'y lever ou y entrer avant la fin du filé. Trop courte pour se lire,
+ * la trace redevient le disque en phase, comme une étoile ponctuelle.
+ */
+function passeTrajetLune(passe: Passe): void {
+  const { entree, teintes, peintReperes, p } = passe
+  const { ctx, projecteur } = entree
+  if (peintReperes || entree.trajetLune === undefined) return
+  const versJ2000 = transpose(entree.matriceCiel)
+  const versCiel = (c: PositionCorps) => applique(versJ2000, versVecteur(c.azimutDeg, c.hauteurDeg))
+  const points = entree.trajetLune.map(versCiel)
+  // Le rayon se mesure sur le premier point visible : le diamètre apparent ne varie pas d'une
+  // quantité lisible sur la durée d'un filé.
+  const premier = points.find((v) => projecteur.projetteEn(v.x, v.y, v.z, p))
+  if (premier === undefined) return
+  const r = rayonLunePx(projecteur, premier, p, entree.lune?.demiDiametreDeg ?? null)
+  if (dessineTrajetLune(ctx, projecteur, points, r, teintes.lune) > r) return
+  const debut = points[0]!
+  if (!projecteur.projetteEn(debut.x, debut.y, debut.z, p)) return
+  const soleil = entree.corps.find((c) => c.corps === Body.Sun)
+  const angle = soleil === undefined ? null : angleLimbeEclaireRad(projecteur, debut, versCiel(soleil), p)
+  dessineLune(ctx, p, r, angle, entree.lune?.anglePhaseDeg ?? null, teintes)
+}
+
 /** §3.4 — les corps mobiles, dont les noms passent avant tous les autres. */
 function passeCorps(passe: Passe): void {
   const { entree, teintes, peintReperes, largeur, hauteur, p, cibles, candidats } = passe
@@ -808,6 +839,7 @@ export function dessineCiel(entreeBrute: EntreeDessin): SortieDessin {
   const pixelsNommes = passeEtoilesNommees(passe)
   passeObjets(passe)
   passeCorps(passe)
+  passeTrajetLune(passe)
   passeNomsVoieLactee(passe, labelCentreGalactique)
   passeNomsConstellations(passe)
   // §3.5, §9.1 — le cadre matériel encadre tout le reste : son contour avec les repères, sa

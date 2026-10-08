@@ -35,6 +35,7 @@ import {
   type EntreeProfondeur,
 } from '../core/galactique.ts'
 import type { IndexCiel } from '../core/index-ciel.ts'
+import { fondLune, opaciteSousLuneXYZ, type FondLune, type LuneFile } from '../core/fond-lune-file.ts'
 import { magnitudePourEffectif, selectionne } from '../core/index-ciel.ts'
 import { rayonChampDeg, rayonEtoilePx, type Projecteur } from '../core/projection.ts'
 import { angleDeSinDeg, DEG, separationDeg, type Vec3 } from '../core/mat3.ts'
@@ -56,6 +57,12 @@ export interface ParametresFile {
   readonly profondeur: EntreeProfondeur
   /** Échantillonnage du capteur, en secondes d'arc par pixel : il fixe la pose par pixel. */
   readonly echApx: number
+  /**
+   * T-0400 — fond du ciel du site, en mag/arcsec² : celui dont `profondeur.eCielPxS` est tiré.
+   * La gêne lunaire s'y rapporte — B_lune / B_site — pour éclaircir ce flux, direction par
+   * direction.
+   */
+  readonly sbSiteMag: number
   /** Suivi actif (§5.2) : les étoiles restent ponctuelles et le pixel reçoit toute la pose. */
   readonly suiviActif: boolean
   /** Durée d'accumulation dessinée : pose unitaire en prévisualisation, durée totale en filé. */
@@ -97,6 +104,12 @@ export interface EntreeDessinChamp extends ParametresFile {
   readonly sbCiel: number
   readonly vueRealiste: boolean
   readonly modeNuit: boolean
+  /**
+   * T-0400 — la Lune retenue pour la séance, en vue réaliste : elle éclaircit le fond de chaque
+   * pixel selon sa séparation, et les traces faibles s'y perdent d'abord. Absente : le fond du
+   * site seul, partout.
+   */
+  readonly lune?: LuneFile | null | undefined
 }
 
 export interface SortieDessinChamp {
@@ -259,6 +272,8 @@ interface Scene {
   readonly zMax: number
   /** §9.3 — profondeur atteinte par pixel, tabulée par `z` : un poste de calcul par étoile en moins. */
   readonly profondeurParZ: Float64Array
+  /** T-0400 — sous la Lune, profondeur et contraste dépendent aussi de la direction. */
+  readonly fondLune: FondLune | null
   /** Avec suivi, l'étoile ne se déplace pas sur le capteur : ni trace, ni étalement du flux. */
   readonly dureeMin: number
 }
@@ -266,6 +281,7 @@ interface Scene {
 function sceneCourante(entree: EntreeDessinChamp): Scene {
   const { projecteur } = entree
   const dureeMin = entree.suiviActif ? 0 : entree.dureeS / S_PAR_MIN
+  const table = { profondeur: entree.profondeur, echApx: entree.echApx, suiviActif: entree.suiviActif }
   const centreJ2000 = projecteur.inverse(projecteur.centreXPx, projecteur.centreYPx)
   // T-0116 — la sélection couvre tout le champ de la scène : les traces s'y voient partout, le
   // cadre ne les borne plus, il dit seulement lesquelles le capteur enregistrerait. Le budget
@@ -295,12 +311,8 @@ function sceneCourante(entree: EntreeDessinChamp): Scene {
     rayonSelectionDeg: Math.min(DEMI_TOUR_DEG, rayonChamp + longueurArcDeg(dureeMin, 0).value),
     zMin: borne(coDecCentreDeg + rayonTestDeg),
     zMax: borne(coDecCentreDeg - rayonTestDeg),
-    profondeurParZ: tableProfondeurParPixel({
-      profondeur: entree.profondeur,
-      dureeS: entree.dureeS,
-      echApx: entree.echApx,
-      suiviActif: entree.suiviActif,
-    }),
+    profondeurParZ: tableProfondeurParPixel(table),
+    fondLune: entree.lune === null || entree.lune === undefined ? null : fondLune(entree.lune, table),
     dureeMin,
   }
 }
@@ -335,7 +347,10 @@ function dessineCouche(
     // Ce tri passe AVANT l'arc (T-0022) : il ne dépend que de la déclinaison, lue dans `z`,
     // et l'arc est le calcul le plus cher de la passe. Une étoile écartée ici ne doit pas
     // l'avoir payé.
-    const opacite = opaciteEtoile(magV, profondeurPourZ(scene.profondeurParZ, z))
+    const opacite =
+      scene.fondLune === null
+        ? opaciteEtoile(magV, profondeurPourZ(scene.profondeurParZ, z))
+        : opaciteSousLuneXYZ(scene.fondLune, magV, x, y, z)
     if (opacite < K('OPACITE_TRACE_MIN')) return
 
     const arc = arcEtoile(projecteur, { x, y, z }, dureeMin, entree.axePoleNord)

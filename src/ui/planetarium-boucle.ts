@@ -48,6 +48,8 @@ import type { OptiquePose } from './dessine-pose-cadre.ts'
 import type { LuneEcran, SoleilEcran } from './dessine-fond-ciel.ts'
 import { B } from '../registry/budgets.ts'
 import { MS_PAR_S } from '../core/unites.ts'
+import { cacheTrajetLune, instantsTrajetLune, trajetLune } from '../core/trajet-lune.ts'
+import { luneFile, type LuneFile } from '../core/fond-lune-file.ts'
 import { R } from '../registry/relief.ts'
 import { HORIZON_PLAT, horizonA, versHorizon, type TransitionHorizon } from './horizon-transition.ts'
 
@@ -228,6 +230,8 @@ export function useBoucleRendu(entree: {
     let catalogueEnvoye: readonly Etoile[] | null = null
     /** Ce qui décide d'une image de filé : sans changement, aucune demande ne repart. */
     let derniereDemande: readonly unknown[] = []
+    // T-0399 — les positions de la Lune déjà calculées : un panoramique n'en recalcule aucune.
+    const cacheLune = cacheTrajetLune()
 
     const image = (ts: number): void => {
       if (!actif) return
@@ -285,6 +289,8 @@ export function useBoucleRendu(entree: {
       ciel: { readonly matrice: Mat3; readonly epoqueAnnee: number },
       masque: MasqueHorizon,
       horizon: readonly number[],
+      // Se déduit de `courant`, `params` et de l'instant, déjà dans la clé : il n'y entre pas.
+      lune: LuneFile | null,
     ): void => {
       if (horsFil === null) return
       const cle = [courant, params, horizon, instant.ms, vue.largeurPx, vue.hauteurPx]
@@ -308,6 +314,7 @@ export function useBoucleRendu(entree: {
         sbCiel: courant.sbCiel,
         vueRealiste: courant.vueRealiste,
         modeNuit: courant.modeNuit,
+        lune,
       })
     }
 
@@ -369,6 +376,24 @@ export function useBoucleRendu(entree: {
         horizon === courant.masque.altitudesDeg
           ? courant.masque
           : { ...courant.masque, altitudesDeg: horizon, courbesDeg: COURBES_VIDES }
+      // T-0399 — en Panorama, la Lune file sur toute la prise de vue, comme les étoiles.
+      const dureeMs = params === null ? 0 : params.dureeS * MS_PAR_S
+      const trajet =
+        params === null || ciel.corpsMasques
+          ? null
+          : trajetLune(courant.site, instant.ms, dureeMs, cacheLune)
+      // T-0400 — en vue réaliste, elle voile aussi le filé : le fond de la séance est celui du
+      // moment où elle est la plus haute, et il pèse d'autant plus qu'une trace passe près d'elle.
+      const luneSeance =
+        trajet === null || params === null || !courant.vueRealiste || courant.lune === null
+          ? null
+          : luneFile(
+              courant.site,
+              instantsTrajetLune(instant.ms, dureeMs),
+              trajet,
+              courant.lune.anglePhaseDeg,
+              params.sbSiteMag,
+            )
       const sortie = dessineCiel({
         ctx: contexte,
         projecteur: projecteur(vueSansRoulis, ciel.matrice),
@@ -394,6 +419,7 @@ export function useBoucleRendu(entree: {
         apparition: courant.apparition,
         sbCiel: courant.sbCiel,
         vueRealiste: courant.vueRealiste,
+        ...(trajet === null ? {} : { trajetLune: trajet }),
         // §3.1 — corps masqués : la Lune n'est ni dessinée ni comptée, donc pas de halo.
         ...(courant.lune === null || ciel.corpsMasques ? {} : { lune: courant.lune }),
         ...(courant.soleil === null || ciel.corpsMasques ? {} : { soleil: courant.soleil }),
@@ -406,7 +432,7 @@ export function useBoucleRendu(entree: {
             ? undefined
             : (ctx, proj) => {
                 if (horsFilActif) {
-                  demandeFile(courant, params, vueCourante, ciel, masque, horizon)
+                  demandeFile(courant, params, vueCourante, ciel, masque, horizon, luneSeance)
                   if (recue !== null) {
                     ctx.drawImage(recue.bitmap, 0, 0)
                     derniereFile.sortie = recue.sortie
@@ -425,6 +451,7 @@ export function useBoucleRendu(entree: {
                     sbCiel: courant.sbCiel,
                     vueRealiste: courant.vueRealiste,
                     modeNuit: courant.modeNuit,
+                    lune: luneSeance,
                   })
                 }
               },

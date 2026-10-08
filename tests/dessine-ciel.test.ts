@@ -63,7 +63,7 @@ import {
   RAYON_MAX_ETOILE_PX,
   rayonEtoileCielPx,
 } from '../src/ui/apparence-objets.ts'
-import { RAYON_CORPS_PX } from '../src/ui/libelles-cibles.ts'
+import { RAYON_CORPS_PX, RAYON_LUNE_PX } from '../src/ui/libelles-cibles.ts'
 import type { ParcoursScene } from '../src/ui/scene-etat.ts'
 import { sousLeSol } from '../src/core/sol.ts'
 import { K } from '../src/registry/constants.ts'
@@ -219,6 +219,7 @@ function rend(
     parcours?: ParcoursScene
     cibleOuverte?: ObjetCielProfond
     apparition?: number
+    trajetLune?: readonly PositionCorps[]
   } = {},
 ) {
   const ctx = contexteEspion()
@@ -277,6 +278,7 @@ function rend(
     parcours: options.parcours,
     cibleOuverte: options.cibleOuverte,
     apparition: options.apparition,
+    trajetLune: options.trajetLune,
   }
   return { ctx, sortie: dessineCiel(entree), entree }
 }
@@ -1898,5 +1900,46 @@ describe('repère de la cible ouverte — T-0283', () => {
     expect(rend({ objets: [OBJET_AU_CENTRE] }).sortie.repere).toBeNull()
     const dos = rend({ cibleOuverte: OBJET_AU_CENTRE, vise: { azimutDeg: 0, hauteurDeg: -45 } })
     expect(dos.sortie.repere).toBeNull()
+  })
+})
+
+describe('T-0399 — en Panorama, la Lune file', () => {
+  const lune = (azimutDeg: number): PositionCorps => ({
+    corps: 'Moon' as PositionCorps['corps'],
+    adH: 0,
+    decDeg: 0,
+    azimutDeg,
+    hauteurDeg: 45,
+  })
+  const passeFile = (): void => {}
+  const TRAIT_LUNE = `${palette(false).lune}@${2 * RAYON_LUNE_PX}`
+
+  it('peint sa trace, large du disque, sous l’aperçu de filé', () => {
+    const trajet = [175, 178, 181, 184].map(lune)
+    const { ctx, sortie } = rend({ passeFile, corps: [trajet[0]!], trajetLune: trajet })
+    expect(ctx.traits).toContain(TRAIT_LUNE)
+    // T-0316 tient : rien ne se désigne sous l'aperçu.
+    expect(sortie.cibles).toEqual([])
+  })
+
+  it('se peint même quand la Lune de l’instant n’est pas dans le champ', () => {
+    // Elle se lève ou entre dans le champ pendant la pose : la trace compte, pas l'instant.
+    const trajet = [0, 175, 178, 181].map(lune)
+    const { ctx } = rend({ passeFile, corps: [], trajetLune: trajet })
+    expect(ctx.traits).toContain(TRAIT_LUNE)
+  })
+
+  it('pose brève : le disque, pas de trace', () => {
+    const sans = rend({ passeFile, corps: [lune(180)] })
+    const avec = rend({ passeFile, corps: [lune(180)], trajetLune: [lune(180)] })
+    expect(avec.ctx.traits).not.toContain(TRAIT_LUNE)
+    expect(avec.ctx.appels.filter((a) => a.nom === 'fill').length).toBeGreaterThan(
+      sans.ctx.appels.filter((a) => a.nom === 'fill').length,
+    )
+  })
+
+  it('hors aperçu, la trace ne remplace pas le disque', () => {
+    const { ctx } = rend({ corps: [lune(180)], trajetLune: [175, 185].map(lune) })
+    expect(ctx.traits).not.toContain(TRAIT_LUNE)
   })
 })

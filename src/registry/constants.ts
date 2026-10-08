@@ -2533,6 +2533,18 @@ const GRAND_CHAMP = {
     ordreDeGrandeur: false,
     sections: ['9.3'],
   }),
+  PAS_TRAJET_LUNE_MIN: entree({
+    ref: 'C-35',
+    libelle: 'Pas d’échantillonnage de la trace de la Lune en filé',
+    valeur: 5,
+    unite: 'min',
+    source:
+      '§9.3 — flèche ρ·Δ²/8 d’une corde de 5 min (1,25° d’angle horaire, ρ ≤ 90°) : ≈ 0,005°, ' +
+      'cinquante fois sous le rayon apparent de la Lune — la polyligne épouse la trace (T-0399)',
+    tolerance: null,
+    ordreDeGrandeur: false,
+    sections: ['9.3'],
+  }),
   PAS_ARC_FILE_PX: entree({
     ref: 'C-35',
     libelle: 'Corde maximale d’un segment d’arc de filé',

@@ -6,7 +6,12 @@ import { describe, expect, it } from 'vitest'
 import { IDENTITE, versVecteur } from '../src/core/mat3.ts'
 import { projecteur, type Vue } from '../src/core/projection.ts'
 import { palette } from '../src/ui/couleurs.ts'
-import { angleLimbeEclaireRad, dessineLune, rayonLunePx } from '../src/ui/dessine-lune.ts'
+import {
+  angleLimbeEclaireRad,
+  dessineLune,
+  dessineTrajetLune,
+  rayonLunePx,
+} from '../src/ui/dessine-lune.ts'
 import { RAYON_LUNE_PX } from '../src/ui/libelles-cibles.ts'
 
 const VUE: Vue = {
@@ -89,5 +94,58 @@ describe('rayonLunePx', () => {
     // Au centre d'un champ étroit, l'échelle est celle du champ : ½ ° sur 1 ° ≈ demi-largeur.
     expect(r).toBeCloseTo((VUE.largeurPx * DEMI_DIAMETRE_DEG) / fovDeg, -1)
     expect(rayon(fovDeg, 2 * DEMI_DIAMETRE_DEG) / r).toBeCloseTo(2, 1)
+  })
+})
+
+describe('dessineTrajetLune', () => {
+  function trace(points: readonly ReturnType<typeof versVecteur>[], filtre = (_z: number) => true) {
+    const brut = projecteur(VUE, IDENTITE)
+    const proj = {
+      ...brut,
+      projetteEn: (x: number, y: number, z: number, out: Parameters<typeof brut.projetteEn>[3]) =>
+        filtre(z) && brut.projetteEn(x, y, z, out),
+    }
+    const appels: { nom: string; lineWidth?: number; strokeStyle?: unknown }[] = []
+    const etat: Record<string, unknown> = {}
+    const ctx = new Proxy(etat, {
+      get: (_c, cle) =>
+        cle in etat
+          ? etat[cle as string]
+          : (..._a: unknown[]) =>
+              appels.push({
+                nom: String(cle),
+                lineWidth: etat['lineWidth'] as number,
+                strokeStyle: etat['strokeStyle'],
+              }),
+      set: (_c, cle, v) => {
+        etat[cle as string] = v
+        return true
+      },
+    }) as unknown as CanvasRenderingContext2D
+    const longueur = dessineTrajetLune(ctx, proj, points, RAYON_LUNE_PX, 'blanc')
+    return { appels, longueur, etat }
+  }
+  const pas = [170, 175, 180, 185, 190].map((az) => versVecteur(az, VUE.hauteurDeg))
+
+  it('trace une bande large du diamètre, dans la teinte de la Lune', () => {
+    const { appels, longueur, etat } = trace(pas)
+    const stroke = appels.find((a) => a.nom === 'stroke')!
+    expect(stroke.lineWidth).toBe(2 * RAYON_LUNE_PX)
+    expect(stroke.strokeStyle).toBe('blanc')
+    expect(longueur).toBeGreaterThan(RAYON_LUNE_PX)
+    // Rendu au trait fin pour les passes suivantes.
+    expect(etat['lineWidth']).toBe(1)
+    expect(etat['lineCap']).toBe('butt')
+  })
+
+  it('se coupe là où un point ne se projette pas (sous le sol)', () => {
+    const bas = versVecteur(180, -30)
+    const points = [pas[0]!, pas[1]!, bas, pas[3]!, pas[4]!]
+    const { appels } = trace(points, (z) => z > 0)
+    expect(appels.filter((a) => a.nom === 'moveTo')).toHaveLength(2)
+  })
+
+  it('un seul point : longueur nulle', () => {
+    expect(trace([pas[0]!]).longueur).toBe(0)
   })
 })

@@ -50,6 +50,7 @@ export function useParametresFile(
     magLimite: magnitudeLimitePrevisu(profondeur).value,
     profondeur,
     echApx: materiel.echApx,
+    sbSiteMag: materiel.sbCiel,
     // En panorama, la monture est réputée coupée : le ciel tourne, dans le filé comme dans
     // l'aperçu de champ, quel que soit le suivi déclaré au matériel.
     suiviActif: false,

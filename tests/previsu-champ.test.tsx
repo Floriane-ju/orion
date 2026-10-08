@@ -201,6 +201,7 @@ function rend(options: Partial<EntreeDessinChamp> = {}) {
     magLimite: 10,
     profondeur: PROFONDEUR,
     echApx: 105.6,
+    sbSiteMag: 21.0,
     suiviActif: false,
     vueRealiste: false,
     sbCiel: 21.0,
@@ -367,10 +368,14 @@ describe('§9.3 — T-0119, le filé plafonne la surface peinte', () => {
     // Le critère de T-0119. Sans plafond la passe peint plusieurs fois le canevas ; avec, elle
     // revient à l'ordre de la consigne — et c'est vrai d'un filé long, là où un budget d'étoiles
     // lâchait.
-    const sansPlafond = rend({ ...FILE_LONG, couvertureMax: null })
+    // T-0400 — un ciel de site très noir : le fond compté sur toute la pose unitaire éteint les
+    // traces faibles, et sous le ciel de référence la passe ne déborde plus assez le canevas
+    // pour que le plafond ait à mordre. Ici, il le doit.
+    const noir = { ...FILE_LONG, profondeur: { ...PROFONDEUR, eCielPxS: PROFONDEUR.eCielPxS / 10 } }
+    const sansPlafond = rend({ ...noir, couvertureMax: null })
     expect(sansPlafond.sortie.couverturePeinte).toBeGreaterThan(1)
     const cible = K('COUVERTURE_TRACES_MAX')
-    const plafonne = rend({ ...FILE_LONG, couvertureMax: cible })
+    const plafonne = rend({ ...noir, couvertureMax: cible })
     expect(plafonne.sortie.couverturePeinte).toBeLessThan(cible * MARGE_CIBLE)
     expect(plafonne.sortie.couverturePeinte).toBeLessThan(sansPlafond.sortie.couverturePeinte)
   })
@@ -683,13 +688,14 @@ describe('§9.3 — le balayage est découpé sur le bord du canevas', () => {
 
 describe('§9.3 — une trace est moins brillante qu’un point', () => {
   it('pâlit la trace d’une même étoile quand la focale étale son flux sur plus de pixels', () => {
-    // Une seule étoile de magnitude 7, deux heures de filé, même ciel : au grand angle chaque
-    // pixel la voit sept secondes, au téléobjectif moins d'une seconde.
+    // Une seule étoile de magnitude 5, deux heures de filé, même ciel : au grand angle chaque
+    // pixel la voit sept secondes, au téléobjectif moins d'une seconde. T-0400 — le fond, lui,
+    // s'accumule sur toute la pose unitaire : une magnitude 7 ne s'y détache plus.
     const seule = (echApx: number) =>
       rend({
         dureeS: 7200,
         echApx,
-        indexReel: construitIndex([etoileAuCentre(7)]),
+        indexReel: construitIndex([etoileAuCentre(5)]),
         indexSemis: construitIndex([]),
       })
 
@@ -735,5 +741,32 @@ describe('T-0116 — la passe de filé n’a pas de fond à elle', () => {
       (a) => a.nom === 'fillRect' || (a.nom === 'fill' && !(a.args[0] instanceof Path2DEspion)),
     )
     expect(surfaces).toHaveLength(0)
+  })
+})
+
+describe('T-0400 — la Lune voile le filé, plus fort près d’elle', () => {
+  const centre = PROJECTEUR.inverse(PROJECTEUR.centreXPx, PROJECTEUR.centreYPx)
+  const lune = (anglePhaseDeg: number) => ({
+    direction: centre,
+    verticale: centre,
+    altitudeDeg: 60,
+    anglePhaseDeg,
+    sbSiteMag: 21,
+  })
+  const peintes = (options: Partial<EntreeDessinChamp>) => {
+    const { sortie } = rend({ indexReel: INDEX_SEMIS, magLimite: 14, dureeS: 600, ...options })
+    return sortie.etoilesReelles + sortie.etoilesGenerees
+  }
+
+  it('une Lune dans le champ éteint des traces', () => {
+    expect(peintes({ lune: lune(10) })).toBeLessThan(peintes({}))
+  })
+
+  it('un croissant en éteint moins qu’une Lune presque pleine', () => {
+    expect(peintes({ lune: lune(10) })).toBeLessThan(peintes({ lune: lune(140) }))
+  })
+
+  it('sans Lune, rien ne change', () => {
+    expect(peintes({ lune: null })).toBe(peintes({}))
   })
 })
