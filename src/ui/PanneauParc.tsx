@@ -29,8 +29,10 @@ export function PanneauParc({ objectifs, surObjectifs, objectifId, surObjectifId
     <>
       <div className="parc">
         <div className="parc-entete" aria-hidden="true">
-          <span className="libelle">Focale (mm)</span>
-          <span className="libelle">Ouverture (f/)</span>
+          {/* Titres courts : en capitales espacées, « (mm) » et « (f/) » ne tenaient pas sur
+              une demi-carte. L'unité se lit dans la notation de bague et le résumé de la carte. */}
+          <span className="libelle">Focale</span>
+          <span className="libelle">Ouverture</span>
           <span className="libelle">Fisheye</span>
           <span />
         </div>

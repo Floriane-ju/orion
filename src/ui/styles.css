@@ -1971,7 +1971,9 @@ h3 {
  * que les cartes pour que ses colonnes tombent au même endroit. */
 .parc {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
+  /* La corbeille a sa colonne même quand elle manque (un seul objectif) : sans elle, ajouter
+     une ligne rétrécissait d'un coup les champs et renvoyait les titres à la ligne. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto var(--cible-clic);
   column-gap: var(--pas-2);
   row-gap: var(--pas-1);
 }
@@ -1988,6 +1990,7 @@ h3 {
 
 .parc-entete {
   padding-block: 0;
+  white-space: nowrap;
 }
 
 /* La carte se choisit d'un clic : filet de contrôle au repos, filet plein une fois choisie. Pas
