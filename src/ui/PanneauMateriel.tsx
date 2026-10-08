@@ -274,7 +274,6 @@ export function PanneauMateriel(props: PanneauMaterielProps) {
         {props.objectifs.length > 0 && (
           <div className="champs">
             <ChampChoix cle="objectif" valeur={props.objectifId} surChangement={props.surObjectifId}>
-              <option value="">Objectif libre</option>
               {props.objectifs.map((o) => (
                 <option key={o.id} value={o.id}>
                   {o.nom}

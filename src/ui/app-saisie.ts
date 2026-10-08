@@ -17,6 +17,7 @@ import { modeObjectif, type TypeObjectif } from '../core/optics.ts'
 import type { Objectif } from '../core/objectif.ts'
 import { nombreDeTexte } from '../registry/domains.ts'
 import { objectifActif, ouvertureSuivie, plancherA, reglageOptique } from './objectif-saisie.ts'
+import { parcDeDepart } from './parc-saisie.ts'
 
 /**
  * Site et configuration ciel profond de l'Annexe A. `resolutionMpx` reprend la résolution du
@@ -172,13 +173,20 @@ export function useSaisieMateriel(depart: DepartMateriel | null): SaisieMateriel
       },
   )
   const [iso, surIso] = useState(depart?.iso ?? '')
-  const [objectifs, setObjectifs] = useState<readonly Objectif[]>(depart?.objectifs ?? [])
-  // Un identifiant disparu du parc retombe sur l'objectif libre, comme un boîtier (T-0204).
-  const [objectifId, setObjectifId] = useState(() =>
-    objectifActif(depart?.objectifs ?? [], depart?.objectifId ?? '') === null
-      ? ''
-      : (depart?.objectifId ?? ''),
+  const [parcInitial] = useState(() =>
+    parcDeDepart(
+      {
+        ...(depart?.objectifs === undefined ? {} : { objectifs: depart.objectifs }),
+        ...(depart?.objectifId === undefined ? {} : { objectifId: depart.objectifId }),
+        focale: depart?.focale ?? DEFAUT.focale,
+        ouverture: depart?.ouverture ?? DEFAUT.ouverture,
+        fisheye: depart?.typeObjectif === 'FISHEYE',
+      },
+      crypto.randomUUID(),
+    ),
   )
+  const [objectifs, setObjectifs] = useState<readonly Objectif[]>(parcInitial.objectifs)
+  const [objectifId, setObjectifId] = useState(parcInitial.objectifId)
   const [focale, setFocale] = useState(depart?.focale ?? DEFAUT.focale)
   const [ouverture, surOuverture] = useState(depart?.ouverture ?? DEFAUT.ouverture)
   const [capteurMode, surCapteurMode] = useState<CapteurMode>(depart?.capteurMode ?? 'FULL_FRAME')
@@ -212,7 +220,11 @@ export function useSaisieMateriel(depart: DepartMateriel | null): SaisieMateriel
    * ouverture, c'est le régime du ciel profond. Sa projection devient celle de la scène.
    */
   function surObjectifId(id: string) {
-    const objectif = objectifActif(objectifs, id)
+    monteDans(objectifs, id)
+  }
+
+  function monteDans(parc: readonly Objectif[], id: string) {
+    const objectif = objectifActif(parc, id)
     setObjectifId(objectif === null ? '' : id)
     if (objectif === null) return
     const focaleRetenue = focaleDans(objectif, focale)
@@ -242,14 +254,15 @@ export function useSaisieMateriel(depart: DepartMateriel | null): SaisieMateriel
   }
 
   /**
-   * Le parc édité : l'objectif monté qui en sort repasse en objectif libre, avec le réglage
-   * qu'il avait ; celui qui est modifié en place reborne le réglage, comme à son montage.
+   * Le parc édité : l'objectif monté qui en sort cède la place au premier du parc — l'objectif
+   * libre ne revient que parc vide ; celui qui est modifié en place reborne le réglage, comme à
+   * son montage.
    */
   function surObjectifs(parc: readonly Objectif[]) {
     setObjectifs(parc)
     const monte = objectifActif(parc, objectifId)
     if (monte === null) {
-      setObjectifId('')
+      monteDans(parc, parc[0]?.id ?? '')
       return
     }
     const focaleRetenue = focaleDans(monte, focale)

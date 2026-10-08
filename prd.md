@@ -1327,8 +1327,10 @@ Les bornes de saisie de `read_noise_e` (0,5 – 40 e⁻) et de `full_well_e` (5 
 UN OBJECTIF DÉCRIT CE QU'IL PERMET, PAS UN RÉGLAGE
   objectif = { nom, focale_min_mm, focale_max_mm, N_grand_angle, N_tele, type_objectif }
   Focale fixe : focale_min_mm = focale_max_mm, N_tele = N_grand_angle.
-  Le parc est la liste des objectifs possédés ; un seul est monté à la fois, ou aucun
-  (« objectif libre » : focale_mm et ouverture_N se saisissent comme ci-dessus).
+  Le parc est la liste des objectifs possédés ; un seul est monté à la fois. L'optique de
+  départ (Annexe A, ou celle d'un profil antérieur au parc) en est le premier objectif :
+  une focale fixe, éditable en zoom et retirable comme les autres. Parc vide seulement,
+  « objectif libre » : focale_mm et ouverture_N se saisissent comme ci-dessus.
 
 PLANCHER D'OUVERTURE D'UN ZOOM — interpolation linéaire en focale
   t       = ( focale_mm − focale_min_mm ) / ( focale_max_mm − focale_min_mm )
@@ -1374,9 +1376,13 @@ Alors f/5,6 est retenu et l'app dit que l'objectif ne s'ouvre pas davantage à c
 Quand je l'enregistre
 Alors la saisie est refusée avec un message nommant la focale
 
+Étant donné un premier démarrage
+Quand j'ouvre la carte Optique
+Alors le parc contient l'optique de départ, montée, que je peux modifier en zoom ou retirer
+
 Étant donné un profil dont l'objectif monté ne figure plus dans le parc       # cas limite
 Quand l'application démarre
-Alors l'objectif libre s'applique avec la focale et l'ouverture enregistrées
+Alors le premier objectif du parc est monté, ou l'objectif libre si le parc est vide
 ```
 
 Le parc ne se retélécharge pas : il voyage dans le profil matériel et dans l'export §12.3,

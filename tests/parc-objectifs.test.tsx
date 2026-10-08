@@ -11,7 +11,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { plagesReglage, type Objectif } from '../src/core/objectif.ts'
 import { nombreSaisi } from '../src/ui/saisie-bornee.ts'
 import { ouvertureSuivie, plancherA, reglageOptique } from '../src/ui/objectif-saisie.ts'
-import { caracteristiques, objectifDeSaisie, parcAvec, saisieDe, SAISIE_OBJECTIF_VIDE } from '../src/ui/parc-saisie.ts'
+import { caracteristiques, objectifDeSaisie, parcAvec, parcDeDepart, saisieDe, SAISIE_OBJECTIF_VIDE } from '../src/ui/parc-saisie.ts'
 import { PanneauMateriel, resumeOptique } from '../src/ui/PanneauMateriel.tsx'
 import { phraseFocale } from '../src/ui/CibleImpossible.tsx'
 import { DEFAUT, type SaisieMateriel } from '../src/ui/app-saisie.ts'
@@ -151,7 +151,8 @@ function rendu(champs: Partial<SaisieMateriel>): string {
 describe('T-0404 — la carte Optique', () => {
   it('propose le parc et l’objectif libre, et nomme l’objectif monté dans son résumé', () => {
     const html = rendu({ objectifId: ZOOM.id, focale: '35', ouverture: '8' })
-    expect(html).toContain('Objectif libre')
+    // Parc non vide : on photographie avec un objectif du parc, l'objectif libre n'est pas proposé.
+    expect(html).not.toContain('Objectif libre')
     expect(html).toContain(`>${ZOOM.nom}</option>`)
     // Le résumé ne s'affiche que carte repliée : il se lit à sa source.
     expect(resumeOptique('35', '8', ZOOM)).toBe(`${ZOOM.nom} · 35 mm f/8`)
@@ -196,5 +197,35 @@ describe('T-0404 — relecture : la plage de l’objectif borne même hors domai
   it('5 000 mm sur un 18-55 donne 55, pas le maximum du domaine', () => {
     expect(reglageOptique(ZOOM, '5000', '8').focale.valeur).toBe(ZOOM.focaleMaxMm)
     expect(reglageOptique(ZOOM, '18', '0.5').ouverture.valeur).toBe(ZOOM.ouvertureGrandAngleN)
+  })
+})
+
+describe('T-0404 — l’optique de départ est un objectif du parc', () => {
+  it('le réglage d’avant le parc devient son premier objectif, monté, éditable et retirable', () => {
+    const { objectifs, objectifId } = parcDeDepart({ focale: '120', ouverture: '2.8', fisheye: false }, 'depart')
+    expect(objectifs).toHaveLength(1)
+    expect(objectifId).toBe('depart')
+    const [o] = objectifs
+    expect(o?.focaleMinMm).toBe(o?.focaleMaxMm)
+    expect(o?.nom).toBe(o === undefined ? '' : caracteristiques(o))
+    // Rééditable en zoom : la saisie qui en sort se complète d'une focale max.
+    const zoom = o === undefined ? null : objectifDeSaisie({ ...saisieDe(o), focaleMax: '200' }, o.id)
+    expect(zoom?.focaleMaxMm).toBe(200)
+  })
+
+  it('le fisheye d’avant reste un fisheye', () => {
+    expect(parcDeDepart({ focale: '15', ouverture: '2.8', fisheye: true }, 'fe').objectifs[0]?.typeObjectif).toBe('FISHEYE')
+  })
+
+  it('un parc enregistré, même vide, est rendu tel quel', () => {
+    expect(parcDeDepart({ objectifs: [], focale: '120', ouverture: '2.8', fisheye: false }, 'x')).toEqual({ objectifs: [], objectifId: '' })
+  })
+
+  it('un objectif monté disparu cède la place au premier du parc', () => {
+    expect(parcDeDepart({ objectifs: [ZOOM, FIXE], objectifId: 'perdu', focale: '35', ouverture: '8', fisheye: false }, 'x').objectifId).toBe(ZOOM.id)
+  })
+
+  it('une optique de départ illisible ne fait pas d’objectif', () => {
+    expect(parcDeDepart({ focale: '', ouverture: '2.8', fisheye: false }, 'x').objectifs).toEqual([])
   })
 })

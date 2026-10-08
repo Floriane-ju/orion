@@ -70,3 +70,43 @@ export function parcAvec(parc: readonly Objectif[], objectif: Objectif): readonl
     ? parc.map((o) => (o.id === objectif.id ? objectif : o))
     : [...parc, objectif]
 }
+
+/** Ce que le profil relu dit de l'optique : son parc s'il en a un, sinon son seul réglage. */
+export interface OptiqueDeDepart {
+  readonly objectifs?: readonly Objectif[]
+  readonly objectifId?: string
+  readonly focale: string
+  readonly ouverture: string
+  readonly fisheye: boolean
+}
+
+/**
+ * Le parc au démarrage. L'optique saisie avant le parc — ou celle de l'Annexe A au premier
+ * démarrage — devient son premier objectif, une focale fixe qu'on peut ensuite éditer en zoom
+ * ou retirer : sans cela, l'objectif de départ restait le seul qu'on ne pouvait ni l'un ni
+ * l'autre. Un parc enregistré, même vidé, est rendu tel quel. Un objectif monté disparu du
+ * parc cède la place au premier.
+ */
+export function parcDeDepart(
+  depart: OptiqueDeDepart,
+  id: string,
+): { readonly objectifs: readonly Objectif[]; readonly objectifId: string } {
+  if (depart.objectifs !== undefined) {
+    const monte = depart.objectifs.find((o) => o.id === depart.objectifId) ?? depart.objectifs[0]
+    return { objectifs: depart.objectifs, objectifId: monte?.id ?? '' }
+  }
+  try {
+    const saisie = {
+      ...SAISIE_OBJECTIF_VIDE,
+      nom: id,
+      focaleMin: depart.focale,
+      ouvertureGrandAngle: depart.ouverture,
+      fisheye: depart.fisheye,
+    }
+    const objectif = objectifDeSaisie(saisie, id)
+    return { objectifs: [{ ...objectif, nom: caracteristiques(objectif) }], objectifId: id }
+  } catch {
+    // Une optique de départ illisible ne fait pas d'objectif : l'objectif libre la laisse corriger.
+    return { objectifs: [], objectifId: '' }
+  }
+}

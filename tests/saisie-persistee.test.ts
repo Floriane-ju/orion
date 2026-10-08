@@ -153,6 +153,7 @@ describe('T-0082 — la saisie survit au rechargement', () => {
     expect(await rechargeMateriel(materiel)).toEqual({
       boitier: materiel.boitier,
       iso: materiel.iso,
+      objectifs: materiel.objectifs,
       focale: materiel.focale,
       ouverture: materiel.ouverture,
       capteurMode: materiel.capteurMode,
@@ -256,9 +257,9 @@ describe('T-0404 — le parc d’objectifs survit au rechargement', () => {
     expect(Number(depart?.ouverture)).toBe(ZOOM.ouvertureTeleN)
   })
 
-  it('un profil sans parc reste un objectif libre', async () => {
+  it('un parc vidé revient vide : il ne se reconstruit pas depuis le réglage', async () => {
     const depart = await rechargeMateriel(saisieMateriel())
-    expect(depart?.objectifs).toBeUndefined()
+    expect(depart?.objectifs).toEqual([])
     expect(depart?.objectifId).toBeUndefined()
   })
 })

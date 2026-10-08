@@ -101,7 +101,8 @@ export function profilAEnregistrer(materiel: SaisieMateriel): ProfilAEnregistrer
       focaleMm: valide('focale_mm', reglage.focale.valeur),
       ouvertureN: valide('ouverture_N', reglage.ouverture.valeur),
       typeObjectif: materiel.typeObjectif,
-      ...(materiel.objectifs.length === 0 ? {} : { objectifs: materiel.objectifs }),
+      // Toujours écrit, même vide : un parc absent se reconstruit au démarrage, un parc vidé non.
+      objectifs: materiel.objectifs,
       ...(materiel.objectifId === '' ? {} : { objectifId: materiel.objectifId }),
       ...(materiel.boitierId === '' ? {} : { boitierId: materiel.boitierId }),
       formatCapteur: boitier.formatCapteur,
