@@ -23,17 +23,10 @@ ouvreCarte('OPTIQUE')
 
 const ecran = renderToStaticMarkup(<App />)
 
+// T-0404 — le champ et la pose maximale sans suivi ont quitté la carte Optique à la demande de
+// l'utilisatrice : la carte ne porte plus que le parc et le réglage. Leurs valeurs restent
+// vérifiées sur leurs moteurs (optics.test.ts, suivi.test.ts).
 describe('contrat d’entrée — écran par défaut, setup de l’Annexe A', () => {
-  it('affiche le champ du profil de référence', () => {
-    // 17,01° × 11,37° : l'Annexe A annonce 17,02 × 11,38, arrondis d'un intermédiaire.
-    expect(ecran).toContain('17,01')
-    expect(ecran).toContain('11,37')
-  })
-
-  it('affiche la pose maximale sans suivi', () => {
-    expect(ecran).toContain('2,09')
-  })
-
   it('affiche les seuils de déclinaison du site', () => {
     expect(ecran).toContain('-13,6')
     expect(ecran).toContain('-23,6')
@@ -63,10 +56,4 @@ describe('contrat d’entrée — écran par défaut, setup de l’Annexe A', ()
     expect(ecran).toMatch(/ISO \d+/)
   })
 
-  it('glose chaque terme technique au contact', () => {
-    // "champ" n'en fait plus partie : sa bulle a été retirée (T-0225), le libellé seul suffit.
-    for (const cle of ['npf'] as const) {
-      expect(ecran, cle).toContain(GLOSSAIRE[cle].glose)
-    }
-  })
 })

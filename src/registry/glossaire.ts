@@ -129,15 +129,6 @@ export const GLOSSAIRE = Object.freeze({
   }),
 
   // §5.1 — profil optique et capteur
-  objectif: terme({
-    libelle: 'Objectif',
-    glose: 'L’objectif monté, choisi dans votre parc',
-    explication:
-      'Il borne la focale à sa plage et l’ouverture à la plus grande qu’il permet à cette ' +
-      'focale. Un zoom à ouverture variable s’ouvre moins au télé qu’au grand-angle.',
-    consequence: 'Parc vide : focale et ouverture se saisissent sans borne d’objectif.',
-    sections: ['5.1'],
-  }),
   focale: terme({
     libelle: 'Focale',
     sections: ['5.1'],
@@ -208,15 +199,6 @@ export const GLOSSAIRE = Object.freeze({
     libelle: 'Monture',
     glose: 'Suivi des étoiles',
     sections: ['5.2', '8.2'],
-  }),
-  npf: terme({
-    libelle: 'Pose maximale sans suivi',
-    glose: 'Pose max avant que les étoiles filent',
-    explication:
-      'Sans suivi, les étoiles s’étirent en traits au-delà de cette durée. Elle dépend de la ' +
-      'focale, de l’ouverture et de la zone du ciel visée.',
-    consequence: 'Sans monture, ne posez pas plus longtemps.',
-    sections: ['9.1'],
   }),
 
   // §6.3 — détectabilité

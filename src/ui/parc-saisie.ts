@@ -1,58 +1,51 @@
 /**
  * §5.1, T-0404 — la saisie d'un objectif du parc : du texte tapé à l'`Objectif` validé.
  *
- * Une focale fixe ne demande qu'une focale et une ouverture : le bout télé laissé vide reprend
- * celui du grand-angle. Exiger deux fois « 135 » pour un 135 mm serait une question sans objet.
+ * Une focale fixe ne demande qu'une focale et une ouverture : le bout max laissé vide reprend
+ * le min. Exiger deux fois « 135 » pour un 135 mm serait une question sans objet.
  */
 
 import { valideObjectif, type Objectif } from '../core/objectif.ts'
+import type { TypeObjectif } from '../core/optics.ts'
 import { nombreDeTexte } from '../registry/domains.ts'
 import { nombreLibre } from '../registry/ecriture.ts'
 
+/** Une ligne du parc telle qu'elle se tape : les bouts max vides valent focale fixe, ouverture constante. */
 export interface SaisieObjectif {
-  readonly nom: string
   readonly focaleMin: string
   readonly focaleMax: string
   readonly ouvertureGrandAngle: string
   readonly ouvertureTele: string
-  readonly fisheye: boolean
 }
 
-export const SAISIE_OBJECTIF_VIDE: SaisieObjectif = Object.freeze({
-  nom: '',
-  focaleMin: '',
-  focaleMax: '',
-  ouvertureGrandAngle: '',
-  ouvertureTele: '',
-  fisheye: false,
-})
-
-/** Le texte d'un objectif déjà enregistré, pour le rééditer. */
+/** Le texte d'un objectif du parc, pour l'afficher dans sa ligne. */
 export function saisieDe(objectif: Objectif): SaisieObjectif {
   const fixe = objectif.focaleMinMm === objectif.focaleMaxMm
   const constante = objectif.ouvertureGrandAngleN === objectif.ouvertureTeleN
   return {
-    nom: objectif.nom,
     focaleMin: String(objectif.focaleMinMm),
     focaleMax: fixe ? '' : String(objectif.focaleMaxMm),
     ouvertureGrandAngle: String(objectif.ouvertureGrandAngleN),
     ouvertureTele: constante ? '' : String(objectif.ouvertureTeleN),
-    fisheye: objectif.typeObjectif === 'FISHEYE',
   }
 }
 
-/** Lève en nommant le champ fautif (`valideObjectif`) : rien d'incohérent n'entre au parc. */
-export function objectifDeSaisie(saisie: SaisieObjectif, id: string): Objectif {
+/**
+ * Lève en nommant le champ fautif (`valideObjectif`) : rien d'incohérent n'entre au parc.
+ * Le nom n'est plus saisi : c'est la notation de bague, que §6.1 cite telle quelle.
+ */
+export function objectifDeSaisie(saisie: SaisieObjectif, id: string, typeObjectif: TypeObjectif): Objectif {
   const sinon = (texte: string, repli: string) => nombreDeTexte(texte.trim() === '' ? repli : texte)
-  return valideObjectif({
+  const objectif = {
     id,
-    nom: saisie.nom.trim(),
+    nom: '',
     focaleMinMm: nombreDeTexte(saisie.focaleMin),
     focaleMaxMm: sinon(saisie.focaleMax, saisie.focaleMin),
     ouvertureGrandAngleN: nombreDeTexte(saisie.ouvertureGrandAngle),
     ouvertureTeleN: sinon(saisie.ouvertureTele, saisie.ouvertureGrandAngle),
-    typeObjectif: saisie.fisheye ? 'FISHEYE' : 'RECTILINEAIRE',
-  })
+    typeObjectif,
+  }
+  return valideObjectif({ ...objectif, nom: caracteristiques(objectif) })
 }
 
 /** « 18–55 mm f/3,5–5,6 », « 135 mm f/2 » : la notation gravée sur la bague. */
@@ -96,15 +89,9 @@ export function parcDeDepart(
     return { objectifs: depart.objectifs, objectifId: monte?.id ?? '' }
   }
   try {
-    const saisie = {
-      ...SAISIE_OBJECTIF_VIDE,
-      nom: id,
-      focaleMin: depart.focale,
-      ouvertureGrandAngle: depart.ouverture,
-      fisheye: depart.fisheye,
-    }
-    const objectif = objectifDeSaisie(saisie, id)
-    return { objectifs: [{ ...objectif, nom: caracteristiques(objectif) }], objectifId: id }
+    const saisie = { focaleMin: depart.focale, focaleMax: '', ouvertureGrandAngle: depart.ouverture, ouvertureTele: '' }
+    const objectif = objectifDeSaisie(saisie, id, depart.fisheye ? 'FISHEYE' : 'RECTILINEAIRE')
+    return { objectifs: [objectif], objectifId: id }
   } catch {
     // Une optique de départ illisible ne fait pas d'objectif : l'objectif libre la laisse corriger.
     return { objectifs: [], objectifId: '' }

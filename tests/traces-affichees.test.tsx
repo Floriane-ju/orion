@@ -7,7 +7,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it } from 'vitest'
 import { trace } from '../src/core/traced.ts'
-import { GLOSSAIRE } from '../src/registry/glossaire.ts'
+import { GLOSSAIRE, type TermeGlossaire } from '../src/registry/glossaire.ts'
 import { REGISTRE } from '../src/registry/constants.ts'
 import { CalculsAffiches } from '../src/ui/CalculsAffiches.tsx'
 import { Etiquette } from '../src/ui/Terme.tsx'
@@ -42,9 +42,12 @@ describe('bulle d’une valeur tracée — T-0386', () => {
   })
 
   it('s’en tient à la glose quand le glossaire n’y ajoute rien', () => {
-    const entree = GLOSSAIRE.npf
-    expect(entree.bulle).toBeUndefined()
-    const html = renderToStaticMarkup(<TracedValue terme="npf" trace={VOLUME} />)
+    // T-0404 — le premier terme sans ajout de bulle qui ait de quoi en ajouter.
+    const cle = (Object.keys(GLOSSAIRE) as TermeGlossaire[]).find(
+      (k) => GLOSSAIRE[k].bulle === undefined && GLOSSAIRE[k].explication !== undefined && GLOSSAIRE[k].glose !== undefined,
+    )!
+    const entree = GLOSSAIRE[cle]
+    const html = renderToStaticMarkup(<TracedValue terme={cle} trace={VOLUME} />)
     expect(html).toContain(entree.glose)
     expect(html).not.toContain(entree.explication)
   })

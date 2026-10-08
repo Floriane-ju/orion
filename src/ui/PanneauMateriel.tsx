@@ -22,26 +22,24 @@
  * `TracedValue`, jamais des chiffres nus.
  */
 
-import type { ProfilOptique, TypeObjectif } from '../core/optics.ts'
+import type { TypeObjectif } from '../core/optics.ts'
 import { saisieLue } from '../registry/ecriture.ts'
 import type { ProfilSuivi, QualiteMiseEnStation, TypeMonture } from '../core/suivi.ts'
-import type { Traced } from '../core/traced.ts'
 import type {
   CapteurMode,
   IsoRetenu,
   PointZeroSysteme,
   SaisieBoitier,
 } from '../data/equipment.ts'
-import { TracedValue } from './TracedValue.tsx'
 import { Carte } from './Carte.tsx'
 import { PanneauBoitier } from './PanneauBoitier.tsx'
 import { ligneBoitier } from '../data/boitiers.ts'
 import { ChampChoix } from './ChampChoix.tsx'
 import { ChampDomaine } from './ChampDomaine.tsx'
 import { Interrupteur } from './Interrupteur.tsx'
-import { LectureInconnue } from './Inconnu.tsx'
 import { Mention } from './Mention.tsx'
 import { PanneauParc } from './PanneauParc.tsx'
+import { parcAvec } from './parc-saisie.ts'
 import type { Objectif } from '../core/objectif.ts'
 import { objectifActif, reglageOptique } from './objectif-saisie.ts'
 
@@ -116,9 +114,7 @@ export function resumeBoitier(
 }
 
 export interface LecturesMateriel {
-  readonly optique: ProfilOptique
   readonly suivi: ProfilSuivi
-  readonly poseNpf: Traced<number | null>
   /** §7.1 — `zp_source` du boîtier retenu, affiché avec toute pose. */
   readonly zeroSysteme: PointZeroSysteme
   /** §7.2 — l'ISO retenu et la raison qui le justifie. */
@@ -227,11 +223,9 @@ function ChampsSuivi(props: PanneauMaterielProps) {
  * de l'en-tête du plan imprimé. Un champ vidé pour être retapé se marque « ? » plutôt que de
  * laisser « mm f/ » orphelin — sans la bulle d'`Inconnu`, qui ne se pose pas dans un bouton.
  */
-export function resumeOptique(focale: string, ouverture: string, objectif: Objectif | null = null): string {
+export function resumeOptique(focale: string, ouverture: string): string {
   const marque = (v: string) => (v.trim() === '' ? '?' : saisieLue(v))
-  const reglage = `${marque(focale)} mm f/${marque(ouverture)}`
-  // T-0404 — l'objectif monté se nomme : deux zooms du parc peuvent couvrir la même focale.
-  return objectif === null ? reglage : `${objectif.nom} · ${reglage}`
+  return `${marque(focale)} mm f/${marque(ouverture)}`
 }
 
 export function PanneauMateriel(props: PanneauMaterielProps) {
@@ -242,7 +236,7 @@ export function PanneauMateriel(props: PanneauMaterielProps) {
   // Le résumé dit le réglage retenu, celui qu'on calcule et qu'on enregistre, pas la frappe.
   const retenu = (texte: string, b: typeof reglage.focale) =>
     b.refus !== null && Number.isFinite(b.valeur) ? String(b.valeur) : texte
-  // Une focale fixe n'a rien à régler : la focale se lit dans le résumé et dans le sélecteur.
+  // Une focale fixe n'a rien à régler : sa ligne du parc la dit déjà.
   const focaleReglable = objectif === null || objectif.focaleMinMm !== objectif.focaleMaxMm
   return (
     <div className="cartes-materiel">
@@ -265,25 +259,19 @@ export function PanneauMateriel(props: PanneauMaterielProps) {
       <Carte
         cle="OPTIQUE"
         titre="Optique"
-        resume={resumeOptique(
-          retenu(props.focale, reglage.focale),
-          retenu(props.ouverture, reglage.ouverture),
-          objectif,
-        )}
+        resume={resumeOptique(retenu(props.focale, reglage.focale), retenu(props.ouverture, reglage.ouverture))}
       >
+        {/* T-0404 — le parc en tête : une ligne par objectif, celui qu'on utilise coché. */}
         {props.objectifs.length > 0 && (
-          <div className="champs">
-            <ChampChoix cle="objectif" valeur={props.objectifId} surChangement={props.surObjectifId}>
-              {props.objectifs.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.nom}
-                </option>
-              ))}
-            </ChampChoix>
-          </div>
+          <PanneauParc
+            objectifs={props.objectifs}
+            surObjectifs={props.surObjectifs}
+            objectifId={props.objectifId}
+            surObjectifId={props.surObjectifId}
+          />
         )}
-        {/* T-0234 — `paire` force deux colonnes : `.champs` n'en fait tenir qu'une dans les
-            19 rem de la carte, et ces deux nombres-là se lisent ensemble. */}
+        {/* Le réglage du moment, sous l'objectif coché : la focale ne se règle que sur un zoom,
+            l'ouverture se ferme toujours. `paire` force deux colonnes (T-0234). */}
         <div className="champs paire">
           {focaleReglable && (
             <ChampDomaine
@@ -304,34 +292,19 @@ export function PanneauMateriel(props: PanneauMaterielProps) {
             requis
           />
         </div>
-        {/* T-0404 — sous un objectif du parc, la projection est la sienne : elle se change en
-            éditant l'objectif, pas en contredisant ce qu'il est. */}
-        {objectif === null && (
-          <Interrupteur
-            actif={props.typeObjectif === 'FISHEYE'}
-            surChangement={(fisheye) =>
-              props.surTypeObjectif(fisheye ? 'FISHEYE' : 'RECTILINEAIRE')
-            }
-          >
-            Objectif fisheye
-          </Interrupteur>
-        )}
-        {lectures === undefined ? (
-          <>
-            <LectureInconnue terme="champ" suffixe="largeur" />
-            <LectureInconnue terme="champ" suffixe="hauteur" />
-            <LectureInconnue terme="npf" />
-          </>
-        ) : (
-          <>
-            <TracedValue terme="champ" suffixe="largeur" trace={lectures.optique.fovLDeg} unite="°" />
-            <TracedValue terme="champ" suffixe="hauteur" trace={lectures.optique.fovHDeg} unite="°" />
-            <TracedValue terme="npf" trace={lectures.poseNpf} unite="s" />
-          </>
-        )}
-        {/* T-0238 — le refus se dit sous les lectures qu'il efface, pas flottant sur le ciel. */}
+        {/* Le fisheye est une propriété de l'objectif coché : la case l'écrit dans le parc. */}
+        <Interrupteur
+          actif={props.typeObjectif === 'FISHEYE'}
+          surChangement={(fisheye) => {
+            const type = fisheye ? 'FISHEYE' : 'RECTILINEAIRE'
+            if (objectif === null) props.surTypeObjectif(type)
+            else props.surObjectifs(parcAvec(props.objectifs, { ...objectif, typeObjectif: type }))
+          }}
+        >
+          Objectif fisheye
+        </Interrupteur>
+        {/* T-0238 — le refus se dit sous les champs qui l'ont produit, pas flottant sur le ciel. */}
         {props.erreur !== undefined && <Mention ton="erreur">{props.erreur}</Mention>}
-        <PanneauParc objectifs={props.objectifs} surObjectifs={props.surObjectifs} />
       </Carte>
     </div>
   )

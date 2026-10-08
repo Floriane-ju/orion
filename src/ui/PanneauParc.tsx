@@ -1,161 +1,133 @@
 /**
- * §5.1, T-0404 — le parc d'objectifs : ce qu'on possède, saisi une fois.
+ * §5.1, T-0404 — le parc d'objectifs : une ligne par objectif, focale et ouverture.
  *
- * Il vit dans la carte Optique, sous le réglage du moment, et non dans une fenêtre à part :
- * on y vient pour ajouter l'objectif qu'on s'apprête à monter, et le sélecteur d'au-dessus
- * le propose aussitôt. Un seul objectif s'édite à la fois — le formulaire remplace la ligne
- * qu'il corrige, pour qu'on ne se demande jamais lequel on est en train de modifier.
+ * La ligne EST l'objectif : on la corrige en place, sans formulaire à ouvrir ni nom à donner —
+ * la notation de bague (« 18–55 mm f/3,5–5,6 ») suffit à le désigner. Le bout max laissé vide
+ * fait une focale fixe ou une ouverture constante.
+ *
+ * Le bouton radio monte l'objectif. La corbeille ne se pose que s'il en reste un autre : un
+ * parc vide renverrait à une saisie sans objectif, et c'est l'état que le parc remplace.
  */
 
 import { useState } from 'react'
 import type { Objectif } from '../core/objectif.ts'
 import { BoutonGlyphe } from './BoutonGlyphe.tsx'
-import { ChampDomaine } from './ChampDomaine.tsx'
-import { Interrupteur } from './Interrupteur.tsx'
 import { Mention } from './Mention.tsx'
-import {
-  caracteristiques,
-  objectifDeSaisie,
-  parcAvec,
-  saisieDe,
-  SAISIE_OBJECTIF_VIDE,
-  type SaisieObjectif,
-} from './parc-saisie.ts'
+import { objectifDeSaisie, parcAvec, saisieDe, type SaisieObjectif } from './parc-saisie.ts'
 
 export interface PanneauParcProps {
   readonly objectifs: readonly Objectif[]
   readonly surObjectifs: (v: readonly Objectif[]) => void
+  readonly objectifId: string
+  readonly surObjectifId: (v: string) => void
 }
 
-/** L'objectif en cours d'édition : son identifiant (nouveau ou existant) et son texte. */
-interface Edition {
-  readonly id: string
-  readonly saisie: SaisieObjectif
-}
-
-export function PanneauParc({ objectifs, surObjectifs }: PanneauParcProps) {
-  const [edition, setEdition] = useState<Edition | null>(null)
-
+export function PanneauParc({ objectifs, surObjectifs, objectifId, surObjectifId }: PanneauParcProps) {
+  const dernier = objectifs.at(-1)
   return (
     <>
-      {objectifs.length > 0 && (
-        <ul className="parc">
-          {objectifs.map((o) =>
-            edition?.id === o.id ? null : (
-              <li key={o.id}>
-                <span className="parc-nom">{o.nom}</span>
-                <span className="parc-carac">{caracteristiques(o)}</span>
-                <BoutonGlyphe icone="edit" aide={`Modifier ${o.nom}`} onClick={() => setEdition({ id: o.id, saisie: saisieDe(o) })} />
-                <BoutonGlyphe
-                  icone="delete"
-                  aide={`Retirer ${o.nom} du parc`}
-                  onClick={() => surObjectifs(objectifs.filter((x) => x.id !== o.id))}
-                />
-              </li>
-            ),
-          )}
-        </ul>
-      )}
-      {edition === null ? (
-        <button type="button" onClick={() => setEdition({ id: crypto.randomUUID(), saisie: SAISIE_OBJECTIF_VIDE })}>
+      <div className="parc" role="list">
+        <div className="parc-ligne parc-entete" aria-hidden="true">
+          <span />
+          <span className="libelle">Focale (mm)</span>
+          <span className="libelle">Ouverture (f/)</span>
+          <span />
+        </div>
+        {objectifs.map((o) => (
+          <LigneObjectif
+            key={o.id}
+            objectif={o}
+            monte={o.id === objectifId}
+            retirable={objectifs.length > 1}
+            surMonte={() => surObjectifId(o.id)}
+            surObjectif={(modifie) => surObjectifs(parcAvec(objectifs, modifie))}
+            surRetire={() => surObjectifs(objectifs.filter((x) => x.id !== o.id))}
+          />
+        ))}
+      </div>
+      {/* Le nouvel objectif part du dernier : une ligne valide d'emblée, qu'on corrige. */}
+      {dernier !== undefined && (
+        <button
+          type="button"
+          onClick={() => surObjectifs([...objectifs, { ...dernier, id: crypto.randomUUID() }])}
+        >
           Ajouter un objectif
         </button>
-      ) : (
-        <EditeurObjectif
-          key={edition.id}
-          edition={edition}
-          surSaisie={(saisie) => setEdition({ ...edition, saisie })}
-          surEnregistre={(objectif) => {
-            surObjectifs(parcAvec(objectifs, objectif))
-            setEdition(null)
-          }}
-          surAnnule={() => setEdition(null)}
-        />
       )}
     </>
   )
 }
 
-interface EditeurObjectifProps {
-  readonly edition: Edition
-  readonly surSaisie: (v: SaisieObjectif) => void
-  readonly surEnregistre: (v: Objectif) => void
-  readonly surAnnule: () => void
+interface LigneObjectifProps {
+  readonly objectif: Objectif
+  readonly monte: boolean
+  readonly retirable: boolean
+  readonly surMonte: () => void
+  readonly surObjectif: (v: Objectif) => void
+  readonly surRetire: () => void
 }
 
-/** Le refus ne se dit qu'à l'enregistrement : à la frappe, un objectif est toujours incomplet. */
-function EditeurObjectif({ edition, surSaisie, surEnregistre, surAnnule }: EditeurObjectifProps) {
+/**
+ * Le texte de la ligne vit ici : « 1 » en route vers « 18 » n'est pas un objectif, et le parc
+ * ne reçoit que des objectifs valides. Le refus se dit sous la ligne tant qu'il dure.
+ */
+function LigneObjectif(props: LigneObjectifProps) {
+  const { objectif } = props
+  const [saisie, setSaisie] = useState<SaisieObjectif>(() => saisieDe(objectif))
   const [refus, setRefus] = useState<string | null>(null)
-  const s = edition.saisie
-  const champ = (cle: keyof Omit<SaisieObjectif, 'fisheye'>) => (v: string) => {
-    setRefus(null)
-    surSaisie({ ...s, [cle]: v })
-  }
+  const nom = objectif.nom
 
-  function enregistre() {
+  function change(cle: keyof SaisieObjectif, v: string) {
+    const suivante = { ...saisie, [cle]: v }
+    setSaisie(suivante)
     try {
-      surEnregistre(objectifDeSaisie(s, edition.id))
+      props.surObjectif(objectifDeSaisie(suivante, objectif.id, objectif.typeObjectif))
+      setRefus(null)
     } catch (erreur) {
       setRefus(erreur instanceof Error ? erreur.message : 'Objectif incohérent.')
     }
   }
 
+  const champ = (cle: keyof SaisieObjectif, aide: string, placeholder?: string) => (
+    <input
+      value={saisie[cle]}
+      inputMode="decimal"
+      aria-label={`${aide} — ${nom}`}
+      {...(placeholder === undefined ? {} : { placeholder })}
+      {...(refus === null ? {} : { 'aria-invalid': true })}
+      onChange={(e) => change(cle, e.target.value)}
+    />
+  )
+
   return (
-    <>
-      <div className="champs">
-        <label>
-          <span className="libelle">Nom</span>
-          {/* L'éditeur remplace le bouton qui l'a ouvert : le focus vient au premier champ. */}
-          <input autoFocus value={s.nom} placeholder="18-55 du kit" onChange={(e) => champ('nom')(e.target.value)} />
-        </label>
+    <div className="parc-objectif" role="listitem">
+      <div className="parc-ligne">
+        <input
+          type="radio"
+          name="objectif-monte"
+          checked={props.monte}
+          aria-label={`Utiliser ${nom}`}
+          onChange={props.surMonte}
+        />
+        <span className="parc-paire">
+          {champ('focaleMin', 'Focale min')}
+          {champ('focaleMax', 'Focale max', 'max')}
+        </span>
+        <span className="parc-paire">
+          {champ('ouvertureGrandAngle', 'Ouverture grand-angle')}
+          {champ('ouvertureTele', 'Ouverture télé', 'télé')}
+        </span>
+        {props.retirable ? (
+          <BoutonGlyphe icone="delete" aide={`Retirer ${nom} du parc`} onClick={props.surRetire} />
+        ) : (
+          <span />
+        )}
       </div>
-      <div className="champs paire">
-        <ChampDomaine domaine="focale_mm" libelle="Focale min" unite valeur={s.focaleMin} surValeur={champ('focaleMin')} requis />
-        <ChampDomaine
-          domaine="focale_mm"
-          libelle="Focale max"
-          unite
-          valeur={s.focaleMax}
-          surValeur={champ('focaleMax')}
-          placeholder="fixe"
-        />
-        <ChampDomaine
-          domaine="ouverture_N"
-          libelle="Ouverture grand-angle"
-          valeur={s.ouvertureGrandAngle}
-          surValeur={champ('ouvertureGrandAngle')}
-          requis
-        />
-        <ChampDomaine
-          domaine="ouverture_N"
-          libelle="Ouverture télé"
-          valeur={s.ouvertureTele}
-          surValeur={champ('ouvertureTele')}
-          placeholder="constante"
-        />
-      </div>
-      <Interrupteur
-        actif={s.fisheye}
-        surChangement={(fisheye) => {
-          setRefus(null)
-          surSaisie({ ...s, fisheye })
-        }}
-      >
-        Objectif fisheye
-      </Interrupteur>
       {refus !== null && (
         <Mention ton="erreur" role="alert">
           {refus}
         </Mention>
       )}
-      <div className="actions">
-        <button type="button" onClick={enregistre}>
-          Enregistrer
-        </button>
-        <button type="button" onClick={surAnnule}>
-          Annuler
-        </button>
-      </div>
-    </>
+    </div>
   )
 }

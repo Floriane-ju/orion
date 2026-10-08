@@ -1329,8 +1329,12 @@ UN OBJECTIF DÉCRIT CE QU'IL PERMET, PAS UN RÉGLAGE
   Focale fixe : focale_min_mm = focale_max_mm, N_tele = N_grand_angle.
   Le parc est la liste des objectifs possédés ; un seul est monté à la fois. L'optique de
   départ (Annexe A, ou celle d'un profil antérieur au parc) en est le premier objectif :
-  une focale fixe, éditable en zoom et retirable comme les autres. Parc vide seulement,
-  « objectif libre » : focale_mm et ouverture_N se saisissent comme ci-dessus.
+  une focale fixe, éditable en zoom comme les autres.
+  Saisie : UNE LIGNE PAR OBJECTIF — focale min/max, ouverture grand-angle/télé, le bout
+  max vide valant focale fixe ou ouverture constante. Pas de nom saisi : l'objectif se
+  désigne par sa notation de bague (« 18–55 mm f/3,5–5,6 »). Chaque ligne se retire,
+  sauf la dernière : le parc n'est jamais vide. « Objectif libre » ne subsiste que pour
+  un parc vide venu d'un import.
 
 PLANCHER D'OUVERTURE D'UN ZOOM — interpolation linéaire en focale
   t       = ( focale_mm − focale_min_mm ) / ( focale_max_mm − focale_min_mm )

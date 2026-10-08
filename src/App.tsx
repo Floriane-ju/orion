@@ -164,9 +164,7 @@ function AppPrete({
       {...(calcul.ok
         ? {
             lectures: {
-              optique: calcul.optique,
               suivi: calcul.suivi,
-              poseNpf: calcul.poseNpf,
               zeroSysteme: calcul.zeroSysteme,
               iso: calcul.iso,
               ...(calcul.noteRecadrage === undefined
