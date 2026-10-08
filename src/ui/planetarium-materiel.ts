@@ -12,7 +12,6 @@ export interface MaterielFile {
   /** §9.1 / T-0142 — ce dont la carte de pose a besoin quand elle se peint dans le cadre. */
   readonly optique: OptiquePose
   readonly profondeur: ProfondeurSansPose
-  readonly echApx: number
   readonly sbCiel: number
 }
 

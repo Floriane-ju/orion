@@ -74,6 +74,21 @@ export function npf(entree: EntreeNpf): Traced<number | null> {
   })
 }
 
+/**
+ * §9.3 — étendue angulaire de la tache stellaire, en secondes d'arc : le chemin que la NPF stricte
+ * laisse parcourir à une étoile de l'équateur céleste avant qu'elle cesse d'être ponctuelle.
+ *
+ * La NPF mesure une trace contre la tache — diffraction et aberrations (terme en N), pixel (terme
+ * en pitch) — et non contre un seul pixel. C'est donc l'étendue sur laquelle le flux d'une étoile
+ * s'accumule tant qu'elle ne file pas : compter la traversée d'un pixel la faisait pâlir dès
+ * quelques secondes, alors qu'à la pose NPF elle reste un point.
+ */
+export function tacheNpfArcsec(optique: Omit<EntreeNpf, 'decDeg' | 'tolerance'>): number {
+  // Un degré par heure vaut une seconde d'arc par seconde : la NPF à l'équateur, multipliée par
+  // la rotation du ciel, donne directement l'angle. À δ = 0 la NPF est toujours définie.
+  return K('ROTATION_CIEL_DEG_H') * npf({ ...optique, decDeg: 0 }).value!
+}
+
 export interface EntreeSuivi {
   readonly suiviActif: boolean
   readonly qualiteMes?: QualiteMiseEnStation

@@ -306,7 +306,8 @@ function mesure(cas: Cas, indexReel: IndexCiel, indexSemis: IndexCiel): void {
       indexSemis,
       magLimite,
       profondeur,
-      echApx: cas.profil.echApx,
+      // ponytail: le banc mesure un coût, pas un éclat — l'échantillonnage tient lieu de tache.
+      tacheArcsec: cas.profil.echApx,
       sbSiteMag: 21.0,
       suiviActif: false,
       dureeS: cas.dureeMin * S_PAR_MIN,

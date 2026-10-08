@@ -200,7 +200,7 @@ function rend(options: Partial<EntreeDessinChamp> = {}) {
     indexSemis: INDEX_SEMIS,
     magLimite: 10,
     profondeur: PROFONDEUR,
-    echApx: 105.6,
+    tacheArcsec: 105.6,
     sbSiteMag: 21.0,
     suiviActif: false,
     dureeS: 1,
@@ -263,7 +263,8 @@ describe('§9.2 — semis génératif', () => {
 
 describe('§9.2 — les trois couches', () => {
   it('trace l’étoile réelle à la position exacte du catalogue', () => {
-    const { ctx, sortie } = rend()
+    // Avec suivi, rien ne file : l'étoile est un disque centré sur sa position de catalogue.
+    const { ctx, sortie } = rend({ suiviActif: true })
     expect(sortie.etoilesReelles).toBe(1)
     const centre = arcsDeDisques(ctx).find(
       (a) =>
@@ -307,6 +308,19 @@ describe('§9.2 — modulation par les paramètres de capture', () => {
 
   it('descend plus profond avec une pupille plus grande', () => {
     expect(profondeur(25, 21, 20)).toBeGreaterThan(profondeur(25, 21, 3.57))
+  })
+
+  // Un arc natif dont l'angle de fin frôle celui du départ, le raster du navigateur le normalise
+  // parfois du mauvais côté : boucles et traits parasites. Sous la flèche tolérée, la corde EST
+  // l'arc, et elle ne laisse rien à normaliser.
+  it('trace en cordes les arcs courts d’une pose brève, jamais en arc natif', () => {
+    const { ctx } = rend({
+      projecteur: projecteur(VUE_PLANETARIUM, CIEL.matrice),
+      dureeS: 2,
+    })
+    const tracees = traces(ctx)
+    expect(tracees.flatMap((t) => t.sommets).length).toBeGreaterThan(0)
+    expect(tracees.flatMap((t) => t.arcs)).toHaveLength(0)
   })
 
   it('ovalise les étoiles quand la pose est longue : la trace devient une polyligne', () => {
@@ -688,10 +702,10 @@ describe('§9.3 — une trace est moins brillante qu’un point', () => {
     // Une seule étoile de magnitude 5, deux heures de filé, même ciel : au grand angle chaque
     // pixel la voit sept secondes, au téléobjectif moins d'une seconde. T-0400 — le fond, lui,
     // s'accumule sur toute la pose unitaire : une magnitude 7 ne s'y détache plus.
-    const seule = (echApx: number) =>
+    const seule = (tacheArcsec: number) =>
       rend({
         dureeS: 7200,
-        echApx,
+        tacheArcsec,
         indexReel: construitIndex([etoileAuCentre(5)]),
         indexSemis: construitIndex([]),
       })

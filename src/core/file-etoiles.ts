@@ -512,18 +512,21 @@ export function arcEtoile(
 }
 
 /**
- * §9.3 — temps que l'étoile passe sur UN pixel pendant la séquence.
+ * §9.3 — temps que l'étoile passe sur sa tache pendant la séquence.
  *
  * C'est le point que ratent la plupart des simulateurs : une étoile qui file est moins
  * brillante par pixel qu'une étoile ponctuelle, puisque le même flux s'étale sur toute la
- * trace. La pose vue par un pixel n'est pas la durée de la séquence, mais cette durée divisée
- * par la longueur de la trace — et c'est elle qui décide si la trace ressort du fond de ciel.
+ * trace. La pose vue par un pixel n'est pas la durée de la séquence, mais le temps que l'étoile
+ * reste sur sa tache — et c'est lui qui décide si la trace ressort du fond de ciel.
+ *
+ * L'étendue est celle de la TACHE (`tacheNpfArcsec`), pas d'un pixel : une étoile s'étale sur
+ * plusieurs pixels, et tant qu'elle n'a pas quitté sa tache, elle accumule toute la pose.
  */
-export function poseParPixelS(dureeS: number, echApx: number, decDeg: number): number {
-  // Un degré par heure vaut une arcseconde par seconde : le temps de traversée d'un pixel se
-  // lit directement dans l'échantillonnage. Il ne dépend PAS de la durée de la séquence —
-  // allonger le filé allonge la trace, il ne l'éclaircit pas.
-  const traverseeS = echApx / (K('ROTATION_CIEL_DEG_H') * Math.max(Math.cos(decDeg * DEG), Number.EPSILON))
+export function poseParPixelS(dureeS: number, tacheArcsec: number, decDeg: number): number {
+  // Un degré par heure vaut une arcseconde par seconde : le temps de traversée de la tache se
+  // lit directement dans son étendue. Il ne dépend PAS de la durée de la séquence — allonger le
+  // filé allonge la trace, il ne l'éclaircit pas.
+  const traverseeS = tacheArcsec / (K('ROTATION_CIEL_DEG_H') * Math.max(Math.cos(decDeg * DEG), Number.EPSILON))
   return Math.min(dureeS, traverseeS)
 }
 

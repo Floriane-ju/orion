@@ -114,8 +114,8 @@ export function opaciteEtoile(magV: number, magLimite: number): number {
 export interface EntreeTableProfondeur {
   /** Sa `tPoseS` est la pose UNITAIRE de la séquence : c'est elle qu'un pixel voit (T-0400). */
   readonly profondeur: EntreeProfondeur
-  /** Échantillonnage du capteur, en secondes d'arc par pixel. */
-  readonly echApx: number
+  /** Étendue de la tache stellaire, en secondes d'arc (`tacheNpfArcsec`). */
+  readonly tacheArcsec: number
   /** Suivi actif : le pixel reçoit toute la pose, la déclinaison n'y change rien. */
   readonly suiviActif: boolean
 }
@@ -154,7 +154,7 @@ export function tableProfondeurParPixel(entree: EntreeTableProfondeur): Float64A
  */
 export function poseParPixel(entree: EntreeTableProfondeur, decDeg: number): number {
   const tPoseS = entree.profondeur.tPoseS
-  return entree.suiviActif ? tPoseS : poseParPixelS(tPoseS, entree.echApx, decDeg)
+  return entree.suiviActif ? tPoseS : poseParPixelS(tPoseS, entree.tacheArcsec, decDeg)
 }
 
 /** Lecture de la table : `z` est la composante polaire de la direction, dans [−1, 1]. */

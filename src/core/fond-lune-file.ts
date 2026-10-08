@@ -100,7 +100,7 @@ export interface FondLune {
   readonly diffusion: Float64Array
   /** 1 − extinction de la colonne d'air, par case de sinus de hauteur sur [0, 1]. */
   readonly colonne: Float64Array
-  /** Pose unitaire, et traversée d'un pixel à l'équateur céleste : `poseParPixelS` hissée. */
+  /** Pose unitaire, et traversée de la tache à l'équateur céleste : `poseParPixelS` hissée. */
   readonly tPoseS: number
   readonly traverseeEquateurS: number | null
   /** Facteurs de `magnitudeLimiteNue` hissés hors de la boucle. */
@@ -142,7 +142,7 @@ export function fondLune(lune: LuneFile, entree: EntreeTableProfondeur): FondLun
     colonne: tabule(cases, 0, 1, (s) => 1 - attenuationBrute(masseAirKS(Math.asin(s) / DEG))),
     tPoseS: profondeur.tPoseS,
     // Avec suivi, l'étoile ne quitte pas son pixel : il reçoit toute la pose.
-    traverseeEquateurS: entree.suiviActif ? null : entree.echApx / K('ROTATION_CIEL_DEG_H'),
+    traverseeEquateurS: entree.suiviActif ? null : entree.tacheArcsec / K('ROTATION_CIEL_DEG_H'),
     demi: snr ** 2 / 2,
     snr2nPx: snr ** 2 * nPx,
     fondFixe: profondeur.readNoiseE ** 2,

@@ -382,7 +382,6 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
         pitchUm: calcul.capteur.pitchUm,
       },
       profondeur: profondeurFile,
-      echApx: calcul.optique.echApx.value,
       sbCiel: ciel.ciel.sbCiel.value,
     }
   }, [calcul, ciel, profondeurFile])

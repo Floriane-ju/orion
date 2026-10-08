@@ -52,8 +52,8 @@ export interface ParametresFile {
   readonly magLimite: number
   /** Entrées de profondeur, réévaluées par étoile avec sa pose par pixel réelle (§9.3). */
   readonly profondeur: EntreeProfondeur
-  /** Échantillonnage du capteur, en secondes d'arc par pixel : il fixe la pose par pixel. */
-  readonly echApx: number
+  /** Étendue de la tache stellaire, en secondes d'arc : elle fixe la pose par pixel. */
+  readonly tacheArcsec: number
   /**
    * T-0400 — fond du ciel du site, en mag/arcsec² : celui dont `profondeur.eCielPxS` est tiré.
    * La gêne lunaire s'y rapporte — B_lune / B_site — pour éclaircir ce flux, direction par
@@ -174,13 +174,18 @@ const PLANCHER_OPACITE_DISQUE = K('OPACITE_TRACE_MIN')
 const PLANCHER_OPACITE_TRACE = K('OPACITE_TRACE_MIN') * K('OPACITE_TRACE_MAX')
 
 /**
- * T-0402 — avancée d'une trace de son disque vers son fil, de 0 à 1. Une trace à peine plus
- * longue que le rayon garde la largeur et l'éclat du disque ; le fil fin et atténué n'est atteint
- * qu'à `LONGUEUR_FONDU_TRACE_RAYONS` rayons. Sans ce fondu, une étoile brillante passait d'un
- * coup du disque plein au fil pâle, et semblait s'éteindre en se mettant à filer.
+ * T-0402 — avancée d'une trace de son disque vers son fil, de 0 à 1. Une trace à peine amorcée
+ * garde la largeur et l'éclat du disque ; le fil fin et atténué n'est atteint qu'à
+ * `LONGUEUR_FONDU_TRACE_RAYONS` rayons. Sans ce fondu, une étoile brillante passait d'un coup du
+ * disque plein au fil pâle, et semblait s'éteindre en se mettant à filer.
+ *
+ * Le fondu part de la longueur NULLE : un trait à bouts ronds de longueur L couvre L + 2r, et ne
+ * se confond avec le disque qu'à L = 0. Partir de L = r allongeait l'étoile de r d'une image à
+ * l'autre — cinq pixels pour une brillante, presque rien pour une faible : certaines filaient
+ * d'un coup, d'autres non.
  */
 export function avanceeVersFil(longueurPx: number, rayonPx: number): number {
-  return encadre((longueurPx - rayonPx) / (rayonPx * K('LONGUEUR_FONDU_TRACE_RAYONS')), 0, 1)
+  return encadre(longueurPx / (rayonPx * K('LONGUEUR_FONDU_TRACE_RAYONS')), 0, 1)
 }
 
 /**
@@ -304,7 +309,7 @@ interface Scene {
 function sceneCourante(entree: EntreeDessinChamp): Scene {
   const { projecteur } = entree
   const dureeMin = entree.suiviActif ? 0 : entree.dureeS / S_PAR_MIN
-  const table = { profondeur: entree.profondeur, echApx: entree.echApx, suiviActif: entree.suiviActif }
+  const table = { profondeur: entree.profondeur, tacheArcsec: entree.tacheArcsec, suiviActif: entree.suiviActif }
   const centreJ2000 = projecteur.inverse(projecteur.centreXPx, projecteur.centreYPx)
   // T-0116 — la sélection couvre tout le champ de la scène : les traces s'y voient partout, le
   // cadre ne les borne plus, il dit seulement lesquelles le capteur enregistrerait. Le budget
@@ -394,8 +399,8 @@ function dessineCouche(
     const teintePalette = teinte(bv)
 
 
-    if (arc.longueurPx <= rayon) {
-      // Trace plus courte que l'étoile elle-même : elle reste un disque, et rejoint le chemin de
+    if (arc.longueurPx <= 0) {
+      // Sans trace — suivi actif : l'étoile reste un disque, et rejoint le chemin de
       // son couple (teinte, opacité) au lieu d'un ordre de tracé à elle. Les disques d'un même
       // chemin qui se recouvrent ne se cumulent plus — un remplissage par non-zéro les compte une
       // fois. C'est ce que fait la lumière : un pixel saturé ne sature pas deux fois.
@@ -435,7 +440,11 @@ function dessineCouche(
             c.xPx + c.rayonPx * Math.cos(portion.debutRad),
             c.yPx + c.rayonPx * Math.sin(portion.debutRad),
           )
-          if (c.rayonPx <= K('RAYON_ARC_NATIF_MAX_PX')) {
+          const cordes = cordesPourArc(c.rayonPx, portion.balayageRad)
+          // Une seule corde tient la flèche tolérée : elle EST l'arc. L'arc natif y serait pire
+          // qu'inutile — un angle de fin qui frôle le départ, le raster le normalise parfois du
+          // mauvais côté, et une pose brève en semait des boucles et des traits parasites.
+          if (cordes > 1 && c.rayonPx <= K('RAYON_ARC_NATIF_MAX_PX')) {
             chemin.arc(
               c.xPx,
               c.yPx,
@@ -451,7 +460,6 @@ function dessineCouche(
           // le sous-pixel. Un trait épais en sortait en goutte, en demi-disque ou en gélule selon
           // l'arrondi du moment. Les cordes se calculent ici, en double précision ; à ce rayon,
           // il en faut une poignée.
-          const cordes = cordesPourArc(c.rayonPx, portion.balayageRad)
           for (let i = 1; i <= cordes; i++) {
             const angle = portion.debutRad + (portion.balayageRad * i) / cordes
             chemin.lineTo(c.xPx + c.rayonPx * Math.cos(angle), c.yPx + c.rayonPx * Math.sin(angle))

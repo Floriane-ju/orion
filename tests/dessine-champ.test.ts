@@ -36,14 +36,17 @@ describe('passage du disque au fil', () => {
   const rayon = rayonEtoilePx(K('MAG_REFERENCE_RAYON'))
   const fondu = rayon * K('LONGUEUR_FONDU_TRACE_RAYONS')
 
-  it('part du disque au seuil, sans saut', () => {
-    expect(avanceeVersFil(rayon, rayon)).toBe(0)
+  // Un trait à bouts ronds de longueur L couvre L + 2r : le disque (2r) n'est rejoint sans saut
+  // qu'à L nulle. Partir d'un seuil à L = r allongeait l'étoile de r d'une image à l'autre.
+  it('part du disque à longueur nulle, sans saut', () => {
+    expect(avanceeVersFil(0, rayon)).toBe(0)
+    expect(avanceeVersFil(rayon / 100, rayon)).toBeLessThan(1 / 100)
   })
 
   it('n’atteint le fil qu’au bout du fondu', () => {
-    expect(avanceeVersFil(rayon + fondu / 2, rayon)).toBeCloseTo(1 / 2)
-    expect(avanceeVersFil(rayon + fondu, rayon)).toBe(1)
-    expect(avanceeVersFil(rayon + 2 * fondu, rayon)).toBe(1)
+    expect(avanceeVersFil(fondu / 2, rayon)).toBeCloseTo(1 / 2)
+    expect(avanceeVersFil(fondu, rayon)).toBe(1)
+    expect(avanceeVersFil(2 * fondu, rayon)).toBe(1)
   })
 })
 

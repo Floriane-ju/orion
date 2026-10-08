@@ -13,6 +13,7 @@
 import { useRef, type RefObject } from 'react'
 import { K } from '../registry/constants.ts'
 import { magnitudeLimitePrevisu } from '../core/galactique.ts'
+import { tacheNpfArcsec } from '../core/suivi.ts'
 import { planDeSeance, type EtatSeance, type ModeInterface } from './seance-etat.ts'
 import type { ParametresFile } from './dessine-champ.ts'
 import type { MaterielFile } from './planetarium-materiel.ts'
@@ -49,7 +50,7 @@ export function useParametresFile(
   parametres.current = {
     magLimite: magnitudeLimitePrevisu(profondeur).value,
     profondeur,
-    echApx: materiel.echApx,
+    tacheArcsec: tacheNpfArcsec(materiel.optique),
     sbSiteMag: materiel.sbCiel,
     // En panorama, la monture est réputée coupée : le ciel tourne, dans le filé comme dans
     // l'aperçu de champ, quel que soit le suivi déclaré au matériel.
