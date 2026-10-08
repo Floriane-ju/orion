@@ -19,7 +19,7 @@
  * clavier.
  */
 
-import { useId, useRef, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
+import { useId, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
 import { nombreLibre } from '../registry/ecriture.ts'
 import { DOMAINES, nombreDeTexte, type DomaineId } from '../registry/domains.ts'
 import type { TermeGlossaire } from '../registry/glossaire.ts'
@@ -139,8 +139,14 @@ export function ChampDomaine(props: ChampDomaineProps) {
   const idRefus = useId()
   // Un champ vide n'est pas une valeur fautive : c'est un état transitoire de frappe (T-0149),
   // et la conséquence de son absence est déjà dite par `note` ou par le panneau.
+  // T-0404 — le refus attend qu'on quitte le champ : « 1 » en route vers « 18 » n'est pas une
+  // faute, et l'annoncer à chaque frappe criait avant la fin du nombre. La valeur, elle, est
+  // bornée dès la frappe par la chaîne de calcul ; seul l'avertissement est différé.
+  const [enFrappe, setEnFrappe] = useState(false)
   const refus =
-    props.valeur.trim() === '' ? null : nombreSaisi(props.domaine, props.valeur, props.plage).refus
+    enFrappe || props.valeur.trim() === ''
+      ? null
+      : nombreSaisi(props.domaine, props.valeur, props.plage).refus
   const glisse = useGlisse(props)
   const bornes = props.plage ?? d
   const placeholder =
@@ -166,6 +172,8 @@ export function ChampDomaine(props: ChampDomaineProps) {
         placeholder={placeholder}
         {...(refus === null ? {} : { 'aria-invalid': true, 'aria-errormessage': idRefus })}
         onChange={(e) => props.surValeur(e.target.value)}
+        onFocus={() => setEnFrappe(true)}
+        onBlur={() => setEnFrappe(false)}
         {...(glisse === null ? {} : { className: 'champ-glisse', ...glisse })}
       />
       {refus !== null && (

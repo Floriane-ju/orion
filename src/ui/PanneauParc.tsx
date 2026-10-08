@@ -75,6 +75,9 @@ function LigneObjectif(props: LigneObjectifProps) {
   const { objectif } = props
   const [saisie, setSaisie] = useState<SaisieObjectif>(() => saisieDe(objectif))
   const [refus, setRefus] = useState<string | null>(null)
+  // Le refus attend qu'on quitte la ligne : « 1 » en route vers « 18 » n'est pas une faute.
+  const [enFrappe, setEnFrappe] = useState(false)
+  const refusAffiche = enFrappe ? null : refus
   const nom = objectif.nom
 
   function change(cle: keyof SaisieObjectif, v: string) {
@@ -94,13 +97,21 @@ function LigneObjectif(props: LigneObjectifProps) {
       inputMode="decimal"
       aria-label={`${aide} — ${nom}`}
       {...(placeholder === undefined ? {} : { placeholder })}
-      {...(refus === null ? {} : { 'aria-invalid': true })}
+      {...(refusAffiche === null ? {} : { 'aria-invalid': true })}
       onChange={(e) => change(cle, e.target.value)}
     />
   )
 
   return (
-    <div className="parc-objectif" role="listitem">
+    <div
+      className="parc-objectif"
+      role="listitem"
+      onFocus={() => setEnFrappe(true)}
+      onBlur={(e) => {
+        // Passer d'un champ de la ligne à l'autre n'est pas en sortir.
+        if (!e.currentTarget.contains(e.relatedTarget)) setEnFrappe(false)
+      }}
+    >
       <div className="parc-ligne">
         <input
           type="radio"
@@ -123,9 +134,9 @@ function LigneObjectif(props: LigneObjectifProps) {
           <span />
         )}
       </div>
-      {refus !== null && (
+      {refusAffiche !== null && (
         <Mention ton="erreur" role="alert">
-          {refus}
+          {refusAffiche}
         </Mention>
       )}
     </div>
