@@ -13,6 +13,7 @@ import {
   rayonLunePx,
 } from '../src/ui/dessine-lune.ts'
 import { RAYON_LUNE_PX } from '../src/ui/libelles-cibles.ts'
+import { K } from '../src/registry/constants.ts'
 
 const VUE: Vue = {
   mode: 'MODE_PLANETARIUM',
@@ -105,47 +106,56 @@ describe('dessineTrajetLune', () => {
       projetteEn: (x: number, y: number, z: number, out: Parameters<typeof brut.projetteEn>[3]) =>
         filtre(z) && brut.projetteEn(x, y, z, out),
     }
-    const appels: { nom: string; lineWidth?: number; strokeStyle?: unknown }[] = []
+    const appels: { nom: string; args: unknown[]; fillStyle?: unknown }[] = []
     const etat: Record<string, unknown> = {}
     const ctx = new Proxy(etat, {
       get: (_c, cle) =>
         cle in etat
           ? etat[cle as string]
-          : (..._a: unknown[]) =>
-              appels.push({
-                nom: String(cle),
-                lineWidth: etat['lineWidth'] as number,
-                strokeStyle: etat['strokeStyle'],
-              }),
+          : (...args: unknown[]) => appels.push({ nom: String(cle), args, fillStyle: etat['fillStyle'] }),
       set: (_c, cle, v) => {
         etat[cle as string] = v
         return true
       },
     }) as unknown as CanvasRenderingContext2D
-    const longueur = dessineTrajetLune(ctx, proj, points, RAYON_LUNE_PX, 'blanc')
-    return { appels, longueur, etat }
+    const longueur = dessineTrajetLune(ctx, proj, points, RAYON_LUNE_PX, null, null, 'blanc')
+    const disques = appels.filter((a) => a.nom === 'arc').map((a) => a.args[0] as number)
+    return { appels, longueur, disques }
   }
   const pas = [170, 175, 180, 185, 190].map((az) => versVecteur(az, VUE.hauteurDeg))
 
-  it('trace une bande large du diamètre, dans la teinte de la Lune', () => {
-    const { appels, longueur, etat } = trace(pas)
-    const stroke = appels.find((a) => a.nom === 'stroke')!
-    expect(stroke.lineWidth).toBe(2 * RAYON_LUNE_PX)
-    expect(stroke.strokeStyle).toBe('blanc')
-    expect(longueur).toBeGreaterThan(RAYON_LUNE_PX)
-    // Rendu au trait fin pour les passes suivantes.
-    expect(etat['lineWidth']).toBe(1)
-    expect(etat['lineCap']).toBe('butt')
+  it('étale le disque le long du trajet, rempli d’un seul geste dans la teinte de la Lune', () => {
+    const { appels, longueur, disques } = trace(pas)
+    const remplis = appels.filter((a) => a.nom === 'fill')
+    expect(remplis).toHaveLength(1)
+    expect(remplis[0]!.fillStyle).toBe('blanc')
+    expect(appels.some((a) => a.nom === 'stroke')).toBe(false)
+    // Un disque au plus tous les PAS_ETALEMENT_LUNE_RAYONS rayons : la bande n'a pas de trou.
+    expect(disques.length).toBeGreaterThanOrEqual(longueur / (RAYON_LUNE_PX * K('PAS_ETALEMENT_LUNE_RAYONS')))
+  })
+
+  it('file dès que la Lune bouge, même de moins d’un rayon', () => {
+    const proche = [versVecteur(180, VUE.hauteurDeg), versVecteur(180.05, VUE.hauteurDeg)]
+    const { longueur, disques } = trace(proche)
+    expect(longueur).toBeGreaterThan(0)
+    expect(longueur).toBeLessThan(RAYON_LUNE_PX)
+    expect(disques.length).toBeGreaterThan(1)
   })
 
   it('se coupe là où un point ne se projette pas (sous le sol)', () => {
     const bas = versVecteur(180, -30)
     const points = [pas[0]!, pas[1]!, bas, pas[3]!, pas[4]!]
-    const { appels } = trace(points, (z) => z > 0)
-    expect(appels.filter((a) => a.nom === 'moveTo')).toHaveLength(2)
+    const { disques } = trace(points, (z) => z > 0)
+    const brut = projecteur(VUE, IDENTITE)
+    const x1 = brut.projette(pas[1]!)!.xPx
+    const x3 = brut.projette(pas[3]!)!.xPx
+    // Aucun disque entre les deux tronçons : la trace ne passe pas sous le sol.
+    expect(disques.filter((x) => x > Math.min(x1, x3) + 1 && x < Math.max(x1, x3) - 1)).toHaveLength(0)
   })
 
-  it('un seul point : longueur nulle', () => {
-    expect(trace([pas[0]!]).longueur).toBe(0)
+  it('un seul point : longueur nulle, un seul disque', () => {
+    const { longueur, disques } = trace([pas[0]!])
+    expect(longueur).toBe(0)
+    expect(disques).toHaveLength(1)
   })
 })

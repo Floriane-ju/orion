@@ -72,7 +72,14 @@ export function couleurTeinte(index: number, modeNuit: boolean): string {
   const min = ANCRES[0]![0]
   const max = ANCRES[ANCRES.length - 1]![0]
   const bv = min + ((max - min) * index) / (TEINTES - 1)
-  const [r, v, b] = interpole(bv)
+  // T-0402 — la teinte mêlée de blanc : sur une photo, le cœur d'une étoile sature et paraît
+  // blanc, la couleur ne subsiste qu'en frange. Elle est atténuée, pas supprimée.
+  const blanc = K('DESATURATION_ETOILE')
+  const [r, v, b] = interpole(bv).map((c) => Math.round(c + (255 - c) * blanc)) as [
+    number,
+    number,
+    number,
+  ]
   return modeNuit ? rougeEquivalent(r, v, b) : `rgb(${r} ${v} ${b})`
 }
 

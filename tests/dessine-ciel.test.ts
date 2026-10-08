@@ -1912,12 +1912,15 @@ describe('T-0399 — en Panorama, la Lune file', () => {
     hauteurDeg: 45,
   })
   const passeFile = (): void => {}
-  const TRAIT_LUNE = `${palette(false).lune}@${2 * RAYON_LUNE_PX}`
+  // T-0402 — la trace est le disque en phase étalé : des disques au rayon de la Lune, en nombre.
+  const disquesLune = (appels: readonly { nom: string; args: readonly unknown[] }[]): number =>
+    appels.filter((a) => a.nom === 'arc' && a.args[2] === RAYON_LUNE_PX).length
 
-  it('peint sa trace, large du disque, sous l’aperçu de filé', () => {
+  it('peint sa trace, disque étalé, sous l’aperçu de filé', () => {
     const trajet = [175, 178, 181, 184].map(lune)
     const { ctx, sortie } = rend({ passeFile, corps: [trajet[0]!], trajetLune: trajet })
-    expect(ctx.traits).toContain(TRAIT_LUNE)
+    expect(disquesLune(ctx.appels)).toBeGreaterThan(trajet.length)
+    expect(ctx.couleurs).toContain(palette(false).lune)
     // T-0316 tient : rien ne se désigne sous l'aperçu.
     expect(sortie.cibles).toEqual([])
   })
@@ -1926,13 +1929,13 @@ describe('T-0399 — en Panorama, la Lune file', () => {
     // Elle se lève ou entre dans le champ pendant la pose : la trace compte, pas l'instant.
     const trajet = [0, 175, 178, 181].map(lune)
     const { ctx } = rend({ passeFile, corps: [], trajetLune: trajet })
-    expect(ctx.traits).toContain(TRAIT_LUNE)
+    expect(disquesLune(ctx.appels)).toBeGreaterThan(trajet.length)
   })
 
   it('pose brève : le disque, pas de trace', () => {
     const sans = rend({ passeFile, corps: [lune(180)] })
     const avec = rend({ passeFile, corps: [lune(180)], trajetLune: [lune(180)] })
-    expect(avec.ctx.traits).not.toContain(TRAIT_LUNE)
+    expect(disquesLune(avec.ctx.appels)).toBe(1)
     expect(avec.ctx.appels.filter((a) => a.nom === 'fill').length).toBeGreaterThan(
       sans.ctx.appels.filter((a) => a.nom === 'fill').length,
     )
@@ -1940,6 +1943,6 @@ describe('T-0399 — en Panorama, la Lune file', () => {
 
   it('hors aperçu, la trace ne remplace pas le disque', () => {
     const { ctx } = rend({ corps: [lune(180)], trajetLune: [175, 185].map(lune) })
-    expect(ctx.traits).not.toContain(TRAIT_LUNE)
+    expect(disquesLune(ctx.appels)).toBe(1)
   })
 })

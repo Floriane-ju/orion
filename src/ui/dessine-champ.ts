@@ -156,15 +156,31 @@ function enAttente(rayonMaxPx: number): EnAttente {
 }
 
 /** Opacité ramenée à son palier : c'est le palier qui décide du chemin, donc de l'ordre de tracé. */
-function palierOpacite(opacite: number, niveaux: number): number {
-  const plancher = K('OPACITE_TRACE_MIN')
+function palierOpacite(opacite: number, niveaux: number, plancher: number): number {
   const relatif = (opacite - plancher) / (1 - plancher)
   return encadre(Math.round(relatif * (niveaux - 1)), 0, niveaux - 1)
 }
 
-function opaciteDuPalier(palier: number, niveaux: number): number {
-  const plancher = K('OPACITE_TRACE_MIN')
+function opaciteDuPalier(palier: number, niveaux: number, plancher: number): number {
   return plancher + ((1 - plancher) * palier) / (niveaux - 1)
+}
+
+/**
+ * T-0402 — planchers des paliers de TRACE : le fil le plus fin descend sous le disque le plus
+ * petit, et l'opacité d'une longue trace sous celle d'un disque. Les disques gardent les leurs.
+ */
+const DEMI_LARGEUR_MIN_PX = Math.min(RAYON_MIN_ETOILE_PX, K('LARGEUR_TRACE_MIN_PX') / 2)
+const PLANCHER_OPACITE_DISQUE = K('OPACITE_TRACE_MIN')
+const PLANCHER_OPACITE_TRACE = K('OPACITE_TRACE_MIN') * K('OPACITE_TRACE_MAX')
+
+/**
+ * T-0402 — avancée d'une trace de son disque vers son fil, de 0 à 1. Une trace à peine plus
+ * longue que le rayon garde la largeur et l'éclat du disque ; le fil fin et atténué n'est atteint
+ * qu'à `LONGUEUR_FONDU_TRACE_RAYONS` rayons. Sans ce fondu, une étoile brillante passait d'un
+ * coup du disque plein au fil pâle, et semblait s'éteindre en se mettant à filer.
+ */
+export function avanceeVersFil(longueurPx: number, rayonPx: number): number {
+  return encadre((longueurPx - rayonPx) / (rayonPx * K('LONGUEUR_FONDU_TRACE_RAYONS')), 0, 1)
 }
 
 /**
@@ -174,14 +190,28 @@ function opaciteDuPalier(palier: number, niveaux: number): number {
  */
 function palierRayon(rayon: number, en: EnAttente): number {
   const relatif =
-    Math.log(rayon / RAYON_MIN_ETOILE_PX) / Math.log(en.rayonMaxPx / RAYON_MIN_ETOILE_PX)
+    Math.log(rayon / DEMI_LARGEUR_MIN_PX) / Math.log(en.rayonMaxPx / DEMI_LARGEUR_MIN_PX)
   return encadre(Math.round(relatif * (en.niveauxRayon - 1)), 0, en.niveauxRayon - 1)
 }
 
 function rayonDuPalier(palier: number, en: EnAttente): number {
   return (
-    RAYON_MIN_ETOILE_PX *
-    (en.rayonMaxPx / RAYON_MIN_ETOILE_PX) ** (palier / (en.niveauxRayon - 1))
+    DEMI_LARGEUR_MIN_PX *
+    (en.rayonMaxPx / DEMI_LARGEUR_MIN_PX) ** (palier / (en.niveauxRayon - 1))
+  )
+}
+
+/**
+ * T-0402 — largeur d'une trace filée : celle de la tache stellaire, pas le diamètre du disque de
+ * carte. Elle suit encore l'éclat — même loi en magnitude que le rayon — mais s'encadre entre le
+ * fil d'un pixel et un plafond bas : sur une photo, c'est l'éclat qui distingue les traces, pas
+ * leur épaisseur.
+ */
+export function largeurTracePx(rayonPx: number): number {
+  return encadre(
+    rayonPx * K('RAPPORT_LARGEUR_TRACE_RAYON'),
+    K('LARGEUR_TRACE_MIN_PX'),
+    K('LARGEUR_TRACE_MAX_PX'),
   )
 }
 
@@ -195,12 +225,15 @@ function peintEnAttente(
     if (chemin === undefined) continue
     ctx.fillStyle = couleurTeinteOpacite(
       i % TEINTES,
-      opaciteDuPalier(Math.floor(i / TEINTES), en.niveauxOpacite),
+      opaciteDuPalier(Math.floor(i / TEINTES), en.niveauxOpacite, PLANCHER_OPACITE_DISQUE),
       modeNuit,
     )
     ctx.fill(chemin)
   }
   ctx.lineCap = 'round'
+  // T-0402 — la lumière s'ajoute sur le capteur : deux traces qui se croisent éclaircissent le
+  // croisement, aucune ne masque l'autre, et le fond reste noir entre les fils.
+  ctx.globalCompositeOperation = 'lighter'
   for (let i = 0; i < en.traces.length; i++) {
     const chemin = en.traces[i]
     if (chemin === undefined) continue
@@ -208,7 +241,7 @@ function peintEnAttente(
     const reste = Math.floor(i / TEINTES)
     ctx.strokeStyle = couleurTeinteOpacite(
       teintePalette,
-      opaciteDuPalier(reste % en.niveauxOpacite, en.niveauxOpacite),
+      opaciteDuPalier(reste % en.niveauxOpacite, en.niveauxOpacite, PLANCHER_OPACITE_TRACE),
       modeNuit,
     )
     ctx.lineWidth = 2 * rayonDuPalier(Math.floor(reste / en.niveauxOpacite), en)
@@ -218,6 +251,7 @@ function peintEnAttente(
   // trace ensuite sur le même contexte ne doit pas hériter d'un bout de trait arrondi.
   ctx.lineWidth = 1
   ctx.lineCap = 'butt'
+  ctx.globalCompositeOperation = 'source-over'
 }
 
 interface Compteur {
@@ -359,7 +393,6 @@ function dessineCouche(
     const cercle = arc.cercle
     const teintePalette = teinte(bv)
 
-    const pOpacite = palierOpacite(opacite, attente.niveauxOpacite)
 
     if (arc.longueurPx <= rayon) {
       // Trace plus courte que l'étoile elle-même : elle reste un disque, et rejoint le chemin de
@@ -367,14 +400,21 @@ function dessineCouche(
       // chemin qui se recouvrent ne se cumulent plus — un remplissage par non-zéro les compte une
       // fois. C'est ce que fait la lumière : un pixel saturé ne sature pas deux fois.
       const point = arc.segments[0]![0]!
+      const pOpacite = palierOpacite(opacite, attente.niveauxOpacite, PLANCHER_OPACITE_DISQUE)
       const indice = pOpacite * TEINTES + teintePalette
       const chemin = (attente.disques[indice] ??= new Path2D())
       chemin.moveTo(point.xPx + rayon, point.yPx)
       chemin.arc(point.xPx, point.yPx, rayon, 0, TOUR_RAD)
       compteur.surfacePx += Math.PI * rayon * rayon
     } else {
+      // T-0402 — largeur et opacité glissent du disque vers le fil. L'atténuation des longues
+      // traces tient à leur addition : à pleine opacité, le moindre croisement sature en blanc.
+      const t = avanceeVersFil(arc.longueurPx, rayon)
+      const demiTrace = rayon + (largeurTracePx(rayon) / 2 - rayon) * t
+      const opaciteTrace = opacite * (1 + (K('OPACITE_TRACE_MAX') - 1) * t)
+      const pOpacite = palierOpacite(opaciteTrace, attente.niveauxOpacite, PLANCHER_OPACITE_TRACE)
       const indice =
-        (palierRayon(rayon, attente) * attente.niveauxOpacite + pOpacite) * TEINTES + teintePalette
+        (palierRayon(demiTrace, attente) * attente.niveauxOpacite + pOpacite) * TEINTES + teintePalette
       const chemin = (attente.traces[indice] ??= new Path2D())
       if (cercle !== null) {
         // T-0115 — en stéréographique l'arc EST un cercle : la primitive du canevas le trace
@@ -387,7 +427,7 @@ function dessineCouche(
         // seule branche qui trace un long arc : le disque, lui, se juge sur la boîte, et une
         // trace sous-pixel qui effleure le bord ne doit pas disparaître sur un découpage.
         for (const portion of arcsVisibles(c, projecteur.vue, margeTrace)) {
-          compteur.surfacePx += Math.abs(portion.balayageRad) * c.rayonPx * rayon * 2
+          compteur.surfacePx += Math.abs(portion.balayageRad) * c.rayonPx * demiTrace * 2
           // `moveTo` sur le départ de la portion AVANT l'arc : sans lui, `arc` relie la fin de la
           // portion précédente au début de celle-ci par une corde, et deux traces séparées par un
           // passage hors écran se retrouveraient jointes par un trait droit.
@@ -395,14 +435,27 @@ function dessineCouche(
             c.xPx + c.rayonPx * Math.cos(portion.debutRad),
             c.yPx + c.rayonPx * Math.sin(portion.debutRad),
           )
-          chemin.arc(
-            c.xPx,
-            c.yPx,
-            c.rayonPx,
-            portion.debutRad,
-            portion.debutRad + portion.balayageRad,
-            portion.balayageRad < 0,
-          )
+          if (c.rayonPx <= K('RAYON_ARC_NATIF_MAX_PX')) {
+            chemin.arc(
+              c.xPx,
+              c.yPx,
+              c.rayonPx,
+              portion.debutRad,
+              portion.debutRad + portion.balayageRad,
+              portion.balayageRad < 0,
+            )
+            continue
+          }
+          // Rayon démesuré — vue zoomée, centre du cercle à des centaines de milliers de pixels :
+          // le raster du navigateur calcule l'arc en simple précision et, si loin du centre, perd
+          // le sous-pixel. Un trait épais en sortait en goutte, en demi-disque ou en gélule selon
+          // l'arrondi du moment. Les cordes se calculent ici, en double précision ; à ce rayon,
+          // il en faut une poignée.
+          const cordes = cordesPourArc(c.rayonPx, portion.balayageRad)
+          for (let i = 1; i <= cordes; i++) {
+            const angle = portion.debutRad + (portion.balayageRad * i) / cordes
+            chemin.lineTo(c.xPx + c.rayonPx * Math.cos(angle), c.yPx + c.rayonPx * Math.sin(angle))
+          }
         }
       } else {
         for (const segment of arc.segments) {
@@ -412,7 +465,7 @@ function dessineCouche(
               chemin.lineTo(p.xPx, p.yPx)
               const precedent = segment[i - 1]!
               compteur.surfacePx +=
-                Math.hypot(p.xPx - precedent.xPx, p.yPx - precedent.yPx) * rayon * 2
+                Math.hypot(p.xPx - precedent.xPx, p.yPx - precedent.yPx) * demiTrace * 2
             }
           })
         }
@@ -421,6 +474,15 @@ function dessineCouche(
     compteur.dessinees++
   })
   compteur.visitees += stats.etoilesExaminees
+}
+
+/**
+ * T-0402 — nombre de cordes qui tracent un arc de cercle à moins de `FLECHE_MAX_CORDE_PX` près.
+ * Une corde c sur un rayon R s'écarte de l'arc de c²/8R : la corde admise vaut √(8R·f).
+ */
+export function cordesPourArc(rayonPx: number, balayageRad: number): number {
+  const cordeMax = Math.sqrt(8 * rayonPx * K('FLECHE_MAX_CORDE_PX'))
+  return Math.max(1, Math.ceil((rayonPx * Math.abs(balayageRad)) / cordeMax))
 }
 
 /** Les deux plafonds de T-0119, en effectif de ciel entier. */
@@ -504,7 +566,7 @@ export function dessineChamp(entree: EntreeDessinChamp): SortieDessinChamp {
           // le budget est légèrement généreux. L'écart est absorbé par la cible de couverture, qui
           // se règle à la mesure — une largeur moyenne exacte demanderait de connaître le plafond
           // qu'on calcule.
-          largeurTraceRefPx: 2 * Math.max(RAYON_MIN_ETOILE_PX, rayonEtoilePx(seuilReel)),
+          largeurTraceRefPx: largeurTracePx(Math.max(RAYON_MIN_ETOILE_PX, rayonEtoilePx(seuilReel))),
         }),
   }
   const magReelle = tableMagParZ(

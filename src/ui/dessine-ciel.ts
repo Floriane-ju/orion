@@ -565,8 +565,8 @@ function passeObjets(passe: Passe): void {
 /**
  * T-0399 — sous l'aperçu de filé, la Lune reste peinte : sa trace est ce qui ruine la pose.
  * Elle se juge sur TOUT le trajet, pas sur la Lune de l'instant : une Lune encore sous l'horizon
- * ou hors du champ peut s'y lever ou y entrer avant la fin du filé. Trop courte pour se lire,
- * la trace redevient le disque en phase, comme une étoile ponctuelle.
+ * ou hors du champ peut s'y lever ou y entrer avant la fin du filé. Sans durée, la trace se
+ * réduit au disque en phase.
  */
 function passeTrajetLune(passe: Passe): void {
   const { entree, teintes, peintReperes, p } = passe
@@ -580,12 +580,16 @@ function passeTrajetLune(passe: Passe): void {
   const premier = points.find((v) => projecteur.projetteEn(v.x, v.y, v.z, p))
   if (premier === undefined) return
   const r = rayonLunePx(projecteur, premier, p, entree.lune?.demiDiametreDeg ?? null)
-  if (dessineTrajetLune(ctx, projecteur, points, r, teintes.lune) > r) return
-  const debut = points[0]!
-  if (!projecteur.projetteEn(debut.x, debut.y, debut.z, p)) return
   const soleil = entree.corps.find((c) => c.corps === Body.Sun)
-  const angle = soleil === undefined ? null : angleLimbeEclaireRad(projecteur, debut, versCiel(soleil), p)
-  dessineLune(ctx, p, r, angle, entree.lune?.anglePhaseDeg ?? null, teintes)
+  dessineTrajetLune(
+    ctx,
+    projecteur,
+    points,
+    r,
+    soleil === undefined ? null : versCiel(soleil),
+    entree.lune?.anglePhaseDeg ?? null,
+    teintes.lune,
+  )
 }
 
 /** §3.4 — les corps mobiles, dont les noms passent avant tous les autres. */

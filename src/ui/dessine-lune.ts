@@ -7,6 +7,7 @@
  * roule, c'est la seule orientation qui reste juste. L'angle de phase vient d'`astronomy-engine`
  * (`etatLune`), le même calcul que la fraction éclairée de la frise.
  */
+import { K } from '../registry/constants.ts'
 import { TOUR_RAD } from '../core/unites.ts'
 import { DEG, type Vec3 } from '../core/mat3.ts'
 import { pointEcran, type PointEcran, type Projecteur } from '../core/projection.ts'
@@ -70,8 +71,42 @@ export function rayonLunePx(
 }
 
 /**
- * Peint le disque de rayon `r`, limbe éclairé vers `angleRad`. Sans angle de phase, le disque est plein :
- * mieux vaut une Lune sans phase qu'une phase inventée.
+ * Ajoute au chemin courant la part éclairée d'un disque de centre (x, y), limbe éclairé vers
+ * `angleRad`. Coordonnées absolues, sans transformation du contexte : plusieurs disques se
+ * composent ainsi en un seul chemin, rempli d'un coup (T-0402).
+ *
+ * Le terminateur est une demi-ellipse de demi-largeur r·|cos φ| : côté sombre quand la Lune
+ * est gibbeuse (cos φ > 0), côté éclairé quand elle est en croissant. Sans angle de phase, le
+ * disque est plein : mieux vaut une Lune sans phase qu'une phase inventée.
+ */
+function cheminPhase(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  angleRad: number | null,
+  anglePhaseDeg: number | null,
+): void {
+  const a = angleRad ?? 0
+  ctx.moveTo(x + r * Math.cos(a - QUART_TOUR_RAD), y + r * Math.sin(a - QUART_TOUR_RAD))
+  if (anglePhaseDeg === null) {
+    ctx.arc(x, y, r, a - QUART_TOUR_RAD, a - QUART_TOUR_RAD + TOUR_RAD)
+    return
+  }
+  const rx = r * Math.abs(Math.cos(anglePhaseDeg * DEG))
+  const croissant = Math.cos(anglePhaseDeg * DEG) < 0
+  ctx.arc(x, y, r, a - QUART_TOUR_RAD, a + QUART_TOUR_RAD)
+  ctx.ellipse(x, y, rx, r, a, QUART_TOUR_RAD, -QUART_TOUR_RAD, croissant)
+  ctx.closePath()
+}
+
+/**
+ * Peint le disque de rayon `r`, limbe éclairé vers `angleRad`.
+ *
+ * Seule la part éclairée se peint. La part sombre a la couleur du ciel DEVANT elle — la
+ * lumière diffusée par l'atmosphère est entre la Lune et nous —, et `teintes.fond` n'est que
+ * celle du zénith : peinte, elle tranchait sur un ciel relevé par le halo ou le crépuscule,
+ * jusqu'à un liseré sombre au limbe d'une Lune presque pleine.
  */
 export function dessineLune(
   ctx: CanvasRenderingContext2D,
@@ -81,75 +116,65 @@ export function dessineLune(
   anglePhaseDeg: number | null,
   teintes: PaletteCiel,
 ): void {
-  ctx.save()
-  ctx.translate(centre.xPx, centre.yPx)
-  ctx.rotate(angleRad ?? 0)
-  if (anglePhaseDeg === null) {
-    ctx.fillStyle = teintes.lune
-    ctx.beginPath()
-    ctx.arc(0, 0, r, 0, TOUR_RAD)
-    ctx.fill()
-  } else {
-    // Le terminateur est une demi-ellipse de demi-largeur r·|cos φ| : côté sombre quand la
-    // Lune est gibbeuse (cos φ > 0), côté éclairé quand elle est en croissant.
-    //
-    // Seule la part éclairée se peint. La part sombre a la couleur du ciel DEVANT elle — la
-    // lumière diffusée par l'atmosphère est entre la Lune et nous —, et `teintes.fond` n'est
-    // que celle du zénith : peinte, elle tranchait sur un ciel relevé par le halo ou le
-    // crépuscule, jusqu'à un liseré sombre au limbe d'une Lune presque pleine.
-    const rx = r * Math.abs(Math.cos(anglePhaseDeg * DEG))
-    const croissant = Math.cos(anglePhaseDeg * DEG) < 0
-    ctx.fillStyle = teintes.lune
-    ctx.beginPath()
-    ctx.arc(0, 0, r, -QUART_TOUR_RAD, QUART_TOUR_RAD)
-    ctx.ellipse(0, 0, rx, r, 0, QUART_TOUR_RAD, -QUART_TOUR_RAD, croissant)
-    ctx.fill()
-  }
-  ctx.restore()
+  ctx.fillStyle = teintes.lune
+  ctx.beginPath()
+  cheminPhase(ctx, centre.xPx, centre.yPx, r, angleRad, anglePhaseDeg)
+  ctx.fill()
 }
 
 /**
- * T-0399 — la trace de la Lune sur une pose à monture coupée : une bande de la largeur du
- * disque, pleine teinte. La Lune sature le capteur en une fraction de seconde ; aucune pose
- * ne l'estompe, contrairement à une étoile dont la trace s'éteint avec la pose par pixel.
+ * T-0399 — la trace de la Lune sur une pose à monture coupée. La Lune sature le capteur en une
+ * fraction de seconde ; aucune pose ne l'estompe, contrairement à une étoile dont la trace
+ * s'éteint avec la pose par pixel.
  *
- * La polyligne se rompt sur tout point que le projecteur refuse — sous le relief quand il est
- * filtré du sol, derrière l'observateur sinon. Retourne la longueur projetée, en pixels : sous
- * le rayon, la trace n'est pas lisible et l'appelant peint le disque en phase à la place.
+ * T-0402 — la trace est le disque en phase ÉTALÉ le long du trajet : la forme de la Lune
+ * répétée tous les `PAS_ETALEMENT_LUNE_RAYONS` rayons, en un seul chemin. Il n'y a plus de
+ * seuil : la bande pleine ne se peignait qu'au-delà du rayon, et à grand champ quatre minutes
+ * de filé laissaient une Lune immobile. Étalée, elle s'allonge dès le premier pixel, et un
+ * croissant laisse une trace de croissant, pas une bande de la largeur du disque.
+ *
+ * Le trajet se rompt sur tout point que le projecteur refuse — sous le relief quand il est
+ * filtré du sol, derrière l'observateur sinon. Retourne la longueur projetée, en pixels.
  */
 export function dessineTrajetLune(
   ctx: CanvasRenderingContext2D,
   projecteur: Projecteur,
   points: readonly Vec3[],
   r: number,
+  soleil: Vec3 | null,
+  anglePhaseDeg: number | null,
   teinte: string,
 ): number {
   const q = pointEcran()
+  const pas = r * K('PAS_ETALEMENT_LUNE_RAYONS')
   ctx.beginPath()
   let longueur = 0
-  let precedent: PointEcran | null = null
+  let precedent: { readonly xPx: number; readonly yPx: number; readonly angle: number | null } | null =
+    null
   for (const v of points) {
     if (!projecteur.projetteEn(v.x, v.y, v.z, q)) {
       precedent = null
       continue
     }
-    if (precedent === null) ctx.moveTo(q.xPx, q.yPx)
+    const x = q.xPx
+    const y = q.yPx
+    // L'orientation du limbe tourne à l'écran pendant un long filé : relue à chaque point du
+    // trajet, tenue sur le segment qui suit.
+    const angle = soleil === null ? null : angleLimbeEclaireRad(projecteur, v, soleil, { xPx: x, yPx: y })
+    if (precedent === null) cheminPhase(ctx, x, y, r, angle, anglePhaseDeg)
     else {
-      ctx.lineTo(q.xPx, q.yPx)
-      longueur += Math.hypot(q.xPx - precedent.xPx, q.yPx - precedent.yPx)
+      const dx = x - precedent.xPx
+      const dy = y - precedent.yPx
+      const segment = Math.hypot(dx, dy)
+      const n = Math.ceil(segment / pas)
+      for (let i = 1; i <= n; i++) {
+        cheminPhase(ctx, precedent.xPx + (dx * i) / n, precedent.yPx + (dy * i) / n, r, precedent.angle, anglePhaseDeg)
+      }
+      longueur += segment
     }
-    precedent = { xPx: q.xPx, yPx: q.yPx }
+    precedent = { xPx: x, yPx: y, angle }
   }
-  if (longueur > r) {
-    ctx.strokeStyle = teinte
-    ctx.lineWidth = 2 * r
-    ctx.lineCap = 'round'
-    ctx.lineJoin = 'round'
-    ctx.stroke()
-    // Rendus aux valeurs par défaut : les passes suivantes tracent au trait fin.
-    ctx.lineWidth = 1
-    ctx.lineCap = 'butt'
-    ctx.lineJoin = 'miter'
-  }
+  ctx.fillStyle = teinte
+  ctx.fill()
   return longueur
 }

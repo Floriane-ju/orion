@@ -2145,6 +2145,115 @@ const GRAND_CHAMP = {
     ordreDeGrandeur: true,
     sections: ['9.2', '9.3'],
   }),
+  LARGEUR_TRACE_MIN_PX: entree({
+    ref: 'C-34',
+    libelle: 'Largeur de la trace filée d’une étoile faible',
+    valeur: 1,
+    unite: 'px',
+    source:
+      '§9.3 — T-0402 : la largeur d’une trace est celle de la tache stellaire, pas celle du ' +
+      'disque de carte. Une étoile au seuil laisse un fil d’un pixel, la plus fine largeur que ' +
+      'l’anticrénelage peigne sans l’effacer',
+    tolerance: 'ordre de grandeur',
+    ordreDeGrandeur: true,
+    sections: ['9.3'],
+  }),
+  LARGEUR_TRACE_MAX_PX: entree({
+    ref: 'C-34',
+    libelle: 'Largeur de la trace filée d’une étoile brillante',
+    valeur: 2.5,
+    unite: 'px',
+    source:
+      '§9.3 — T-0402 : une étoile brillante sature le cœur de sa tache et l’élargit, mais de ' +
+      'peu — sur une photo de filé, les plus brillantes ne font que deux à trois fois la ' +
+      'largeur des plus faibles. Le trait d’une étoile de magnitude 0, au diamètre du disque ' +
+      'de carte (8 px), couvrait les traces voisines',
+    tolerance: 'ordre de grandeur',
+    ordreDeGrandeur: true,
+    sections: ['9.3'],
+  }),
+  RAPPORT_LARGEUR_TRACE_RAYON: entree({
+    ref: 'C-34',
+    libelle: 'Largeur de trace rapportée au rayon de rendu de l’étoile',
+    valeur: 1,
+    unite: '—',
+    source:
+      '§9.3 — T-0402 : la trace garde l’ordre des éclats du disque (même loi en magnitude), à ' +
+      'la moitié de son diamètre, puis s’encadre entre `LARGEUR_TRACE_MIN_PX` et ' +
+      '`LARGEUR_TRACE_MAX_PX` : vers la magnitude 6 le fil d’un pixel, dès la magnitude 1 le plafond',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: false,
+    sections: ['9.3'],
+  }),
+  OPACITE_TRACE_MAX: entree({
+    ref: 'C-34',
+    libelle: 'Opacité d’une trace filée à pleine profondeur',
+    valeur: 0.4,
+    unite: '—',
+    source:
+      '§9.3 — T-0402 : les traces se composent en addition. À pleine opacité, la plupart des ' +
+      'traces d’un filé grand angle atteignaient le blanc, et leurs croisements saturaient le ' +
+      'ciel en nappe ; sur une photo, seules les plus brillantes sont blanches, le gros des ' +
+      'traces reste gris. L’échelle des paliers est conservée, seul son sommet descend',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: false,
+    sections: ['9.3'],
+  }),
+  RAYON_ARC_NATIF_MAX_PX: entree({
+    ref: 'C-34',
+    libelle: 'Rayon au-delà duquel un arc de filé se trace en cordes',
+    valeur: 4096,
+    unite: 'px',
+    source:
+      '§9.3 — T-0402 : le canevas raster les arcs en flottants simple précision (24 bits de ' +
+      'mantisse). À 4 096 px du centre, le pas représentable vaut 1/4 096 px ; au-delà de la ' +
+      'centaine de milliers, il approche le dixième de pixel et un trait épais se déforme d’une ' +
+      'image à l’autre. Sous ce rayon, `ctx.arc` reste exact et le plus rapide (T-0115)',
+    tolerance: 'ordre de grandeur',
+    ordreDeGrandeur: true,
+    sections: ['9.3'],
+  }),
+  FLECHE_MAX_CORDE_PX: entree({
+    ref: 'C-34',
+    libelle: 'Écart toléré entre une corde de filé et son arc',
+    valeur: 0.1,
+    unite: 'px',
+    source:
+      '§9.3 — T-0402 : une corde c sur un rayon R s’écarte de l’arc de c²/8R. À un dixième de ' +
+      'pixel, l’écart se perd dans l’anticrénelage ; au-delà de `RAYON_ARC_NATIF_MAX_PX`, la ' +
+      'corde admise dépasse déjà 57 px, et un arc se trace en quelques segments',
+    tolerance: null,
+    ordreDeGrandeur: false,
+    sections: ['9.3'],
+  }),
+  LONGUEUR_FONDU_TRACE_RAYONS: entree({
+    ref: 'C-34',
+    libelle: 'Longueur du fondu entre disque et fil d’une trace, en rayons d’étoile',
+    valeur: 8,
+    unite: 'rayons',
+    source:
+      '§9.3 — T-0402 : une trace plus courte que le rayon reste un disque ; au-delà, elle ' +
+      'rejoignait d’un coup le fil fin et atténué, et une étoile brillante semblait s’éteindre ' +
+      'en se mettant à filer. Sur huit rayons (quatre diamètres), la trace s’amincit et ' +
+      's’atténue progressivement : un filé court garde des étoiles lisibles',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: false,
+    sections: ['9.3'],
+  }),
+  DESATURATION_ETOILE: entree({
+    ref: 'C-34',
+    libelle: 'Part de blanc mêlée à la teinte B−V d’une étoile',
+    valeur: 0.45,
+    unite: '—',
+    source:
+      '§3.3, §9.2, §9.3 — T-0402 : sur une photo, le cœur d’une étoile sature et paraît blanc, ' +
+      'la couleur ne subsiste qu’en frange. La teinte B−V pleine faisait des points et des ' +
+      'traits orange et bleus francs ; 0 la garde entière, 1 la supprime. 0,45 : le ciel reste ' +
+      'blanc, une étoile froide ou chaude se reconnaît encore',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: false,
+    sections: ['3.3', '9.2', '9.3'],
+  }),
   NIVEAUX_RAYON_ETOILE: entree({
     ref: 'C-34',
     libelle: 'Paliers de rayon distincts dans le rendu d’une étoile',
@@ -2547,6 +2656,20 @@ const GRAND_CHAMP = {
     source:
       '§9.3 — « pas d’échantillonnage ≤ 0,25° d’angle horaire » : un cercle de déclinaison ne ' +
       'se projette pas en cercle, la polyligne suit la conique réelle',
+    tolerance: null,
+    ordreDeGrandeur: false,
+    sections: ['9.3'],
+  }),
+  PAS_ETALEMENT_LUNE_RAYONS: entree({
+    ref: 'C-35',
+    libelle: 'Pas entre deux disques de la trace étalée de la Lune, en rayons',
+    valeur: 0.25,
+    unite: 'rayons',
+    source:
+      '§9.3 — T-0402 : la trace de la Lune est son disque en phase répété le long du trajet. ' +
+      'Deux disques espacés de s laissent au bord une encoche de flèche s²/8r : à un quart de ' +
+      'rayon, r/128, soit moins d’un dixième de pixel au rayon plancher — le bord reste lisse ' +
+      'sans peindre un disque par pixel',
     tolerance: null,
     ordreDeGrandeur: false,
     sections: ['9.3'],
