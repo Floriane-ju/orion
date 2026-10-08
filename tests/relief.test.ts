@@ -9,11 +9,14 @@ import { describe, expect, it } from 'vitest'
 import { K } from '../src/registry/constants.ts'
 import { R } from '../src/registry/relief.ts'
 import {
+  courbesNiveau,
   elevationApparenteDeg,
   pointA,
   profilRelief,
+  simplifieLigne,
   type Altimetre,
 } from '../src/core/relief.ts'
+import { separationDeg, versVecteur, type Vec3 } from '../src/core/mat3.ts'
 import {
   masqueDepuisRelief,
   NB_AZIMUTS,
@@ -117,6 +120,114 @@ describe('profil de relief sur 360 azimuts (§4.1)', () => {
   })
 })
 
+describe('courbes de niveau vues depuis le site (T-0395)', () => {
+  const sol = 400
+  const oeil = sol + R('HAUTEUR_OEIL_M')
+  /** Distance vers le sud, en mètres, d'un point de latitude donnée. */
+  const versLeSud = (lat: number): number => (SITE.latDeg - lat) * RAD * RAYON_TERRE_M
+  const denivele = R('EQUIDISTANCE_COURBES_M') * 12
+  /**
+   * Un versant qui se redresse vers le sud jusqu'au rayon de §4.1, plat ailleurs. Concave : une
+   * pente constante vue depuis son pied garde une hauteur apparente presque constante, et la
+   * courbure de la Terre en cache le haut — ce qui est juste, mais ne montre plus rien.
+   */
+  const versant = (s: number): number =>
+    sol + denivele * Math.min(Math.max(s, 0) / dernierM, 1) ** 2
+  const dernierM = R('RAYON_RELIEF_KM') * 1000
+
+  /** Les polylignes `[[az, h], …]` : le format sépare deux lignes par une paire de NaN. */
+  function polylignes(courbes: Float32Array): number[][][] {
+    const lignes: number[][][] = [[]]
+    for (let i = 0; i < courbes.length; i += 2) {
+      if (Number.isNaN(courbes[i]!)) lignes.push([])
+      else lignes[lignes.length - 1]!.push([courbes[i]!, courbes[i + 1]!])
+    }
+    return lignes.filter((l) => l.length > 0)
+  }
+
+  /** Les segments en `[az₀, h₀, az₁, h₁]`, ceux dont un bout tombe dans le secteur. */
+  function dansLeSecteur(courbes: Float32Array, de: number, a: number): number[][] {
+    const dedans = (az: number): boolean => az >= de && az <= a
+    return polylignes(courbes)
+      .flatMap((l) => l.slice(1).map((q, i) => [...l[i]!, ...q]))
+      .filter((s) => dedans(s[0]!) || dedans(s[2]!))
+  }
+
+  it('ne trace rien sur une plaine : aucune altitude n’y est franchie', () => {
+    expect(courbesNiveau(() => sol, SITE.latDeg, SITE.lonDeg)).toHaveLength(0)
+  })
+
+  it('suit le versant au sud et laisse le nord plat sans ligne', () => {
+    const courbes = courbesNiveau((lat) => versant(versLeSud(lat)), SITE.latDeg, SITE.lonDeg)!
+    expect(courbes.length % 2).toBe(0)
+    expect(dansLeSecteur(courbes, 175, 185).length).toBeGreaterThan(0)
+    expect(dansLeSecteur(courbes, 0, 10)).toHaveLength(0)
+  })
+
+  it('place chaque courbe à la hauteur apparente de son altitude', () => {
+    // Plein sud, la courbe d'altitude L croise l'azimut 180 à la distance où le versant vaut L.
+    const courbes = courbesNiveau((lat) => versant(versLeSud(lat)), SITE.latDeg, SITE.lonDeg)!
+    const niveau = sol + R('EQUIDISTANCE_COURBES_M') * 6
+    const distance = dernierM * Math.sqrt((niveau - sol) / denivele)
+    const attendue = attendueDeg(niveau - oeil, distance)
+    const proches = dansLeSecteur(courbes, 179.5, 180.5).flatMap((s) => [s[1]!, s[3]!])
+    expect(proches.some((h) => Math.abs(h - attendue) < 0.01)).toBe(true)
+  })
+
+  it('retire ce qu’un relief plus proche cache dans le même azimut', () => {
+    // Un mur haut entre 1,5 et 2,5 km au sud : le versant qui suit passe derrière lui. La face
+    // du mur porte ses courbes au-dessus du seuil, le versant en dessous.
+    const mur = (s: number): number => (s >= 1500 && s <= 2500 ? sol + denivele * 3 : versant(s))
+    const seuil = attendueDeg(R('EQUIDISTANCE_COURBES_M') - R('HAUTEUR_OEIL_M'), 2000)
+    const basses = (courbes: Float32Array) =>
+      dansLeSecteur(courbes, 175, 185).filter((s) => Math.min(s[1]!, s[3]!) < seuil)
+    const sansMur = courbesNiveau((lat) => versant(versLeSud(lat)), SITE.latDeg, SITE.lonDeg)!
+    const avecMur = courbesNiveau((lat) => mur(versLeSud(lat)), SITE.latDeg, SITE.lonDeg)!
+    expect(basses(sansMur).length).toBeGreaterThan(0)
+    expect(basses(avecMur)).toHaveLength(0)
+  })
+
+  it('rend null sans altitude au site', () => {
+    expect(courbesNiveau(() => null, SITE.latDeg, SITE.lonDeg)).toBeNull()
+  })
+
+  it('enchaîne chaque courbe en une seule ligne au lieu de segments épars', () => {
+    // Plein sud, le versant ne cache rien de lui-même : chaque niveau qui y passe est UNE ligne
+    // d'est en ouest, d'un seul tenant sur des dizaines de degrés. Des segments isolés coûtaient
+    // un sous-chemin chacun, à chaque image.
+    const courbes = courbesNiveau((lat) => versant(versLeSud(lat)), SITE.latDeg, SITE.lonDeg)!
+    const pleinSud = polylignes(courbes).filter((l) =>
+      l.some(([az], i) => i > 0 && (l[i - 1]![0]! - 180) * (az! - 180) <= 0),
+    )
+    expect(pleinSud.length).toBeGreaterThan(0)
+    expect(pleinSud.length).toBeLessThanOrEqual(denivele / R('EQUIDISTANCE_COURBES_M'))
+    for (const ligne of pleinSud) {
+      const azimuts = ligne.map(([az]) => az!)
+      expect(Math.min(...azimuts)).toBeLessThan(165)
+      expect(Math.max(...azimuts)).toBeGreaterThan(195)
+    }
+  })
+
+  it('ne simplifie pas au-delà de la corde maximale', () => {
+    // Le premier niveau franchi est à plus de 8 km : les segments d'origine y sont tous plus
+    // courts que la borne, seule la simplification pourrait l'enfreindre.
+    const courbes = courbesNiveau((lat) => versant(versLeSud(lat)), SITE.latDeg, SITE.lonDeg)!
+    const cordes = polylignes(courbes).flatMap((l) =>
+      l.slice(1).map((q, i) => separationDeg(versVecteur(l[i]![0]!, l[i]![1]!), versVecteur(q[0]!, q[1]!))),
+    )
+    // Un peu de marge : la corde se borne en double précision, les points se rangent en simple.
+    expect(Math.max(...cordes)).toBeLessThanOrEqual(R('CORDE_MAX_COURBES_DEG') * 1.001)
+  })
+
+  it('porte les courbes jusqu’au masque sans toucher ses altitudes', () => {
+    const profil = Array.from({ length: NB_AZIMUTS }, () => 0)
+    const courbes = Float32Array.of(170, 1, 171, 1)
+    const masque = masqueDuRelief({ etat: 'RELIEF', altitudesDeg: profil, solM: 0, courbesDeg: courbes })
+    expect(masque.courbesDeg).toBe(courbes)
+    expect(masque.altitudesDeg).toEqual(profil)
+  })
+})
+
 describe('obstruction entre deux azimuts entiers (T-0359)', () => {
   const masque = masqueDepuisRelief(
     Array.from({ length: NB_AZIMUTS }, (_, az) => (az === 10 ? 8 : az === 11 ? 12 : 0)),
@@ -149,5 +260,35 @@ describe('avertissement d’horizon plat dans la carte Site (T-0368)', () => {
     const masque = masqueDuRelief({ etat: 'INDISPONIBLE', cause: 'Service muet.' })
     expect(masque.estHypothese).toBe(true)
     expect(masque.note).toMatch(/^Service muet\. Horizon supposé plat\.$/)
+  })
+})
+
+describe('simplification d’une courbe de niveau (T-0395)', () => {
+  const tolerance = R('TOLERANCE_COURBES_DEG')
+  const cordeMax = R('CORDE_MAX_COURBES_DEG')
+  /** Des points sur l'horizon, d'azimut en azimut, avec une bosse optionnelle au milieu. */
+  const ligne = (n: number, pasDeg: number, bosseDeg = 0): Vec3[] =>
+    Array.from({ length: n }, (_, i) =>
+      versVecteur(i * pasDeg, i === Math.floor(n / 2) ? bosseDeg : 0),
+    )
+
+  it('garde les deux bouts et retire les points alignés sur le grand cercle', () => {
+    const points = ligne(21, cordeMax / 20)
+    expect(simplifieLigne(points, tolerance, cordeMax)).toEqual([0, 20])
+  })
+
+  it('coupe une ligne droite plus longue que la corde maximale', () => {
+    const points = ligne(101, cordeMax / 20)
+    const gardes = simplifieLigne(points, tolerance, cordeMax)
+    for (let i = 1; i < gardes.length; i++) {
+      expect(separationDeg(points[gardes[i - 1]!]!, points[gardes[i]!]!)).toBeLessThanOrEqual(cordeMax)
+    }
+    expect(gardes.length).toBeLessThan(points.length / 4)
+  })
+
+  it('garde un écart plus grand que la tolérance, efface un écart plus petit', () => {
+    const pas = cordeMax / 20
+    expect(simplifieLigne(ligne(11, pas, tolerance * 3), tolerance, cordeMax)).toContain(5)
+    expect(simplifieLigne(ligne(11, pas, tolerance / 2), tolerance, cordeMax)).toEqual([0, 10])
   })
 })

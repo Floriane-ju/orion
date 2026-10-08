@@ -249,23 +249,3 @@ export function remplitRegion(
   }
   ctx.fill('evenodd')
 }
-
-/**
- * Souligne la frontière du remplissage. Chaque segment joint deux traversées de la même
- * maille, celles-là mêmes qui bordent le polygone : le trait ne peut pas se décoller de ce
- * qu'il souligne.
- */
-export function traceFrontiere(
-  ctx: CanvasRenderingContext2D,
-  f: FrontiereEcran,
-  couleur: string,
-): void {
-  ctx.strokeStyle = couleur
-  ctx.lineWidth = 1
-  ctx.beginPath()
-  for (const [[xa, ya], [xb, yb]] of f.segments) {
-    ctx.moveTo(xa, ya)
-    ctx.lineTo(xb, yb)
-  }
-  ctx.stroke()
-}

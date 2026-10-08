@@ -14,6 +14,7 @@ import {
   altitudeTerrarium,
   pixelMonde,
   resoudRelief,
+  signatureCourbes,
   tuilesCouvrantes,
   type ChargeTuile,
 } from '../src/data/relief.ts'
@@ -98,6 +99,39 @@ describe('résolution du relief (§4.1, §12.5)', () => {
     if (relief.etat !== 'RELIEF') return
     expect(relief.altitudesDeg[0]).toBeGreaterThan(0)
     expect(relief.altitudesDeg[180]).toBe(0)
+  })
+
+  it('range les courbes de niveau avec le profil, et les relit (T-0395)', async () => {
+    const relief = await resoudRelief(LAT, LON, plaine(800))
+    if (relief.etat !== 'RELIEF') throw new Error('relief attendu')
+    expect(relief.courbesDeg).toBeInstanceOf(Float32Array)
+    expect(relief.signatureCourbes).toBe(signatureCourbes())
+    const relu = await litRelief(cleRelief(LAT, LON))
+    expect(relu?.courbesDeg).toEqual(relief.courbesDeg)
+    expect(relu?.signatureCourbes).toBe(relief.signatureCourbes)
+  })
+
+  it('relit un ancien cache sans courbes, et ignore des courbes illisibles (T-0395)', async () => {
+    const profil = Array.from({ length: NB_AZIMUTS }, () => 0)
+    const cle = cleRelief(LAT, LON)
+    await (await db()).put('reglages', { profil, solM: 640 }, cle)
+    expect(await litRelief(cle)).toEqual({ etat: 'RELIEF', altitudesDeg: profil, solM: 640 })
+    await (await db()).put('reglages', { profil, solM: 640, courbes: [[1, 2]], signatureCourbes: signatureCourbes() }, cle)
+    expect(await litRelief(cle)).toEqual({ etat: 'RELIEF', altitudesDeg: profil, solM: 640 })
+  })
+
+  it('refait en ligne les courbes d’un cache qui n’en a pas, sinon le garde (T-0395)', async () => {
+    const profil = Array.from({ length: NB_AZIMUTS }, () => 0)
+    await ecritRelief(cleRelief(LAT, LON), { etat: 'RELIEF', altitudesDeg: profil, solM: 640 })
+    const muet: ChargeTuile = async () => null
+    expect(await resoudRelief(LAT, LON, muet)).toEqual({
+      etat: 'RELIEF',
+      altitudesDeg: profil,
+      solM: 640,
+    })
+    const relief = await resoudRelief(LAT, LON, plaine(640))
+    if (relief.etat !== 'RELIEF') throw new Error('relief attendu')
+    expect(relief.signatureCourbes).toBe(signatureCourbes())
   })
 
   it('hors réseau, retrouve le relief d’un site déjà visité', async () => {

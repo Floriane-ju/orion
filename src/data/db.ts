@@ -293,15 +293,39 @@ export function cleRelief(latDeg: number, lonDeg: number): string {
 export async function litRelief(cle: string): Promise<ReliefConnu | null> {
   const brut: unknown = await (await db()).get('reglages', cle)
   if (typeof brut !== 'object' || brut === null) return null
-  const { profil, solM } = brut as Record<string, unknown>
-  if (!Array.isArray(profil) || profil.length !== NB_AZIMUTS) return null
-  if (!profil.every((v) => typeof v === 'number' && Number.isFinite(v))) return null
+  const { profil, solM, courbes, signatureCourbes } = brut as Record<string, unknown>
+  if (!estProfil(profil)) return null
   if (typeof solM !== 'number' || !Number.isFinite(solM)) return null
-  return { etat: 'RELIEF', altitudesDeg: profil as number[], solM }
+  // T-0395 — des courbes illisibles ne coûtent que les courbes : le masque, lui, est valide.
+  const courbesLues =
+    courbes instanceof Float32Array &&
+    courbes.length % 2 === 0 &&
+    typeof signatureCourbes === 'string'
+      ? { courbesDeg: courbes, signatureCourbes }
+      : {}
+  return { etat: 'RELIEF', altitudesDeg: profil, solM, ...courbesLues }
+}
+
+function estProfil(v: unknown): v is number[] {
+  return (
+    Array.isArray(v) &&
+    v.length === NB_AZIMUTS &&
+    v.every((x) => typeof x === 'number' && Number.isFinite(x))
+  )
 }
 
 export async function ecritRelief(cle: string, relief: ReliefConnu): Promise<void> {
-  await (await db()).put('reglages', { profil: [...relief.altitudesDeg], solM: relief.solM }, cle)
+  await (await db()).put(
+    'reglages',
+    {
+      profil: [...relief.altitudesDeg],
+      solM: relief.solM,
+      ...(relief.courbesDeg === undefined
+        ? {}
+        : { courbes: relief.courbesDeg, signatureCourbes: relief.signatureCourbes }),
+    },
+    cle,
+  )
 }
 
 export async function litImage(designation: string): Promise<ImageStockee | null> {

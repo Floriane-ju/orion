@@ -108,6 +108,55 @@ const RELIEF = Object.freeze({
     tolerance: 'ordre de grandeur — 0,07 à 0,20 selon le gradient thermique près du sol',
   }),
 
+  /**
+   * T-0395 — écart d'altitude entre deux courbes de niveau dessinées sur le sol. Celui des
+   * cartes au 1:25 000 est de 10 m ; vu en perspective, à 30 km, il ferait une hachure. Cinq
+   * fois plus lâche, un versant alpin garde des dizaines de lignes et une colline en garde
+   * deux ou trois.
+   */
+  EQUIDISTANCE_COURBES_M: valeur({
+    valeur: 50,
+    unite: 'm',
+    source: 'convention de dessin — direction visuelle T-0395 ; carte IGN 1:25 000 à 10 m',
+    tolerance: 'sans objet — aucun calcul de visibilité n’en dépend',
+  }),
+
+  /**
+   * T-0395 — pas d'azimut de la table qui décide si un point de courbe est caché : 260 m à
+   * 30 km, l'ordre du pas radial. Au degré, une courbe lointaine se masquait par plaques.
+   */
+  PAS_AZIMUT_COURBES_DEG: valeur({
+    valeur: 0.5,
+    unite: '°',
+    source: 'convention de dessin — de l’ordre de PAS_RADIAL_RELIEF_M au rayon de §4.1',
+    tolerance: 'sans objet — aucun calcul de visibilité n’en dépend',
+  }),
+
+  /**
+   * T-0397 — l'écart angulaire qu'une courbe simplifiée peut prendre avec son tracé d'origine.
+   * Sous le pixel jusqu'à 30° de champ sur 1 920 px ; il retire des milliers de points presque
+   * alignés que chaque image projetait et traçait pour rien.
+   */
+  TOLERANCE_COURBES_DEG: valeur({
+    valeur: 0.01,
+    unite: '°',
+    source: 'convention de dessin — 0,64 px à 30° de champ sur 1 920 px',
+    tolerance: 'sans objet — aucun calcul de visibilité n’en dépend',
+  }),
+
+  /**
+   * T-0397 — la plus longue corde qu'une courbe simplifiée garde entre deux points. Une courbe
+   * de niveau droite est un grand cercle : sans borne, la simplification n'en laisserait que les
+   * deux bouts, et le trait droit tiré entre leurs projections couperait l'arc que la
+   * projection courbe.
+   */
+  CORDE_MAX_COURBES_DEG: valeur({
+    valeur: 1,
+    unite: '°',
+    source: 'convention de dessin — flèche de corde sous le pixel en projection stéréographique',
+    tolerance: 'sans objet — aucun calcul de visibilité n’en dépend',
+  }),
+
   /** L'œil — ou l'objectif sur trépied — au-dessus du sol que le modèle de terrain décrit. */
   HAUTEUR_OEIL_M: valeur({
     valeur: 1.6,

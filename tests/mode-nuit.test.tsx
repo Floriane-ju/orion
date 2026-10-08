@@ -259,6 +259,7 @@ describe('la scène reprend les jetons de l’interface', () => {
     'frontieres',
     'asterismes',
     'horizon',
+    'courbes',
     'sol',
     'voieLactee',
     'texte',

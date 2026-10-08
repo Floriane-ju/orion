@@ -129,6 +129,12 @@ export interface PaletteCiel {
   readonly lune: string
   readonly cadre: string
   readonly horizon: string
+  /**
+   * T-0395 — les courbes de niveau du sol : sous l'horizon, qui reste la ligne qui compte, et
+   * au-dessus du sol, qu'elles doivent étager sans l'éclairer. Peintes sur le sol et non sur
+   * le fond, elles ne se compensent pas en vue réaliste : le sol ne s'éclaircit pas.
+   */
+  readonly courbes: string
   /** §4.1 — le sol : opaque et très foncé, il se distingue du fond de ciel sans l'éclairer. */
   readonly sol: string
   /** T-0033 — plan galactique : rose en vue normale, rouge pur en mode nuit comme le reste. */
@@ -155,6 +161,7 @@ const PALETTE_NUIT: PaletteCiel = Object.freeze({
   lune: 'rgb(250 0 0)',
   cadre: 'rgb(246 0 0)',
   horizon: 'rgb(50 0 0)',
+  courbes: 'rgb(36 0 0)',
   sol: 'rgb(18 0 0)',
   voieLactee: 'rgb(110 0 0)',
   parcours: 'rgb(250 0 0)',
@@ -200,6 +207,7 @@ const PALETTE_JOUR: PaletteCiel = Object.freeze({
   lune: 'rgb(233 233 233)',
   cadre: 'rgb(139 255 239)',
   horizon: avecOpacite(BLANC, 0.33),
+  courbes: avecOpacite(BLANC, 0.16),
   sol: 'rgb(5 5 5)',
   voieLactee: 'rgb(150 186 205)',
   parcours: 'rgb(233 233 233)',

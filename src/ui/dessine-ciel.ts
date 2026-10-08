@@ -318,7 +318,10 @@ function passeFond(passe: Passe): void {
   if (couches.voieLactee) traceBandeVoieLactee({ ...entree, projecteur: brut })
   // §4.1 — le sol, peint sur le fond et sur la bande, sous tout le reste.
   if (couches.sol) {
-    dessineSol(ctx, brut, entree.matriceCiel, entree.masque, teintes.sol, teintes.horizon)
+    dessineSol(ctx, brut, entree.matriceCiel, entree.masque, {
+      sol: teintes.sol,
+      courbes: teintes.courbes,
+    })
   }
   // §9.5 — la passe de filé passe APRÈS le sol, mais avec le projecteur qui l'ignore : le sol
   // reste peint par-dessus le fond, et aucune trace ne se calcule sous l'horizon (§4.1).

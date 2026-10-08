@@ -14,12 +14,8 @@ import { pointEcran, type PointEcranMut, type Projecteur } from '../core/project
 import { horsDuChamp, type ChampVisible } from './champ-visible.ts'
 import type { CoucheTraces } from '../core/constellations.ts'
 import type { EntreeDessin } from './dessine-ciel.ts'
-import { TOUR_DEG } from '../core/unites.ts'
 import { K } from '../registry/constants.ts'
 import { RAYON_MIN_ETOILE_PX, rayonEtoileCielPx } from './apparence-objets.ts'
-
-/** Échantillonnage en azimut du cercle d'horizon. */
-const PAS_AZIMUT_HORIZON_DEG = 3
 
 
 /**
@@ -223,23 +219,18 @@ export function traceSegments(
 }
 
 /**
- * Cercle d'horizon à 0° et points cardinaux, dans le repère du site.
+ * Points cardinaux de l'horizon, dans le repère du site.
  *
  * Le projecteur arrive en paramètre, et c'est le projecteur BRUT : c'est un repère de lecture,
- * pas un objet posé sur le sol. Filtré comme le reste, le cercle disparaîtrait derrière chaque
- * colline du relief (§4.1) — la crête, elle, est tracée par le sol qui la porte.
+ * pas un objet posé sur le sol. Filtrés comme le reste, ils disparaîtraient derrière chaque
+ * colline du relief (§4.1).
+ *
+ * T-0395 — le cercle à 0° ne se trace plus : il barrait le sol sous le relief, là où les
+ * courbes de niveau dessinent déjà les versants. Les lettres suffisent à s'orienter.
  */
 export function traceHorizon(entree: EntreeDessin, couleur: string, projecteur: Projecteur): void {
   const { ctx } = entree
   const versJ2000 = transpose(entree.matriceCiel)
-  const points: Vec3[] = []
-  for (let az = 0; az <= TOUR_DEG; az += PAS_AZIMUT_HORIZON_DEG) {
-    points.push(applique(versJ2000, versVecteur(az, 0)))
-  }
-  ctx.strokeStyle = couleur
-  ctx.lineWidth = 1
-  traceLignes(ctx, projecteur, [points])
-
   ctx.fillStyle = couleur
   const cardinaux: readonly (readonly [number, string])[] = [
     [0, 'N'],

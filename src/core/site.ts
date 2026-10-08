@@ -53,6 +53,12 @@ export interface MasqueHorizon {
   readonly estHypothese: boolean
   readonly flags?: readonly Flag[]
   readonly note?: string
+  /**
+   * T-0395 — les courbes de niveau visibles du terrain, en polylignes `[az, h, az, h, …]`
+   * séparées par une paire de NaN (T-0397). Elles se dessinent sur le sol et n'entrent dans
+   * aucun calcul : le masque reste `altitudesDeg`.
+   */
+  readonly courbesDeg?: Float32Array
 }
 
 /**

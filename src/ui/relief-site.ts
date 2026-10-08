@@ -64,10 +64,13 @@ export function masqueDuRelief(relief: ReliefSite | null): MasqueHorizon {
     return Object.freeze(plat)
   }
   if (relief.etat === 'INDISPONIBLE') return masquePlat(relief.cause)
-  return masqueDepuisRelief(
+  const masque = masqueDepuisRelief(
     relief.altitudesDeg,
     `Relief du terrain sur ${nombreLibre(R('RAYON_RELIEF_KM'))} km (Terrain Tiles).`,
   )
+  return relief.courbesDeg === undefined
+    ? masque
+    : Object.freeze({ ...masque, courbesDeg: relief.courbesDeg })
 }
 
 /**

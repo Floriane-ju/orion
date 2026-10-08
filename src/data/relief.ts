@@ -10,7 +10,7 @@
  * moteur consomme, et il pèse trois kilo-octets là où ses tuiles en pèsent mille cinq cents.
  */
 
-import { profilRelief, type Altimetre } from '../core/relief.ts'
+import { courbesNiveau, profilRelief, type Altimetre } from '../core/relief.ts'
 import { masqueDepuisRelief } from '../core/site.ts'
 import { DEG } from '../core/mat3.ts'
 import {
@@ -28,6 +28,10 @@ export interface ReliefConnu {
   readonly altitudesDeg: readonly number[]
   /** T-0365 — l'altitude du sol au site, en mètres : celle d'où l'œil regarde le relief. */
   readonly solM: number
+  /** T-0395 — les courbes de niveau visibles (voir `courbesNiveau`) ; absentes d'un ancien cache. */
+  readonly courbesDeg?: Float32Array
+  /** Ce qui les a tracées — algorithme et équidistance : une autre signature les fait refaire. */
+  readonly signatureCourbes?: string
 }
 
 export type ReliefSite = ReliefConnu | { readonly etat: 'INDISPONIBLE'; readonly cause: string }
@@ -183,7 +187,13 @@ async function depuisReseau(
   if (profil === null || solM === null || !dansLeDomaine(profil)) {
     return { etat: 'INDISPONIBLE', cause: CAUSE_INVALIDE }
   }
-  return { etat: 'RELIEF', altitudesDeg: profil, solM }
+  const courbes = courbesNiveau(altitude, latDeg, lonDeg)
+  return {
+    etat: 'RELIEF',
+    altitudesDeg: profil,
+    solM,
+    ...(courbes === null ? {} : { courbesDeg: courbes, signatureCourbes: signatureCourbes() }),
+  }
 }
 
 /**
@@ -199,6 +209,22 @@ function dansLeDomaine(profil: readonly number[]): boolean {
   }
 }
 
+/**
+ * T-0395 — version du calcul des courbes, à monter quand `courbesNiveau` change. Elle ne touche
+ * pas la clé du cache : hors réseau, un site déjà visité garde son masque.
+ */
+const VERSION_COURBES = 3
+
+export function signatureCourbes(): string {
+  return [
+    `v${VERSION_COURBES}`,
+    R('EQUIDISTANCE_COURBES_M'),
+    R('PAS_AZIMUT_COURBES_DEG'),
+    R('TOLERANCE_COURBES_DEG'),
+    R('CORDE_MAX_COURBES_DEG'),
+  ].join(':')
+}
+
 /** Les résolutions en vol, par site : deux rendus rapprochés ne téléchargent pas deux fois. */
 const enVol = new Map<string, Promise<ReliefSite>>()
 
@@ -209,9 +235,15 @@ export async function resoudRelief(
   charge: ChargeTuile = chargeTuileReseau,
 ): Promise<ReliefSite> {
   const cle = cleRelief(latDeg, lonDeg)
-  const enCache = await litRelief(cle).catch(() => null)
-  if (enCache !== null && dansLeDomaine(enCache.altitudesDeg)) return enCache
-  if (modeReseauCourant() === 'HORS_LIGNE') return { etat: 'INDISPONIBLE', cause: CAUSE_HORS_LIGNE }
+  const lu = await litRelief(cle).catch(() => null)
+  const enCache = lu !== null && dansLeDomaine(lu.altitudesDeg) ? lu : null
+  const horsLigne = modeReseauCourant() === 'HORS_LIGNE'
+  // T-0395 — des courbes absentes, ou tracées autrement qu'aujourd'hui, se refont en ligne ;
+  // hors réseau ou si le service se tait, le masque en cache reste bon, et c'est lui qui compte.
+  if (enCache !== null && (horsLigne || enCache.signatureCourbes === signatureCourbes())) {
+    return enCache
+  }
+  if (horsLigne) return { etat: 'INDISPONIBLE', cause: CAUSE_HORS_LIGNE }
 
   const dejaEnVol = enVol.get(cle)
   if (dejaEnVol !== undefined) return dejaEnVol
@@ -222,7 +254,8 @@ export async function resoudRelief(
   })
   enVol.set(cle, resolution)
   try {
-    return await resolution
+    const relief = await resolution
+    return relief.etat === 'INDISPONIBLE' && enCache !== null ? enCache : relief
   } finally {
     enVol.delete(cle)
   }

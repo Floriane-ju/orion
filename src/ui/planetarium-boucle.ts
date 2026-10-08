@@ -65,6 +65,9 @@ const INTERVALLE_MIN_MS = MS_PAR_S / B('IMAGES_PAR_S_MAX')
 /** La plus petite dérive que l'écran sait montrer. Fait de plateforme, pas seuil de rendu. */
 const DERIVE_VISIBLE_PX = 1
 
+/** T-0395 — un relief en transition n'a pas de courbes : celles d'arrivée attendent qu'il soit posé. */
+const COURBES_VIDES = new Float32Array(0)
+
 /** Tout ce que la boucle lit à chaque image, réécrit à chaque rendu React. */
 export interface EtatBoucle {
   readonly site: Site
@@ -330,7 +333,7 @@ export function useBoucleRendu(entree: {
         masque:
           horizon === courant.masque.altitudesDeg
             ? courant.masque
-            : { ...courant.masque, altitudesDeg: horizon },
+            : { ...courant.masque, altitudesDeg: horizon, courbesDeg: COURBES_VIDES },
         modeNuit: courant.modeNuit,
         survol: survol.current ?? undefined,
         passeFile:
