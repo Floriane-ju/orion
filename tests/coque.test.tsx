@@ -358,6 +358,23 @@ describe('§11.2 — un seul jeu de réglages à la fois', () => {
     expect((bloc.match(/aria-pressed=/g) ?? []).length).toBe(8)
   })
 
+  // T-0403 — en Panorama, le rail retire ce qui n'agit plus sous l'aperçu, mais garde la Voie
+  // lactée : sa bascule commande encore le trait du plan galactique (T-0173).
+  it('en Panorama, retire figures, frontières et astérismes mais garde la Voie lactée', () => {
+    poseMode('PANORAMA')
+    const html = ecran()
+    const rail = html.slice(html.indexOf('coque-rail'), html.indexOf('carte-plan'))
+    const absente = (libelle: string): string | undefined =>
+      rail
+        .slice(0, rail.indexOf(`aria-label="${libelle}"`))
+        .match(/data-absente="(true|false)"/g)
+        ?.at(-1)
+    for (const libelle of ['Figures IAU', 'Frontières IAU', 'Astérismes']) {
+      expect(absente(libelle), libelle).toBe('data-absente="true"')
+    }
+    expect(absente('Voie lactée')).toBe('data-absente="false"')
+  })
+
   /**
    * T-0069 — « un raccourci qui n'est écrit que dans le code n'existe pas ». La carte Vue les
    * affichait ; le rail les porte sur un bouton qui n'est pas une bascule — il annonce, il ne

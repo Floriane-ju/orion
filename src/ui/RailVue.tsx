@@ -81,16 +81,16 @@ const COUCHES: readonly (readonly [keyof CouchesActives, string, string])[] = [
 
 /**
  * T-0171 — sous l'aperçu peint sur toute la scène (§9.5), seuls le sol, l'horizon, le cadre
- * matériel et le trait du plan galactique s'ajoutent : ces quatre couches-ci n'ont aucun effet
+ * matériel et le trait du plan galactique s'ajoutent : ces trois couches-ci n'ont aucun effet
  * en Panorama. Elles y étaient grisées avec une note ; elles quittent désormais le rail, qui ne
  * garde que ce qui commande l'image affichée. Leur état est conservé : revenir en Ciel profond
- * les rend telles qu'on les avait laissées.
+ * les rend telles qu'on les avait laissées. T-0403 — la Voie lactée reste : sa bascule commande
+ * le trait du plan galactique (T-0173).
  */
 const ABSENTES_EN_PANORAMA: readonly (keyof CouchesActives)[] = [
   'figures',
   'frontieres',
   'asterismes',
-  'voieLactee',
 ]
 
 /**
