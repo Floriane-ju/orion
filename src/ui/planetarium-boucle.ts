@@ -310,9 +310,6 @@ export function useBoucleRendu(entree: {
           : null,
         parametres: params,
         axePoleNord: axePoleDeDate(ciel.epoqueAnnee),
-        latitudeDeg: courant.site.latitudeDeg,
-        sbCiel: courant.sbCiel,
-        vueRealiste: courant.vueRealiste,
         modeNuit: courant.modeNuit,
         lune,
       })
@@ -447,9 +444,6 @@ export function useBoucleRendu(entree: {
                     // l'horizon (§4.1).
                     projecteur: proj,
                     axePoleNord: axePoleDeDate(ciel.epoqueAnnee),
-                    latitudeDeg: courant.site.latitudeDeg,
-                    sbCiel: courant.sbCiel,
-                    vueRealiste: courant.vueRealiste,
                     modeNuit: courant.modeNuit,
                     lune: luneSeance,
                   })

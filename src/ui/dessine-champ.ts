@@ -14,8 +14,9 @@
  * les repères. Le planétarium a déjà peint le vrai fond de ciel du site (§3.7, halo d'horizon,
  * halo lunaire, crépuscule) et sa propre Voie lactée (§3.6) ; les repeindre ici les
  * effacerait, ou en superposerait une seconde version de teinte différente. Ce qui reste
- * propre à cette passe est donc uniquement ce que la pose ajoute : les traces, et le centre
- * de rotation qu'elles décrivent.
+ * propre à cette passe est donc uniquement ce que la pose ajoute : les traces. Le centre de
+ * rotation n'est plus marqué d'une croix : les arcs le désignent d'eux-mêmes, et sa position
+ * reste lisible dans le diagnostic du panneau.
  */
 
 import { K } from '../registry/constants.ts'
@@ -25,8 +26,6 @@ import {
   arcsVisibles,
   effectifCielPourCouverture,
   longueurArcDeg,
-  positionPole,
-  type PositionPole,
 } from '../core/file-etoiles.ts'
 import {
   opaciteEtoile,
@@ -39,11 +38,9 @@ import { fondLune, opaciteSousLuneXYZ, type FondLune, type LuneFile } from '../c
 import { magnitudePourEffectif, selectionne } from '../core/index-ciel.ts'
 import { rayonChampDeg, rayonEtoilePx, type Projecteur } from '../core/projection.ts'
 import { angleDeSinDeg, DEG, separationDeg, type Vec3 } from '../core/mat3.ts'
-import { TEINTES, couleurTeinteOpacite, paletteScene, teinte } from './couleurs.ts'
+import { TEINTES, couleurTeinteOpacite, teinte } from './couleurs.ts'
 import { DEMI_TOUR_DEG, encadre, QUART_TOUR_DEG as DROIT, S_PAR_MIN, TOUR_RAD } from '../core/unites.ts'
 import { RAYON_MIN_ETOILE_PX } from './apparence-objets.ts'
-
-const MARQUEUR_POLE_PX = 14
 
 /**
  * Ce que la passe tient du matériel et des réglages de §9 — tout ce qui NE dépend PAS de
@@ -96,13 +93,6 @@ export interface EntreeDessinChamp extends ParametresFile {
   readonly projecteur: Projecteur
   /** Direction J2000 du pôle céleste nord de l'époque : centre exact des arcs (§9.3). */
   readonly axePoleNord: Vec3
-  readonly latitudeDeg: number
-  /**
-   * Fond de ciel de la scène. Il ne sert plus qu'à la palette du marqueur de pôle : le fond
-   * lui-même appartient au planétarium depuis T-0116.
-   */
-  readonly sbCiel: number
-  readonly vueRealiste: boolean
   readonly modeNuit: boolean
   /**
    * T-0400 — la Lune retenue pour la séance, en vue réaliste : elle éclaircit le fond de chaque
@@ -128,7 +118,6 @@ export interface SortieDessinChamp {
    * cachent rien. Peut dépasser 1 : c'est justement ce qu'on veut voir.
    */
   readonly couverturePeinte: number
-  readonly pole: PositionPole
 }
 
 /**
@@ -225,8 +214,8 @@ function peintEnAttente(
     ctx.lineWidth = 2 * rayonDuPalier(Math.floor(reste / en.niveauxOpacite), en)
     ctx.stroke(chemin)
   }
-  // Rendus à leurs valeurs par défaut, comme la passe du ciel le fait de la bande : le marqueur
-  // du pôle est tracé après, et un bout de trait laissé arrondi lui arrondissait les branches.
+  // Rendus à leurs valeurs par défaut, comme la passe du ciel le fait de la bande : ce qui se
+  // trace ensuite sur le même contexte ne doit pas hériter d'un bout de trait arrondi.
   ctx.lineWidth = 1
   ctx.lineCap = 'butt'
 }
@@ -323,18 +312,23 @@ function dessineCouche(
   scene: Scene,
   index: IndexCiel,
   magMin: number,
-  magMax: number,
+  magParZ: Float64Array,
   compteur: Compteur,
   attente: EnAttente,
 ): void {
   const { projecteur } = entree
   const { centreJ2000, dureeMin, rayonSelectionDeg } = scene
+  // La sélection lit jusqu'à la limite la plus profonde des déclinaisons que le champ peut
+  // recevoir ; chaque étoile se juge ensuite sur la limite de sa propre case.
+  const magMax = maxSurZ(magParZ, scene.zMin, scene.zMax)
+  if (magMax <= magMin) return
 
   const stats = selectionne(index, centreJ2000, rayonSelectionDeg, magMax, (x, y, z, magV, bv) => {
     if (magV < magMin) return
     // Le cercle de déclinaison de l'étoile touche-t-il le champ ? Deux comparaisons, avant tout le
     // reste, et sur la composante polaire brute : pas d'arc sinus par étoile.
     if (z < scene.zMin || z > scene.zMax) return
+    if (magV > profondeurPourZ(magParZ, z)) return
     const rayon = Math.max(RAYON_MIN_ETOILE_PX, rayonEtoilePx(magV))
     // Marge du rejet et du découpage : la demi-largeur du trait, plus le débord
     // d'anticrénelage. Rejeter au ras du bord effacerait ce débord — un pixel de trace.
@@ -429,9 +423,49 @@ function dessineCouche(
   compteur.visitees += stats.etoilesExaminees
 }
 
+/** Les deux plafonds de T-0119, en effectif de ciel entier. */
+export interface Budget {
+  /** Plafond de lisibilité, valable là où une trace balaie un grand cercle. */
+  readonly couverture: number
+  /** Plafond de coût : il compte des étoiles lues, pas une surface, et ne se compense pas. */
+  readonly max: number
+}
+
+/**
+ * T-0401 — magnitude limite d'une couche, par case de `z`. Une trace balaie un arc en cos δ : près
+ * du pôle elle peint peu, et une coupure unique, taillée pour l'équateur céleste, y vidait le
+ * ciel. Le budget de couverture s'y divise par cos^α δ. `depense` : l'effectif déjà pris par la
+ * couche précédente.
+ */
+export function tableMagParZ(
+  index: IndexCiel,
+  budget: Budget,
+  depense: number,
+  plafond: number,
+): Float64Array {
+  const cases = K('CASES_TABLE_PROFONDEUR_TRACE')
+  const alpha = K('COMPENSATION_COUVERTURE_POLAIRE')
+  const table = new Float64Array(cases)
+  for (let i = 0; i < cases; i++) {
+    const z = -1 + (2 * (i + 1 / 2)) / cases
+    const cosDec = Math.sqrt(1 - z * z)
+    const effectif = Math.min(budget.max, budget.couverture / cosDec ** alpha)
+    table[i] = Math.min(plafond, magnitudePourEffectif(index, effectif - depense))
+  }
+  return table
+}
+
+/** La limite la plus profonde des cases que couvre l'intervalle `[zMin ; zMax]`. */
+function maxSurZ(table: Float64Array, zMin: number, zMax: number): number {
+  const caseDe = (z: number): number =>
+    encadre((((z + 1) * table.length) / 2) | 0, 0, table.length - 1)
+  let max = -Infinity
+  for (let i = caseDe(zMin); i <= caseDe(zMax); i++) max = Math.max(max, table[i]!)
+  return max
+}
+
 export function dessineChamp(entree: EntreeDessinChamp): SortieDessinChamp {
   const { ctx, projecteur } = entree
-  const teintes = paletteScene(entree.modeNuit, entree.vueRealiste, entree.sbCiel)
 
   const seuilReel = K('SEUIL_MAG_ETOILES_REELLES')
   const reelles: Compteur = { dessinees: 0, visitees: 0, surfacePx: 0 }
@@ -457,11 +491,12 @@ export function dessineChamp(entree: EntreeDessinChamp): SortieDessinChamp {
   // le canevas en quelques dizaines de pixels — peint peu et en autorise donc des dizaines de
   // milliers. Un filé de cinq minutes en demandait 268 000, pour 98 ms. Le second plafond est
   // donc un plafond de coût, sur l'effectif lui-même.
-  const effectifCiel = Math.min(
-    entree.effectifMax ?? Infinity,
-    entree.couvertureMax === null
-      ? Infinity
-      : effectifCielPourCouverture({
+  const budget: Budget = {
+    max: entree.effectifMax ?? Infinity,
+    couverture:
+      entree.couvertureMax === null
+        ? Infinity
+        : effectifCielPourCouverture({
           projecteur,
           dureeMin: vue.dureeMin,
           couvertureMax: entree.couvertureMax,
@@ -471,44 +506,33 @@ export function dessineChamp(entree: EntreeDessinChamp): SortieDessinChamp {
           // qu'on calcule.
           largeurTraceRefPx: 2 * Math.max(RAYON_MIN_ETOILE_PX, rayonEtoilePx(seuilReel)),
         }),
-  )
-  const magReelle = Math.min(
-    entree.magLimite,
-    seuilReel,
-    magnitudePourEffectif(entree.indexReel, effectifCiel),
+  }
+  const magReelle = tableMagParZ(
+    entree.indexReel,
+    budget,
+    0,
+    Math.min(entree.magLimite, seuilReel),
   )
   const attente = enAttente(rayonEtoilePx(entree.indexReel.magMin))
   dessineCouche(entree, vue, entree.indexReel, -Infinity, magReelle, reelles, attente)
 
   // Ce que le catalogue réel n'a pas dépensé. Le comptage du semis vient de son propre tirage :
-  // il est exact, là où une loi analytique ne redonnerait le tirage qu'à sa pente près.
-  const magSemis = Math.min(
+  // il est exact, là où une loi analytique ne redonnerait le tirage qu'à sa pente près. Là où le
+  // plafond retombe sous le seuil catalographié, il ne reste rien à générer que le catalogue ne
+  // montre déjà : `dessineCouche` s'arrête d'elle-même.
+  const magSemis = tableMagParZ(
+    entree.indexSemis,
+    budget,
+    entree.indexReel.nombreEtoiles,
     entree.magLimite,
-    magnitudePourEffectif(entree.indexSemis, effectifCiel - entree.indexReel.nombreEtoiles),
   )
-  // La couche est coupée quand le plafond retombe sous le seuil catalographié : il ne reste
-  // alors rien à générer que le catalogue ne montre déjà.
-  if (magSemis > seuilReel) {
-    dessineCouche(entree, vue, entree.indexSemis, seuilReel, magSemis, generees, attente)
-  }
+  dessineCouche(entree, vue, entree.indexSemis, seuilReel, magSemis, generees, attente)
 
   // Les deux couches se peignent ensemble : les chemins sont partagés, donc l'ordre entre
   // catalogue réel et semis ne se distingue plus. Aucune des deux ne passe devant l'autre — ce
   // sont les étoiles d'un même ciel, pas deux calques.
   peintEnAttente(ctx, attente, entree.modeNuit)
 
-  // Centre de rotation : marqué s'il tombe dans le champ, jamais ramené dedans s'il n'y est pas.
-  const pole = positionPole(projecteur, entree.latitudeDeg, entree.axePoleNord)
-  if (pole.dansCadre && pole.xPx !== null && pole.yPx !== null) {
-    ctx.strokeStyle = teintes.cadre
-    ctx.lineWidth = 1
-    ctx.beginPath()
-    ctx.moveTo(pole.xPx - MARQUEUR_POLE_PX, pole.yPx)
-    ctx.lineTo(pole.xPx + MARQUEUR_POLE_PX, pole.yPx)
-    ctx.moveTo(pole.xPx, pole.yPx - MARQUEUR_POLE_PX)
-    ctx.lineTo(pole.xPx, pole.yPx + MARQUEUR_POLE_PX)
-    ctx.stroke()
-  }
 
   return {
     etoilesReelles: reelles.dessinees,
@@ -517,6 +541,5 @@ export function dessineChamp(entree: EntreeDessinChamp): SortieDessinChamp {
     couverturePeinte:
       (reelles.surfacePx + generees.surfacePx) /
       (projecteur.vue.largeurPx * projecteur.vue.hauteurPx),
-    pole,
   }
 }

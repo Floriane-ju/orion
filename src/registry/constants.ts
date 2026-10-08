@@ -2078,6 +2078,24 @@ const GRAND_CHAMP = {
     ordreDeGrandeur: true,
     sections: ['9.3'],
   }),
+  COMPENSATION_COUVERTURE_POLAIRE: entree({
+    ref: 'C-33',
+    libelle: 'Exposant de la compensation en cos δ du plafond de couverture du filé',
+    valeur: 0.5,
+    unite: '—',
+    source:
+      '§9.3 — T-0401 : une trace balaie un arc proportionnel à cos δ, donc près du pôle elle ' +
+      'peint peu, et un plafond à magnitude unique y vide le ciel alors que la pose par pixel y ' +
+      'est la plus profonde. Le budget d’étoiles se divise par cos^α δ, case de déclinaison par ' +
+      'case. α = 1 rendrait la couverture uniforme par unité d’aire : la circumpolaire se ' +
+      'remplirait jusqu’au seuil catalographié. α = 0 redonne la coupure unique. 0,5 : la ' +
+      'circumpolaire garde plus d’étoiles sans devenir plus dense que le reste du champ. Le tri ' +
+      'par opacité par pixel (`OPACITE_TRACE_MIN`) reste inchangé : aucune étoile que le capteur ' +
+      'n’enregistrerait n’est ajoutée',
+    tolerance: 'convention produit',
+    ordreDeGrandeur: false,
+    sections: ['9.3'],
+  }),
   EFFECTIF_CIEL_MAX_APERCU: entree({
     ref: 'C-33',
     libelle: 'Étoiles du ciel entier au plus retenues par un aperçu de la scène',

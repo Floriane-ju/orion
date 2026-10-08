@@ -33,9 +33,6 @@ export interface DemandeImageFile {
   readonly masque: Pick<MasqueHorizon, 'altitudesDeg' | 'estHypothese'> | null
   readonly parametres: ParametresFile
   readonly axePoleNord: Vec3
-  readonly latitudeDeg: number
-  readonly sbCiel: number
-  readonly vueRealiste: boolean
   readonly modeNuit: boolean
   /** T-0400 — la Lune retenue pour la séance, ou `null` : vue non réaliste, ou Lune couchée. */
   readonly lune: LuneFile | null

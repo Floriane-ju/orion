@@ -31,7 +31,8 @@ function fauxPort(): PortFile & { readonly envoyes: MessageVersFile[] } {
 }
 
 /** Une demande reconnaissable à son champ : seul l'ordre des envois compte ici. */
-const demande = (sbCiel: number): DemandeImageFile => ({ sbCiel }) as unknown as DemandeImageFile
+const demande = (dureeS: number): DemandeImageFile =>
+  ({ parametres: { dureeS } }) as unknown as DemandeImageFile
 
 function repond(port: PortFile): { readonly close: ReturnType<typeof vi.fn> } {
   const bitmap = { close: vi.fn() }
@@ -46,7 +47,7 @@ function repond(port: PortFile): { readonly close: ReturnType<typeof vi.fn> } {
 }
 
 const demandesEnvoyees = (port: ReturnType<typeof fauxPort>): number[] =>
-  port.envoyes.flatMap((m) => (m.type === 'image' ? [m.demande.sbCiel] : []))
+  port.envoyes.flatMap((m) => (m.type === 'image' ? [m.demande.parametres.dureeS] : []))
 
 describe('client de la passe de filé hors fil (T-0398)', () => {
   it('garde une seule demande en vol et n’envoie que la plus récente au retour', () => {

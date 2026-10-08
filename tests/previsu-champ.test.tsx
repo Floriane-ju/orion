@@ -21,12 +21,12 @@ import {
   vignettageDiaph,
   type EntreeProfondeur,
 } from '../src/core/galactique.ts'
-import { construitIndex } from '../src/core/index-ciel.ts'
+import { construitIndex, magnitudePourEffectif } from '../src/core/index-ciel.ts'
 import { axePoleDeDate, cielInstantane, epoqueAnnee } from '../src/core/horloges.ts'
 import { versVecteur } from '../src/core/mat3.ts'
 import { arcEtoile, arcInvisible, arcsVisibles } from '../src/core/file-etoiles.ts'
 import { projecteur, type Vue } from '../src/core/projection.ts'
-import { dessineChamp, type EntreeDessinChamp } from '../src/ui/dessine-champ.ts'
+import { dessineChamp, tableMagParZ, type EntreeDessinChamp } from '../src/ui/dessine-champ.ts'
 import { PanneauFile, type PanneauFileProps } from '../src/ui/PanneauFile.tsx'
 import {
   etatSeance,
@@ -203,12 +203,9 @@ function rend(options: Partial<EntreeDessinChamp> = {}) {
     echApx: 105.6,
     sbSiteMag: 21.0,
     suiviActif: false,
-    vueRealiste: false,
-    sbCiel: 21.0,
     dureeS: 1,
     couvertureMax: null,
     effectifMax: null,
-    latitudeDeg: SITE.latitudeDeg,
     axePoleNord: AXE_POLE,
     modeNuit: false,
     ...options,
@@ -724,11 +721,9 @@ describe('§9.3 — une trace est moins brillante qu’un point', () => {
  * aplat par-dessus l'effacerait. Ce que la passe ajoute, ce sont les traces, rien d'autre.
  */
 describe('T-0116 — la passe de filé n’a pas de fond à elle', () => {
-  it('ne remplit aucune surface pleine, vue réaliste comprise', () => {
-    for (const vueRealiste of [false, true]) {
-      const { ctx } = rend({ vueRealiste, sbCiel: 19.4 })
-      expect(ctx.appels.some((a) => a.nom === 'fillRect')).toBe(false)
-    }
+  it('ne remplit aucune surface pleine', () => {
+    const { ctx } = rend()
+    expect(ctx.appels.some((a) => a.nom === 'fillRect')).toBe(false)
   })
 
   it('ne peint aucune bande galactique : celle du planétarium reste la seule', () => {
@@ -736,11 +731,37 @@ describe('T-0116 — la passe de filé n’a pas de fond à elle', () => {
     // `fillRect` pour le fond. Depuis T-0119 les étoiles remplissent un `Path2D` partagé, et leur
     // couleur porte l'opacité : c'est donc la FORME de l'ordre qui distingue les deux, pas la
     // couleur. Aucun remplissage sans chemin nommé ne sort plus de la passe.
-    const { ctx } = rend({ sbCiel: 21.5 })
+    const { ctx } = rend()
     const surfaces = ctx.appels.filter(
       (a) => a.nom === 'fillRect' || (a.nom === 'fill' && !(a.args[0] instanceof Path2DEspion)),
     )
     expect(surfaces).toHaveLength(0)
+  })
+})
+
+describe('T-0401 — la circumpolaire garde plus d’étoiles sous le plafond de couverture', () => {
+  // Une trace balaie un arc en cos δ : près du pôle elle peint peu. La coupure unique de T-0119,
+  // taillée pour l'équateur céleste, y vidait le ciel.
+  const effectif = INDEX_SEMIS.nombreEtoiles / 100
+  const derniere = (table: Float64Array) => table[table.length - 1]!
+  const equateur = (table: Float64Array) => table[table.length / 2]!
+
+  it('descend plus profond près du pôle qu’à l’équateur céleste, à budget égal', () => {
+    const table = tableMagParZ(INDEX_SEMIS, { couverture: effectif, max: Infinity }, 0, Infinity)
+    expect(equateur(table)).toBe(magnitudePourEffectif(INDEX_SEMIS, effectif))
+    expect(derniere(table)).toBeGreaterThan(equateur(table))
+    expect(table[0]!).toBe(derniere(table))
+  })
+
+  it('ne compense pas le plafond de coût : il compte des étoiles lues, pas une surface', () => {
+    const table = tableMagParZ(INDEX_SEMIS, { couverture: Infinity, max: effectif }, 0, Infinity)
+    expect(derniere(table)).toBe(equateur(table))
+  })
+
+  it('ne dépasse jamais le plafond de la couche', () => {
+    const plafond = magnitudePourEffectif(INDEX_SEMIS, effectif)
+    const table = tableMagParZ(INDEX_SEMIS, { couverture: effectif, max: Infinity }, 0, plafond)
+    expect(Math.max(...table)).toBe(plafond)
   })
 })
 

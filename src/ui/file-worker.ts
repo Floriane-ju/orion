@@ -48,9 +48,6 @@ portee.onmessage = ({ data }) => {
     ctx: ctx as unknown as CanvasRenderingContext2D,
     projecteur: d.masque === null ? brut : projecteurSansSol(brut, d.masque, d.matriceCiel),
     axePoleNord: d.axePoleNord,
-    latitudeDeg: d.latitudeDeg,
-    sbCiel: d.sbCiel,
-    vueRealiste: d.vueRealiste,
     modeNuit: d.modeNuit,
     lune: d.lune,
   })
