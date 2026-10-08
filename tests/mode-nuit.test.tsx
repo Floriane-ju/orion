@@ -420,7 +420,6 @@ describe('surfaces natives du balisage — T-0304', () => {
     'input:button': () => {},
     'input:text': () => {},
     'input:checkbox': () => expect(corps("input[type='checkbox']")).toMatch(/appearance:\s*none/),
-    'input:radio': () => expect(corps("input[type='radio']")).toMatch(/appearance:\s*none/),
     'input:search': () => retire("input[type='search']::-webkit-search-cancel-button"),
     'input:number': () => {
       retire("input[type='number']::-webkit-inner-spin-button")
@@ -827,7 +826,6 @@ describe('aucun aplat allumé la nuit — T-0375', () => {
   const EXCEPTIONS: Readonly<Record<string, string>> = {
     '::selection': 'transitoire : n’existe que le temps d’un geste de sélection',
     "input[type='checkbox']:checked": 'une case de 1,1 rem, seul signe de l’état coché',
-    "input[type='radio']:checked": 'un rond de 1,1 rem, seul signe de l’objectif utilisé',
     '.curseur:hover .curseur-rail': 'un trait de deux pixels, sous la main',
     '.curseur:active .curseur-rail': 'un trait de deux pixels, sous la main',
     '.curseur:focus-visible .curseur-rail': 'un trait de deux pixels, au focus',

@@ -5,8 +5,8 @@
  * la notation de bague (« 18–55 mm f/3,5–5,6 ») suffit à le désigner. Le bout max laissé vide
  * fait une focale fixe ou une ouverture constante.
  *
- * Le bouton radio monte l'objectif ; la case dit s'il est fisheye, ce qui choisit la projection.
- * Le bouton radio monte l'objectif. La corbeille ne se pose que s'il en reste un autre : un
+ * Chaque ligne est une carte : y entrer monte l'objectif, la carte montée est cernée. La case
+ * dit s'il est fisheye, ce qui choisit la projection. La corbeille ne se pose que s'il en reste un autre : un
  * parc vide renverrait à une saisie sans objectif, et c'est l'état que le parc remplace.
  */
 
@@ -27,9 +27,8 @@ export function PanneauParc({ objectifs, surObjectifs, objectifId, surObjectifId
   const dernier = objectifs.at(-1)
   return (
     <>
-      <div className="parc" role="list">
-        <div className="parc-ligne parc-entete" aria-hidden="true">
-          <span />
+      <div className="parc">
+        <div className="parc-entete" aria-hidden="true">
           <span className="libelle">Focale (mm)</span>
           <span className="libelle">Ouverture (f/)</span>
           <span className="libelle">Fisheye</span>
@@ -104,24 +103,30 @@ function LigneObjectif(props: LigneObjectifProps) {
     />
   )
 
+  /**
+   * La carte se choisit en y entrant — clic ou focus dans un de ses champs —, sauf par la
+   * corbeille : retirer un objectif ne doit pas le monter au passage.
+   */
+  const choisit = (cible: EventTarget) => {
+    if (!(cible instanceof Element && cible.closest('button') !== null)) props.surMonte()
+  }
+
   return (
     <div
       className="parc-objectif"
-      role="listitem"
-      onFocus={() => setEnFrappe(true)}
+      role="group"
+      aria-label={`${nom}${props.monte ? ', objectif utilisé' : ''}`}
+      data-monte={props.monte}
+      onClick={(e) => choisit(e.target)}
+      onFocus={(e) => {
+        setEnFrappe(true)
+        choisit(e.target)
+      }}
       onBlur={(e) => {
         // Passer d'un champ de la ligne à l'autre n'est pas en sortir.
         if (!e.currentTarget.contains(e.relatedTarget)) setEnFrappe(false)
       }}
     >
-      <div className="parc-ligne">
-        <input
-          type="radio"
-          name="objectif-monte"
-          checked={props.monte}
-          aria-label={`Utiliser ${nom}`}
-          onChange={props.surMonte}
-        />
         <span className="parc-paire">
           {champ('focaleMin', 'Focale min')}
           {champ('focaleMax', 'Focale max', 'max')}
@@ -141,7 +146,6 @@ function LigneObjectif(props: LigneObjectifProps) {
         ) : (
           <span />
         )}
-      </div>
       {refusAffiche !== null && (
         <Mention ton="erreur" role="alert">
           {refusAffiche}

@@ -135,11 +135,14 @@ function rendu(champs: Partial<SaisieMateriel>): string {
 }
 
 describe('T-0404 — la carte Optique', () => {
-  it('une ligne par objectif, l’objectif utilisé coché, ni nom ni lectures de champ', () => {
+  it('une carte par objectif, l’objectif utilisé marqué, ni nom ni lectures de champ', () => {
     const html = rendu({ objectifId: ZOOM.id, focale: '35', ouverture: '8' })
-    expect(html.match(/type="radio"/g)).toHaveLength(2)
-    const radio = html.match(/<input type="radio"[^>]*aria-label="Utiliser 18–55[^>]*>/)?.[0] ?? ''
-    expect(radio).toContain('checked=""')
+    const cartes = [...html.matchAll(/<div class="parc-objectif"[^>]*>/g)].map((m) => m[0])
+    expect(cartes).toHaveLength(2)
+    expect(cartes.filter((c) => c.includes('data-monte="true"'))).toEqual([
+      expect.stringContaining(`aria-label="${ZOOM.nom}, objectif utilisé"`),
+    ])
+    expect(html).not.toContain('type="radio"')
     expect(html).not.toContain('Objectif libre')
     expect(html).not.toContain('Champ')
     expect(html).not.toContain('Pose maximale sans suivi')

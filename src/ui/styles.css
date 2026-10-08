@@ -1962,19 +1962,52 @@ h3 {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
-/* T-0404 — le parc d'objectifs : une ligne par objectif. Le bouton radio de l'objectif utilisé,
- * deux paires de nombres — focale min/max, ouverture grand-angle/télé —, la corbeille au bout.
- * Les colonnes sont celles de l'en-tête, qui ne se répète pas ligne à ligne. */
+/* T-0404 — le parc d'objectifs : une carte par objectif — focale min/max, ouverture
+ * grand-angle/télé, fisheye, corbeille.
+ *
+ * Les colonnes sont tenues par `.parc` et partagées en `subgrid` par l'en-tête et chaque carte :
+ * des grilles indépendantes dimensionnaient leurs pistes `auto` chacune pour soi, et les titres
+ * glissaient au-dessus des champs. L'en-tête porte le même filet, transparent, et le même jour
+ * que les cartes pour que ses colonnes tombent au même endroit. */
 .parc {
   display: grid;
-  gap: var(--pas-1);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
+  column-gap: var(--pas-2);
+  row-gap: var(--pas-1);
 }
 
-.parc-ligne {
+.parc-entete,
+.parc-objectif {
+  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) auto var(--cible-clic);
+  grid-template-columns: subgrid;
   align-items: center;
-  gap: var(--pas-2);
+  padding: var(--pas-1) var(--pas-2);
+  border: var(--trait) solid transparent;
+}
+
+.parc-entete {
+  padding-block: 0;
+}
+
+/* La carte se choisit d'un clic : filet de contrôle au repos, filet plein une fois choisie. Pas
+ * d'aplat `--texte` (T-0375) : la nuit, un rectangle allumé par objectif serait une lampe. */
+.parc-objectif {
+  border-color: var(--bordure-controle);
+  cursor: pointer;
+}
+
+.parc-objectif[data-monte='true'] {
+  border-color: var(--texte);
+  background: var(--surface-haute);
+}
+
+.parc-objectif > input[type='checkbox'] {
+  justify-self: center;
+}
+
+.parc-objectif > p {
+  grid-column: 1 / -1;
 }
 
 .parc-paire {
@@ -2205,27 +2238,6 @@ input[type='checkbox']:checked:disabled {
   background: var(--bordure-faible);
 }
 
-/* T-0404 — le bouton radio du parc : la case à cocher en rond, pour qu'un choix exclusif ne se
-   lise pas comme une option qu'on cumule. */
-input[type='radio'] {
-  appearance: none;
-  flex: none;
-  min-height: 0;
-  width: 1.1rem;
-  height: 1.1rem;
-  margin: 0;
-  padding: 0;
-  border-radius: 50%;
-  background: var(--fond);
-  border: var(--trait) solid var(--bordure-controle);
-  cursor: pointer;
-}
-
-input[type='radio']:checked {
-  border-color: var(--texte);
-  background: var(--texte);
-  box-shadow: inset 0 0 0 calc(var(--pas-0) + var(--trait)) var(--fond);
-}
 
 /* Le rail de `Curseur.tsx`. Il remplace `input[type=range]`, qui ne sait pas peindre
    un repère à une valeur arbitraire : sur la pose unitaire, ce repère est la pose maximale à
