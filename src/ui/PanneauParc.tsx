@@ -5,6 +5,7 @@
  * la notation de bague (« 18–55 mm f/3,5–5,6 ») suffit à le désigner. Le bout max laissé vide
  * fait une focale fixe ou une ouverture constante.
  *
+ * Le bouton radio monte l'objectif ; la case dit s'il est fisheye, ce qui choisit la projection.
  * Le bouton radio monte l'objectif. La corbeille ne se pose que s'il en reste un autre : un
  * parc vide renverrait à une saisie sans objectif, et c'est l'état que le parc remplace.
  */
@@ -31,6 +32,7 @@ export function PanneauParc({ objectifs, surObjectifs, objectifId, surObjectifId
           <span />
           <span className="libelle">Focale (mm)</span>
           <span className="libelle">Ouverture (f/)</span>
+          <span className="libelle">Fisheye</span>
           <span />
         </div>
         {objectifs.map((o) => (
@@ -128,6 +130,12 @@ function LigneObjectif(props: LigneObjectifProps) {
           {champ('ouvertureGrandAngle', 'Ouverture grand-angle')}
           {champ('ouvertureTele', 'Ouverture télé', 'télé')}
         </span>
+        <input
+          type="checkbox"
+          checked={objectif.typeObjectif === 'FISHEYE'}
+          aria-label={`Fisheye — ${nom}`}
+          onChange={(e) => props.surObjectif({ ...objectif, typeObjectif: e.target.checked ? 'FISHEYE' : 'RECTILINEAIRE' })}
+        />
         {props.retirable ? (
           <BoutonGlyphe icone="delete" aide={`Retirer ${nom} du parc`} onClick={props.surRetire} />
         ) : (

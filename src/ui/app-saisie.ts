@@ -16,7 +16,7 @@ import { borneInstant, etatScene, instant, majVue } from './scene-etat.ts'
 import { modeObjectif, type TypeObjectif } from '../core/optics.ts'
 import type { Objectif } from '../core/objectif.ts'
 import { nombreDeTexte } from '../registry/domains.ts'
-import { objectifActif, ouvertureSuivie, plancherA, reglageOptique } from './objectif-saisie.ts'
+import { objectifActif, plancherA, reglageOptique } from './objectif-saisie.ts'
 import { parcDeDepart } from './parc-saisie.ts'
 
 /**
@@ -188,7 +188,13 @@ export function useSaisieMateriel(depart: DepartMateriel | null): SaisieMateriel
   const [objectifs, setObjectifs] = useState<readonly Objectif[]>(parcInitial.objectifs)
   const [objectifId, setObjectifId] = useState(parcInitial.objectifId)
   const [focale, setFocale] = useState(depart?.focale ?? DEFAUT.focale)
-  const [ouverture, surOuverture] = useState(depart?.ouverture ?? DEFAUT.ouverture)
+  // Sous un objectif monté, l'ouverture est sa pleine ouverture : une ouverture fermée relue
+  // d'un enregistrement antérieur ne se corrigerait plus, son champ n'existant plus.
+  const [ouverture, surOuverture] = useState(() => {
+    const monte = objectifActif(parcInitial.objectifs, parcInitial.objectifId)
+    const focaleDepart = depart?.focale ?? DEFAUT.focale
+    return monte === null ? (depart?.ouverture ?? DEFAUT.ouverture) : String(plancherA(monte, focaleDepart))
+  })
   const [capteurMode, surCapteurMode] = useState<CapteurMode>(depart?.capteurMode ?? 'FULL_FRAME')
   const [typeObjectif, setTypeObjectif] = useState<TypeObjectif>(
     depart?.typeObjectif ?? 'RECTILINEAIRE',
@@ -243,12 +249,12 @@ export function useSaisieMateriel(depart: DepartMateriel | null): SaisieMateriel
     return refus !== null ? String(valeur) : texte
   }
 
-  /** T-0404 — sous un zoom, l'ouverture au plancher suit la focale (`ouvertureSuivie`). */
+  /** T-0404 — sous un zoom, l'ouverture suit la focale : c'est la pleine ouverture de l'objectif. */
   function surFocale(v: string) {
     const objectif = objectifActif(objectifs, objectifId)
     // Un champ vidé le temps d'être retapé n'est pas une focale : l'ouverture attend la suivante.
     if (objectif !== null && Number.isFinite(nombreDeTexte(v))) {
-      surOuverture(ouvertureSuivie(objectif, focale, v, ouverture))
+      surOuverture(String(plancherA(objectif, v)))
     }
     setFocale(v)
   }
@@ -268,9 +274,9 @@ export function useSaisieMateriel(depart: DepartMateriel | null): SaisieMateriel
       return
     }
     const focaleRetenue = focaleDans(monte, focale)
-    const ouvertureRetenue = reglageOptique(monte, focaleRetenue, ouverture).ouverture
     setFocale(focaleRetenue)
-    if (ouvertureRetenue.refus !== null && Number.isFinite(ouvertureRetenue.valeur)) surOuverture(String(ouvertureRetenue.valeur))
+    // T-0404 — l'ouverture ne se saisit plus : c'est la pleine ouverture de l'objectif.
+    surOuverture(String(plancherA(monte, focaleRetenue)))
     if (monte.typeObjectif !== typeObjectif) surTypeObjectif(monte.typeObjectif)
   }
 

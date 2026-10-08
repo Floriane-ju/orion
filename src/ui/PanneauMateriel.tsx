@@ -39,7 +39,6 @@ import { ChampDomaine } from './ChampDomaine.tsx'
 import { Interrupteur } from './Interrupteur.tsx'
 import { Mention } from './Mention.tsx'
 import { PanneauParc } from './PanneauParc.tsx'
-import { parcAvec } from './parc-saisie.ts'
 import type { Objectif } from '../core/objectif.ts'
 import { objectifActif, reglageOptique } from './objectif-saisie.ts'
 
@@ -270,10 +269,10 @@ export function PanneauMateriel(props: PanneauMaterielProps) {
             surObjectifId={props.surObjectifId}
           />
         )}
-        {/* Le réglage du moment, sous l'objectif coché : la focale ne se règle que sur un zoom,
-            l'ouverture se ferme toujours. `paire` force deux colonnes (T-0234). */}
-        <div className="champs paire">
-          {focaleReglable && (
+        {/* T-0404 — le parc dit tout de l'objectif ; reste la focale d'un zoom, seule chose qu'on
+            règle en séance. L'ouverture est la pleine ouverture de l'objectif à cette focale. */}
+        {objectif !== null && focaleReglable && (
+          <div className="champs">
             <ChampDomaine
               domaine="focale_mm"
               cle="focale"
@@ -282,27 +281,23 @@ export function PanneauMateriel(props: PanneauMaterielProps) {
               plage={plages?.focale}
               requis
             />
-          )}
-          <ChampDomaine
-            domaine="ouverture_N"
-            cle="ouverture"
-            valeur={props.ouverture}
-            surValeur={props.surOuverture}
-            plage={plages?.ouverture}
-            requis
-          />
-        </div>
-        {/* Le fisheye est une propriété de l'objectif coché : la case l'écrit dans le parc. */}
-        <Interrupteur
-          actif={props.typeObjectif === 'FISHEYE'}
-          surChangement={(fisheye) => {
-            const type = fisheye ? 'FISHEYE' : 'RECTILINEAIRE'
-            if (objectif === null) props.surTypeObjectif(type)
-            else props.surObjectifs(parcAvec(props.objectifs, { ...objectif, typeObjectif: type }))
-          }}
-        >
-          Objectif fisheye
-        </Interrupteur>
+          </div>
+        )}
+        {/* Parc vide — un réglage relu illisible : la saisie sans objectif, pour le corriger. */}
+        {objectif === null && (
+          <>
+            <div className="champs paire">
+              <ChampDomaine domaine="focale_mm" cle="focale" valeur={props.focale} surValeur={props.surFocale} requis />
+              <ChampDomaine domaine="ouverture_N" cle="ouverture" valeur={props.ouverture} surValeur={props.surOuverture} requis />
+            </div>
+            <Interrupteur
+              actif={props.typeObjectif === 'FISHEYE'}
+              surChangement={(fisheye) => props.surTypeObjectif(fisheye ? 'FISHEYE' : 'RECTILINEAIRE')}
+            >
+              Objectif fisheye
+            </Interrupteur>
+          </>
+        )}
         {/* T-0238 — le refus se dit sous les champs qui l'ont produit, pas flottant sur le ciel. */}
         {props.erreur !== undefined && <Mention ton="erreur">{props.erreur}</Mention>}
       </Carte>

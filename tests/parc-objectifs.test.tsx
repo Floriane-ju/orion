@@ -8,9 +8,9 @@
 
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { plagesReglage, type Objectif } from '../src/core/objectif.ts'
+import type { Objectif } from '../src/core/objectif.ts'
 import { nombreSaisi } from '../src/ui/saisie-bornee.ts'
-import { ouvertureSuivie, plancherA, reglageOptique } from '../src/ui/objectif-saisie.ts'
+import { reglageOptique } from '../src/ui/objectif-saisie.ts'
 import { caracteristiques, objectifDeSaisie, parcAvec, parcDeDepart, saisieDe } from '../src/ui/parc-saisie.ts'
 import { PanneauMateriel, resumeOptique } from '../src/ui/PanneauMateriel.tsx'
 import { phraseFocale } from '../src/ui/CibleImpossible.tsx'
@@ -60,21 +60,6 @@ describe('T-0404 — le réglage sous l’objectif monté', () => {
     const r = reglageOptique(ZOOM, '35', '8')
     expect(r.focale.refus).toBeNull()
     expect(r.ouverture.refus).toBeNull()
-  })
-})
-
-describe('T-0404 — l’ouverture au plancher suit la focale', () => {
-  it('à pleine ouverture on y reste en zoomant', () => {
-    const avant = String(plancherA(ZOOM, '18'))
-    expect(ouvertureSuivie(ZOOM, '18', '55', avant)).toBe(String(plagesReglage(ZOOM, 55).ouverture.min))
-  })
-
-  it('une ouverture choisie plus fermée ne bouge pas', () => {
-    expect(ouvertureSuivie(ZOOM, '18', '55', '8')).toBe('8')
-  })
-
-  it('une ouverture passée sous le nouveau plancher y remonte', () => {
-    expect(ouvertureSuivie(ZOOM, '18', '55', '4')).toBe(String(plancherA(ZOOM, '55')))
   })
 })
 
@@ -159,6 +144,13 @@ describe('T-0404 — la carte Optique', () => {
     expect(html).not.toContain('Champ')
     expect(html).not.toContain('Pose maximale sans suivi')
     expect(resumeOptique('35', '8')).toBe('35 mm f/8')
+  })
+
+  it('chaque ligne a sa case fisheye ; ni ouverture ni fisheye ne se règlent sous le parc', () => {
+    const html = rendu({ objectifId: ZOOM.id, focale: '35', ouverture: '8' })
+    expect(html.match(/type="checkbox"[^>]*aria-label="Fisheye — /g)).toHaveLength(2)
+    expect(html).not.toContain('Objectif fisheye')
+    expect(html).not.toMatch(/placeholder="[\d,]+ à 32"/)
   })
 
   it('chaque objectif se retire, sauf le dernier qui reste', () => {

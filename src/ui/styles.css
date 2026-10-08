@@ -1972,7 +1972,7 @@ h3 {
 
 .parc-ligne {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) var(--cible-clic);
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) auto var(--cible-clic);
   align-items: center;
   gap: var(--pas-2);
 }

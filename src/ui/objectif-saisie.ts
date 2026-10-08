@@ -7,7 +7,7 @@
  */
 
 import { plagesReglage, type Objectif, type Plage } from '../core/objectif.ts'
-import { nombreDeTexte, type Bornage } from '../registry/domains.ts'
+import type { Bornage } from '../registry/domains.ts'
 import { nombreSaisi } from './saisie-bornee.ts'
 
 /** L'objectif monté, ou `null` en objectif libre — y compris pour un identifiant disparu du parc. */
@@ -43,20 +43,4 @@ export function reglageOptique(
 /** Le plancher d'ouverture à la focale saisie, une fois celle-ci ramenée dans la plage. */
 export function plancherA(objectif: Objectif, focale: string): number {
   return plagesReglage(objectif, reglageOptique(objectif, focale, '').focale.valeur).ouverture.min
-}
-
-/**
- * Ce que devient l'ouverture quand la focale change sous un zoom : une ouverture au plancher
- * le suit — on photographiait « à pleine ouverture », on y reste —, une ouverture passée sous
- * le nouveau plancher y remonte. Une ouverture choisie plus fermée ne bouge pas.
- */
-export function ouvertureSuivie(
-  objectif: Objectif,
-  focaleAvant: string,
-  focaleApres: string,
-  ouverture: string,
-): string {
-  const n = nombreDeTexte(ouverture)
-  const apres = plancherA(objectif, focaleApres)
-  return n === plancherA(objectif, focaleAvant) || !(n >= apres) ? String(apres) : ouverture
 }
