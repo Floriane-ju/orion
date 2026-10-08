@@ -129,6 +129,15 @@ export const GLOSSAIRE = Object.freeze({
   }),
 
   // §5.1 — profil optique et capteur
+  objectif: terme({
+    libelle: 'Objectif',
+    glose: 'L’objectif monté, choisi dans votre parc',
+    explication:
+      'Il borne la focale à sa plage et l’ouverture à la plus grande qu’il permet à cette ' +
+      'focale. Un zoom à ouverture variable s’ouvre moins au télé qu’au grand-angle.',
+    consequence: 'Objectif libre : focale et ouverture se saisissent sans borne d’objectif.',
+    sections: ['5.1'],
+  }),
   focale: terme({
     libelle: 'Focale',
     sections: ['5.1'],

@@ -10,6 +10,7 @@
 import { deleteDB, openDB, type DBSchema, type IDBPDatabase } from 'idb'
 import type { FormatCapteur } from '../registry/capteur-formats.ts'
 import { NB_AZIMUTS } from '../core/site.ts'
+import type { Objectif } from '../core/objectif.ts'
 import type { ReliefConnu } from './relief.ts'
 
 export const NOM_BASE = 'orion'
@@ -45,6 +46,13 @@ export interface ProfilMateriel {
   readonly focaleMm: number
   readonly ouvertureN: number
   readonly typeObjectif: 'RECTILINEAIRE' | 'FISHEYE'
+  /**
+   * T-0404 — le parc d'objectifs, et celui qui est monté. `focaleMm` et `ouvertureN` restent
+   * le réglage du moment : l'objectif borne ce réglage, il ne le remplace pas. Absents d'un
+   * profil antérieur, ou `objectifId` disparu du parc : l'objectif libre s'applique.
+   */
+  readonly objectifs?: readonly Objectif[]
+  readonly objectifId?: string
   /**
    * T-0204 — identifiant d'une ligne de la base `boitiers.md`. Absent, ou disparu de la base :
    * le mode personnalisé s'applique, avec les champs ci-dessous. Le boîtier n'est pas recopié

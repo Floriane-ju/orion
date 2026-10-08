@@ -41,6 +41,9 @@ import { ChampDomaine } from './ChampDomaine.tsx'
 import { Interrupteur } from './Interrupteur.tsx'
 import { LectureInconnue } from './Inconnu.tsx'
 import { Mention } from './Mention.tsx'
+import { PanneauParc } from './PanneauParc.tsx'
+import type { Objectif } from '../core/objectif.ts'
+import { objectifActif, reglageOptique } from './objectif-saisie.ts'
 
 /** §5.2 — ce que la saisie décrit d'une monture : ce qu'elle suit, et comment elle est posée. */
 export type ChoixMonture =
@@ -134,6 +137,11 @@ export interface PanneauMaterielProps {
   /** §7.2 — ISO de capture ; vide = celui que le seuil de double gain recommande. */
   readonly iso: string
   readonly surIso: (v: string) => void
+  /** T-0404 — le parc d'objectifs, et celui qui est monté (`''` : objectif libre). */
+  readonly objectifs: readonly Objectif[]
+  readonly surObjectifs: (v: readonly Objectif[]) => void
+  readonly objectifId: string
+  readonly surObjectifId: (v: string) => void
   readonly focale: string
   readonly surFocale: (v: string) => void
   readonly ouverture: string
@@ -219,13 +227,23 @@ function ChampsSuivi(props: PanneauMaterielProps) {
  * de l'en-tête du plan imprimé. Un champ vidé pour être retapé se marque « ? » plutôt que de
  * laisser « mm f/ » orphelin — sans la bulle d'`Inconnu`, qui ne se pose pas dans un bouton.
  */
-function resumeOptique(focale: string, ouverture: string): string {
+export function resumeOptique(focale: string, ouverture: string, objectif: Objectif | null = null): string {
   const marque = (v: string) => (v.trim() === '' ? '?' : saisieLue(v))
-  return `${marque(focale)} mm f/${marque(ouverture)}`
+  const reglage = `${marque(focale)} mm f/${marque(ouverture)}`
+  // T-0404 — l'objectif monté se nomme : deux zooms du parc peuvent couvrir la même focale.
+  return objectif === null ? reglage : `${objectif.nom} · ${reglage}`
 }
 
 export function PanneauMateriel(props: PanneauMaterielProps) {
   const lectures = props.lectures
+  const objectif = objectifActif(props.objectifs, props.objectifId)
+  const reglage = reglageOptique(objectif, props.focale, props.ouverture)
+  const plages = reglage.plages
+  // Le résumé dit le réglage retenu, celui qu'on calcule et qu'on enregistre, pas la frappe.
+  const retenu = (texte: string, b: typeof reglage.focale) =>
+    b.refus !== null && Number.isFinite(b.valeur) ? String(b.valeur) : texte
+  // Une focale fixe n'a rien à régler : la focale se lit dans le résumé et dans le sélecteur.
+  const focaleReglable = objectif === null || objectif.focaleMinMm !== objectif.focaleMaxMm
   return (
     <div className="cartes-materiel">
       <Carte cle="BOITIER" titre="Boîtier" resume={resumeBoitier(props.boitierId, props)}>
@@ -247,34 +265,58 @@ export function PanneauMateriel(props: PanneauMaterielProps) {
       <Carte
         cle="OPTIQUE"
         titre="Optique"
-        resume={resumeOptique(props.focale, props.ouverture)}
+        resume={resumeOptique(
+          retenu(props.focale, reglage.focale),
+          retenu(props.ouverture, reglage.ouverture),
+          objectif,
+        )}
       >
+        {props.objectifs.length > 0 && (
+          <div className="champs">
+            <ChampChoix cle="objectif" valeur={props.objectifId} surChangement={props.surObjectifId}>
+              <option value="">Objectif libre</option>
+              {props.objectifs.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.nom}
+                </option>
+              ))}
+            </ChampChoix>
+          </div>
+        )}
         {/* T-0234 — `paire` force deux colonnes : `.champs` n'en fait tenir qu'une dans les
             19 rem de la carte, et ces deux nombres-là se lisent ensemble. */}
         <div className="champs paire">
-          <ChampDomaine
-            domaine="focale_mm"
-            cle="focale"
-            valeur={props.focale}
-            surValeur={props.surFocale}
-            requis
-          />
+          {focaleReglable && (
+            <ChampDomaine
+              domaine="focale_mm"
+              cle="focale"
+              valeur={props.focale}
+              surValeur={props.surFocale}
+              plage={plages?.focale}
+              requis
+            />
+          )}
           <ChampDomaine
             domaine="ouverture_N"
             cle="ouverture"
             valeur={props.ouverture}
             surValeur={props.surOuverture}
+            plage={plages?.ouverture}
             requis
           />
         </div>
-        <Interrupteur
-          actif={props.typeObjectif === 'FISHEYE'}
-          surChangement={(fisheye) =>
-            props.surTypeObjectif(fisheye ? 'FISHEYE' : 'RECTILINEAIRE')
-          }
-        >
-          Objectif fisheye
-        </Interrupteur>
+        {/* T-0404 — sous un objectif du parc, la projection est la sienne : elle se change en
+            éditant l'objectif, pas en contredisant ce qu'il est. */}
+        {objectif === null && (
+          <Interrupteur
+            actif={props.typeObjectif === 'FISHEYE'}
+            surChangement={(fisheye) =>
+              props.surTypeObjectif(fisheye ? 'FISHEYE' : 'RECTILINEAIRE')
+            }
+          >
+            Objectif fisheye
+          </Interrupteur>
+        )}
         {lectures === undefined ? (
           <>
             <LectureInconnue terme="champ" suffixe="largeur" />
@@ -290,6 +332,7 @@ export function PanneauMateriel(props: PanneauMaterielProps) {
         )}
         {/* T-0238 — le refus se dit sous les lectures qu'il efface, pas flottant sur le ciel. */}
         {props.erreur !== undefined && <Mention ton="erreur">{props.erreur}</Mention>}
+        <PanneauParc objectifs={props.objectifs} surObjectifs={props.surObjectifs} />
       </Carte>
     </div>
   )

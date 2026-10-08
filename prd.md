@@ -1320,6 +1320,67 @@ Le point zéro système ne figure dans aucune ligne : il n'est publié nulle par
 
 Les bornes de saisie de `read_noise_e` (0,5 – 40 e⁻) et de `full_well_e` (5 000 – 250 000 e⁻) couvrent les valeurs réellement mesurées : un capteur ISO-variant lit 36,5 e⁻ à ISO 100, un capteur à très gros photosites sature au-delà de 200 000 e⁻. Des bornes plus étroites refuseraient la mesure au profit de la spécification.
 
+
+### Parc d'objectifs
+
+```
+UN OBJECTIF DÉCRIT CE QU'IL PERMET, PAS UN RÉGLAGE
+  objectif = { nom, focale_min_mm, focale_max_mm, N_grand_angle, N_tele, type_objectif }
+  Focale fixe : focale_min_mm = focale_max_mm, N_tele = N_grand_angle.
+  Le parc est la liste des objectifs possédés ; un seul est monté à la fois, ou aucun
+  (« objectif libre » : focale_mm et ouverture_N se saisissent comme ci-dessus).
+
+PLANCHER D'OUVERTURE D'UN ZOOM — interpolation linéaire en focale
+  t       = ( focale_mm − focale_min_mm ) / ( focale_max_mm − focale_min_mm )
+  N_min   = N_grand_angle + ( N_tele − N_grand_angle ) × t
+  N_min est arrondi au pas de `ouverture_N` (0,1) VERS LE PLUS FERMÉ : annoncer une
+  ouverture que l'objectif n'atteint pas promettrait un signal qu'il ne donne pas.
+
+  Aucun fabricant ne publie la courbe ; la linéaire colle aux zooms courants
+  (18-55 f/3,5-5,6 à 35 mm : f/4,46, pour f/4,5 affiché par le boîtier), la
+  logarithmique s'en écarte (f/4,75).
+  Aucune borne côté fermé (f/22) : le domaine de `ouverture_N` suffit, on ne ferme
+  jamais autant en astrophotographie.
+
+RÉGLAGE SOUS UN OBJECTIF MONTÉ
+  focale_mm   ∈ [ focale_min_mm , focale_max_mm ]
+  ouverture_N ∈ [ N_min(focale_mm) , 32 ]
+  Hors de ces plages, la valeur est RAMENÉE et la correction est dite au pied du champ,
+  comme pour un domaine (T-0208). Une ouverture au plancher suit la focale quand on
+  zoome ; une ouverture choisie plus fermée ne bouge pas.
+  Monter un objectif place l'ouverture à son plancher et impose son type_objectif.
+
+  Les moteurs ne connaissent pas le parc : ils reçoivent focale_mm et ouverture_N.
+  Au télé d'un 18-55, le signal par pose baisse de (5,6 / 3,5)² ≈ 2,6× ; la pose et la
+  NPF le reflètent sans règle supplémentaire.
+```
+
+| Champ | Type | Unité | Plage valide | Note |
+|---|---|---|---|---|
+| `focale_min_mm`, `focale_max_mm` | float | mm | domaine `focale_mm` | min ≤ max |
+| `N_grand_angle`, `N_tele` | float | — | domaine `ouverture_N` | N_tele ≥ N_grand_angle |
+| `objectif_id` | texte | — | un objectif du parc, ou vide | absent du parc → objectif libre |
+
+```gherkin
+Étant donné un 18-55 f/3,5-5,6 monté, ouverture au plancher, focale 18 mm
+Quand je règle la focale à 55 mm
+Alors l'ouverture passe à f/5,6 et le signal par pose baisse en conséquence
+
+Étant donné un 18-55 f/3,5-5,6 monté à 55 mm
+Quand je saisis f/2,8
+Alors f/5,6 est retenu et l'app dit que l'objectif ne s'ouvre pas davantage à cette focale
+
+Étant donné un objectif saisi avec une focale min supérieure à sa focale max   # cas limite
+Quand je l'enregistre
+Alors la saisie est refusée avec un message nommant la focale
+
+Étant donné un profil dont l'objectif monté ne figure plus dans le parc       # cas limite
+Quand l'application démarre
+Alors l'objectif libre s'applique avec la focale et l'ouverture enregistrées
+```
+
+Le parc ne se retélécharge pas : il voyage dans le profil matériel et dans l'export §12.3,
+validé champ par champ au réimport.
 ---
 
 ## 5.2 Feature — Profil Suivi
@@ -1428,6 +1489,11 @@ FOCALE IDÉALE pour une cible rejetée
 
   La rédaction initiale portait un facteur 2 surnuméraire au dénominateur
   (`taille / (2 × 0,42) / 2`), qui doublait la focale annoncée. Corrigé ici.
+
+OBJECTIF DU PARC (§5.1)
+  Quand un objectif rectilinéaire du parc atteint la focale requise, l'app le nomme
+  avec la focale à laquelle le régler : celui dont la plage s'en approche le plus.
+  « Focale min 135 mm — 70-200 à 135 mm ». Sans objectif qui convienne, le levier seul.
 ```
 
 ### Entrées / Sorties

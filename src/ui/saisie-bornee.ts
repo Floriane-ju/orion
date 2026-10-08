@@ -11,11 +11,32 @@
  * frappe empêcherait de taper « 45.6 », dont « 456 » est un état transitoire légitime.
  */
 
-import { borne, nombreDeTexte, type Bornage, type DomaineId } from '../registry/domains.ts'
+import { borne, DOMAINES, nombreDeTexte, type Bornage, type DomaineId } from '../registry/domains.ts'
+import { nombreLibre } from '../registry/ecriture.ts'
+import type { Plage } from '../core/objectif.ts'
 
-/** La lecture du texte — champ vide, virgule décimale — appartient au registre (T-0274). */
-export function nombreSaisi(champ: DomaineId, texte: string): Bornage {
-  return borne(champ, nombreDeTexte(texte))
+/**
+ * La lecture du texte — champ vide, virgule décimale — appartient au registre (T-0274).
+ *
+ * T-0404 — `plage` resserre le domaine sans le remplacer : celle de l'objectif monté. La
+ * valeur y est ramenée comme dans le domaine, et la cause nomme l'objectif, pas le registre.
+ */
+export function nombreSaisi(champ: DomaineId, texte: string, plage?: Plage): Bornage {
+  const valeur = nombreDeTexte(texte)
+  const bornage = borne(champ, valeur)
+  // La plage d'un objectif tient dans le domaine (`valideObjectif`) : c'est elle qui borne, y
+  // compris une saisie que le domaine aurait ramenée ailleurs — 5 000 mm sur un 18-55 donne 55.
+  if (plage === undefined || !Number.isFinite(valeur)) return bornage
+  if (valeur >= plage.min && valeur <= plage.max) return bornage
+  const d = DOMAINES[champ]
+  const retenue = valeur < plage.min ? plage.min : plage.max
+  return {
+    valeur: retenue,
+    refus:
+      `Hors de l’objectif : ${d.champ} vaut ${nombreLibre(valeur)} ${d.unite}, hors de sa ` +
+      `plage ${nombreLibre(plage.min)} à ${nombreLibre(plage.max)} ${d.unite} — ` +
+      `${nombreLibre(retenue)} ${d.unite} retenu.`,
+  }
 }
 
 /**

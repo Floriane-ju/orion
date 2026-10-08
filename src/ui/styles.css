@@ -1962,6 +1962,31 @@ h3 {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
+/* T-0404 — le parc d'objectifs : une ligne par objectif, son nom puis sa notation de bague,
+ * les deux commandes au bout. Le filet bas sépare les lignes comme les lectures tracées. */
+.parc {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.parc > li {
+  display: flex;
+  align-items: center;
+  gap: var(--pas-2);
+  border-bottom: var(--trait) solid var(--bordure-faible);
+}
+
+.parc-nom {
+  flex: 1;
+  min-width: 0;
+}
+
+.parc-carac {
+  color: var(--attenue);
+  font-size: var(--texte-legende);
+}
+
 /* UNE SECTION ORDINAIRE EST UNE CARTE D'INSTRUMENT.
  *
  * Les rubriques d'un panneau — « À propos », « Cadrage de la cible » — ne se séparaient que

@@ -18,6 +18,7 @@ import type { MasqueHorizon } from '../core/site.ts'
 import { normalisePoids, type PoidsScoring } from '../core/session.ts'
 import { type DomaineId, valide as valideDomaine } from '../registry/domains.ts'
 import { TABLE_FORMATS_CAPTEUR, estFormatCapteur } from '../registry/capteur-formats.ts'
+import { valideObjectif, type Objectif } from '../core/objectif.ts'
 
 export interface EtatStockage {
   readonly persistant: boolean
@@ -193,12 +194,51 @@ const FORME_SITE: Forme = {
   masqueEstHypothese: optionnel(booleen),
 }
 
+const FORME_OBJECTIF: Forme = {
+  id: texte,
+  nom: texte,
+  focaleMinMm: nombre('focale_mm'),
+  focaleMaxMm: nombre('focale_mm'),
+  ouvertureGrandAngleN: nombre('ouverture_N'),
+  ouvertureTeleN: nombre('ouverture_N'),
+  typeObjectif: parmi('RECTILINEAIRE', 'FISHEYE'),
+}
+
+/**
+ * T-0404 — le parc d'objectifs : chaque champ dans son domaine, puis la cohérence de l'objectif
+ * entier — une plage inversée importée ferait un plancher d'ouverture qui décroît en zoomant.
+ */
+const parcObjectifs: Verificateur = (v) => {
+  if (!Array.isArray(v)) return 'doit être une liste d’objectifs'
+  // Deux objectifs de même identifiant : l'un masquerait l'autre au montage, et retirer l'un
+  // retirerait les deux.
+  const ids = v.map((o: unknown) => (typeof o === 'object' && o !== null ? (o as { id?: unknown }).id : undefined))
+  if (new Set(ids).size !== ids.length) return 'porte deux objectifs de même identifiant'
+  for (const [index, element] of v.entries()) {
+    if (typeof element !== 'object' || element === null) return `l’objectif n°${index + 1} n’est pas un objet`
+    const objectif = element as Record<string, unknown>
+    for (const [champ, verifie] of Object.entries(FORME_OBJECTIF)) {
+      const raison = verifie(objectif[champ])
+      if (raison !== null) return `l’objectif n°${index + 1}, « ${champ} » ${raison}`
+    }
+    try {
+      valideObjectif(element as Objectif)
+    } catch (erreur) {
+      return `l’objectif n°${index + 1} : ${erreur instanceof Error ? erreur.message : 'incohérent'}`
+    }
+  }
+  return null
+}
+
 const FORME_PROFIL: Forme = {
   id: texte,
   nom: texte,
   focaleMm: nombre('focale_mm'),
   ouvertureN: nombre('ouverture_N'),
   typeObjectif: parmi('RECTILINEAIRE', 'FISHEYE'),
+  objectifs: optionnel(parcObjectifs),
+  // Comme `boitierId` : un identifiant absent du parc retombe sur l'objectif libre.
+  objectifId: optionnel(texte),
   // T-0204 — `texte` et non `parmi(...)` : un identifiant absent de la base n'est pas un
   // fichier corrompu. La saisie retombe sur le mode personnalisé, et les champs ci-dessous,
   // eux, ont bien été exportés. Refuser l'import ferait perdre tout le profil pour une ligne.

@@ -21,6 +21,7 @@ import {
   type FocaleRequise,
 } from '../core/cible-ecartee.ts'
 import type { CauseEcart } from '../core/session.ts'
+import { objectifPour, type Objectif } from '../core/objectif.ts'
 import type { ContexteSession } from '../core/session.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { nombre } from '../registry/ecriture.ts'
@@ -62,12 +63,25 @@ const RECHERCHES = Object.freeze({
 })
 
 /** Arrondi du côté qui tient la promesse : « au moins » vers le haut, « au plus » vers le bas. */
-export function phraseFocale(f: FocaleRequise): string {
+function arrondie(f: FocaleRequise): FocaleRequise {
+  if (f.sens === 'AU_MOINS') return { sens: f.sens, focaleMm: Math.ceil(f.focaleMm) }
+  if (f.sens === 'AU_PLUS') return { sens: f.sens, focaleMm: Math.floor(f.focaleMm) }
+  return f
+}
+
+/**
+ * T-0404 — §6.1 : quand le parc a de quoi la cadrer, la phrase nomme l'objectif et sa focale.
+ * « Focale min 135 mm » dit le levier ; « 70-200 à 135 mm » dit lequel on a déjà dans le sac.
+ */
+export function phraseFocale(requise: FocaleRequise, parc: readonly Objectif[] = []): string {
+  const f = arrondie(requise)
+  const solution = objectifPour(parc, f)
+  const avec = solution === null ? '' : ` — ${solution.objectif.nom} à ${nombre(solution.focaleMm, 0)} mm`
   switch (f.sens) {
     case 'AU_MOINS':
-      return `Focale min ${nombre(Math.ceil(f.focaleMm), 0)} mm`
+      return `Focale min ${nombre(f.focaleMm, 0)} mm${avec}`
     case 'AU_PLUS':
-      return `Focale max ${nombre(Math.floor(f.focaleMm), 0)} mm`
+      return `Focale max ${nombre(f.focaleMm, 0)} mm${avec}`
     case 'MOSAIQUE':
       return 'Mosaïque requise'
     case 'TROP_PETITE':
@@ -89,6 +103,7 @@ export function causesCarte(
   contexte: ContexteSession,
   objet: ObjetCielProfond,
   etat: EtatCible,
+  parc: readonly Objectif[] = [],
 ): { readonly phrases: readonly string[]; readonly horsSaison: boolean } {
   if (!CRENEAU_A_TESTER.has(etat.code)) {
     return { phrases: etat.cause === null ? [] : [etat.cause], horsSaison: false }
@@ -97,7 +112,7 @@ export function causesCarte(
   const creneau = exclusionCreneau(contexte, objet)
   const horsSaison = creneau?.cause === 'HORS_FENETRE'
   const phrases = [
-    focale !== null ? phraseFocale(focale) : null,
+    focale !== null ? phraseFocale(focale, parc) : null,
     creneau === null ? null : phraseCreneau(creneau),
   ].filter((p): p is string => p !== null)
   // Ni la taille ni le créneau n'expliquent l'écart (un verdict de cadrage autre que la taille,

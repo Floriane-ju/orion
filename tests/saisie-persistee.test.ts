@@ -7,6 +7,7 @@
  */
 
 import 'fake-indexeddb/auto'
+import type { Objectif } from '../src/core/objectif.ts'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from '../src/data/db.ts'
 import {
@@ -71,6 +72,10 @@ function saisieMateriel(champs: Partial<SaisieMateriel> = {}): SaisieMateriel {
     typeMonture: 'GEM',
     surBoitier: RIEN,
     surIso: RIEN,
+    objectifs: [],
+    surObjectifs: RIEN,
+    objectifId: '',
+    surObjectifId: RIEN,
     surFocale: RIEN,
     surOuverture: RIEN,
     surCapteurMode: RIEN,
@@ -221,5 +226,39 @@ describe('T-0204 — le boîtier choisi survit au rechargement', () => {
     const relu = await rechargeMateriel(saisieMateriel({ boitierId: 'boitier-disparu' }))
     expect(relu?.boitierId).toBe('boitier-disparu')
     expect(relu?.focale).toBe(saisieMateriel().focale)
+  })
+})
+
+describe('T-0404 — le parc d’objectifs survit au rechargement', () => {
+  const ZOOM: Objectif = {
+    id: 'zoom',
+    nom: '70-200',
+    focaleMinMm: 70,
+    focaleMaxMm: 200,
+    ouvertureGrandAngleN: 4,
+    ouvertureTeleN: 5.6,
+    typeObjectif: 'RECTILINEAIRE',
+  }
+
+  it('rend le parc et l’objectif monté', async () => {
+    const depart = await rechargeMateriel(
+      saisieMateriel({ objectifs: [ZOOM], objectifId: ZOOM.id, focale: '135', ouverture: '8' }),
+    )
+    expect(depart?.objectifs).toEqual([ZOOM])
+    expect(depart?.objectifId).toBe(ZOOM.id)
+  })
+
+  it('enregistre le réglage borné par l’objectif, celui qu’on voit', async () => {
+    const depart = await rechargeMateriel(
+      saisieMateriel({ objectifs: [ZOOM], objectifId: ZOOM.id, focale: '300', ouverture: '2' }),
+    )
+    expect(Number(depart?.focale)).toBe(ZOOM.focaleMaxMm)
+    expect(Number(depart?.ouverture)).toBe(ZOOM.ouvertureTeleN)
+  })
+
+  it('un profil sans parc reste un objectif libre', async () => {
+    const depart = await rechargeMateriel(saisieMateriel())
+    expect(depart?.objectifs).toBeUndefined()
+    expect(depart?.objectifId).toBeUndefined()
   })
 })

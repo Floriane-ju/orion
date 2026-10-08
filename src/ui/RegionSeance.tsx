@@ -361,6 +361,7 @@ export function LateralSeance(props: RegionSeanceProps) {
           etats={chaine.etatsCibles}
           profil={chaine.profilsCadre[0]}
           gaiaCharge={props.gaiaCharge}
+          parc={props.materiel.objectifs}
           recalcul={chaine.recalculEnCours}
           enCharge={props.catalogueEnCharge}
           inputRef={rechercheRef}

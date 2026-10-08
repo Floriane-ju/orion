@@ -17,6 +17,7 @@ import type { ProfilAEnregistrer, SiteAExporter } from '../data/persistence.ts'
 import type { MasqueHorizon } from '../core/site.ts'
 import { borne, valide, type DomaineId } from '../registry/domains.ts'
 import { nombreSaisi, nombreSiRenseigne } from './saisie-bornee.ts'
+import { objectifActif, reglageOptique } from './objectif-saisie.ts'
 import {
   DEFAUT,
   type DepartLieu,
@@ -89,11 +90,19 @@ export function siteAEnregistrer(lieu: SaisieLieu, masque: MasqueHorizon): SiteA
 /** Le profil matériel à enregistrer, ou `null` quand la saisie n'est pas chiffrable. */
 export function profilAEnregistrer(materiel: SaisieMateriel): ProfilAEnregistrer | null {
   const boitier = materiel.boitier
+  // T-0404 — le réglage borné par l'objectif monté : celui qu'on voit et qu'on calcule.
+  const reglage = reglageOptique(
+    objectifActif(materiel.objectifs, materiel.objectifId),
+    materiel.focale,
+    materiel.ouverture,
+  )
   try {
     return {
-      focaleMm: requis(materiel.focale, 'focale_mm'),
-      ouvertureN: requis(materiel.ouverture, 'ouverture_N'),
+      focaleMm: valide('focale_mm', reglage.focale.valeur),
+      ouvertureN: valide('ouverture_N', reglage.ouverture.valeur),
       typeObjectif: materiel.typeObjectif,
+      ...(materiel.objectifs.length === 0 ? {} : { objectifs: materiel.objectifs }),
+      ...(materiel.objectifId === '' ? {} : { objectifId: materiel.objectifId }),
       ...(materiel.boitierId === '' ? {} : { boitierId: materiel.boitierId }),
       formatCapteur: boitier.formatCapteur,
       ...siRenseigne('resolutionMpx', boitier.resolutionMpx, 'resolution_mpx'),
@@ -144,6 +153,8 @@ export function departMateriel(profil: ProfilMateriel | null): DepartMateriel | 
       tailleRawMo: texteDe(profil.tailleRawMo, 'taille_raw_mo'),
     },
     iso: texteDe(profil.isoCapture, 'iso_capture'),
+    ...(profil.objectifs === undefined ? {} : { objectifs: profil.objectifs }),
+    ...(profil.objectifId === undefined ? {} : { objectifId: profil.objectifId }),
     focale: texteDe(profil.focaleMm, 'focale_mm'),
     ouverture: texteDe(profil.ouvertureN, 'ouverture_N'),
     capteurMode: profil.capteurMode,

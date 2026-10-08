@@ -14,6 +14,9 @@ import type { QualiteMiseEnStation, TypeMonture } from '../core/suivi.ts'
 import { nuitDeLInstant } from '../core/nuit-datee.ts'
 import { borneInstant, etatScene, instant, majVue } from './scene-etat.ts'
 import { modeObjectif, type TypeObjectif } from '../core/optics.ts'
+import type { Objectif } from '../core/objectif.ts'
+import { nombreDeTexte } from '../registry/domains.ts'
+import { objectifActif, ouvertureSuivie, plancherA, reglageOptique } from './objectif-saisie.ts'
 
 /**
  * Site et configuration ciel profond de l'Annexe A. `resolutionMpx` reprend la résolution du
@@ -114,6 +117,11 @@ export interface SaisieMateriel {
   /** §7.2 — ISO de capture, vide tant que celui du double gain convient. */
   readonly iso: string
   readonly surIso: (v: string) => void
+  /** T-0404 — le parc d'objectifs, et l'identifiant de celui qui est monté (`''` : objectif libre). */
+  readonly objectifs: readonly Objectif[]
+  readonly surObjectifs: (v: readonly Objectif[]) => void
+  readonly objectifId: string
+  readonly surObjectifId: (v: string) => void
   readonly focale: string
   readonly surFocale: (v: string) => void
   readonly ouverture: string
@@ -136,6 +144,9 @@ export interface DepartMateriel {
   readonly boitierId?: string
   readonly boitier: SaisieBoitier
   readonly iso: string
+  /** Absents d'un enregistrement antérieur à T-0404 : parc vide, objectif libre. */
+  readonly objectifs?: readonly Objectif[]
+  readonly objectifId?: string
   readonly focale: string
   readonly ouverture: string
   readonly capteurMode: CapteurMode
@@ -161,7 +172,14 @@ export function useSaisieMateriel(depart: DepartMateriel | null): SaisieMateriel
       },
   )
   const [iso, surIso] = useState(depart?.iso ?? '')
-  const [focale, surFocale] = useState(depart?.focale ?? DEFAUT.focale)
+  const [objectifs, setObjectifs] = useState<readonly Objectif[]>(depart?.objectifs ?? [])
+  // Un identifiant disparu du parc retombe sur l'objectif libre, comme un boîtier (T-0204).
+  const [objectifId, setObjectifId] = useState(() =>
+    objectifActif(depart?.objectifs ?? [], depart?.objectifId ?? '') === null
+      ? ''
+      : (depart?.objectifId ?? ''),
+  )
+  const [focale, setFocale] = useState(depart?.focale ?? DEFAUT.focale)
   const [ouverture, surOuverture] = useState(depart?.ouverture ?? DEFAUT.ouverture)
   const [capteurMode, surCapteurMode] = useState<CapteurMode>(depart?.capteurMode ?? 'FULL_FRAME')
   const [typeObjectif, setTypeObjectif] = useState<TypeObjectif>(
@@ -189,6 +207,59 @@ export function useSaisieMateriel(depart: DepartMateriel | null): SaisieMateriel
   }
 
   /**
+   * T-0404 — monter un objectif ramène le réglage dans ce qu'il permet : la focale dans sa
+   * plage, l'ouverture à son plancher — on monte un objectif pour s'en servir à pleine
+   * ouverture, c'est le régime du ciel profond. Sa projection devient celle de la scène.
+   */
+  function surObjectifId(id: string) {
+    const objectif = objectifActif(objectifs, id)
+    setObjectifId(objectif === null ? '' : id)
+    if (objectif === null) return
+    const focaleRetenue = focaleDans(objectif, focale)
+    setFocale(focaleRetenue)
+    surOuverture(String(plancherA(objectif, focaleRetenue)))
+    surTypeObjectif(objectif.typeObjectif)
+  }
+
+  /**
+   * Le texte de la focale ramenée dans la plage. Un champ vide prend la focale la plus courte :
+   * sous une focale fixe le champ n'est plus affiché, et un vide y serait irréparable.
+   */
+  function focaleDans(objectif: Objectif, texte: string): string {
+    const { valeur, refus } = reglageOptique(objectif, texte, '').focale
+    if (!Number.isFinite(valeur)) return String(objectif.focaleMinMm)
+    return refus !== null ? String(valeur) : texte
+  }
+
+  /** T-0404 — sous un zoom, l'ouverture au plancher suit la focale (`ouvertureSuivie`). */
+  function surFocale(v: string) {
+    const objectif = objectifActif(objectifs, objectifId)
+    // Un champ vidé le temps d'être retapé n'est pas une focale : l'ouverture attend la suivante.
+    if (objectif !== null && Number.isFinite(nombreDeTexte(v))) {
+      surOuverture(ouvertureSuivie(objectif, focale, v, ouverture))
+    }
+    setFocale(v)
+  }
+
+  /**
+   * Le parc édité : l'objectif monté qui en sort repasse en objectif libre, avec le réglage
+   * qu'il avait ; celui qui est modifié en place reborne le réglage, comme à son montage.
+   */
+  function surObjectifs(parc: readonly Objectif[]) {
+    setObjectifs(parc)
+    const monte = objectifActif(parc, objectifId)
+    if (monte === null) {
+      setObjectifId('')
+      return
+    }
+    const focaleRetenue = focaleDans(monte, focale)
+    const ouvertureRetenue = reglageOptique(monte, focaleRetenue, ouverture).ouverture
+    setFocale(focaleRetenue)
+    if (ouvertureRetenue.refus !== null && Number.isFinite(ouvertureRetenue.valeur)) surOuverture(String(ouvertureRetenue.valeur))
+    if (monte.typeObjectif !== typeObjectif) surTypeObjectif(monte.typeObjectif)
+  }
+
+  /**
    * §5.1 — changer d'objectif change la projection, pas un réglage de rendu. Si la scène
    * regarde déjà « comme l'objectif », elle suit ; si elle est en planétarium, elle y reste.
    */
@@ -204,6 +275,10 @@ export function useSaisieMateriel(depart: DepartMateriel | null): SaisieMateriel
     surBoitier,
     iso,
     surIso,
+    objectifs,
+    surObjectifs,
+    objectifId,
+    surObjectifId,
     focale,
     surFocale,
     ouverture,

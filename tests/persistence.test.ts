@@ -211,6 +211,54 @@ describe('validation du réimport §12.3', () => {
     expect(apres.sites.map((s) => s.id)).toEqual([SITE.id])
   })
 
+  it('T-0404 — refuse un parc dont un objectif a sa plage inversée, en le nommant', async () => {
+    const objectif = {
+      id: 'zoom',
+      nom: '70-200',
+      focaleMinMm: 200,
+      focaleMaxMm: 70,
+      ouvertureGrandAngleN: 4,
+      ouvertureTeleN: 4,
+      typeObjectif: 'RECTILINEAIRE',
+    }
+    const abime = { ...PROFIL, id: 'profil-parc', objectifs: [objectif] }
+    await expect(importeDonneesUtilisateur(exportAvec({ profils: [abime] }))).rejects.toThrow(
+      /objectifs.*focale la plus courte/,
+    )
+  })
+
+  it('T-0404 — refuse un parc où deux objectifs partagent un identifiant', async () => {
+    const objectif = {
+      id: 'zoom',
+      nom: 'Zoom',
+      focaleMinMm: 18,
+      focaleMaxMm: 55,
+      ouvertureGrandAngleN: 3.5,
+      ouvertureTeleN: 5.6,
+      typeObjectif: 'RECTILINEAIRE',
+    }
+    const abime = { ...PROFIL, id: 'profil-parc', objectifs: [objectif, objectif] }
+    await expect(importeDonneesUtilisateur(exportAvec({ profils: [abime] }))).rejects.toThrow(
+      /même identifiant/,
+    )
+  })
+
+  it('T-0404 — refuse un objectif dont l’ouverture sort du domaine', async () => {
+    const objectif = {
+      id: 'zoom',
+      nom: 'Zoom',
+      focaleMinMm: 18,
+      focaleMaxMm: 55,
+      ouvertureGrandAngleN: 0.1,
+      ouvertureTeleN: 5.6,
+      typeObjectif: 'RECTILINEAIRE',
+    }
+    const abime = { ...PROFIL, id: 'profil-parc', objectifs: [objectif] }
+    await expect(importeDonneesUtilisateur(exportAvec({ profils: [abime] }))).rejects.toThrow(
+      /ouvertureGrandAngleN/,
+    )
+  })
+
   it('accepte un export produit par l’application', async () => {
     const fichier = JSON.stringify(await exporteDonneesUtilisateur())
     await expect(importeFichierUtilisateur(fichier)).resolves.toBeNull()

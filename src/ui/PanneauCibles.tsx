@@ -72,6 +72,10 @@ import { ouvreCarte } from './coque-etat.ts'
 import { majCatalogue, useCatalogue } from './catalogue-etat.ts'
 import { minuteAffichee, useTrancheScene } from './scene-etat.ts'
 import { compte } from './horaire.ts'
+import type { Objectif } from '../core/objectif.ts'
+
+/** Une seule référence pour « aucun parc » : la mémo des cartes ne se refait pas à chaque rendu. */
+const PARC_VIDE: readonly Objectif[] = Object.freeze([])
 
 const DOMAINE_MAG = DOMAINES.m_int
 
@@ -130,6 +134,8 @@ export interface PanneauCiblesProps {
   /** T-0283 — le cadre du matériel, pour que « Cadrer » fasse ici ce qu'il fait dans la fiche. */
   readonly profil: ProfilCadre | undefined
   readonly gaiaCharge: boolean
+  /** T-0404 — §6.1 : une cible écartée pour sa taille nomme l'objectif du parc qui la cadrerait. */
+  readonly parc?: readonly Objectif[]
   /** T-0291 — vrai quand ce qui est affiché est le résultat de la saisie précédente. */
   readonly recalcul: boolean
   /** T-0297 — le catalogue n'est pas encore décodé : ni compte ni « aucun objet » à dire. */
@@ -344,6 +350,7 @@ export function PanneauCibles(props: PanneauCiblesProps) {
             contexte={contexteSession}
             profil={props.profil}
             gaiaCharge={props.gaiaCharge}
+            parc={props.parc ?? PARC_VIDE}
           />
         ))}
       </ul>
@@ -388,16 +395,17 @@ interface LigneListeProps {
   readonly contexte: ContexteSession
   readonly profil: ProfilCadre | undefined
   readonly gaiaCharge: boolean
+  readonly parc: readonly Objectif[]
 }
 
-function LigneListe({ ligne, etat, contexte, profil, gaiaCharge }: LigneListeProps) {
+function LigneListe({ ligne, etat, contexte, profil, gaiaCharge, parc }: LigneListeProps) {
   const { objet } = ligne
   const nom = nomCommun(objet)
   const pose = etat?.pose ?? null
   // Mémorisé : la carte se redessine à chaque minute de la scène, la saison ne change pas.
   const ecart = useMemo(
-    () => (etat !== null && pose === null ? causesCarte(contexte, objet, etat) : null),
-    [contexte, objet, etat, pose],
+    () => (etat !== null && pose === null ? causesCarte(contexte, objet, etat, parc) : null),
+    [contexte, objet, etat, pose, parc],
   )
 
   return (

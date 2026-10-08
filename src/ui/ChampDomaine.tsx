@@ -24,6 +24,7 @@ import { nombreLibre } from '../registry/ecriture.ts'
 import { DOMAINES, nombreDeTexte, type DomaineId } from '../registry/domains.ts'
 import type { TermeGlossaire } from '../registry/glossaire.ts'
 import { nombreSaisi } from './saisie-bornee.ts'
+import type { Plage } from '../core/objectif.ts'
 import { texteGlisse } from './compteur-glisse.ts'
 import { Bulle } from './Bulle.tsx'
 import { Etiquette } from './Terme.tsx'
@@ -69,6 +70,11 @@ export interface ChampDomaineProps {
   readonly inputMode?: 'decimal' | 'numeric'
   /** Le champ se tire à l'horizontale, au `pas` de son domaine. */
   readonly glisse?: boolean
+  /**
+   * T-0404 — une plage plus étroite que le domaine : celle de l'objectif monté. Le refus et le
+   * placeholder la citent ; le domaine reste la borne de dernier recours.
+   */
+  readonly plage?: Plage | undefined
 }
 
 /** Le point de départ d'un geste : un champ vide part de la borne basse. */
@@ -133,9 +139,13 @@ export function ChampDomaine(props: ChampDomaineProps) {
   const idRefus = useId()
   // Un champ vide n'est pas une valeur fautive : c'est un état transitoire de frappe (T-0149),
   // et la conséquence de son absence est déjà dite par `note` ou par le panneau.
-  const refus = props.valeur.trim() === '' ? null : nombreSaisi(props.domaine, props.valeur).refus
+  const refus =
+    props.valeur.trim() === '' ? null : nombreSaisi(props.domaine, props.valeur, props.plage).refus
   const glisse = useGlisse(props)
-  const placeholder = props.placeholder ?? (props.requis === true ? `${nombreLibre(d.min)} à ${nombreLibre(d.max)}` : 'inconnu')
+  const bornes = props.plage ?? d
+  const placeholder =
+    props.placeholder ??
+    (props.requis === true ? `${nombreLibre(bornes.min)} à ${nombreLibre(bornes.max)}` : 'inconnu')
 
   return (
     <label>

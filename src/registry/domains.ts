@@ -59,7 +59,9 @@ export const DOMAINES = Object.freeze({
 
   // §5.1 — profil optique et capteur
   focale_mm: domaine({ champ: 'la focale', min: 8, max: 4000, unite: 'mm', section: '5.1' }),
-  ouverture_N: domaine({ champ: 'l’ouverture', min: 0.95, max: 32, unite: 'f/N', section: '5.1' }),
+  // T-0404 — le dixième : le cran que portent les ouvertures gravées (f/4,5, f/5,6, f/6,3), et
+  // celui auquel le plancher d'un zoom s'arrondit vers le plus fermé.
+  ouverture_N: domaine({ champ: 'l’ouverture', min: 0.95, max: 32, pas: 0.1, unite: 'f/N', section: '5.1' }),
   capteur_mm: domaine({
     champ: 'la dimension de capteur',
     min: 3,

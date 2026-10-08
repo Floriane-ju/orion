@@ -55,6 +55,7 @@ import type { Traced } from '../core/traced.ts'
 import { modeObjectif } from '../core/optics.ts'
 import type { SaisieLieu, SaisieMateriel } from './app-saisie.ts'
 import { nombreSaisi, nombreSiRenseigne } from './saisie-bornee.ts'
+import { objectifActif, reglageOptique } from './objectif-saisie.ts'
 import type { MaterielFile } from './planetarium-materiel.ts'
 import { altitudeDuRelief, masqueDuRelief, useReliefSite } from './relief-site.ts'
 import { PRESET_SNR_DEFAUT } from '../registry/verdicts.ts'
@@ -226,9 +227,15 @@ export interface GrandeursMateriel {
 }
 
 export function grandeursMateriel(materiel: SaisieMateriel): GrandeursMateriel {
+  // T-0404 — sous un objectif monté, le réglage est borné à ce qu'il permet.
+  const reglage = reglageOptique(
+    objectifActif(materiel.objectifs, materiel.objectifId),
+    materiel.focale,
+    materiel.ouverture,
+  )
   return {
-    focaleMm: nombreSaisi('focale_mm', materiel.focale).valeur,
-    ouvertureN: nombreSaisi('ouverture_N', materiel.ouverture).valeur,
+    focaleMm: reglage.focale.valeur,
+    ouvertureN: reglage.ouverture.valeur,
     isoSaisi:
       ligneBoitier(materiel.boitierId) !== null
         ? undefined
