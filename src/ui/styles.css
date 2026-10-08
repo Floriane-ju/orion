@@ -1972,8 +1972,10 @@ h3 {
 .parc {
   display: grid;
   /* La corbeille a sa colonne même quand elle manque (un seul objectif) : sans elle, ajouter
-     une ligne rétrécissait d'un coup les champs et renvoyait les titres à la ligne. */
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto var(--cible-clic);
+     une ligne rétrécissait d'un coup les champs et renvoyait les titres à la ligne.
+     `minmax(…, auto)` et non une largeur fixe : en `subgrid`, le jour d'une carte s'ajoute à
+     ses pistes de bord, et une piste fixe à la largeur du bouton le poussait hors du cadre. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto minmax(var(--cible-clic), auto);
   column-gap: var(--pas-2);
   row-gap: var(--pas-1);
 }
