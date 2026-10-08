@@ -225,8 +225,10 @@ describe('T-0404 — l’optique de départ est un objectif du parc', () => {
     expect(parcDeDepart({ focale: '15', ouverture: '2.8', fisheye: true }, 'fe').objectifs[0]?.typeObjectif).toBe('FISHEYE')
   })
 
-  it('un parc enregistré, même vide, est rendu tel quel', () => {
-    expect(parcDeDepart({ objectifs: [], focale: '120', ouverture: '2.8', fisheye: false }, 'x')).toEqual({ objectifs: [], objectifId: '' })
+  it('un parc enregistré vide se reconstruit depuis le réglage', () => {
+    const { objectifs, objectifId } = parcDeDepart({ objectifs: [], focale: '180', ouverture: '2.8', fisheye: false }, 'x')
+    expect(objectifs.map((o) => [o.focaleMinMm, o.ouvertureGrandAngleN])).toEqual([[180, 2.8]])
+    expect(objectifId).toBe('x')
   })
 
   it('un objectif monté disparu cède la place au premier du parc', () => {

@@ -259,6 +259,8 @@ export function useSaisieMateriel(depart: DepartMateriel | null): SaisieMateriel
    * son montage.
    */
   function surObjectifs(parc: readonly Objectif[]) {
+    // Le parc n'est jamais vidé : le dernier objectif est celui avec lequel on photographie.
+    if (parc.length === 0) return
     setObjectifs(parc)
     const monte = objectifActif(parc, objectifId)
     if (monte === null) {

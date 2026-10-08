@@ -77,14 +77,15 @@ export interface OptiqueDeDepart {
  * Le parc au démarrage. L'optique saisie avant le parc — ou celle de l'Annexe A au premier
  * démarrage — devient son premier objectif, une focale fixe qu'on peut ensuite éditer en zoom
  * ou retirer : sans cela, l'objectif de départ restait le seul qu'on ne pouvait ni l'un ni
- * l'autre. Un parc enregistré, même vidé, est rendu tel quel. Un objectif monté disparu du
- * parc cède la place au premier.
+ * l'autre. Un parc enregistré vide — vidé avant que le dernier objectif ne soit protégé, ou
+ * importé tel — se reconstruit de même : une carte Optique sans objectif n'offre plus rien à
+ * ajouter. Un objectif monté disparu du parc cède la place au premier.
  */
 export function parcDeDepart(
   depart: OptiqueDeDepart,
   id: string,
 ): { readonly objectifs: readonly Objectif[]; readonly objectifId: string } {
-  if (depart.objectifs !== undefined) {
+  if (depart.objectifs !== undefined && depart.objectifs.length > 0) {
     const monte = depart.objectifs.find((o) => o.id === depart.objectifId) ?? depart.objectifs[0]
     return { objectifs: depart.objectifs, objectifId: monte?.id ?? '' }
   }

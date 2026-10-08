@@ -1333,8 +1333,8 @@ UN OBJECTIF DÉCRIT CE QU'IL PERMET, PAS UN RÉGLAGE
   Saisie : UNE LIGNE PAR OBJECTIF — focale min/max, ouverture grand-angle/télé, le bout
   max vide valant focale fixe ou ouverture constante. Pas de nom saisi : l'objectif se
   désigne par sa notation de bague (« 18–55 mm f/3,5–5,6 »). Chaque ligne se retire,
-  sauf la dernière : le parc n'est jamais vide. « Objectif libre » ne subsiste que pour
-  un parc vide venu d'un import.
+  sauf la dernière : le parc n'est jamais vide. Un parc relu vide se reconstruit depuis
+  le réglage enregistré ; « objectif libre » ne subsiste que si ce réglage est illisible.
 
 PLANCHER D'OUVERTURE D'UN ZOOM — interpolation linéaire en focale
   t       = ( focale_mm − focale_min_mm ) / ( focale_max_mm − focale_min_mm )
