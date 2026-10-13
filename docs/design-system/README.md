@@ -280,7 +280,7 @@ qu'elle nomme ce qu'on survole où que ce soit. `echelles.test.ts` tient les deu
 |---|---|---|
 | `ChampDomaine` | 4 | un champ **numérique** — sa borne vient de `DOMAINES`, jamais du composant |
 | `ChampChoix` | 2 | un choix fermé, options en `children` |
-| `Interrupteur` | 4 | une case à cocher et la phrase qui dit ce qu'elle fait |
+| `Interrupteur` | 5 | une case à cocher et la phrase qui dit ce qu'elle fait ; `switch` en fait une bascule (`role="switch"`), pour un réglage qui change la forme de ce qui suit |
 | `Curseur` | 4 | un réglage continu, avec repère à une valeur arbitraire |
 | `Compteur` | 2 | un nombre qu'on **tire** sous la souris ou qu'on **tape** au clic — champ encadré, `prefixe` optionnel (« H », « AZ ») |
 

@@ -1329,11 +1329,15 @@ UN OBJECTIF DÉCRIT CE QU'IL PERMET, PAS UN RÉGLAGE
   Focale fixe : focale_min_mm = focale_max_mm, N_tele = N_grand_angle.
   Le parc est la liste des objectifs possédés ; un seul est monté à la fois. L'optique de
   départ (Annexe A, ou celle d'un profil antérieur au parc) en est le premier objectif :
-  une focale fixe, éditable en zoom comme les autres.
-  Saisie : UNE LIGNE PAR OBJECTIF — focale min/max, ouverture grand-angle/télé, fisheye, le bout
-  max vide valant focale fixe ou ouverture constante. Pas de nom saisi : l'objectif se
-  désigne par sa notation de bague (« 18–55 mm f/3,5–5,6 »). Chaque ligne se retire,
-  sauf la dernière : le parc n'est jamais vide. Un parc relu vide se reconstruit depuis
+  une focale fixe.
+  Lecture : UNE LIGNE PAR OBJECTIF, sans champ — le choix de l'objectif monté, sa notation de
+  bague (« 18–55 mm f/3,5–5,6 ») et sa nature (focale fixe ou zoom, fisheye), un crayon qui
+  rouvre la modale garnie, la corbeille. Pas de nom saisi : l'objectif se désigne par sa
+  notation. Chaque ligne se retire, sauf la dernière : le parc n'est jamais vide.
+  Ajout : UNE MODALE — deux bascules, zoom et fisheye, puis sous un filet la focale et
+  l'ouverture max sur une rangée, sous « Focale fixe » (« Focale min » pour un zoom), puis la
+  même rangée sous « Focale max », désactivée hors zoom : basculer ne déplace rien. La notation qui en sortira
+  se lit avant d'ajouter ; l'objectif ajouté est monté. Un parc relu vide se reconstruit depuis
   le réglage enregistré ; « objectif libre » ne subsiste que si ce réglage est illisible.
 
 PLANCHER D'OUVERTURE D'UN ZOOM — interpolation linéaire en focale
@@ -1381,7 +1385,11 @@ Alors la saisie est refusée avec un message nommant la focale
 
 Étant donné un premier démarrage
 Quand j'ouvre la carte Optique
-Alors le parc contient l'optique de départ, montée, que je peux modifier en zoom ou retirer
+Alors le parc contient l'optique de départ, montée, que je peux retirer une fois un autre objectif ajouté
+
+Étant donné la carte Optique ouverte
+Quand j'ajoute un zoom 18–55 f/3,5–5,6 par la modale
+Alors le parc affiche « 18–55 mm f/3,5–5,6 », monté, et ses lignes n'offrent aucun champ à corriger
 
 Étant donné un profil dont l'objectif monté ne figure plus dans le parc       # cas limite
 Quand l'application démarre

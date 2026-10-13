@@ -828,6 +828,7 @@ describe('aucun aplat allumé la nuit — T-0375', () => {
   const EXCEPTIONS: Readonly<Record<string, string>> = {
     '::selection': 'transitoire : n’existe que le temps d’un geste de sélection',
     "input[type='checkbox']:checked": 'une case de 1,1 rem, seul signe de l’état coché',
+    '.parc-choix:has(> input:checked)::before': 'un rond de 1,1 rem, seul signe de l’objectif monté',
     '.curseur:hover .curseur-rail': 'un trait de deux pixels, sous la main',
     '.curseur:active .curseur-rail': 'un trait de deux pixels, sous la main',
     '.curseur:focus-visible .curseur-rail': 'un trait de deux pixels, au focus',

@@ -17,6 +17,7 @@ import { phraseFocale } from '../src/ui/CibleImpossible.tsx'
 import { DEFAUT, type SaisieMateriel } from '../src/ui/app-saisie.ts'
 import { evalueMateriel, grandeursMateriel } from '../src/ui/app-calcul.ts'
 import { ouvreCarte } from '../src/ui/coque-etat.ts'
+import { lectureAjout, ModaleObjectif } from '../src/ui/ModaleObjectif.tsx'
 
 const rien = () => undefined
 
@@ -160,9 +161,20 @@ describe('T-0404 — la carte Optique', () => {
     ])
   })
 
-  it('chaque ligne a sa case fisheye ; ni ouverture ni fisheye ne se règlent sous le parc', () => {
-    const html = rendu({ objectifId: ZOOM.id, focale: '35', ouverture: '8' })
-    expect(html.match(/type="checkbox"[^>]*aria-label="Fisheye — /g)).toHaveLength(2)
+  it('T-0406 — le parc se lit : chaque ligne dit sa notation, aucun champ à corriger en place', () => {
+    const html = rendu({
+      objectifs: [ZOOM, { ...FIXE, typeObjectif: 'FISHEYE' }],
+      objectifId: ZOOM.id,
+      focale: '35',
+      ouverture: '8',
+    })
+    const parc = /<div class="parc">.*?<\/div><button/s.exec(html)?.[0] ?? ''
+    expect(parc).toContain(ZOOM.nom)
+    expect(parc).toContain(FIXE.nom)
+    expect(parc).toContain('fisheye')
+    expect(parc.match(/<input/g)).toHaveLength(2)
+    expect(parc).not.toMatch(/<input(?![^>]*type="radio")/)
+    expect(html).toContain('Ajouter un objectif')
     expect(html).not.toContain('Objectif fisheye')
     expect(html).not.toMatch(/placeholder="[\d,]+ à 32"/)
   })
@@ -243,5 +255,60 @@ describe('T-0404 — l’optique de départ est un objectif du parc', () => {
 
   it('une optique de départ illisible ne fait pas d’objectif', () => {
     expect(parcDeDepart({ focale: '', ouverture: '2.8', fisheye: false }, 'x').objectifs).toEqual([])
+  })
+})
+
+describe('T-0406 — la modale d’ajout d’un objectif', () => {
+  const vide = { focaleMin: '', focaleMax: '', ouvertureGrandAngle: '', ouvertureTele: '' }
+
+  it('rien à ajouter tant qu’un champ requis manque', () => {
+    expect(lectureAjout(vide, false, false, 'x')).toBeNull()
+    expect(lectureAjout({ ...vide, focaleMin: '18', ouvertureGrandAngle: '3.5' }, true, false, 'x')).toBeNull()
+  })
+
+  it('une focale fixe ignore les bouts télé laissés d’un zoom', () => {
+    const l = lectureAjout({ ...saisieDe(ZOOM) }, false, false, FIXE.id)
+    expect(l !== null && 'objectif' in l ? caracteristiques(l.objectif) : null).toBe(
+      caracteristiques({ ...ZOOM, focaleMaxMm: ZOOM.focaleMinMm, ouvertureTeleN: ZOOM.ouvertureGrandAngleN }),
+    )
+  })
+
+  it('un zoom se saisit bout par bout, fisheye compris', () => {
+    const l = lectureAjout(
+      { focaleMin: String(ZOOM.focaleMinMm), focaleMax: String(ZOOM.focaleMaxMm), ouvertureGrandAngle: String(ZOOM.ouvertureGrandAngleN), ouvertureTele: String(ZOOM.ouvertureTeleN) },
+      true,
+      true,
+      ZOOM.id,
+    )
+    expect(l).toEqual({ objectif: { ...ZOOM, typeObjectif: 'FISHEYE' } })
+  })
+
+  it('une plage inversée est refusée en nommant la focale', () => {
+    const l = lectureAjout({ ...saisieDe(ZOOM), focaleMin: String(ZOOM.focaleMaxMm), focaleMax: String(ZOOM.focaleMinMm) }, true, false, 'x')
+    expect(l !== null && 'refus' in l ? l.refus : '').toMatch(/focale/)
+  })
+
+  it('est une modale nommée, sans <dialog>, qui n’ajoute rien de vide', () => {
+    const html = renderToStaticMarkup(<ModaleObjectif surValide={rien} surFermeture={rien} />)
+    expect(html).toMatch(/role="dialog"[^>]*aria-modal="true"/)
+    expect(html).not.toContain('<dialog')
+    expect(html).toContain('Ajouter un objectif')
+    expect(html).toMatch(/<button type="submit" disabled="">Ajouter<\/button>/)
+  })
+
+  it('le crayon la rouvre garnie : un zoom à ouverture constante garde ses deux bouts', () => {
+    const constant: Objectif = { ...ZOOM, ouvertureTeleN: ZOOM.ouvertureGrandAngleN }
+    const html = renderToStaticMarkup(<ModaleObjectif objectif={constant} surValide={rien} surFermeture={rien} />)
+    expect(html).toContain('Modifier l’objectif')
+    expect(html).toMatch(/<button type="submit">Enregistrer<\/button>/)
+    expect(html.match(new RegExp(`value="${constant.ouvertureGrandAngleN}"`, 'g'))).toHaveLength(2)
+    expect(html).toContain(`value="${constant.focaleMaxMm}"`)
+  })
+
+  it('chaque ligne dit sa nature et porte son crayon', () => {
+    const html = rendu({ objectifId: ZOOM.id, focale: '35', ouverture: '8' })
+    expect(html).toContain('Zoom')
+    expect(html).toContain('Focale fixe')
+    expect(html.match(/Modifier /g)).toHaveLength(2)
   })
 })

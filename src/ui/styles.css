@@ -325,6 +325,9 @@ pre {
   --trait-focus: calc(var(--trait) * 2);
   /* T-0331 — le voile d'un flottant posé sur la scène : la scène se devine, le texte se lit. */
   --voile: color-mix(in srgb, var(--surface) 82%, transparent);
+  /* Un groupe de saisie hors d'usage (T-0406) : estompé en bloc, titre compris. Une opacité
+     et non une couleur : elle s'applique aussi bien au rouge de nuit qu'au gris du jour. */
+  --opacite-eteint: 0.4;
   --voile-page: color-mix(in srgb, var(--fond) 75%, transparent);
   /* Les gabarits de la coque. La barre et le panneau sont posés en absolu sur la scène :
      leur encombrement doit être connu d'ailleurs — le panneau et les cartes partent sous la
@@ -1962,151 +1965,87 @@ h3 {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
-/* T-0404 — le parc d'objectifs : une carte par objectif — focale min/max, ouverture
- * grand-angle/télé, fisheye, corbeille.
+/* T-0404, T-0406 — le parc d'objectifs : une carte par objectif — choix, notation et sa nature,
+ * modifier, retirer. Elle se lit ; l'ajout et la retouche passent par la modale (`.modale`).
  *
- * Les colonnes sont tenues par `.parc` et partagées en `subgrid` par l'en-tête et chaque carte :
- * des grilles indépendantes dimensionnaient leurs pistes `auto` chacune pour soi, et les titres
- * glissaient au-dessus des champs. L'en-tête porte le même filet, transparent, et le même jour
- * que les cartes pour que ses colonnes tombent au même endroit. */
+ * Les colonnes sont tenues par `.parc` et partagées en `subgrid` par chaque carte : la notation
+ * varie d'une ligne à l'autre, les commandes restent alignées. La corbeille a sa colonne même
+ * quand elle manque (un seul objectif) : sans elle, le crayon changeait de place en ajoutant
+ * une ligne. */
 .parc {
   display: grid;
-  /* La corbeille a sa colonne même quand elle manque (un seul objectif) : sans elle, ajouter
-     une ligne rétrécissait d'un coup les champs et renvoyait les titres à la ligne.
-     `minmax(…, auto)` et non une largeur fixe : en `subgrid`, le jour d'une carte s'ajoute à
-     ses pistes de bord, et une piste fixe à la largeur du bouton le poussait hors du cadre. */
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto minmax(var(--cible-clic), auto) minmax(var(--cible-clic), auto);
+  grid-template-columns: var(--cible-clic) minmax(0, 1fr) var(--cible-clic) var(--cible-clic);
   column-gap: var(--pas-2);
-  row-gap: var(--pas-1);
+  row-gap: var(--pas-2);
 }
 
-.parc-entete,
+/* La carte choisie se dit au FILET — celui du texte, doublé —, pas à un aplat : un rectangle
+ * allumé par objectif serait une lampe la nuit (T-0375), et le filet se lit à toute luminance. */
 .parc-objectif {
   grid-column: 1 / -1;
   display: grid;
   grid-template-columns: subgrid;
   align-items: center;
-  padding: var(--pas-1) var(--pas-2);
-  border: var(--trait) solid transparent;
-}
-
-.parc-entete {
-  padding-block: 0;
-  white-space: nowrap;
-}
-
-/* La carte se choisit d'un clic : filet de contrôle au repos, APLAT une fois choisie — celui de
- * la bascule flottante enfoncée (T-0405). Un filet plein sur surface haute ne se distinguait
- * guère du survol. Tout son contenu s'INVERSE avec elle : champs, case et corbeille prennent
- * --texte pour fond et --fond pour encre, sinon un champ sombre ou un focus blanc y feraient
- * une tache ou disparaîtraient. */
-.parc-objectif {
-  border-color: var(--bordure-controle);
+  padding: var(--pas-2) var(--pas-1);
+  border: var(--trait) solid var(--bordure-faible);
   cursor: pointer;
+}
+
+.parc-objectif:hover {
+  border-color: var(--bordure-controle);
 }
 
 .parc-objectif[data-monte='true'] {
   border-color: var(--texte);
-  background: var(--texte);
-  color: var(--fond);
-}
-
-.parc-objectif[data-monte='true'] input:not([aria-invalid='true']),
-.parc-objectif[data-monte='true'] .bouton-glyphe {
-  background: var(--texte);
-  border-color: var(--fond);
-  color: var(--fond);
-}
-
-.parc-objectif[data-monte='true'] input[aria-invalid='true'] {
-  background: var(--texte);
-  color: var(--fond);
-}
-
-.parc-objectif[data-monte='true'] input[type='checkbox']:checked {
-  background: var(--fond);
-  box-shadow: inset 0 0 0 calc(var(--pas-0) + var(--trait)) var(--texte);
-}
-
-.parc-objectif[data-monte='true'] .bouton-glyphe:not(:disabled):hover {
-  background: var(--fond);
-  color: var(--texte);
-}
-
-.parc-objectif[data-monte='true'] :focus-visible {
-  outline-color: var(--fond);
-}
-
-.parc-objectif[data-monte='true'] ::selection {
-  background: var(--fond);
-  color: var(--texte);
-}
-
-/* T-0375 — la nuit, pas d'aplat : un rectangle allumé par objectif serait une lampe. Filet
- * doublé et fond léger, comme la bascule flottante enfoncée ; le contenu garde ses couleurs. */
-:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] {
-  background: var(--surface-survol);
   box-shadow: inset 0 0 0 var(--trait) var(--texte);
+}
+
+/* La notation est la valeur, en condensé de titre ; sa nature (focale fixe, zoom) l'étiquette. */
+.parc-nom {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.parc-notation {
+  overflow-wrap: anywhere;
+  font-family: var(--police-titre);
+  font-size: var(--texte-corps);
+  font-weight: var(--graisse-titre);
+  line-height: var(--interligne-serre);
   color: var(--texte);
 }
 
-:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] input:not([aria-invalid='true']),
-:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] input[aria-invalid='true'] {
-  background: var(--surface-haute);
-  color: var(--texte);
-}
-
-:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] input:not([aria-invalid='true']) {
-  border-color: var(--bordure-controle);
-}
-
-:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] input[type='checkbox'] {
-  background: var(--fond);
-}
-
-:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] input[type='checkbox']:checked {
-  border-color: var(--texte);
-  background: var(--texte);
-  box-shadow: inset 0 0 0 calc(var(--pas-0) + var(--trait)) var(--fond);
-}
-
-:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] .bouton-glyphe {
-  background: transparent;
-  border-color: var(--bordure-faible);
-  color: var(--texte);
-}
-
-:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] .bouton-glyphe:not(:disabled):hover {
-  background: var(--surface-haute);
-  color: var(--texte);
-}
-
-:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] :focus-visible {
-  outline-color: var(--texte);
-}
-
-:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] .parc-choix {
-  border-color: var(--texte);
-}
-
-:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] ::selection {
-  background: var(--texte);
-  color: var(--fond);
-}
-
-/* T-0405 — la zone de choix, en bout de ligne : un carré à la cible de clic, la coche n'y
- * paraît que sur l'objectif monté. Le radio natif la couvre, invisible : il garde le nom, l'état
- * et les flèches du groupe ; le focus se reporte donc sur la zone, le radio transparent ne
- * montrerait pas son contour. */
+/* T-0405 — la zone de choix, en tête de ligne : un rond à la cible de clic. Le radio natif la
+ * couvre, invisible : il garde le nom, l'état et les flèches du groupe ; le rond se dessine
+ * sur la zone, qui reporte aussi le focus — le radio transparent ne montrerait pas son contour.
+ * Choisi, le rond se remplit d'un disque détaché par un jour de fond, comme la case cochée. */
 .parc-choix {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: var(--cible-clic);
-  min-width: var(--cible-clic);
-  border: var(--trait) solid var(--bordure-controle);
   cursor: pointer;
+}
+
+.parc-choix::before {
+  content: '';
+  width: 1.1rem;
+  height: 1.1rem;
+  border: var(--trait) solid var(--bordure-controle);
+  border-radius: 50%;
+  background: var(--fond);
+}
+
+.parc-choix:has(> input:checked)::before {
+  border-color: var(--texte);
+  background: var(--texte);
+  box-shadow: inset 0 0 0 calc(var(--pas-0) + var(--trait)) var(--fond);
+}
+
+.parc-choix:hover::before {
+  border-color: var(--texte);
 }
 
 .parc-choix > input {
@@ -2122,44 +2061,92 @@ h3 {
   cursor: pointer;
 }
 
-.parc-choix > .icone {
-  visibility: hidden;
-}
-
-.parc-choix:has(> input:checked) > .icone {
-  visibility: visible;
-}
-
-.parc-choix:hover {
-  border-color: currentColor;
-}
-
 .parc-choix:has(> input:focus-visible) {
   outline: var(--trait-focus) solid currentColor;
   outline-offset: var(--trait-focus);
 }
 
-.parc-objectif[data-monte='true'] .parc-choix {
-  border-color: var(--fond);
-}
-
-.parc-objectif > input[type='checkbox'] {
-  justify-self: center;
-}
-
-.parc-objectif > p {
-  grid-column: 1 / -1;
-}
-
-.parc-paire {
+/* T-0406 — la modale d'ajout d'un objectif : la fenêtre de la page info, réduite à une carte
+   et centrée. Pas de fermeture au clic sur le voile : un clic égaré perdrait une saisie
+   entamée. Échap et « Annuler » suffisent. */
+.modale {
+  position: fixed;
+  inset: 0;
+  z-index: var(--plan-page);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--pas-1);
+  place-items: center;
+  padding: var(--jour-ecran);
+  background: var(--fond);
+  background: var(--voile-page);
 }
 
-.parc-paire > input {
-  min-width: 0;
-  width: 100%;
+.modale-corps {
+  box-sizing: border-box;
+  width: min(var(--carte-large), 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 0 var(--jour-carte) var(--jour-carte);
+  background: var(--surface);
+  border: var(--trait) solid var(--texte);
+}
+
+.modale-corps > * + * {
+  margin-block-start: var(--pas-2);
+}
+
+.modale-corps > hr {
+  margin: var(--pas-2) 0;
+  border: 0;
+  border-top: var(--trait) solid var(--bordure-faible);
+}
+
+.modale-bout {
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* Le titre d'un bout domine les étiquettes de ses champs : même grammaire — capitales
+   espacées, il nomme —, mais un rang de corps au-dessus, en encre pleine et en graisse de titre.
+   La nuit confisque la luminance (§11.1) : c'est la taille et la graisse qui portent l'écart. */
+.modale-bout > legend {
+  padding: 0 0 var(--pas-2);
+  font-size: var(--texte-appui);
+  font-weight: var(--graisse-titre);
+  letter-spacing: var(--suivi-micro);
+  text-transform: uppercase;
+  color: var(--texte);
+}
+
+/* Hors zoom, le bout télé reste en place mais s'estompe en bloc : titre, étiquettes et champs
+   ensemble, pour qu'on lise la section entière comme hors d'usage, pas un champ par champ. */
+.modale-bout:disabled {
+  opacity: var(--opacite-eteint);
+}
+
+.modale-bout:disabled input {
+  cursor: not-allowed;
+}
+
+.modale-corps > .modale-entete + * {
+  margin-block-start: var(--jour-carte);
+}
+
+.modale-entete {
+  display: flex;
+  align-items: center;
+  height: var(--barre-titre);
+  margin-inline: calc(-1 * var(--jour-carte));
+  padding-inline: var(--pas-2);
+  background: var(--barre-fond);
+  color: var(--barre-encre);
+}
+
+.modale-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--pas-2);
 }
 
 
@@ -2219,6 +2206,7 @@ section:not([class]) > h2:first-child,
 .lateral-entete h2,
 .carte-titre,
 .page-info-entete > h2,
+.modale-entete > h2,
 .accordeon > summary > h2 {
   font-family: var(--police-mono);
   font-size: var(--texte-micro);
@@ -2233,6 +2221,7 @@ section:not([class]) > h2:first-child,
    titre blanc sur l'aplat blanc. */
 .lateral-entete h2,
 .page-info-entete > h2,
+.modale-entete > h2,
 .accordeon > summary > h2 {
   color: inherit;
   margin: 0;
@@ -2377,6 +2366,23 @@ input[type='checkbox']:disabled {
 
 input[type='checkbox']:checked:disabled {
   background: var(--bordure-faible);
+}
+
+/* T-0406 — la bascule (`Interrupteur switch`) : une piste deux fois plus large que haute, et
+   un plot dessiné en dégradé plein — Firefox ne peint pas de pseudo-élément sur un `input`.
+   Éteint, le plot est à gauche en filet de contrôle ; allumé, il passe à droite en `--texte`
+   Le plot saute sans glisser : seule la couleur a droit à une transition (WCAG 2.3.3,
+   `mode-nuit.test.tsx`). */
+input[type='checkbox'].bascule {
+  width: 2.2rem;
+  background: linear-gradient(var(--bordure-controle), var(--bordure-controle)) no-repeat left var(--pas-0) center /
+    0.8rem 0.8rem var(--fond);
+}
+
+input[type='checkbox'].bascule:checked {
+  background: linear-gradient(var(--texte), var(--texte)) no-repeat right var(--pas-0) center / 0.8rem 0.8rem
+    var(--fond);
+  box-shadow: none;
 }
 
 
