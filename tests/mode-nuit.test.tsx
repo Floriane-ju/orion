@@ -420,6 +420,8 @@ describe('surfaces natives du balisage — T-0304', () => {
     'input:button': () => {},
     'input:text': () => {},
     'input:checkbox': () => expect(corps("input[type='checkbox']")).toMatch(/appearance:\s*none/),
+    // T-0405 — le radio du parc n'est jamais peint : la zone qui le couvre dessine la coche.
+    'input:radio': () => expect(corps('.parc-choix > input')).toMatch(/appearance:\s*none[\s\S]*opacity:\s*0/),
     'input:search': () => retire("input[type='search']::-webkit-search-cancel-button"),
     'input:number': () => {
       retire("input[type='number']::-webkit-inner-spin-button")

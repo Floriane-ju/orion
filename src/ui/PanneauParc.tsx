@@ -5,14 +5,15 @@
  * la notation de bague (« 18–55 mm f/3,5–5,6 ») suffit à le désigner. Le bout max laissé vide
  * fait une focale fixe ou une ouverture constante.
  *
- * Chaque ligne est une carte : y entrer monte l'objectif, la carte montée est cernée. La case
+ * Chaque ligne est une carte : y entrer monte l'objectif, la carte montée s'inverse et porte la coche. La case
  * dit s'il est fisheye, ce qui choisit la projection. La corbeille ne se pose que s'il en reste un autre : un
  * parc vide renverrait à une saisie sans objectif, et c'est l'état que le parc remplace.
  */
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import type { Objectif } from '../core/objectif.ts'
 import { BoutonGlyphe } from './BoutonGlyphe.tsx'
+import { Icone } from './Icone.tsx'
 import { Mention } from './Mention.tsx'
 import { objectifDeSaisie, parcAvec, saisieDe, type SaisieObjectif } from './parc-saisie.ts'
 
@@ -25,6 +26,7 @@ export interface PanneauParcProps {
 
 export function PanneauParc({ objectifs, surObjectifs, objectifId, surObjectifId }: PanneauParcProps) {
   const dernier = objectifs.at(-1)
+  const groupe = useId()
   return (
     <>
       <div className="parc">
@@ -35,12 +37,14 @@ export function PanneauParc({ objectifs, surObjectifs, objectifId, surObjectifId
           <span className="libelle">Ouverture</span>
           <span className="libelle">Fisheye</span>
           <span />
+          <span />
         </div>
         {objectifs.map((o) => (
           <LigneObjectif
             key={o.id}
             objectif={o}
             monte={o.id === objectifId}
+            groupe={groupe}
             retirable={objectifs.length > 1}
             surMonte={() => surObjectifId(o.id)}
             surObjectif={(modifie) => surObjectifs(parcAvec(objectifs, modifie))}
@@ -64,6 +68,7 @@ export function PanneauParc({ objectifs, surObjectifs, objectifId, surObjectifId
 interface LigneObjectifProps {
   readonly objectif: Objectif
   readonly monte: boolean
+  readonly groupe: string
   readonly retirable: boolean
   readonly surMonte: () => void
   readonly surObjectif: (v: Objectif) => void
@@ -148,6 +153,20 @@ function LigneObjectif(props: LigneObjectifProps) {
         ) : (
           <span />
         )}
+        {/* T-0405 — le choix au clavier et au lecteur d'écran : la carte se choisit au clic,
+            mais un groupe sans état ne dit pas lequel est monté. Le radio natif le dit, et ses
+            flèches passent d'un objectif à l'autre. La coche le montre ; le radio, invisible,
+            couvre la zone pour en garder la cible de clic. */}
+        <span className="parc-choix">
+          <input
+            type="radio"
+            name={props.groupe}
+            checked={props.monte}
+            aria-label={`Utiliser ${nom}`}
+            onChange={props.surMonte}
+          />
+          <Icone nom="check" />
+        </span>
       {refusAffiche !== null && (
         <Mention ton="erreur" role="alert">
           {refusAffiche}

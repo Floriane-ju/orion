@@ -1975,7 +1975,7 @@ h3 {
      une ligne rétrécissait d'un coup les champs et renvoyait les titres à la ligne.
      `minmax(…, auto)` et non une largeur fixe : en `subgrid`, le jour d'une carte s'ajoute à
      ses pistes de bord, et une piste fixe à la largeur du bouton le poussait hors du cadre. */
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto minmax(var(--cible-clic), auto);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto minmax(var(--cible-clic), auto) minmax(var(--cible-clic), auto);
   column-gap: var(--pas-2);
   row-gap: var(--pas-1);
 }
@@ -1995,8 +1995,11 @@ h3 {
   white-space: nowrap;
 }
 
-/* La carte se choisit d'un clic : filet de contrôle au repos, filet plein une fois choisie. Pas
- * d'aplat `--texte` (T-0375) : la nuit, un rectangle allumé par objectif serait une lampe. */
+/* La carte se choisit d'un clic : filet de contrôle au repos, APLAT une fois choisie — celui de
+ * la bascule flottante enfoncée (T-0405). Un filet plein sur surface haute ne se distinguait
+ * guère du survol. Tout son contenu s'INVERSE avec elle : champs, case et corbeille prennent
+ * --texte pour fond et --fond pour encre, sinon un champ sombre ou un focus blanc y feraient
+ * une tache ou disparaîtraient. */
 .parc-objectif {
   border-color: var(--bordure-controle);
   cursor: pointer;
@@ -2004,7 +2007,140 @@ h3 {
 
 .parc-objectif[data-monte='true'] {
   border-color: var(--texte);
+  background: var(--texte);
+  color: var(--fond);
+}
+
+.parc-objectif[data-monte='true'] input:not([aria-invalid='true']),
+.parc-objectif[data-monte='true'] .bouton-glyphe {
+  background: var(--texte);
+  border-color: var(--fond);
+  color: var(--fond);
+}
+
+.parc-objectif[data-monte='true'] input[aria-invalid='true'] {
+  background: var(--texte);
+  color: var(--fond);
+}
+
+.parc-objectif[data-monte='true'] input[type='checkbox']:checked {
+  background: var(--fond);
+  box-shadow: inset 0 0 0 calc(var(--pas-0) + var(--trait)) var(--texte);
+}
+
+.parc-objectif[data-monte='true'] .bouton-glyphe:not(:disabled):hover {
+  background: var(--fond);
+  color: var(--texte);
+}
+
+.parc-objectif[data-monte='true'] :focus-visible {
+  outline-color: var(--fond);
+}
+
+.parc-objectif[data-monte='true'] ::selection {
+  background: var(--fond);
+  color: var(--texte);
+}
+
+/* T-0375 — la nuit, pas d'aplat : un rectangle allumé par objectif serait une lampe. Filet
+ * doublé et fond léger, comme la bascule flottante enfoncée ; le contenu garde ses couleurs. */
+:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] {
+  background: var(--surface-survol);
+  box-shadow: inset 0 0 0 var(--trait) var(--texte);
+  color: var(--texte);
+}
+
+:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] input:not([aria-invalid='true']),
+:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] input[aria-invalid='true'] {
   background: var(--surface-haute);
+  color: var(--texte);
+}
+
+:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] input:not([aria-invalid='true']) {
+  border-color: var(--bordure-controle);
+}
+
+:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] input[type='checkbox'] {
+  background: var(--fond);
+}
+
+:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] input[type='checkbox']:checked {
+  border-color: var(--texte);
+  background: var(--texte);
+  box-shadow: inset 0 0 0 calc(var(--pas-0) + var(--trait)) var(--fond);
+}
+
+:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] .bouton-glyphe {
+  background: transparent;
+  border-color: var(--bordure-faible);
+  color: var(--texte);
+}
+
+:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] .bouton-glyphe:not(:disabled):hover {
+  background: var(--surface-haute);
+  color: var(--texte);
+}
+
+:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] :focus-visible {
+  outline-color: var(--texte);
+}
+
+:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] .parc-choix {
+  border-color: var(--texte);
+}
+
+:root[data-mode-nuit='true'] .parc-objectif[data-monte='true'] ::selection {
+  background: var(--texte);
+  color: var(--fond);
+}
+
+/* T-0405 — la zone de choix, en bout de ligne : un carré à la cible de clic, la coche n'y
+ * paraît que sur l'objectif monté. Le radio natif la couvre, invisible : il garde le nom, l'état
+ * et les flèches du groupe ; le focus se reporte donc sur la zone, le radio transparent ne
+ * montrerait pas son contour. */
+.parc-choix {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--cible-clic);
+  min-width: var(--cible-clic);
+  border: var(--trait) solid var(--bordure-controle);
+  cursor: pointer;
+}
+
+.parc-choix > input {
+  appearance: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.parc-choix > .icone {
+  visibility: hidden;
+}
+
+.parc-choix:has(> input:checked) > .icone {
+  visibility: visible;
+}
+
+.parc-choix:hover {
+  border-color: currentColor;
+}
+
+.parc-choix:has(> input:focus-visible) {
+  outline: var(--trait-focus) solid currentColor;
+  outline-offset: var(--trait-focus);
+}
+
+.parc-objectif[data-monte='true'] .parc-choix {
+  border-color: var(--fond);
 }
 
 .parc-objectif > input[type='checkbox'] {

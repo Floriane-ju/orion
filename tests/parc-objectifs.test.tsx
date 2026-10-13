@@ -142,11 +142,22 @@ describe('T-0404 — la carte Optique', () => {
     expect(cartes.filter((c) => c.includes('data-monte="true"'))).toEqual([
       expect.stringContaining(`aria-label="${ZOOM.nom}, objectif utilisé"`),
     ])
-    expect(html).not.toContain('type="radio"')
     expect(html).not.toContain('Objectif libre')
     expect(html).not.toContain('Champ')
     expect(html).not.toContain('Pose maximale sans suivi')
     expect(resumeOptique('35', '8')).toBe('35 mm f/8')
+  })
+
+  it('T-0405 — chaque ligne finit par un bouton radio qui dit et choisit l’objectif utilisé', () => {
+    const html = rendu({ objectifId: ZOOM.id, focale: '35', ouverture: '8' })
+    const radios = [...html.matchAll(/<input[^>]*type="radio"[^>]*>/g)].map((m) => m[0])
+    expect(radios).toHaveLength(2)
+    const noms = radios.map((r) => /name="([^"]+)"/.exec(r)?.[1])
+    expect(noms[0]).toBeTruthy()
+    expect(noms[1]).toBe(noms[0])
+    expect(radios.filter((r) => r.includes('checked'))).toEqual([
+      expect.stringContaining(`aria-label="Utiliser ${ZOOM.nom}"`),
+    ])
   })
 
   it('chaque ligne a sa case fisheye ; ni ouverture ni fisheye ne se règlent sous le parc', () => {
