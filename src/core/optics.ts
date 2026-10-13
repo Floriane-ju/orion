@@ -62,6 +62,11 @@ export interface ProfilOptique {
   readonly alerte: boolean
 }
 
+/** Focale d'un champ rectilinéaire sur une dimension de capteur : l'inverse de `fovDeg`. */
+export function focalePourChamp(dimensionMm: number, champDeg: number): number {
+  return dimensionMm / (2 * Math.tan((champDeg * DEG) / 2))
+}
+
 /**
  * Champ angulaire d'une dimension de capteur. Arctangente pour un rectilinéaire, sans
  * exception (§5.1) ; d / f pour un fisheye équidistant, plafonné à son cercle image.

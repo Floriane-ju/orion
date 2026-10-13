@@ -28,7 +28,7 @@ import { RailVue } from './RailVue.tsx'
 import { PanneauLateral } from './PanneauLateral.tsx'
 import { PanneauCibles } from './PanneauCibles.tsx'
 import { PanneauFile } from './PanneauFile.tsx'
-import { FicheCible } from './FicheCible.tsx'
+import { FicheSousZoom } from './FicheZoom.tsx'
 import { Pastilles } from './Pastilles.tsx'
 import { Bulle } from './Bulle.tsx'
 import { AlignementCible, CadrerCible } from './BoutonCadrer.tsx'
@@ -333,7 +333,8 @@ export function LateralSeance(props: RegionSeanceProps) {
         chaine.contexteFiche === null ? (
           <p className="etat">{AIDE_MATERIEL_INCOMPLET}</p>
         ) : (
-          <FicheCible
+          <FicheSousZoom
+            zoom={chaine.zoom}
             {...chaine.contexteFiche}
             objet={props.cibleDuCiel}
             site={chaine.site}
@@ -362,6 +363,7 @@ export function LateralSeance(props: RegionSeanceProps) {
           profil={chaine.profilsCadre[0]}
           gaiaCharge={props.gaiaCharge}
           parc={props.materiel.objectifs}
+          zoom={chaine.zoom}
           recalcul={chaine.recalculEnCours}
           enCharge={props.catalogueEnCharge}
           inputRef={rechercheRef}

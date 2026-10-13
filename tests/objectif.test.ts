@@ -8,7 +8,9 @@
 
 import { describe, expect, it } from 'vitest'
 import {
+  focaleOptimale,
   objectifPour,
+  ouvertureA,
   ouverturePlancher,
   plagesReglage,
   plancherAuPas,
@@ -16,6 +18,9 @@ import {
   type Objectif,
 } from '../src/core/objectif.ts'
 import { DOMAINES, SaisieRefuseeError } from '../src/registry/domains.ts'
+import { K } from '../src/registry/constants.ts'
+import { fovDeg } from '../src/core/optics.ts'
+import { ARCMIN_PAR_DEG } from '../src/core/unites.ts'
 
 function objectif(champs: Partial<Objectif> = {}): Objectif {
   return {
@@ -137,5 +142,57 @@ describe('§6.1 — l’objectif du parc qui cadrerait une cible écartée', () 
     expect(objectifPour(parc, { sens: 'AU_MOINS', focaleMm: 400 })).toBeNull()
     expect(objectifPour(parc, { sens: 'MOSAIQUE' })).toBeNull()
     expect(objectifPour([], { sens: 'AU_MOINS', focaleMm: 135 })).toBeNull()
+  })
+})
+
+describe('T-0407 — la focale optimale d’une cible sous un zoom', () => {
+  const zoom = objectif()
+  const capteurHMm = 15.6
+  /** La taille qu'un champ à cette focale cadre au remplissage visé : la formule, à l'envers. */
+  const tailleCadreeA = (focaleMm: number): number =>
+    fovDeg(capteurHMm, focaleMm).value * K('REMPLISSAGE_ZOOM_OPTIMAL') * ARCMIN_PAR_DEG
+
+  it('dans la plage : la focale où le grand axe remplit le petit côté au remplissage visé', () => {
+    const f = focaleOptimale(zoom, tailleCadreeA(35), capteurHMm)
+    expect(f).toBe(35)
+    const remplissage = tailleCadreeA(35) / ARCMIN_PAR_DEG / fovDeg(capteurHMm, f).value
+    expect(remplissage).toBeCloseTo(K('REMPLISSAGE_ZOOM_OPTIMAL'), 6)
+  })
+
+  it('s’arrondit au millimètre', () => {
+    expect(Number.isInteger(focaleOptimale(zoom, tailleCadreeA(35.4), capteurHMm))).toBe(true)
+  })
+
+  it('bornée aux deux bouts quand le remplissage visé sort de la plage', () => {
+    expect(focaleOptimale(zoom, tailleCadreeA(zoom.focaleMaxMm * 3), capteurHMm)).toBe(
+      zoom.focaleMaxMm,
+    )
+    expect(focaleOptimale(zoom, tailleCadreeA(zoom.focaleMinMm / 3), capteurHMm)).toBe(
+      zoom.focaleMinMm,
+    )
+  })
+})
+
+describe('T-0407 — l’ouverture à une autre focale de la plage', () => {
+  const zoom = objectif()
+  const plancher = (f: number) => plancherAuPas(ouverturePlancher(zoom, f))
+
+  it('au plancher, elle suit le plancher de la nouvelle focale', () => {
+    const fCourante = zoom.focaleMinMm
+    expect(ouvertureA(zoom, plancher(fCourante), fCourante, zoom.focaleMaxMm)).toBe(
+      plancher(zoom.focaleMaxMm),
+    )
+  })
+
+  it('fermée au-delà des deux planchers, elle est conservée', () => {
+    const fermee = DOMAINES.ouverture_N.max
+    expect(ouvertureA(zoom, fermee, zoom.focaleMinMm, zoom.focaleMaxMm)).toBe(fermee)
+  })
+
+  it('fermée entre les deux planchers, elle remonte au plancher du télé', () => {
+    const entre = (zoom.ouvertureGrandAngleN + zoom.ouvertureTeleN) / 2
+    expect(ouvertureA(zoom, entre, zoom.focaleMinMm, zoom.focaleMaxMm)).toBe(
+      plancher(zoom.focaleMaxMm),
+    )
   })
 })

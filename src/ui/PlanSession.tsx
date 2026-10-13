@@ -209,6 +209,8 @@ export function Etape({ etape, rang, imprime, ...props }: EtapeProps) {
         <span className="etape-horaire">
           {heure(etape.creneauAlloue.debut)} → {heure(etape.creneauAlloue.fin)} ·{' '}
           {dureeMinLisible(etape.dureeAlloueeMin)}
+          {/* T-0407 — sous un zoom, la bague se règle à chaque cible : l'étape le dit. */}
+          {etape.focaleMm !== undefined && ` · ${nombre(etape.focaleMm, 0)} mm`}
         </span>
       </p>
       {/* §6.4 — la seule lecture qui reste : elle se compte d'un coup d'œil, à la frontale,

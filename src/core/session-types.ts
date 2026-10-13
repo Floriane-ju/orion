@@ -85,6 +85,8 @@ export interface ContexteSession {
   readonly nuit: FenetreNocturne
   readonly fenetreUtile: FenetreUtile
   readonly masque: MasqueHorizon
+  /** T-0407 — la focale de ce contexte ; renseignée par la chaîne, absente des fixtures. */
+  readonly focaleMm?: number
   readonly fovHDeg: number
   readonly echApx: number
   readonly dMm: number
@@ -117,6 +119,14 @@ export interface ContexteSession {
   readonly seuilHauteurDeg?: number
 }
 
+/**
+ * T-0407 — le contexte sous lequel UNE cible s'évalue. Sous un zoom, chaque cible a sa focale
+ * optimale, donc son champ, son échantillonnage, son ouverture et sa pose max ; hors zoom,
+ * c'est le contexte unique. La nuit, le site et le boîtier, eux, ne changent jamais d'une
+ * cible à l'autre : seul ce que la focale fixe diffère.
+ */
+export type ContexteDe = (objet: ObjetCielProfond) => ContexteSession
+
 export interface DetailScore {
   readonly cadrage: number
   readonly hauteur: number
@@ -127,6 +137,8 @@ export interface DetailScore {
 
 export interface EtapePlan {
   readonly objet: ObjetCielProfond
+  /** T-0407 — la focale de l'étape sous un zoom ; absente quand toutes partagent la même. */
+  readonly focaleMm?: number
   readonly creneauAlloue: Intervalle
   readonly dureeAlloueeMin: number
   readonly tPoseS: number

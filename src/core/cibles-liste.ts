@@ -29,6 +29,7 @@ import {
   type Candidate,
   type CauseEcart,
   type CibleEcartee,
+  type ContexteDe,
   type ContexteSession,
   type PoidsScoring,
 } from './session-types.ts'
@@ -59,6 +60,8 @@ export interface LigneCibleInvariante {
   readonly remplissage: number | null
   readonly verdictCadrage: VerdictCadrage | null
   readonly cadrable: boolean
+  /** T-0407 — sous un zoom, la focale optimale à laquelle la ligne est lue ; `null` sinon. */
+  readonly focaleMm: number | null
 }
 
 export interface LigneCible extends LigneCibleInvariante {
@@ -76,6 +79,8 @@ export interface EntreeLignesInvariantes {
   readonly fovHDeg: number
   readonly echApx: number
   readonly capteurHMm: number
+  /** T-0407 — sous un zoom, champ, échantillonnage et pupille de la focale de chaque cible. */
+  readonly contexteDe?: ContexteDe
 }
 
 export interface EntreeLignes extends EntreeLignesInvariantes {
@@ -134,8 +139,11 @@ export function lignesCatalogue(entree: EntreeLignes): readonly LigneCible[] {
 
 function ligneInvariante(
   objet: ObjetCielProfond,
-  entree: EntreeLignesInvariantes,
+  base: EntreeLignesInvariantes,
 ): LigneCibleInvariante {
+  const optique = base.contexteDe?.(objet)
+  const entree = optique === undefined ? base : { ...base, ...optiqueDe(optique) }
+  const focaleMm = optique?.focaleMm ?? null
   const detect = detectabilite({
     mInt: objet.vMag,
     aArcmin: objet.majAxArcmin,
@@ -157,6 +165,7 @@ function ligneInvariante(
       remplissage: null,
       verdictCadrage: null,
       cadrable: false,
+      focaleMm,
     }
   }
 
@@ -185,7 +194,12 @@ function ligneInvariante(
     remplissage: cadrage.remplissage.value,
     verdictCadrage: cadrage.verdict,
     cadrable: cadrage.faisable,
+    focaleMm,
   }
+}
+
+function optiqueDe(c: ContexteSession) {
+  return { fovHDeg: c.fovHDeg, echApx: c.echApx, dMm: c.dMm, capteurHMm: c.capteurHMm }
 }
 
 /** §6.4 — les types RÉELLEMENT présents, jamais l'énumération complète de §6.3. */
@@ -430,6 +444,8 @@ function etat(r: Candidate | CibleEcartee): EtatCible | null {
 export function etatsCibles(
   contexte: ContexteSession,
   catalogue: readonly ObjetCielProfond[],
+  /** T-0407 — sous un zoom, chaque cible à sa focale optimale ; le plan reçoit le même. */
+  contexteDe?: ContexteDe,
 ): ReadonlyMap<string, EtatCible> {
   const etats = new Map<string, EtatCible>()
   if (prepareEvaluation(contexte) === null) return etats
@@ -440,6 +456,7 @@ export function etatsCibles(
     catalogue,
     K('CIBLES_EVALUEES_MAX'),
     catalogue.length,
+    contexteDe,
   )
 
   for (const ecartee of ecartees) {
@@ -447,7 +464,7 @@ export function etatsCibles(
     if (e !== null) etats.set(ecartee.designation, e)
   }
   for (const objet of candidates) {
-    const resultat = evaluation(contexte, objet)
+    const resultat = evaluation(contexteDe?.(objet) ?? contexte, objet)
     const e = resultat === null ? null : etat(resultat)
     if (e !== null) etats.set(objet.designation, e)
   }

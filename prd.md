@@ -163,7 +163,7 @@ PRINCIPE
 | C-02 | Seuil hauteur visuel | 20° | convention | — |
 | C-03 | Facteur de pose `C` | 10 par défaut, 3 permissif | socle | optimum plat, voir §2.3 |
 | C-04 | Échantillonnage nominal | 1 à 2 "/px | convention | dépend du seeing |
-| C-05 | Remplissage de cadre | 1/3 à 1/2 du champ | convention | subjectif |
+| C-05 | Remplissage de cadre | 1/3 à 1/2 du champ ; 0,8 pour la focale optimale d'un zoom (§5.1) | convention | subjectif |
 | C-06 | Tolérance NPF `k` | 1,0 strict / 2,0 tolérant | règle NPF | — |
 | C-07 | Plafond de pose sans autoguidage | 240 s | convention terrain | ordre de grandeur |
 | C-08 | Recouvrement de mosaïque | 15 % | convention | — |
@@ -1398,6 +1398,49 @@ Alors le premier objectif du parc est monté, ou l'objectif libre si le parc est
 
 Le parc ne se retélécharge pas : il voyage dans le profil matériel et dans l'export §12.3,
 validé champ par champ au réimport.
+
+### Focale optimale d'une cible sous un zoom
+
+```
+UN ZOOM SE PARCOURT, IL NE SE FIGE PAS (T-0407)
+  Sous un objectif monté dont focale_min_mm < focale_max_mm, chaque cible s'évalue à SA
+  focale optimale, pas à la focale réglée :
+    f_opt = clamp( capteur_h_mm / (2 · tan(champ / 2)) , focale_min_mm , focale_max_mm )
+    champ = grand_axe / REMPLISSAGE_ZOOM_OPTIMAL          (0,8 — C-05, subjectif)
+  arrondie au millimètre. Remplissage non orienté (grand axe contre petit côté), comme les
+  bornes de taille de §6.4.
+
+  0,8 et non le milieu de C-05 : sous un zoom on serre le cadre, en gardant un dixième du
+  champ par bord pour le pointage manuel, la dérive de mise en station et le rognage
+  d'empilement. Le verdict §6.2 dit alors « cadrage serré » — c'est exact, il ne se masque pas.
+  Hors plage, f_opt est le bout le plus proche et le remplissage affiché est le vrai.
+
+  Ouverture à f_opt : la saisie si elle reste au-dessus du plancher N_min(f_opt), le plancher
+  sinon ; une ouverture au plancher suit le plancher.
+
+  Ce que f_opt change : champ, échantillonnage, pupille, ouverture, pose max. Ce qu'elle ne
+  change pas : site, nuit, boîtier, ciel. Liste (§6.4) et plan (§8.3) évaluent la cible à
+  la même f_opt ; la fiche porte sa propre bague, locale, ouverte sur f_opt.
+  Focale fixe ou objectif libre : une seule focale, rien ne change.
+```
+
+```gherkin
+Étant donné un 100-400 monté, réglé à 100 mm, et une cible trop petite à 100 mm
+Quand la liste « photographiables » s'affiche
+Alors la cible y figure, sa carte dit « Cadre optimal · N mm · P % » avec N > 100
+
+Étant donné cette cible ajoutée au plan
+Quand le plan se compose
+Alors son étape annonce la même pose que la liste et dit sa focale
+
+Étant donné la fiche de cette cible
+Quand je déplace la bague de la fiche
+Alors cadrage et pose de la fiche suivent, la focale du matériel et le cadre de la scène non
+
+Étant donné une cible que 80 % ne cadre qu'au-delà de 400 mm                     # cas limite
+Quand la liste s'affiche
+Alors la carte dit 400 mm et le remplissage réel, inférieur à 80 %
+```
 ---
 
 ## 5.2 Feature — Profil Suivi
@@ -1720,6 +1763,10 @@ POURQUOI UNE LISTE, ET PAS UN CHAMP DE SAISIE
   Le contrat d'entrée de §6.2 et §6.3 est une cible. Tant qu'elle se saisit à la main,
   l'application demande à l'utilisateur la réponse qu'il vient chercher. La liste
   renverse le sens de la question : le ciel propose, les moteurs qualifient.
+
+SOUS UN ZOOM (§5.1) — chaque ligne est lue à la focale optimale de sa cible : une cible est
+  photographiable dès qu'une focale de la plage la cadre, et les bornes de taille annoncées
+  sont celles de la plage entière (borne basse au télé, borne haute au grand-angle).
 
 CIBLES VISIBLES — deux motifs d'exclusion, et deux seulement
   1. sous l'horizon à l'instant affiché    (hauteur ≤ 0°)
@@ -2696,6 +2743,8 @@ Coordonnées : OpenNGC, Messier, Sharpless, Barnard. Transformations et instants
    §6.4 lui donne de quoi choisir : le ciel propose, les moteurs qualifient, il décide.
    Un plan qu'on n'a pas composé est un palmarès de plus, et un palmarès n'est pas
    exécutable — c'est déjà ce que le point 3 refuse en sortie, ça vaut aussi en entrée.
+   Sous un zoom (§5.1), chaque cible choisie est évaluée à la focale optimale que sa carte
+   de liste annonce, et son étape la dit : la bague se règle entre deux cibles.
    Sélection vide → l'app le DIT et nomme le geste qui manque. Elle ne propose alors ni
    contrainte dominante — aucune contrainte n'a joué — ni domaine de repli : le grand
    champ répond à « aucune cible compatible », pas à « rien n'a été coché ».

@@ -34,6 +34,7 @@ import type {
   Candidate,
   CauseEcart,
   CibleEcartee,
+  ContexteDe,
   ContexteSession,
   DetailScore,
   PoidsScoring,
@@ -392,9 +393,12 @@ export function preFiltre(
   catalogue: readonly ObjetCielProfond[],
   plafond: number,
   plafondEcartees: number,
+  /** T-0407 — sous un zoom, les bornes de taille sont celles de la focale de chaque cible. */
+  contexteDe?: ContexteDe,
 ): PreFiltrage {
   const seuil = contexte.seuilHauteurDeg ?? K('SEUIL_HAUTEUR_IMAGERIE_DEG')
-  const { minArcmin: tailleMin, maxArcmin: tailleMax } = bornesTailleCadre(contexte.fovHDeg)
+  const bornesDe = (objet: ObjetCielProfond): BornesTailleCadre =>
+    bornesTailleCadre((contexteDe?.(objet) ?? contexte).fovHDeg)
   const cap = plafond
   const infini = Number.POSITIVE_INFINITY
 
@@ -426,6 +430,7 @@ export function preFiltre(
       comptes.set('DONNEE_MANQUANTE', (comptes.get('DONNEE_MANQUANTE') ?? 0) + 1)
       continue
     }
+    const { minArcmin: tailleMin, maxArcmin: tailleMax } = bornesDe(objet)
     if (taille < tailleMin || taille > tailleMax) {
       ecarte(
         objet,

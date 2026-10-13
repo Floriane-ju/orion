@@ -56,6 +56,7 @@ import { modeObjectif } from '../core/optics.ts'
 import type { SaisieLieu, SaisieMateriel } from './app-saisie.ts'
 import { nombreSaisi, nombreSiRenseigne } from './saisie-bornee.ts'
 import { objectifActif, reglageOptique } from './objectif-saisie.ts'
+import { zoomSur, type Zoom } from './zoom-calcul.ts'
 import type { MaterielFile } from './planetarium-materiel.ts'
 import { altitudeDuRelief, masqueDuRelief, useReliefSite } from './relief-site.ts'
 import { PRESET_SNR_DEFAUT } from '../registry/verdicts.ts'
@@ -141,6 +142,11 @@ export interface ChaineCalcul {
   readonly materielFile: MaterielFile | null
   /** §8.3 — le contexte de la nuit, partagé par le plan de séance et la liste du catalogue. */
   readonly contexteSession: ContexteSession | null
+  /**
+   * T-0407 — sous un zoom, le contexte de chaque cible à sa focale optimale, de la MÊME
+   * génération différée que `contexteSession`. `null` hors zoom.
+   */
+  readonly zoom: Zoom | null
   readonly plan: PlanSession | null
   /**
    * §6.4 — la note de facilité par désignation, calculée UNE fois pour toute l'application.
@@ -407,12 +413,9 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
         nuit: ciel.nuit,
         fenetreUtile,
         masque,
-        fovHDeg: calcul.optique.fovHDeg.value,
-        echApx: calcul.optique.echApx.value,
-        dMm: calcul.optique.dMm.value,
+        ...champsDeFocale(calcul),
         capteurHMm: calcul.capteur.capteurHMm,
         pitchUm: calcul.capteur.pitchUm,
-        ouvertureN: calcul.ouvertureN,
         zpSys: calcul.zeroSysteme.valeur,
         zpEstime: calcul.zeroSysteme.estime,
         readNoiseE: calcul.iso.readNoiseE,
@@ -420,10 +423,6 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
         isoSession: calcul.iso.iso,
         sbCielNoir: ciel.ciel.sbCiel.value,
         mLimOeil: ciel.ciel.mLimOeil.value,
-        tMaxS: calcul.suivi.tMaxSuiviS.value ?? calcul.poseNpf.value,
-        // §5.2 — le verrou du domaine, pas seulement son plafond de pose : sans suivi, la NPF
-        // seule laissait passer les cibles brillantes, chiffrées en milliers de poses de 2 s.
-        domaineCpFerme: calcul.suivi.cause,
         snrCible: PRESET_SNR_PLAN,
         typeMonture: materiel.typeMonture,
         poids,
@@ -449,8 +448,48 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
    * jamais celui de la saisie en cours — deux régions qui liraient l'un et l'autre
    * s'afficheraient contradictoires le temps d'un rendu.
    */
-  const contexteDiffere = useDeferredValue(contexteSession)
-  const recalculEnCours = contexteDiffere !== contexteSession
+  const objectif = objectifActif(materiel.objectifs, materiel.objectifId)
+  const zoom = useMemo(() => {
+    if (contexteSession === null || !ciel.ok) return null
+    return zoomSur({
+      objectif,
+      base: contexteSession,
+      focaleMm: materielBorne.focaleMm,
+      ouvertureN: materielBorne.ouvertureN,
+      evalue: (focaleMm, ouvertureN) => {
+        const c = evalueMateriel(materiel, { ...materielBorne, focaleMm, ouvertureN })
+        return c.ok
+          ? {
+              contexte: { ...contexteSession, ...champsDeFocale(c) },
+              fiche: contexteFiche(c, ciel, materiel, lieu),
+            }
+          : null
+      },
+    })
+    // Mêmes clés que `calcul` : `materiel` est neuf à chaque rendu, ses champs ne le sont pas.
+  }, [
+    objectif,
+    contexteSession,
+    ciel,
+    materiel.boitierId,
+    materiel.boitier,
+    materiel.capteurMode,
+    materiel.typeObjectif,
+    materiel.suiviActif,
+    materiel.qualiteMes,
+    materiel.typeMonture,
+    materielBorne.focaleMm,
+    materielBorne.ouvertureN,
+    materielBorne.isoSaisi,
+    lieu.bortle,
+  ])
+
+  // T-0407 — contexte et zoom différés ENSEMBLE : la liste et le plan lisent la même génération.
+  const courant = useMemo(() => ({ contexte: contexteSession, zoom }), [contexteSession, zoom])
+  const differe = useDeferredValue(courant)
+  const contexteDiffere = differe.contexte
+  const zoomDiffere = differe.zoom
+  const recalculEnCours = differe !== courant
 
   /**
    * §8.3 — le plan n'ordonne QUE les cibles choisies (§6.4).
@@ -468,8 +507,9 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
     return planSession(
       contexteDiffere,
       catalogue.filter((objet) => choisies.has(objet.designation)),
+      zoomDiffere?.contexteDe,
     )
-  }, [contexteDiffere, catalogue, choisies])
+  }, [contexteDiffere, zoomDiffere, catalogue, choisies])
 
   /**
    * §6.4 — même dépendances que le plan, et pour la même raison : un créneau est une propriété
@@ -479,8 +519,8 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
     () =>
       contexteDiffere === null
         ? new Map<string, EtatCible>()
-        : etatsCibles(contexteDiffere, catalogue),
-    [contexteDiffere, catalogue],
+        : etatsCibles(contexteDiffere, catalogue, zoomDiffere?.contexteDe),
+    [contexteDiffere, zoomDiffere, catalogue],
   )
 
   return {
@@ -495,6 +535,7 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
     profilsCadre,
     materielFile,
     contexteSession: contexteDiffere,
+    zoom: zoomDiffere,
     recalculEnCours,
     plan,
     etatsCibles: etats,
@@ -661,6 +702,24 @@ export function profilsDeCadre(calcul: Calcul, materiel: SaisieMateriel): readon
       tPoseS: calcul.suivi.tMaxSuiviS.value ?? calcul.poseNpf.value,
     },
   ]
+}
+
+/**
+ * T-0407 — ce que la focale fixe dans le contexte de nuit, et rien d'autre : la base et le
+ * contexte de chaque focale d'un zoom s'en servent, pour qu'aucun champ ne s'y oublie.
+ */
+function champsDeFocale(calcul: Calcul & { ok: true }) {
+  return {
+    focaleMm: calcul.focaleMm,
+    fovHDeg: calcul.optique.fovHDeg.value,
+    echApx: calcul.optique.echApx.value,
+    dMm: calcul.optique.dMm.value,
+    ouvertureN: calcul.ouvertureN,
+    tMaxS: calcul.suivi.tMaxSuiviS.value ?? calcul.poseNpf.value,
+    // §5.2 — le verrou du domaine, pas seulement son plafond de pose : sans suivi, la NPF
+    // seule laissait passer les cibles brillantes, chiffrées en milliers de poses de 2 s.
+    domaineCpFerme: calcul.suivi.cause,
+  } as const
 }
 
 function contexteFiche(

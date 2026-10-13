@@ -19,7 +19,7 @@ import { prepareEvaluation, type EtatCible } from './cibles-liste.ts'
 import { bornesTailleCadre, creneauSousLaLune, entreeCreneau } from './session-candidates.ts'
 import type { ContexteSession } from './session-types.ts'
 import { MS_PAR_JOUR } from './horloges.ts'
-import { DEG } from './mat3.ts'
+import { focalePourChamp } from './optics.ts'
 import { ARCMIN_PAR_DEG, DEMI_TOUR_DEG } from './unites.ts'
 
 /**
@@ -35,11 +35,6 @@ export type FocaleRequise =
   | { readonly sens: 'MOSAIQUE' }
   /** Plus petit que ce que la plus longue focale du domaine cadre sur ce capteur. */
   | { readonly sens: 'TROP_PETITE' }
-
-/** Focale d'un champ rectilinéaire sur une dimension de capteur : l'inverse de `fovDeg`. */
-function focalePourChamp(dimensionMm: number, champDeg: number): number {
-  return dimensionMm / (2 * Math.tan((champDeg * DEG) / 2))
-}
 
 /** `null` quand la taille est dans les bornes, ou inconnue : la focale n'est pas le levier. */
 export function focaleRequise(
@@ -216,9 +211,14 @@ export function trieParPhotographiabilite<L extends { readonly objet: ObjetCielP
   lignes: readonly L[],
   etats: ReadonlyMap<string, EtatCible>,
   cadre: Pick<ContexteSession, 'fovHDeg' | 'capteurHMm'>,
+  /** T-0407 — sous un zoom, le levier de focale se lit au cadre de la focale de chaque cible. */
+  cadreDe?: (objet: ObjetCielProfond) => Pick<ContexteSession, 'fovHDeg' | 'capteurHMm'>,
 ): readonly L[] {
   const rang = new Map(
-    lignes.map((l) => [l, GROUPES.indexOf(groupe(cadre, l.objet, etats.get(l.objet.designation)))]),
+    lignes.map((l) => [
+      l,
+      GROUPES.indexOf(groupe(cadreDe?.(l.objet) ?? cadre, l.objet, etats.get(l.objet.designation))),
+    ]),
   )
   return lignes.toSorted((a, b) => rang.get(a)! - rang.get(b)!)
 }

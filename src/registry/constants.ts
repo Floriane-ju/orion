@@ -377,6 +377,19 @@ const CONVENTIONNELLES = {
     ordreDeGrandeur: false,
     sections: ['6.1'],
   }),
+  REMPLISSAGE_ZOOM_OPTIMAL: entree({
+    ref: 'C-05',
+    libelle: 'Remplissage visé pour la focale optimale d’un zoom',
+    valeur: 0.8,
+    unite: '—',
+    source:
+      'convention, choix produit (T-0407) — au-delà de C-05 à dessein : sous un zoom on serre ' +
+      'le cadre, en gardant un dixième du champ par bord pour le pointage manuel, la dérive de ' +
+      'mise en station et le rognage d’empilement',
+    tolerance: 'subjectif',
+    ordreDeGrandeur: false,
+    sections: ['6.1', '6.4'],
+  }),
   DIAMETRE_PIXELS_MIN: entree({
     ref: 'C-05',
     libelle: 'Diamètre en pixels sous lequel aucun détail n’est exploitable',

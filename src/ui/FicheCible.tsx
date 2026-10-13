@@ -13,7 +13,7 @@
  * et c'est la carte qui le dit.
  */
 
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { SaisieRefuseeError } from '../registry/domains.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { Site } from '../core/ephem.ts'
@@ -62,6 +62,8 @@ export interface FicheCibleProps extends ContexteFiche {
   readonly etapePlan?: EtapePlan | null
   /** T-0381 — la note de la liste pour cette cible, lue dans la même map, jamais recalculée. */
   readonly facilite?: EtatCible | null
+  /** T-0408 — sous un zoom, la bague de la fiche, posée sous l'image qu'elle recadre. */
+  readonly reglageZoom?: ReactNode
 }
 
 const NON_CHIFFRE = '—'
@@ -157,6 +159,7 @@ export function FicheCible(props: FicheCibleProps) {
           complète. Sans cadrage calculé — pas de dimensions au catalogue — l'image reste, mais
           nue : un rectangle tracé contre un champ de repli mentirait sur l'échelle. */}
       <ImageCible objet={objet} cadre={cadre} />
+      {props.reglageZoom}
       <Resume
         objet={objet}
         s={synthese}

@@ -73,6 +73,7 @@ import { majCatalogue, useCatalogue } from './catalogue-etat.ts'
 import { minuteAffichee, useTrancheScene } from './scene-etat.ts'
 import { compte } from './horaire.ts'
 import type { Objectif } from '../core/objectif.ts'
+import { champsExtremes, type Zoom } from './zoom-calcul.ts'
 
 /** Une seule référence pour « aucun parc » : la mémo des cartes ne se refait pas à chaque rendu. */
 const PARC_VIDE: readonly Objectif[] = Object.freeze([])
@@ -136,6 +137,8 @@ export interface PanneauCiblesProps {
   readonly gaiaCharge: boolean
   /** T-0404 — §6.1 : une cible écartée pour sa taille nomme l'objectif du parc qui la cadrerait. */
   readonly parc?: readonly Objectif[]
+  /** T-0407 — sous un zoom, chaque ligne est lue à sa focale optimale. */
+  readonly zoom?: Zoom | null
   /** T-0291 — vrai quand ce qui est affiché est le résultat de la saisie précédente. */
   readonly recalcul: boolean
   /** T-0297 — le catalogue n'est pas encore décodé : ni compte ni « aucun objet » à dire. */
@@ -146,6 +149,8 @@ export interface PanneauCiblesProps {
 
 export function PanneauCibles(props: PanneauCiblesProps) {
   const { catalogue, site, etats, contexteSession } = props
+  const zoom = props.zoom ?? null
+  const contexteDe = zoom?.contexteDe
   const { fovHDeg, echApx, dMm, capteurHMm, mLimOeil } = contexteSession
   const sbCiel = contexteSession.sbCielNoir
   // T-0182 — la saisie vit dans le magasin : la fiche démonte cette liste, et une recherche
@@ -162,8 +167,18 @@ export function PanneauCibles(props: PanneauCiblesProps) {
   // T-0190, T-0248 — détectabilité, cadrage et tri ne dépendent pas de l'instant : ils ne se
   // recalculent qu'avec le catalogue ou l'optique. La minute n'ajoute qu'azimut et hauteur.
   const invariantes = useMemo(
-    () => lignesInvariantes({ catalogue, sbCiel, mLimOeil, dMm, fovHDeg, echApx, capteurHMm }),
-    [catalogue, sbCiel, mLimOeil, dMm, fovHDeg, echApx, capteurHMm],
+    () =>
+      lignesInvariantes({
+        catalogue,
+        sbCiel,
+        mLimOeil,
+        dMm,
+        fovHDeg,
+        echApx,
+        capteurHMm,
+        ...(contexteDe === undefined ? {} : { contexteDe }),
+      }),
+    [catalogue, sbCiel, mLimOeil, dMm, fovHDeg, echApx, capteurHMm, contexteDe],
   )
   const lignes = useMemo(
     () =>
@@ -181,13 +196,13 @@ export function PanneauCibles(props: PanneauCiblesProps) {
     // Une recherche garde son ordre de pertinence : le nom tapé doit rester en tête.
     if (!photographiablesSeules) {
       return recherche.trim() === ''
-        ? trieParPhotographiabilite(filtrees, etats, { fovHDeg, capteurHMm })
+        ? trieParPhotographiabilite(filtrees, etats, { fovHDeg, capteurHMm }, contexteDe)
         : filtrees
     }
     // Le critère vit dans `cibles-liste.ts` : la liste, la scène et le bouton d'ajout au plan
     // le lisent au même endroit, faute de quoi ils finiraient par désigner trois ensembles.
     return filtrees.filter((l) => photographiable(etats.get(l.objet.designation)))
-  }, [lignes, types, magMax, recherche, photographiablesSeules, etats, fovHDeg, capteurHMm])
+  }, [lignes, types, magMax, recherche, photographiablesSeules, etats, fovHDeg, capteurHMm, contexteDe])
 
   // §6.4 — le haut de la liste est demandé au réseau, une fois, après que la saisie s'est
   // posée. Ce sont les RÉSULTATS qui déclenchent, donc les trois gestes en sont couverts :
@@ -211,8 +226,16 @@ export function PanneauCibles(props: PanneauCiblesProps) {
   // T-0278 — le filtre coupe par la TAILLE, dans les deux sens, et surtout par le bas :
   // la phrase doit nommer ses deux bornes, et le compte de trop petites est ce qui explique
   // qu'un objectif plus court raccourcisse la liste au lieu de l'allonger.
-  const taille = useMemo(() => bornesTailleCadre(fovHDeg), [fovHDeg])
-  const tropPetites = useMemo(() => compteTropPetites(catalogue, fovHDeg), [catalogue, fovHDeg])
+  // T-0407 — sous un zoom, la plage entière : la borne basse au télé, la haute au grand-angle.
+  const { teleDeg, grandAngleDeg } = useMemo(() => champsExtremes(zoom, fovHDeg), [zoom, fovHDeg])
+  const taille = useMemo(
+    () => ({
+      minArcmin: bornesTailleCadre(teleDeg).minArcmin,
+      maxArcmin: bornesTailleCadre(grandAngleDeg).maxArcmin,
+    }),
+    [teleDeg, grandAngleDeg],
+  )
+  const tropPetites = useMemo(() => compteTropPetites(catalogue, teleDeg), [catalogue, teleDeg])
 
   const attendCatalogue = props.enCharge === true && catalogue.length === 0
   const plafond = K('CIBLES_LISTEES_MAX')
@@ -347,7 +370,7 @@ export function PanneauCibles(props: PanneauCiblesProps) {
             key={ligne.objet.designation}
             ligne={ligne}
             etat={etats.get(ligne.objet.designation) ?? null}
-            contexte={contexteSession}
+            contexte={contexteDe?.(ligne.objet) ?? contexteSession}
             profil={props.profil}
             gaiaCharge={props.gaiaCharge}
             parc={props.parc ?? PARC_VIDE}
@@ -515,7 +538,9 @@ function libellePose(pose: PoseCible): string {
  * sur une liste il se lisait comme un encombrement, ce qu'il n'est pas.
  */
 function libelleEncombrement(ligne: LigneCible): string {
-  const { remplissage } = ligne
+  const { remplissage, focaleMm } = ligne
   if (remplissage === null) return 'dimensions absentes'
+  // T-0407 — sous un zoom, la part du cadre est celle de la focale optimale : elle se nomme.
+  if (focaleMm !== null) return `Cadre optimal · ${nombre(focaleMm, 0)} mm · ${pourcentage(remplissage)}`
   return pourcentage(remplissage)
 }

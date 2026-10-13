@@ -15,9 +15,11 @@
  * module ne fait que borner le réglage du moment.
  */
 
+import { K } from '../registry/constants.ts'
 import { DOMAINES, SaisieRefuseeError, valide } from '../registry/domains.ts'
 import type { FocaleRequise } from './cible-ecartee.ts'
-import type { TypeObjectif } from './optics.ts'
+import { focalePourChamp, type TypeObjectif } from './optics.ts'
+import { ARCMIN_PAR_DEG } from './unites.ts'
 
 export interface Objectif {
   readonly id: string
@@ -123,4 +125,42 @@ export function objectifPour(
   return candidats.reduce((meilleur, c) =>
     Math.abs(c.focaleMm - f) < Math.abs(meilleur.focaleMm - f) ? c : meilleur,
   )
+}
+
+/** Un zoom, au sens où la focale optimale d'une cible a un sens : une plage à parcourir. */
+export function estZoom(objectif: Objectif | null): objectif is Objectif {
+  return objectif !== null && objectif.focaleMaxMm > objectif.focaleMinMm
+}
+
+/**
+ * T-0407 — la focale de la plage où le grand axe remplit `REMPLISSAGE_ZOOM_OPTIMAL` du petit
+ * côté, ou le bout le plus proche. Non orienté, comme `bornesTailleCadre` : la liste ne
+ * connaît pas le roulis du boîtier, et deux conventions y donneraient deux focales.
+ */
+export function focaleOptimale(
+  objectif: Objectif,
+  tailleMajArcmin: number,
+  capteurHMm: number,
+): number {
+  const champDeg = tailleMajArcmin / ARCMIN_PAR_DEG / K('REMPLISSAGE_ZOOM_OPTIMAL')
+  const f = focalePourChamp(capteurHMm, champDeg)
+  // ponytail: au mm — une bague de zoom ne se règle pas plus finement, et des focales
+  // groupées au mm partagent leur contexte d'évaluation.
+  return Math.round(Math.min(Math.max(f, objectif.focaleMinMm), objectif.focaleMaxMm))
+}
+
+/**
+ * T-0407 — l'ouverture qu'on aurait à une autre focale de la plage, même règle que la saisie
+ * (`surFocale`) : au plancher, elle suit le plancher ; fermée, elle est gardée tant que
+ * l'objectif le permet.
+ */
+export function ouvertureA(
+  objectif: Objectif,
+  ouvertureN: number,
+  focaleCouranteMm: number,
+  focaleMm: number,
+): number {
+  const plancherCourant = plancherAuPas(ouverturePlancher(objectif, focaleCouranteMm))
+  const plancher = plancherAuPas(ouverturePlancher(objectif, focaleMm))
+  return ouvertureN <= plancherCourant ? plancher : Math.max(ouvertureN, plancher)
 }
