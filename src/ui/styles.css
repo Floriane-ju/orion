@@ -3812,6 +3812,11 @@ button:disabled {
 .fiche > section > .tracee:last-child {
   border-bottom: 0;
 }
+/* T-0408 — une lecture que règle le curseur posé dessous fait corps avec lui : un filet entre
+   les deux les donnerait pour deux lignes indépendantes. */
+.fiche :is(.tracee, .tracee-vide):has(+ .curseur) {
+  border-bottom: 0;
+}
 
 /* T-0381 — la tête d'une carte de fiche : ce qu'elle nomme à gauche, une qualification au bord
    droit (type, pastilles), un filet, puis les lectures. Le nom d'usage est entier ici, à la
