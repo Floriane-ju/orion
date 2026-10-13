@@ -49,6 +49,11 @@ describe('T-0189 — la bulle reste survolable et persistante', () => {
     expect(CSS).toContain('.bulle-ancre:has(:focus-visible) > .bulle')
   })
 
+  it('page info ouverte, une bulle cachée sous son voile n’absorbe pas Échap', () => {
+    const echap = readFileSync(join(RACINE, 'ui', 'gere-echap.ts'), 'utf8')
+    expect(echap).toContain("ancreOuverte(doc.querySelector('.page-info:target') ?? doc)")
+  })
+
   it('le composant ne pose aucune écoute : l’écoute est unique, sur le document', () => {
     const bulle = readFileSync(join(RACINE, 'ui', 'Bulle.tsx'), 'utf8')
     expect(bulle).not.toContain('addEventListener')

@@ -32,9 +32,13 @@ export function cibleEchap(
   return tiroirOuvert ? 'TIROIR' : 'RIEN'
 }
 
-/** L'ancre survolée ou tenant le focus — celle dont la bulle est à l'écran, s'il y en a une. */
-function ancreOuverte(doc: Document): HTMLElement | null {
-  return doc.querySelector<HTMLElement>('.bulle-ancre:hover, .bulle-ancre:has(:focus-visible)')
+/**
+ * L'ancre survolée ou tenant le focus — celle dont la bulle est à l'écran, s'il y en a une.
+ * Page info ouverte, seules ses bulles comptent : le bouton qui l'a ouverte garde le focus et
+ * sa bulle, cachée sous le voile, absorbait le premier Échap.
+ */
+function ancreOuverte(portee: ParentNode): HTMLElement | null {
+  return portee.querySelector<HTMLElement>('.bulle-ancre:hover, .bulle-ancre:has(:focus-visible)')
 }
 
 function bulleDe(ancre: HTMLElement | null): HTMLElement | null {
@@ -89,7 +93,7 @@ function fermePageInfo(doc: Document): boolean {
 /** Pose l'écoute unique. Rend la fonction qui la retire — c'est le nettoyage d'un `useEffect`. */
 export function installeEchap(doc: Document): () => void {
   const surTouche = (evt: KeyboardEvent) => {
-    const ancre = ancreOuverte(doc)
+    const ancre = ancreOuverte(doc.querySelector('.page-info:target') ?? doc)
     const bulle = bulleDe(ancre)
     const tiroir = tiroirFocalise(doc)
     const cible = cibleEchap(

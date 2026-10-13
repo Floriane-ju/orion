@@ -291,6 +291,8 @@ describe('T-0406 — la modale d’ajout d’un objectif', () => {
   it('est une modale nommée, sans <dialog>, qui n’ajoute rien de vide', () => {
     const html = renderToStaticMarkup(<ModaleObjectif surValide={rien} surFermeture={rien} />)
     expect(html).toMatch(/role="dialog"[^>]*aria-modal="true"/)
+    // Un clic hors des champs garde le focus dans la modale : Échap y reste entendu.
+    expect(html).toMatch(/role="dialog"[^>]*tabindex="-1"/)
     expect(html).not.toContain('<dialog')
     expect(html).toContain('Ajouter un objectif')
     expect(html).toMatch(/<button type="submit" disabled="">Ajouter<\/button>/)

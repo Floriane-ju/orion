@@ -94,6 +94,8 @@ export function ModaleObjectif({ objectif, surValide, surFermeture }: ModaleObje
   }
 
   // Échap s'arrête ici : la modale se ferme seule, sans emporter un tiroir ou une carte dessous.
+  // `tabIndex={-1}` sur le voile : un clic hors des champs y garde le focus au lieu de le rendre
+  // à `body`, où cette écoute n'entendait plus Échap.
   function touche(e: KeyboardEvent) {
     if (e.key !== 'Escape') return
     e.stopPropagation()
@@ -101,7 +103,7 @@ export function ModaleObjectif({ objectif, surValide, surFermeture }: ModaleObje
   }
 
   return (
-    <div className="modale" role="dialog" aria-modal="true" aria-labelledby={titre} onKeyDown={touche}>
+    <div className="modale" role="dialog" aria-modal="true" aria-labelledby={titre} tabIndex={-1} onKeyDown={touche}>
       <form ref={corps} className="modale-corps" onSubmit={valide}>
         <header className="modale-entete">
           <h2 id={titre}>{objectif === undefined ? 'Ajouter un objectif' : 'Modifier l’objectif'}</h2>
