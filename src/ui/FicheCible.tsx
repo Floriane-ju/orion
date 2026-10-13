@@ -62,8 +62,12 @@ export interface FicheCibleProps extends ContexteFiche {
   readonly etapePlan?: EtapePlan | null
   /** T-0381 — la note de la liste pour cette cible, lue dans la même map, jamais recalculée. */
   readonly facilite?: EtatCible | null
-  /** T-0408 — sous un zoom, la bague de la fiche, posée sous l'image qu'elle recadre. */
-  readonly reglageZoom?: ReactNode
+  /**
+   * T-0408 — sous un zoom, la bague de la fiche, posée sous l'image qu'elle recadre. Elle
+   * reçoit le remplissage que la fiche vient de calculer : celui que « Taille dans le cadre »
+   * affiche, orientation comprise, et pas un second calcul qui pourrait s'en écarter.
+   */
+  readonly reglageZoom?: (remplissage: number | null) => ReactNode
 }
 
 const NON_CHIFFRE = '—'
@@ -159,7 +163,7 @@ export function FicheCible(props: FicheCibleProps) {
           complète. Sans cadrage calculé — pas de dimensions au catalogue — l'image reste, mais
           nue : un rectangle tracé contre un champ de repli mentirait sur l'échelle. */}
       <ImageCible objet={objet} cadre={cadre} />
-      {props.reglageZoom}
+      {props.reglageZoom?.(calcul.ok ? (calcul.r.cadrage?.remplissage.value ?? null) : null)}
       <Resume
         objet={objet}
         s={synthese}

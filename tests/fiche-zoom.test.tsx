@@ -149,7 +149,10 @@ describe('T-0408 — la bague de zoom de la fiche', () => {
       tailleMinArcmin: CIBLE.minAxArcmin,
       posAngDeg: CIBLE.posAngDeg,
     }).remplissage.value
-    expect(html).toContain(pourcentage(attendu))
+    expect(html).toContain(`${optimale} mm`)
+    expect(html).toContain(`${pourcentage(attendu)} du cadre`)
+    expect(html).toContain('optimale')
+    expect(html).not.toContain('Revenir')
   })
 
   it('n’existe pas hors zoom', () => {

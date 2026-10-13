@@ -4,20 +4,20 @@
  * La focale réglée ici est LOCALE à la fiche : essayer 200 mm sur une galaxie ne doit pas
  * changer le cadre du planétarium, ni la liste, ni le plan — ils restent à la focale optimale
  * de chaque cible. Le curseur s'ouvre sur cette focale et l'aimante : c'est la réponse à
- * « où régler la bague ? », les autres crans sont des essais.
+ * « où régler la bague ? », les autres crans sont des essais. Le repère suffit à y revenir :
+ * un bouton de plus redirait ce que l'aimant fait déjà.
  *
  * La fiche ne recalcule rien : la chaîne fournit le contexte de chaque focale (`Zoom.aFocale`).
  */
 
 import { useState } from 'react'
-import { K } from '../registry/constants.ts'
 import { nombre, pourcentage } from '../registry/ecriture.ts'
 import type { ContexteSession } from '../core/session-types.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { ContexteFiche } from './fiche-cible-calcul.ts'
 import { Curseur } from './Curseur.tsx'
 import { FicheCible, type FicheCibleProps } from './FicheCible.tsx'
-import { Icone } from './Icone.tsx'
+import { Lecture } from './ChampsCible.tsx'
 import type { Zoom } from './zoom-calcul.ts'
 
 /** Une bague de zoom se règle au millimètre, comme `focaleOptimale` l'arrondit. */
@@ -27,38 +27,30 @@ interface ReglageZoomProps {
   readonly zoom: Zoom
   readonly focaleMm: number
   readonly optimaleMm: number
+  /** Le remplissage de la fiche à cette focale ; `null` sans cadrage calculé. */
+  readonly remplissage: number | null
   readonly sur: (focaleMm: number) => void
 }
 
-function ReglageZoom({ zoom, focaleMm, optimaleMm, sur }: ReglageZoomProps) {
+function ReglageZoom({ zoom, focaleMm, optimaleMm, remplissage, sur }: ReglageZoomProps) {
   const texte = `${nombre(focaleMm, 0)} mm`
   return (
     <section>
       <h2>Zoom</h2>
-      <label>
-        <span className="libelle">
-          {zoom.objectif.nom} : <span className="casse-exacte">{texte}</span>
-        </span>
-        <Curseur
-          libelle={`Focale du ${zoom.objectif.nom}`}
-          valeur={focaleMm}
-          min={zoom.objectif.focaleMinMm}
-          max={zoom.objectif.focaleMaxMm}
-          pas={PAS_FOCALE_MM}
-          texte={texte}
-          accroche={{
-            valeur: optimaleMm,
-            libelle: `optimale, ${pourcentage(K('REMPLISSAGE_ZOOM_OPTIMAL'))} du cadre`,
-          }}
-          sur={sur}
-        />
-      </label>
-      {focaleMm !== optimaleMm && (
-        <button type="button" onClick={() => sur(optimaleMm)}>
-          <Icone nom="center_focus_strong" />
-          Revenir à la focale optimale ({nombre(optimaleMm, 0)} mm)
-        </button>
-      )}
+      <Lecture
+        libelle={texte}
+        valeur={remplissage === null ? '—' : `${pourcentage(remplissage)} du cadre`}
+      />
+      <Curseur
+        libelle={`Focale du ${zoom.objectif.nom}`}
+        valeur={focaleMm}
+        min={zoom.objectif.focaleMinMm}
+        max={zoom.objectif.focaleMaxMm}
+        pas={PAS_FOCALE_MM}
+        texte={texte}
+        accroche={{ valeur: optimaleMm, libelle: 'optimale' }}
+        sur={sur}
+      />
     </section>
   )
 }
@@ -89,14 +81,15 @@ export function FicheSousZoom({ zoom, ...fiche }: FicheSousZoomProps) {
       {...fiche}
       {...contexteFiche}
       contexteSession={contexteSession}
-      reglageZoom={
+      reglageZoom={(remplissage) => (
         <ReglageZoom
           zoom={zoom}
           focaleMm={focaleMm}
           optimaleMm={optimaleMm}
+          remplissage={remplissage}
           sur={(f) => setEssai({ designation: objet.designation, focaleMm: f })}
         />
-      }
+      )}
     />
   )
 }
