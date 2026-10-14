@@ -84,6 +84,15 @@ export function instantFraction(vue: Intervalle, x: number): number {
 }
 
 /**
+ * T-0419 — l'instant qu'amène sous le curseur un glisser de `dx` (fraction de la largeur) parti
+ * de `departMs`. La frise défile sous un curseur fixe : on tire le ruban, le temps vient en sens
+ * inverse du geste — vers la droite, le passé arrive.
+ */
+export function instantGlisse(vue: Intervalle, departMs: number, dx: number): number {
+  return departMs - dx * (vue.fin.getTime() - vue.debut.getTime())
+}
+
+/**
  * T-0390 — où mène une touche sur la frise, ou `null` si elle ne la règle pas. La frise
  * défile avec l'instant : les flèches n'ont pas de butée, Début et Fin mènent aux bords de
  * la fenêtre vue.

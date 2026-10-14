@@ -213,7 +213,9 @@ describe('palette du mode nuit §11.1', () => {
   it('garde la frise de la nuit dans la palette sombre, même de jour', () => {
     // T-0409 — la frise est un morceau de ciel : elle ne blanchit pas avec l'interface. Son
     // îlot recopie la palette par défaut ; une couleur qui y dériverait ferait deux frises.
-    const selecteur = ":root[data-jour-clair='true']:not([data-mode-nuit='true']) .nuit-frise {"
+    // T-0422 — de nuit aussi : réservé au jour, l'îlot se retirait au coucher et la frise
+    // héritait du fondu de la racine — elle s'éclaircissait puis revenait.
+    const selecteur = ":root:not([data-mode-nuit='true']) .nuit-frise {"
     const debut = CSS.indexOf(selecteur)
     expect(debut, 'aucun îlot sombre pour la frise').toBeGreaterThan(-1)
     expect(debut).toBeLessThan(CSS.indexOf(":root[data-mode-nuit='true']"))

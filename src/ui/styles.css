@@ -107,8 +107,12 @@
    blanchie avec l'interface, sa nuit noire devenait un aplat clair. Les jetons s'y redéclarent
    tels que le premier bloc les écrit — les nuances se recalculent sur place, non héritées de
    la racine claire — et `mode-nuit.test.tsx` refuse qu'ils s'en écartent. Le mode nuit
-   l'écarte comme la palette claire : la frise passe au rouge avec le reste. */
-:root[data-jour-clair='true']:not([data-mode-nuit='true']) .nuit-frise {
+   l'écarte comme la palette claire : la frise passe au rouge avec le reste.
+
+   T-0422 — l'îlot vaut aussi de nuit, où il redit la racine : réservé au jour, il se retirait
+   au coucher et la frise héritait des jetons de la racine en plein fondu — elle s'éclaircissait
+   puis revenait. Posés sur elle, ses jetons ne suivent plus aucun fondu. */
+:root:not([data-mode-nuit='true']) .nuit-frise {
   color-scheme: dark;
   --base-neutre: #e9e9e9;
   --base-accent: #8bffef;
@@ -3414,9 +3418,14 @@ button:disabled {
   /* Un aplat sous la nuit seule : sans lui, les étoiles de la scène se lisaient dans la frise. */
   background: var(--surface);
 }
-/* T-0390 — la frise règle l'instant : elle se clique. */
+/* T-0390 — la frise règle l'instant : elle se clique. T-0419 — et se tire : le doigt la fait
+   défiler au lieu de faire défiler la page. */
 .nuit-frise-ciel {
   cursor: pointer;
+  touch-action: none;
+}
+.nuit-frise-ciel:active {
+  cursor: grabbing;
 }
 /* T-0390 — l'heure et la phase de l'instant affiché, à demeure : §11.2 ne laisse rien de
    critique au seul survol. Une ligne, au corps des repères d'heure qu'elle prolonge. */

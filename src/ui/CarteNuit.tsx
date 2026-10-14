@@ -31,6 +31,14 @@
  * jour. Ouvert la nuit, il n'a rien à proposer. Dès que le temps bouge sans lui, ou que la
  * visée bouge, l'utilisateur a trouvé ses gestes par lui-même, et l'appel se retire pour la
  * session.
+ *
+ * T-0419 — la frise se tire aussi : un glisser fait défiler l'instant sous le curseur, en
+ * continu et sans trajet — le geste EST le trajet. En deçà du seuil d'un tremblement, l'appui
+ * relâché reste un clic.
+ *
+ * T-0420 — un clic sur la frise traverse TOUJOURS le temps, comme le panneau de temps : on
+ * vise un instant pour le voir venir, et un saut imposé par le zoom ôtait au clic son sens.
+ * « Aller à la nuit » reste plafonné.
  */
 
 import {
@@ -41,7 +49,9 @@ import {
   type CSSProperties,
   type KeyboardEvent,
   type MouseEvent,
+  type PointerEvent,
 } from 'react'
+import { C } from '../registry/lieu-carte.ts'
 import {
   fenetreCalculFrise,
   fenetreFrise,
@@ -75,6 +85,7 @@ import {
   type DisqueLune,
   instantClavier,
   instantFraction,
+  instantGlisse,
   LIBELLE_PHASE_CIEL,
   libelleLuneInstant,
   libellePhaseLune,
@@ -119,9 +130,9 @@ export function CarteNuit({ site, nuit, modeNuitActif, activeModeNuit }: CarteNu
   const [saute, setSaute] = useState(false)
   const [propose, setPropose] = useState(false)
 
-  const va = (ms: number): void => {
+  const va = (ms: number, force = false): void => {
     setPropose(false)
-    const plan = traverse(ms, () => setPropose(true))
+    const plan = traverse(ms, () => setPropose(true), { force })
     setSaute(plan.saut && plan.raison === 'ILLISIBLE')
   }
   const efface = (): void => {
@@ -245,6 +256,14 @@ function useAppelRetire(minute: number, nuitAuDepart: boolean): boolean {
   return retire
 }
 
+/** Un appui sur la frise : où il a commencé, l'instant d'alors, et s'il a déjà glissé. */
+interface Appui {
+  readonly x: number
+  readonly ms: number
+  readonly largeur: number
+  glisse: boolean
+}
+
 interface Survol {
   readonly fraction: number
   readonly marque: MarqueLune | null
@@ -261,11 +280,14 @@ function Frise({
   readonly site: Site
   readonly instantMs: number
   /** Traverse le temps jusqu'à l'instant visé. */
-  readonly va: (ms: number) => void
+  readonly va: (ms: number, force?: boolean) => void
   /** Retire ce que le geste précédent avait à dire. */
   readonly efface: () => void
 }) {
   const [survol, setSurvol] = useState<Survol | null>(null)
+  const appui = useRef<Appui | null>(null)
+  // Le clic suit le relâché d'un glisser : il ne doit pas traverser vers l'instant sous le doigt.
+  const vientDeGlisser = useRef(false)
   const vue = fenetreFrise(instantMs)
   const phases = bandesPhases(frise, vue)
   const marques = marquesLune(frise, vue)
@@ -294,7 +316,36 @@ function Frise({
   }
 
   // L'aimant vaut pour le clic comme pour le survol : un appui près d'un lever de Lune y va.
-  const surClic = (e: MouseEvent<HTMLDivElement>) => va(instantFraction(vue, pointe(e).fraction))
+  const surClic = (e: MouseEvent<HTMLDivElement>) => {
+    if (vientDeGlisser.current) return void (vientDeGlisser.current = false)
+    va(instantFraction(vue, pointe(e).fraction), true)
+  }
+
+  const surAppui = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    vientDeGlisser.current = false
+    const largeur = e.currentTarget.getBoundingClientRect().width
+    appui.current = { x: e.clientX, ms: instantMs, largeur, glisse: false }
+  }
+
+  const surMouvement = (e: PointerEvent<HTMLDivElement>) => {
+    const a = appui.current
+    const dx = a === null ? 0 : e.clientX - a.x
+    if (a === null || (!a.glisse && Math.abs(dx) < C('SEUIL_GLISSER_PX'))) {
+      setSurvol(pointe(e))
+      return
+    }
+    if (!a.glisse) efface()
+    a.glisse = true
+    setSurvol(null)
+    vaA(instantGlisse(vue, a.ms, dx / a.largeur))
+  }
+
+  const surRelache = () => {
+    vientDeGlisser.current = appui.current?.glisse ?? false
+    appui.current = null
+  }
 
   const surTouche = (e: KeyboardEvent<HTMLDivElement>) => {
     const cible = instantClavier(vue, instantMs, e.key)
@@ -321,7 +372,10 @@ function Frise({
           aria-valuemax={fin}
           aria-valuenow={instantMs}
           aria-valuetext={lectureAffichee}
-          onPointerMove={(e) => setSurvol(pointe(e))}
+          onPointerDown={surAppui}
+          onPointerMove={surMouvement}
+          onPointerUp={surRelache}
+          onPointerCancel={surRelache}
           onPointerLeave={() => setSurvol(null)}
           onClick={surClic}
           onKeyDown={surTouche}

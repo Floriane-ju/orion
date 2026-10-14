@@ -11,6 +11,7 @@ import {
   hauteurFrise,
   instantClavier,
   instantFraction,
+  instantGlisse,
   libelleLuneInstant,
   marquesLune,
   pointsCourbe,
@@ -82,6 +83,14 @@ describe('T-0390 — la frise règle l’instant', () => {
     expect(instantClavier(vue, centre, 'ArrowUp')).toBe(centre + pas)
     expect(instantClavier(vue, centre, 'ArrowLeft')).toBe(centre - pas)
     expect(instantClavier(vue, centre, 'ArrowDown')).toBe(centre - pas)
+  })
+
+  it('glisser la frise fait défiler le temps sous le curseur, comme on tire un ruban', () => {
+    const duree = fin - debut
+    // Tirer vers la droite ramène le passé sous le curseur ; vers la gauche, l'avenir.
+    expect(instantGlisse(vue, centre, 0.25)).toBe(centre - duree / 4)
+    expect(instantGlisse(vue, centre, -0.5)).toBe(centre + duree / 2)
+    expect(instantGlisse(vue, centre, 0)).toBe(centre)
   })
 
   it('Début et Fin mènent aux bords de la fenêtre vue', () => {

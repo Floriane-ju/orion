@@ -61,7 +61,7 @@ export function planTrajet(entree: {
    * Ignorer le plafond : la durée suit le nombre de jours traversés (`dureeForcee`), pas la
    * lisibilité. Choix produit pour le
    * panneau de temps — changer de jour se VOIT, même quand le ciel y défile plus vite qu'il ne
-   * se lit (§3.2). La frise et « Aller à la nuit », eux, restent plafonnés.
+   * se lit (§3.2). Le clic sur la frise aussi (T-0420) ; « Aller à la nuit » reste plafonné.
    */
   readonly force?: boolean
 }): PlanTrajet {

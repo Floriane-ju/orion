@@ -9,6 +9,10 @@
  * La palette claire ne fait que poser un attribut : la feuille l'écarte d'elle-même quand le
  * mode nuit est actif, si bien qu'aucun ordre d'application ne peut faire fuir du clair
  * dans le rouge. Le canevas ne lit pas la feuille et garde son rendu.
+ *
+ * T-0421 — pendant un trajet, le magasin ne publie que l'arrivée : l'interface basculait une
+ * fois le trajet fini, loin du coucher qu'il avait traversé. Elle suit donc aussi l'instant du
+ * trajet, image par image — dans un composant qui ne rend rien, pour que seul lui se re-rende.
  */
 
 import { useEffect, useMemo } from 'react'
@@ -17,6 +21,7 @@ import { soleilLeve } from '../core/nuit.ts'
 import { MS_PAR_MINUTE } from '../core/unites.ts'
 import { siteChiffrable } from './app-calcul.ts'
 import { useTrancheScene, type EtatScene } from './scene-etat.ts'
+import { useInstantTrajet } from './trajet-scene.ts'
 
 export function appliqueJourClair(clair: boolean): void {
   if (typeof document === 'undefined') return
@@ -41,15 +46,19 @@ export function lecteurJourClair(lieu: Site): (ms: number) => boolean | null {
   }
 }
 
-export function useJourClair(site: Site): void {
+export function JourClair({ site }: { readonly site: Site }): null {
   const { latitudeDeg, longitudeDeg, altitudeM } = site
-  const selecteur = useMemo(() => {
-    const lit = lecteurJourClair({ latitudeDeg, longitudeDeg, altitudeM })
-    return (etat: EtatScene) => lit(etat.msAffiche)
-  }, [latitudeDeg, longitudeDeg, altitudeM])
-  // Un booléen : l'application ne se re-rend qu'au lever et au coucher, pas à chaque minute.
-  const clair = useTrancheScene(selecteur)
+  const lit = useMemo(
+    () => lecteurJourClair({ latitudeDeg, longitudeDeg, altitudeM }),
+    [latitudeDeg, longitudeDeg, altitudeM],
+  )
+  const selecteur = useMemo(() => (etat: EtatScene) => lit(etat.msAffiche), [lit])
+  // Un booléen : hors trajet, on ne se re-rend qu'au lever et au coucher, pas à chaque minute.
+  const clairScene = useTrancheScene(selecteur)
+  const trajetMs = useInstantTrajet()
+  const clair = trajetMs === null ? clairScene : lit(trajetMs)
   useEffect(() => {
     if (clair !== null) appliqueJourClair(clair)
   }, [clair])
+  return null
 }
