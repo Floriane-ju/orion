@@ -1,10 +1,17 @@
 /**
  * §8.1 — ce que la carte « La nuit » pose sur sa frise : des positions en pourcentage de la
- * nuit, et les libellés qui vont avec. Les instants viennent de `friseNuit`, rien n'est
- * recalculé ici — la carte ne peut pas dater un crépuscule autrement que le plan.
+ * fenêtre vue, et les libellés qui vont avec. Les instants viennent de `friseCiel`, rien
+ * n'est recalculé ici. La fenêtre vue est centrée sur l'instant : ce qui en sort n'est pas
+ * posé, la frise défile.
  */
 
-import type { FriseNuit, LuneDeLaNuit, PhaseCiel } from '../core/frise-nuit.ts'
+import type {
+  FriseNuit,
+  HauteurAstre,
+  Intervalle,
+  LuneDeLaNuit,
+  PhaseCiel,
+} from '../core/frise-nuit.ts'
 import { degres, pourcentage } from '../registry/ecriture.ts'
 import { encadre, MS_PAR_H, MS_PAR_MINUTE, POURCENT, QUART_TOUR_DEG as ZENITH_DEG } from '../core/unites.ts'
 import { K } from '../registry/constants.ts'
@@ -33,8 +40,9 @@ export interface BandePhase {
 }
 
 /**
- * Une graduation par heure ronde, une sur deux porte son heure : toutes étiquetées, elles
- * se touchaient sur une nuit d'hiver de quatorze heures.
+ * Une graduation par heure ronde, les heures paires portent leur nombre : toutes étiquetées,
+ * elles se touchaient. La parité tient à l'heure et non au rang : la frise défile, une
+ * étiquette ne doit pas sauter d'une graduation à l'autre.
  */
 export interface Repere {
   readonly cle: string
@@ -55,50 +63,39 @@ export interface DisqueLune {
   readonly gibbeuse: boolean
 }
 
-/**
- * La Lune incrustée : à son heure en abscisse, à sa hauteur en ordonnée — l'horizon au bas
- * de la frise, le zénith en haut. Le disque porte sa phase, le halo son éclat.
- */
-export interface IncrustationLune {
-  readonly cle: string
-  readonly position: string
-  /** Fraction de la hauteur de la frise, sans unité : la feuille la multiplie. */
-  readonly hauteur: string
-  readonly eclat: string
-  readonly disque: DisqueLune
+function fraction(vue: Intervalle, instant: Date): number {
+  const duree = vue.fin.getTime() - vue.debut.getTime()
+  return (instant.getTime() - vue.debut.getTime()) / duree
 }
 
-function fraction(frise: FriseNuit, instant: Date): number {
-  const duree = frise.fin.getTime() - frise.debut.getTime()
-  return (instant.getTime() - frise.debut.getTime()) / duree
+function dansVue(vue: Intervalle, instant: Date): boolean {
+  return instant >= vue.debut && instant <= vue.fin
 }
 
-/** L'instant (ms) d'une fraction de la frise : ce que vise un clic ou un appui. */
-export function instantFraction(frise: FriseNuit, x: number): number {
-  const debut = frise.debut.getTime()
-  return debut + encadre(x, 0, 1) * (frise.fin.getTime() - debut)
+/** L'instant (ms) d'une fraction de la fenêtre vue : ce que vise un clic ou un appui. */
+export function instantFraction(vue: Intervalle, x: number): number {
+  const debut = vue.debut.getTime()
+  return debut + encadre(x, 0, 1) * (vue.fin.getTime() - debut)
 }
 
 /**
- * T-0390 — où mène une touche sur la frise, ou `null` si elle ne la règle pas. Un instant
- * hors de la nuit repart de la borne la plus proche : la première flèche ramène dans la frise.
+ * T-0390 — où mène une touche sur la frise, ou `null` si elle ne la règle pas. La frise
+ * défile avec l'instant : les flèches n'ont pas de butée, Début et Fin mènent aux bords de
+ * la fenêtre vue.
  */
-export function instantClavier(frise: FriseNuit, ms: number, touche: string): number | null {
-  const debut = frise.debut.getTime()
-  const fin = frise.fin.getTime()
+export function instantClavier(vue: Intervalle, ms: number, touche: string): number | null {
   const pas = K('PAS_FRISE_CLAVIER_MIN') * MS_PAR_MINUTE
-  const depuis = encadre(ms, debut, fin)
   switch (touche) {
     case 'ArrowLeft':
     case 'ArrowDown':
-      return encadre(depuis - pas, debut, fin)
+      return ms - pas
     case 'ArrowRight':
     case 'ArrowUp':
-      return encadre(depuis + pas, debut, fin)
+      return ms + pas
     case 'Home':
-      return debut
+      return vue.debut.getTime()
     case 'End':
-      return fin
+      return vue.fin.getTime()
     default:
       return null
   }
@@ -109,37 +106,40 @@ export function pourcentCss(fraction: number): string {
   return `${(fraction * POURCENT).toFixed(2)}%`
 }
 
-export function bandesPhases(frise: FriseNuit): readonly BandePhase[] {
-  return frise.segments.map((s) => {
-    const a = fraction(frise, s.debut)
-    return {
-      cle: String(s.debut.getTime()),
-      debut: pourcentCss(a),
-      largeur: pourcentCss(fraction(frise, s.fin) - a),
-      phase: s.phase,
-    }
-  })
+/** Les phases qui touchent la fenêtre vue ; ce qui déborde, la frise le rogne. */
+export function bandesPhases(frise: FriseNuit, vue: Intervalle): readonly BandePhase[] {
+  return frise.segments
+    .filter((s) => s.fin > vue.debut && s.debut < vue.fin)
+    .map((s) => {
+      const a = fraction(vue, s.debut)
+      return {
+        cle: String(s.debut.getTime()),
+        debut: pourcentCss(a),
+        largeur: pourcentCss(fraction(vue, s.fin) - a),
+        phase: s.phase,
+      }
+    })
 }
 
-export function reperesHeures(frise: FriseNuit): readonly Repere[] {
-  const premiere = Math.ceil(frise.debut.getTime() / MS_PAR_H) * MS_PAR_H
+export function reperesHeures(vue: Intervalle): readonly Repere[] {
+  const premiere = Math.ceil(vue.debut.getTime() / MS_PAR_H) * MS_PAR_H
   const reperes: Repere[] = []
-  for (let t = premiere; t < frise.fin.getTime(); t += MS_PAR_H) {
+  for (let t = premiere; t <= vue.fin.getTime(); t += MS_PAR_H) {
     const instant = new Date(t)
+    const texte = HEURE_SEULE.formatToParts(instant).find((p) => p.type === 'hour')?.value ?? ''
     reperes.push({
       cle: String(t),
-      texte: HEURE_SEULE.formatToParts(instant).find((p) => p.type === 'hour')?.value ?? '',
-      position: pourcentCss(fraction(frise, instant)),
-      majeur: reperes.length % 2 === 0,
+      texte,
+      position: pourcentCss(fraction(vue, instant)),
+      majeur: Number(texte) % 2 === 0,
     })
   }
   return reperes
 }
 
-/** L'instant affiché sur la frise, ou `null` quand il tombe hors de la nuit. */
-export function curseurInstant(frise: FriseNuit, instant: Date): string | null {
-  const x = fraction(frise, instant)
-  return x < 0 || x > 1 ? null : pourcentCss(x)
+/** L'instant affiché sur la frise, ou `null` quand il tombe hors de la fenêtre vue. */
+export function curseurInstant(vue: Intervalle, instant: Date): string | null {
+  return dansVue(vue, instant) ? pourcentCss(fraction(vue, instant)) : null
 }
 
 export function disqueLune(
@@ -154,22 +154,28 @@ export function disqueLune(
   }
 }
 
-export function incrustationsLune(
-  frise: FriseNuit,
-  latitudeDeg: number,
-): readonly IncrustationLune[] {
-  // La Lune ne se pose que sous une graduation étiquetée : une par heure, les disques se
-  // touchaient, et leurs halos se confondaient.
-  const majeurs = new Set(reperesHeures(frise).filter((r) => r.majeur).map((r) => r.cle))
-  return frise.lune.positions
-    .filter((p) => majeurs.has(String(p.instant.getTime())))
-    .map((p) => ({
-      cle: String(p.instant.getTime()),
-      position: pourcentCss(fraction(frise, p.instant)),
-      hauteur: (p.hauteurDeg / ZENITH_DEG).toFixed(3),
-      eclat: p.eclat.toFixed(2),
-      disque: disqueLune(p, latitudeDeg),
-    }))
+/**
+ * L'échelle verticale de la frise, commune au Soleil et à la Lune : le nadir en bas, le zénith
+ * en haut, l'horizon au milieu. Le Soleil passe sous l'horizon toute la nuit, sa courbe doit
+ * y descendre ; deux échelles dans une même bande se liraient l'une pour l'autre.
+ */
+export function hauteurFrise(hauteurDeg: number): number {
+  return (hauteurDeg + ZENITH_DEG) / (2 * ZENITH_DEG)
+}
+
+/**
+ * La courbe d'un astre en points SVG, dans un repère de 100 × 100 étiré sur la frise : les
+ * abscisses sont des pourcentages de la fenêtre vue, les ordonnées descendent vers le bas.
+ * Les points hors de la fenêtre restent : le tracé se rogne au bord au lieu de s'y arrêter.
+ */
+export function pointsCourbe(hauteurs: readonly HauteurAstre[], vue: Intervalle): string {
+  return hauteurs
+    .map((p) => {
+      const x = fraction(vue, p.instant) * POURCENT
+      const y = (1 - hauteurFrise(p.hauteurDeg)) * POURCENT
+      return `${x.toFixed(2)},${y.toFixed(2)}`
+    })
+    .join(' ')
 }
 
 export interface MarqueLune {
@@ -179,14 +185,16 @@ export interface MarqueLune {
   readonly texte: string
 }
 
-/** Les levers et couchers de la Lune tombés dans la frise : un trait, et ce que l'aimant dit. */
-export function marquesLune(frise: FriseNuit): readonly MarqueLune[] {
-  return frise.lune.evenements.map((e) => ({
-    cle: String(e.instant.getTime()),
-    position: pourcentCss(fraction(frise, e.instant)),
-    fraction: fraction(frise, e.instant),
-    texte: e.sens === 'LEVER' ? 'Lever de lune' : 'Coucher de lune',
-  }))
+/** Les levers et couchers de la Lune tombés dans la fenêtre vue : un trait, et ce que l'aimant dit. */
+export function marquesLune(frise: FriseNuit, vue: Intervalle): readonly MarqueLune[] {
+  return frise.lune.evenements
+    .filter((e) => dansVue(vue, e.instant))
+    .map((e) => ({
+      cle: String(e.instant.getTime()),
+      position: pourcentCss(fraction(vue, e.instant)),
+      fraction: fraction(vue, e.instant),
+      texte: e.sens === 'LEVER' ? 'Lever de lune' : 'Coucher de lune',
+    }))
 }
 
 /**
@@ -208,11 +216,17 @@ export function aimante(
     : { fraction: proche.m.fraction, marque: proche.m }
 }
 
-/** La Lune de la frise dite en une phrase : ses heures levées, et sa hauteur la plus grande. */
-export function resumeLuneFrise(lune: LuneDeLaNuit): string {
-  if (lune.levee.length === 0) return 'Lune couchée toute la nuit.'
-  const plages = lune.levee.map((i) => `de ${heure(i.debut)} à ${heure(i.fin)}`).join(', ')
-  const haute = Math.max(0, ...lune.positions.map((p) => p.hauteurDeg))
+/** La Lune de la fenêtre vue dite en une phrase : ses heures levées, et sa hauteur la plus grande. */
+export function resumeLuneFrise(lune: LuneDeLaNuit, vue: Intervalle): string {
+  const levee = lune.levee
+    .filter((i) => i.fin > vue.debut && i.debut < vue.fin)
+    .map((i) => ({
+      debut: i.debut < vue.debut ? vue.debut : i.debut,
+      fin: i.fin > vue.fin ? vue.fin : i.fin,
+    }))
+  if (levee.length === 0) return 'Lune couchée.'
+  const plages = levee.map((i) => `de ${heure(i.debut)} à ${heure(i.fin)}`).join(', ')
+  const haute = Math.max(0, ...lune.hauteurs.filter((p) => dansVue(vue, p.instant)).map((p) => p.hauteurDeg))
   return `Lune levée ${plages}, jusqu’à ${degres(haute)} de hauteur.`
 }
 

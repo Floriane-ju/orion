@@ -891,6 +891,7 @@ describe('aucun aplat allumé la nuit — T-0375', () => {
     '.curseur-pouce': 'le pouce : un demi-rem, la valeur réglée',
     '.curseur-accroche': 'un trait d’un pixel',
     '.nuit-repere.majeur::before': 'une graduation de deux pixels',
+    '.nuit-curseur': 'un filet de trois pixels, le maintenant de la frise',
     '.lune-moitie': 'la part éclairée de la Lune : c’est l’information',
     '.lune-gibbeuse .lune-terminateur': 'la part éclairée de la Lune : c’est l’information',
   }

@@ -13,6 +13,10 @@
  * l'heure et la phase de l'instant affiché : §11.2 ne laisse rien de critique au seul survol, et un écran tactile
  * n'en a pas.
  *
+ * Le curseur reste au centre, la frise défile : elle montre douze heures avant et après
+ * l'instant (`fenetreFrise`). Régler la date ou l'heure fait glisser le ciel sous le curseur,
+ * plutôt que de promener le curseur dans une nuit figée qui en sortait.
+ *
  * T-0394 — revue DA §4.2, « La tombée de la nuit ». Un clic sur la frise TRAVERSE le temps
  * jusqu'à l'instant visé, et « Aller à la nuit » fait le même trajet jusqu'au début de la nuit
  * de référence — astronomique, ou nautique quand la nuit noire manque (§8.1). Les flèches
@@ -35,15 +39,18 @@ import {
   type MouseEvent,
 } from 'react'
 import {
-  friseNuit,
+  fenetreCalculFrise,
+  fenetreFrise,
+  friseCiel,
   lectureFrise,
+  phaseFrise,
   type FriseNuit,
   type LectureFrise,
   type PhaseCiel,
 } from '../core/frise-nuit.ts'
 import type { FenetreNocturne } from '../core/nuit.ts'
 import type { Site } from '../core/ephem.ts'
-import { encadre, MS_PAR_MINUTE } from '../core/unites.ts'
+import { encadre, MS_PAR_H, MS_PAR_MINUTE, POURCENT } from '../core/unites.ts'
 import { Mention } from './Mention.tsx'
 import { heure } from './horaire.ts'
 import {
@@ -62,7 +69,6 @@ import {
   curseurInstant,
   disqueLune,
   type DisqueLune,
-  incrustationsLune,
   instantClavier,
   instantFraction,
   LIBELLE_PHASE_CIEL,
@@ -70,6 +76,7 @@ import {
   libellePhaseLune,
   type MarqueLune,
   marquesLune,
+  pointsCourbe,
   pourcentCss,
   reperesHeures,
   resumeLuneFrise,
@@ -97,11 +104,17 @@ function enPourcent(fraction: number): string {
 }
 
 export function CarteNuit({ site, nuit, modeNuitActif, activeModeNuit }: CarteNuitProps) {
-  const frise = useMemo(() => friseNuit(site, nuit), [site, nuit])
   const minute = useTrancheScene(minuteAffichee)
   const instantMs = minute * MS_PAR_MINUTE
-  // Le curseur de la frise suit le trajet image par image ; le reste, la minute publiée.
+  // La frise suit le trajet image par image ; le reste, la minute publiée.
   const trajetMs = useInstantTrajet()
+  const afficheMs = trajetMs ?? instantMs
+  // Les éphémérides de la frise se recalculent à l'heure, le défilement à chaque image.
+  const heureCalcul = Math.floor(afficheMs / MS_PAR_H)
+  const frise = useMemo(
+    () => friseCiel(site, fenetreCalculFrise(heureCalcul * MS_PAR_H)),
+    [site, heureCalcul],
+  )
   const cadre = useHauteurPubliee()
   // Ce que le dernier geste laisse à dire : un saut que la lisibilité a imposé, et la
   // proposition du mode nuit à l'arrivée. Le geste suivant efface les deux.
@@ -119,23 +132,16 @@ export function CarteNuit({ site, nuit, modeNuitActif, activeModeNuit }: CarteNu
   }
 
   const debutNuit = nuit.debutReference
-  const appelRetire = useAppelRetire(minute, frise !== null && phaseA(site, frise, instantMs) !== 'JOUR')
+  const phase = phaseFrise(site, frise, new Date(instantMs))
+  const appelRetire = useAppelRetire(minute, phase !== 'JOUR')
   const appel = !appelRetire && debutNuit !== null && instantMs < debutNuit.getTime()
-  const proposeNuit = propose && !modeNuitActif && frise !== null && phaseA(site, frise, instantMs) === 'NUIT_NOIRE'
+  const proposeNuit = propose && !modeNuitActif && phase === 'NUIT_NOIRE'
 
   return (
     <>
       <section ref={cadre} className="panneau-nuit" role="region" aria-label="La nuit">
         {nuit.cause !== undefined && <Mention ton="cause">{nuit.cause}</Mention>}
-        {frise !== null && (
-          <Frise
-            frise={frise}
-            site={site}
-            instantMs={trajetMs ?? instantMs}
-            va={va}
-            efface={efface}
-          />
-        )}
+        <Frise frise={frise} site={site} instantMs={afficheMs} va={va} efface={efface} />
         {saute && (
           <Mention ton="etat" role="status">
             Saut direct : à ce zoom, le trajet défilerait trop vite pour se lire.
@@ -209,15 +215,6 @@ function useAppelRetire(minute: number, nuitAuDepart: boolean): boolean {
   return retire
 }
 
-/** La phase de l'instant : celle de la frise, ou le jour qui l'encadre hors de ses bornes. */
-function phaseA(site: Site, frise: FriseNuit, instantMs: number): PhaseCiel {
-  const debut = frise.debut.getTime()
-  const fin = frise.fin.getTime()
-  return instantMs < debut || instantMs > fin
-    ? 'JOUR'
-    : lectureFrise(site, frise, (instantMs - debut) / (fin - debut)).phase
-}
-
 /**
  * La carte Site s'arrête au-dessus de la frise : les deux partagent le flanc gauche, et la
  * frise a une hauteur que la feuille ne connaît pas — une cause de nuit polaire s'y ajoute.
@@ -262,15 +259,19 @@ function Frise({
   readonly efface: () => void
 }) {
   const [survol, setSurvol] = useState<Survol | null>(null)
-  const phases = bandesPhases(frise)
-  const marques = marquesLune(frise)
-  const lecture = survol === null ? null : lectureFrise(site, frise, survol.fraction)
-  const curseur = curseurInstant(frise, new Date(instantMs))
-  const debut = frise.debut.getTime()
-  const fin = frise.fin.getTime()
-  // La frise est la nuit DE l'instant (`PanneauTemps` la suit) : hors de ses bornes, c'est
-  // le jour qui l'encadre. La ligne reste donc écrite à toute heure.
-  const phaseAffichee = useMemo(() => phaseA(site, frise, instantMs), [site, frise, instantMs])
+  const vue = fenetreFrise(instantMs)
+  const phases = bandesPhases(frise, vue)
+  const marques = marquesLune(frise, vue)
+  const courbes = [
+    { astre: 'soleil', points: pointsCourbe(frise.soleil, vue) },
+    { astre: 'lune', points: pointsCourbe(frise.lune.hauteurs, vue) },
+  ] as const
+  const lecture =
+    survol === null ? null : lectureFrise(site, frise, new Date(instantFraction(vue, survol.fraction)))
+  const curseur = curseurInstant(vue, new Date(instantMs))
+  const debut = vue.debut.getTime()
+  const fin = vue.fin.getTime()
+  const phaseAffichee = phaseFrise(site, frise, new Date(instantMs))
   const lectureAffichee = `${heure(new Date(instantMs))} · ${LIBELLE_PHASE_CIEL[phaseAffichee]}`
 
   const pointe = (e: MouseEvent<HTMLDivElement>): Survol => {
@@ -286,10 +287,10 @@ function Frise({
   }
 
   // L'aimant vaut pour le clic comme pour le survol : un appui près d'un lever de Lune y va.
-  const surClic = (e: MouseEvent<HTMLDivElement>) => va(instantFraction(frise, pointe(e).fraction))
+  const surClic = (e: MouseEvent<HTMLDivElement>) => va(instantFraction(vue, pointe(e).fraction))
 
   const surTouche = (e: KeyboardEvent<HTMLDivElement>) => {
-    const cible = instantClavier(frise, instantMs, e.key)
+    const cible = instantClavier(vue, instantMs, e.key)
     if (cible === null) return
     e.preventDefault()
     efface()
@@ -297,9 +298,9 @@ function Frise({
   }
 
   const resume =
-    `Du coucher du Soleil à ${heure(frise.coucherSoleil)} à son lever à ${heure(frise.leverSoleil)} : ` +
+    `De ${heure(vue.debut)} à ${heure(vue.fin)} : ` +
     phases.map((b) => LIBELLE_PHASE_CIEL[b.phase].toLowerCase()).join(', ') +
-    `. ${resumeLuneFrise(frise.lune)}`
+    `. ${resumeLuneFrise(frise.lune, vue)}`
 
   return (
     <div className="nuit-frise">
@@ -311,7 +312,7 @@ function Frise({
           aria-label={resume}
           aria-valuemin={debut}
           aria-valuemax={fin}
-          aria-valuenow={encadre(instantMs, debut, fin)}
+          aria-valuenow={instantMs}
           aria-valuetext={lectureAffichee}
           onPointerMove={(e) => setSurvol(pointe(e))}
           onPointerLeave={() => setSurvol(null)}
@@ -325,18 +326,22 @@ function Frise({
               style={proprietes({ '--debut': b.debut, '--largeur': b.largeur })}
             />
           ))}
-          {marques.map((m) => (
-            <span key={m.cle} className="nuit-marque-lune" style={proprietes({ '--debut': m.position })} />
-          ))}
-          {incrustationsLune(frise, site.latitudeDeg).map((l) => (
-            <span
-              key={l.cle}
-              className="nuit-lune-incrustee"
-              style={proprietes({ '--debut': l.position, '--hauteur': l.hauteur, '--eclat': l.eclat })}
-            >
-              <DisqueLuneVue disque={l.disque} />
-            </span>
-          ))}
+          {/* Le Soleil et la Lune sur une même échelle, l'horizon au milieu. */}
+          <svg
+            className="nuit-courbes"
+            viewBox={`0 0 ${POURCENT} ${POURCENT}`}
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <line className="nuit-horizon" x1={0} y1={POURCENT / 2} x2={POURCENT} y2={POURCENT / 2} />
+            {courbes.map((c) => (
+              <polyline
+                key={c.astre}
+                className={`nuit-courbe-trait nuit-courbe-${c.astre}`}
+                points={c.points}
+              />
+            ))}
+          </svg>
           {curseur !== null && (
             <span className="nuit-curseur" style={proprietes({ '--debut': curseur })} />
           )}
@@ -357,7 +362,7 @@ function Frise({
         )}
       </div>
       <div className="nuit-heures" aria-hidden="true">
-        {reperesHeures(frise).map((r) => (
+        {reperesHeures(vue).map((r) => (
           <span
             key={r.cle}
             className={r.majeur ? 'nuit-repere majeur' : 'nuit-repere'}

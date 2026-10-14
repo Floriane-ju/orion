@@ -161,14 +161,15 @@ const EXACTES = {
     ordreDeGrandeur: false,
     sections: ['8.1'],
   }),
-  FRISE_MARGE_JOUR_MIN: entree({
-    ref: 'A-FMJ',
-    libelle: 'Jour peint de part et d’autre de la frise de la nuit',
-    valeur: 30,
-    unite: 'min',
+  FRISE_DEMI_FENETRE_H: entree({
+    ref: 'A-FDF',
+    libelle: 'Temps montré de part et d’autre du curseur de la frise du ciel',
+    valeur: 12,
+    unite: 'h',
     source:
-      'choix d’affichage (T-0346) : une demi-heure de jour borde la frise pour situer le ' +
-      'coucher et le lever du Soleil ; n’entre dans aucun calcul',
+      'choix d’affichage : le curseur reste au centre et la frise défile ; douze heures de ' +
+      'chaque côté montrent toujours une nuit entière et le jour qui la borde ; n’entre dans ' +
+      'aucun calcul',
     tolerance: null,
     ordreDeGrandeur: false,
     sections: ['8.1'],
@@ -1564,6 +1565,18 @@ const RENDU = {
     tolerance: 'convention produit — pilote le confort du geste, jamais un verdict',
     ordreDeGrandeur: false,
     sections: ['3.3'],
+  }),
+  PAS_COURBES_FRISE_MIN: entree({
+    ref: 'C-26',
+    libelle: 'Pas d’échantillonnage des courbes du Soleil et de la Lune dans la frise',
+    valeur: 10,
+    unite: 'min',
+    source:
+      '§8.1 — choix d’affichage : un astre monte d’au plus 2,5° en dix minutes, moins qu’un ' +
+      'pixel de la frise ; la courbe se lit lisse sans recalcul à chaque image',
+    tolerance: null,
+    ordreDeGrandeur: false,
+    sections: ['8.1'],
   }),
   PAS_FRISE_CLAVIER_MIN: entree({
     ref: 'C-26',

@@ -62,6 +62,10 @@
   --bordure-faible: color-mix(in srgb, var(--base-neutre) 21%, var(--fond));
   --alerte: #ff6f5e;
   --fond-alerte: #1a0f0d;
+  /* Les courbes du Soleil et de la Lune dans la frise : chaque astre a sa teinte, le Soleil
+     chaud, la Lune froide. La frise reste sombre de jour : la palette claire n'y touche pas. */
+  --astre-soleil: #ffa64d;
+  --astre-lune: #6fa8ff;
   /* LA BARRE DE TITRE — sections, cartes, panneau, modale. Le jour, un aplat de texte sous un
      titre couleur de fond ; la nuit, un bandeau noir sous un titre rouge (§11.1). Tout ce qui
      s'y pose — titre, commande, pastille — prend `--barre-encre`, ce qu'on y survole prend
@@ -121,6 +125,8 @@
   --bordure-faible: color-mix(in srgb, var(--base-neutre) 21%, var(--fond));
   --alerte: #ff6f5e;
   --fond-alerte: #1a0f0d;
+  --astre-soleil: #ffa64d;
+  --astre-lune: #6fa8ff;
   --barre-fond: var(--texte);
   --barre-encre: var(--fond);
   --barre-survol: var(--attenue);
@@ -240,6 +246,8 @@
   --bordure-faible: rgb(65 0 0);
   --alerte: rgb(255 0 0);
   --fond-alerte: rgb(26 0 0);
+  --astre-soleil: rgb(250 0 0);
+  --astre-lune: rgb(188 0 0);
   --barre-fond: #000000;
   --barre-encre: rgb(250 0 0);
   --barre-survol: rgb(20 0 0);
@@ -3261,6 +3269,8 @@ button:disabled {
 .nuit-heures {
   order: -1;
   position: relative;
+  /* La frise défile : une étiquette au bord sort à moitié, elle se rogne comme le ciel. */
+  overflow: hidden;
   block-size: calc(var(--texte-mini) * var(--interligne-controle) + var(--pas-2));
   color: var(--texte);
   font-size: var(--texte-mini);
@@ -3349,11 +3359,16 @@ button:disabled {
   inset-inline-start: var(--debut);
   inline-size: var(--largeur);
 }
+/* Le maintenant de la scène : un filet épais et plein, détouré à la couleur du fond pour se
+   détacher des trames du crépuscule qui défilent dessous. Centré sur son instant. */
 .nuit-curseur {
   position: absolute;
   inset-block: 0;
   inset-inline-start: var(--debut);
-  border-inline-start: var(--trait) dashed var(--texte);
+  inline-size: var(--trait-marque);
+  background: var(--texte);
+  box-shadow: 0 0 0 var(--trait) var(--surface);
+  transform: translateX(-50%);
 }
 
 /* Le survol : un trait à l'instant pointé et, AU-DESSUS, la bulle qui le lit — la frise est au
@@ -3447,14 +3462,40 @@ button:disabled {
   color: var(--accent);
 }
 
-/* Lever et coucher de la Lune : un trait dans la frise, à l'accent — la seule marque qui
-   désigne un instant plutôt qu'une période. Son nom n'apparaît qu'au survol, quand
-   l'aimant y accroche la bulle. */
-.nuit-marque-lune {
+/* Les courbes du Soleil et de la Lune, sur une même échelle : nadir en bas, zénith en haut,
+   l'horizon au milieu, en filet atténué. Un trait fin, sans liseré : la teinte suffit à le
+   détacher. Le trait ne s'étire pas avec le repère. */
+.nuit-courbes {
   position: absolute;
-  inset-block: 0;
-  inset-inline-start: var(--debut);
-  border-inline-start: var(--trait) solid var(--accent);
+  inset-block: var(--pas-1);
+  inset-inline: 0;
+  inline-size: 100%;
+  block-size: calc(100% - var(--pas-2));
+  overflow: visible;
+  pointer-events: none;
+}
+.nuit-courbes polyline,
+.nuit-horizon {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+}
+.nuit-horizon {
+  stroke: var(--attenue);
+  stroke-width: var(--trait);
+}
+.nuit-courbe-trait {
+  stroke-width: calc(2 * var(--trait));
+}
+.nuit-courbe-soleil {
+  stroke: var(--astre-soleil);
+}
+.nuit-courbe-lune {
+  stroke: var(--astre-lune);
+}
+/* §11.1 — la nuit, les deux teintes passent au rouge : la Lune se distingue à son tiret. */
+:root[data-mode-nuit='true'] .nuit-courbe-lune {
+  stroke-dasharray: var(--pas-1) var(--pas-1);
 }
 
 .phase-jour {
@@ -3485,33 +3526,6 @@ button:disabled {
 .phase-nuit-noire {
   background: transparent;
 }
-
-/* Le bas de la frise est l'horizon, le haut le zénith ; une marge d'un demi-disque garde la
-   Lune entière à ses deux bouts. */
-.nuit-lune-incrustee {
-  position: absolute;
-  inset-inline-start: var(--debut);
-  inset-block-end: calc(var(--pas-2) + (100% - var(--pas-4)) * var(--hauteur));
-  inline-size: var(--pas-3);
-  block-size: var(--pas-3);
-  transform: translate(-50%, 50%);
-}
-.nuit-lune-incrustee::before,
-.nuit-lune-incrustee::after {
-  content: '';
-  position: absolute;
-  border: var(--trait) solid var(--texte);
-  border-radius: 50%;
-}
-.nuit-lune-incrustee::before {
-  inset: calc(-1 * var(--eclat) * var(--pas-2));
-  opacity: var(--eclat);
-}
-.nuit-lune-incrustee::after {
-  inset: calc(-1 * var(--eclat) * var(--pas-3));
-  opacity: calc(var(--eclat) / 2);
-}
-
 
 /* Le disque de la Lune : une moitié éclairée, puis l'ellipse du terminateur centrée dessus,
    noire sous le quartier (elle ronge la moitié claire), claire au-delà (elle mord sur la
