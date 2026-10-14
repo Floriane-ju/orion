@@ -23,7 +23,7 @@ import { BarreHaut } from './ui/BarreHaut.tsx'
 import { BoutonInfo, PageInfo } from './ui/PageInfo.tsx'
 import { PanneauTemps } from './ui/PanneauTemps.tsx'
 import { Visee } from './ui/Visee.tsx'
-import { CartesSeance, LateralSeance, NuitSeance } from './ui/RegionSeance.tsx'
+import { CartesSeance, LateralSeance, LectureSeance, NuitSeance } from './ui/RegionSeance.tsx'
 import { useSaisieLieu, useSaisieMateriel, useSaisiePoids } from './ui/app-saisie.ts'
 import {
   useCatalogues,
@@ -214,20 +214,18 @@ function AppPrete({
 
   return (
     <Coque
-      topbar={
-        <BarreHaut
-          temps={
-            <PanneauTemps
-              surNuitIso={lieu.surNuitIso}
-              frise={
-                <NuitSeance
-                  {...regions}
-                  modeNuitActif={modeNuit.actif}
-                  activeModeNuit={() => setModeNuit({ ...modeNuit, actif: true })}
-                />
-              }
+      topbar={<BarreHaut />}
+      temps={
+        <PanneauTemps
+          surNuitIso={lieu.surNuitIso}
+          frise={
+            <NuitSeance
+              {...regions}
+              modeNuitActif={modeNuit.actif}
+              activeModeNuit={() => setModeNuit({ ...modeNuit, actif: true })}
             />
           }
+          lecture={<LectureSeance {...regions} />}
         />
       }
       scene={scene}

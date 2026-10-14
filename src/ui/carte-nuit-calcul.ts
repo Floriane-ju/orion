@@ -49,6 +49,11 @@ export interface Repere {
   readonly texte: string
   readonly position: string
   readonly majeur: boolean
+  /**
+   * T-0418 — le repère tombe dans le jour : son étiquette prend un aplat clair, encre sombre,
+   * au lieu de l'aplat noir de la nuit et des crépuscules.
+   */
+  readonly jour: boolean
 }
 
 /**
@@ -121,17 +126,20 @@ export function bandesPhases(frise: FriseNuit, vue: Intervalle): readonly BandeP
     })
 }
 
-export function reperesHeures(vue: Intervalle): readonly Repere[] {
+/** Sans frise, aucun repère n'est dit de jour : l'aplat reste celui de la nuit. */
+export function reperesHeures(vue: Intervalle, frise?: FriseNuit): readonly Repere[] {
   const premiere = Math.ceil(vue.debut.getTime() / MS_PAR_H) * MS_PAR_H
   const reperes: Repere[] = []
   for (let t = premiere; t <= vue.fin.getTime(); t += MS_PAR_H) {
     const instant = new Date(t)
     const texte = HEURE_SEULE.formatToParts(instant).find((p) => p.type === 'hour')?.value ?? ''
+    const segment = frise?.segments.find((s) => s.debut.getTime() <= t && t < s.fin.getTime())
     reperes.push({
       cle: String(t),
       texte,
       position: pourcentCss(fraction(vue, instant)),
       majeur: Number(texte) % 2 === 0,
+      jour: segment?.phase === 'JOUR',
     })
   }
   return reperes

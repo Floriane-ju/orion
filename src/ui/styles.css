@@ -462,15 +462,27 @@ pre {
      barre. Un seul endroit le déclare. */
   /* T-0411 — la barre porte la frise : sa hauteur est celle de la frise (2,75 + 0,25), de ses
      heures (0,65 × 1,4 + 0,5), de sa lecture (0,65 × 1) et des deux écarts de `.nuit-frise`
-     (2 × 0,25), soit 5,56 rem — arrondie au seizième de rem au-dessus. */
+     (2 × 0,25), soit 5,56 rem — arrondie au seizième de rem au-dessus. T-0416 : le temps a
+     son propre gabarit (`--temps-haut`) ; celui-ci ne règle plus que le bandeau du haut, sous
+     lequel partent le rail et les cartes de gauche. */
   --barre-haut: 5.625rem;
   /* Le bandeau du haut : la barre et un jour de carte d'air au-dessus et au-dessous. La scène
      commence sous lui, ce qui flotte sur la scène en garde un second jour. */
   --bandeau-haut: calc(var(--barre-haut) + 2 * var(--jour-carte));
   --sous-barre: calc(var(--bandeau-haut) + var(--jour-carte));
+  /* T-0413 — le bandeau du bas : le bloc du temps et un jour de carte d'air autour. Ce qui
+     s'ancre en bas de la scène, entre le rail et le panneau, se pose au-dessus de lui. */
+  --bandeau-bas: calc(var(--temps-haut) + 2 * var(--jour-carte));
+  /* T-0416 — la hauteur du bloc du temps : la date et l'heure sur une ligne, un compteur
+     (0,85 × 1,6 + 2 × 0,125 + deux filets), puis la lecture sur deux lignes (2 × 0,65 + 0,125),
+     l'écart entre les deux (0,25) et le rembourrage (2 × 0,25) : 3,9 rem, arrondie au quart. */
+  --temps-haut: 4rem;
   /* La barre de titre d'une fenêtre : la hauteur d'une ligne de micro-libellé et son air. */
   --barre-titre: 1.375rem;
   --lateral: 22rem;
+  /* T-0412 — le bloc du temps, au centre du haut : la largeur où la frise lit encore ses heures
+     une sur deux. Il cède sous elle plutôt que de pousser la marque. */
+  --temps-large: 56rem;
   /* Le rail des bascules de vue : une cible de clic de large, filet compris. Il est cité
      deux fois — par le rail lui-même et par les cartes qui se posent à sa droite. */
   --rail: var(--cible-clic);
@@ -763,22 +775,20 @@ body {
    invisible. La pile entière est déclarée avec les jetons. */
 .coque-topbar {
   position: absolute;
-  /* T-0411 — un vrai bandeau : toute la largeur, un fond plein et un filet. Il ne flotte plus
-     sur le ciel — la scène et la colonne de droite commencent sous lui (`--bandeau-haut`), donc
-     rien de ce qu'il porte ne se lit sur des étoiles. */
+  /* T-0412 — plus de bandeau : la marque se pose seule sur le ciel, à gauche. La scène remonte
+     sous elle ; la colonne de droite et les cartes partent toujours sous `--bandeau-haut`. La
+     barre laisse passer le pointeur : autour de la marque, c'est du ciel qu'on fait glisser.
+     T-0413 — le temps l'a quittée pour le bas de la scène (`.coque-temps`). */
   top: 0;
   left: 0;
   right: 0;
   height: var(--bandeau-haut);
   padding: var(--jour-carte);
-  background: var(--fond);
-  border-bottom: var(--trait) solid var(--bordure);
   z-index: var(--plan-barre);
   display: flex;
-  flex-wrap: nowrap;
   align-items: center;
-  gap: var(--jour-barre);
   overflow: visible;
+  pointer-events: none;
 }
 
 /* Une lecture se rogne, une commande jamais. Sur une fenêtre étroite, c'est la phrase qui
@@ -796,22 +806,40 @@ body {
   line-height: var(--interligne-serre);
 }
 
-/* T-0411 — le temps prend ce que la marque laisse : l'horloge, la frise, le retour au présent. */
-.coque-topbar > .panneau-temps {
-  flex: 1;
-  min-width: 0;
-}
-
-/* LA VISÉE (T-0411) : en bas à gauche de la scène, à droite du mode nuit et de l'info — la
-   place qu'avait la frise avant de monter dans la barre. Ses champs se rognent plutôt que de
-   passer sous le panneau de séance : un champ tronqué se relit en élargissant la fenêtre. */
-.coque-visee {
+/* T-0413 — LE TEMPS, EN BAS AU CENTRE DE LA SCÈNE : centré dans le ciel libre, entre le rail
+   et le panneau de séance, d'un jour de carte au-dessus du bord. Au rang des barres : sa bulle
+   et ses messages s'ouvrent au-dessus de lui, par-dessus les cartes. Le conteneur laisse passer
+   le pointeur, seul le bloc le prend. */
+.coque-temps {
   position: absolute;
   left: calc(var(--rail) + 2 * var(--jour-carte));
   right: calc(var(--lateral) + 2 * var(--jour-carte));
   bottom: var(--jour-carte);
+  height: var(--temps-haut);
+  z-index: var(--plan-barre);
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.coque-temps > .panneau-temps {
+  flex: 0 1 var(--temps-large);
+  min-width: 0;
+  pointer-events: auto;
+}
+
+/* LA VISÉE : T-0414 — en haut à droite de la scène, contre le panneau de séance, au-dessus
+   des cartes du matériel. Le bas est au temps, le haut gauche à la marque. Ses champs se
+   rognent plutôt que de passer sous le panneau : un champ tronqué se relit en élargissant la
+   fenêtre. */
+.coque-visee {
+  position: absolute;
+  left: calc(var(--rail) + 2 * var(--jour-carte));
+  right: calc(var(--lateral) + 2 * var(--jour-carte));
+  top: var(--jour-carte);
   z-index: var(--plan-panneaux);
   display: flex;
+  justify-content: flex-end;
   align-items: center;
   gap: var(--pas-2);
   overflow: hidden;
@@ -959,7 +987,8 @@ body {
 
 .coque-scene {
   position: absolute;
-  inset: var(--bandeau-haut) 0 0;
+  /* T-0412 — la scène occupe toute la coque : le ciel passe autour du bloc du temps. */
+  inset: 0;
   z-index: var(--plan-scene);
   min-height: 0;
   overflow: hidden;
@@ -1048,7 +1077,8 @@ body {
 .carte-plan {
   width: var(--carte-plan);
   right: calc(var(--lateral) + 2 * var(--jour-carte));
-  bottom: var(--jour-carte);
+  /* T-0413 — au-dessus du bloc du temps. */
+  bottom: var(--bandeau-bas);
 }
 
 /* Le site s'ancre en haut à gauche, à droite du rail : le lieu se relit à côté des bascules
@@ -1060,7 +1090,8 @@ body {
   flex-direction: column;
   /* Elle partage le flanc gauche avec la visée : elle s'arrête un jour de carte au-dessus, et
      son corps défile chez lui. `--visee-haut` est publiée par la visée. */
-  max-height: calc(100dvh - var(--sous-barre) - var(--visee-haut) - 2 * var(--jour-carte));
+  /* T-0414 — elle s'arrête au-dessus du bloc du temps ; la visée a quitté son flanc. */
+  max-height: calc(100dvh - var(--sous-barre) - var(--bandeau-bas));
 }
 
 .carte-site > .carte-corps {
@@ -1086,8 +1117,10 @@ body {
   position: absolute;
   z-index: var(--plan-cartes);
   right: calc(var(--lateral) + 2 * var(--jour-carte));
-  top: var(--sous-barre);
-  bottom: var(--jour-carte);
+  /* T-0414 — sous la visée, qui publie sa hauteur (`--visee-haut`). */
+  top: calc(2 * var(--jour-carte) + var(--visee-haut));
+  /* T-0413 — la colonne s'arrête au-dessus du bloc du temps. */
+  bottom: var(--bandeau-bas);
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -1117,25 +1150,61 @@ body {
   align-self: flex-end;
 }
 
-/* LE TEMPS (T-0411) : l'horloge, la frise de la nuit et le retour au présent, en une rangée
-   de la barre haute. Ils ne font qu'un réglage : le curseur de la frise EST l'instant de
-   l'horloge. Pas de cadre : comme la marque, la rangée se pose seule sur le ciel, et la frise
-   porte déjà ses filets. */
+/* LE TEMPS (T-0411) : l'horloge, la frise de la nuit et le retour au présent. Ils ne font
+   qu'un réglage : le curseur de la frise EST l'instant de l'horloge.
+
+   T-0412 — un bloc posé sur le ciel, comme une carte : le voile des flottants et un filet de
+   conteneur, angles vifs. Ses trois cases se touchent, séparées d'un filet : la frise y prend
+   toute la hauteur, sans marge, et le retour au présent est un carré du côté du bloc. */
 .panneau-temps {
   display: flex;
-  align-items: center;
-  gap: var(--jour-barre);
+  align-items: stretch;
   block-size: 100%;
+  background: var(--voile);
+  border: var(--trait) solid var(--bordure);
 }
 
-/* La date au-dessus de l'heure : l'instant se lit d'une traite, à gauche de la frise qu'il
-   fait défiler. */
+/* La date au-dessus de l'heure, puis la phase et la Lune de cet instant : l'instant se lit
+   d'une traite, à gauche de la frise qu'il fait défiler. */
 .panneau-temps-date {
   flex: none;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: flex-start;
   gap: var(--pas-1);
+  padding: var(--pas-1) var(--pas-4);
+  border-inline-end: var(--trait) solid var(--bordure-faible);
+}
+
+/* T-0416 — la date et l'heure côte à côte, sur la ligne de base de leurs chiffres. */
+.panneau-temps-instant {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pas-4);
+}
+
+/* T-0415 — la largeur de la lecture ne dépend pas de ce qu'elle dit : sans elle, la frise
+   rétrécissait au crépuscule astronomique et s'élargissait de jour. La phase sur une ligne, la
+   Lune sur la suivante, à la largeur de la plus longue des deux — « Crépuscule astronomique »
+   et « Lune décroissante 100 % », 23 signes, un de marge. La police est à chasse fixe : `ch`
+   la mesure exactement. */
+.panneau-temps-date > .nuit-lecture {
+  display: grid;
+  gap: var(--pas-0);
+  inline-size: 24ch;
+  color: var(--attenue);
+  white-space: nowrap;
+}
+
+/* T-0412 — le retour au présent : un carré noir, du côté du bloc, séparé de la frise d'un filet.
+   Deux classes : la variante `nu` du bouton-glyphe vient plus bas dans la feuille. */
+.panneau-temps > .panneau-temps-maintenant {
+  flex: none;
+  inline-size: var(--temps-haut);
+  background: var(--fond);
+  border: 0;
+  border-inline-start: var(--trait) solid var(--bordure-faible);
 }
 
 /* T-0327 — LA DATE ET L'HEURE SONT DES CHAMPS DU MÊME CORPS. Elles se règlent du même geste :
@@ -1148,10 +1217,56 @@ body {
   white-space: nowrap;
 }
 
-/* La frise prend toute la place que l'horloge et le retour au présent laissent. */
+/* La frise prend toute la place que l'horloge et le retour au présent laissent — en largeur
+   et, T-0412, en hauteur : ses heures en tête, le ciel jusqu'au bas du bloc. Le filet du bloc
+   la borde : la sienne, en bas, ferait double trait. */
 .panneau-temps > .panneau-nuit {
   flex: 1;
   min-width: 0;
+}
+.panneau-temps .nuit-frise {
+  position: relative;
+  block-size: 100%;
+  grid-template-rows: 1fr;
+  gap: 0;
+}
+.panneau-temps .nuit-frise-ciel {
+  block-size: 100%;
+  border-block: 0;
+}
+
+/* T-0417 — les heures DANS la frise, au bas : elle gagne la hauteur de leur rangée. Elles ne
+   prennent pas le pointeur : un clic dessous règle l'instant. */
+.panneau-temps .nuit-heures {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  pointer-events: none;
+}
+/* T-0418 — chaque heure porte son aplat, sur le texte seul : noir sur la nuit et les
+   crépuscules, clair sur le jour, encre inverse. Posée sur une trame de points ou à cheval sur
+   deux phases, elle se lit pareil. Le trait reste nu ; sur l'aplat du jour il passe à l'encre
+   sombre, sans quoi il s'y fondrait. */
+.panneau-temps .nuit-repere-texte {
+  padding-inline: var(--pas-0);
+  background: var(--fond);
+  color: var(--texte);
+}
+.panneau-temps .nuit-repere.jour > .nuit-repere-texte {
+  background: var(--texte);
+  color: var(--fond);
+}
+.panneau-temps .nuit-repere.jour::before {
+  background: var(--fond);
+}
+/* §11.1 — la nuit, le jour de la frise est hachuré, pas plein (T-0375) : son étiquette garde
+   l'aplat noir de toutes les autres, et le trait repasse à l'encre. */
+:root[data-mode-nuit='true'] .panneau-temps .nuit-repere.jour > .nuit-repere-texte {
+  background: var(--fond);
+  color: var(--texte);
+}
+:root[data-mode-nuit='true'] .panneau-temps .nuit-repere.jour::before {
+  background: var(--texte);
 }
 
 /* LE RAIL DE LA VUE : les bascules de rendu, posées au flanc gauche de la scène.
@@ -1427,11 +1542,13 @@ body {
    haute (T-0411) ; la colonne garde la largeur, que les cartes et la barre lisent pour s'arrêter
    avant elle.
 
-   Elle est décollée des bords d'un jour de carte (T-0243), comme tout ce qui flotte, et monte jusqu'en haut : la barre s'arrête avant elle. */
+   Elle est décollée des bords d'un jour de carte (T-0243), comme tout ce qui flotte.
+   T-0414 — elle prend toute la hauteur : la barre haute ne porte plus que la marque, à gauche,
+   et le temps est en bas au centre — rien ne passe au-dessus d'elle. */
 .coque-droite {
   position: absolute;
   right: var(--jour-carte);
-  top: var(--sous-barre);
+  top: var(--jour-carte);
   bottom: var(--jour-carte);
   z-index: var(--plan-panneaux);
   width: var(--lateral);
@@ -1525,6 +1642,7 @@ body {
 
   .coque-topbar,
   .coque-scene,
+  .coque-temps,
   .carte,
   .coque-rail,
   .coque-nuit,
@@ -1549,13 +1667,14 @@ body {
 
 
   .coque-topbar {
+    display: flex;
     min-height: var(--cible-clic);
     padding: var(--pas-2) var(--pas-3);
   }
 
   /* T-0411 — sous le repli, le temps prend sa propre ligne sous la marque, et la frise la
      sienne sous l'horloge : à 390 px, elle n'aurait que les miettes de la rangée. */
-  .coque-topbar > .panneau-temps {
+  .coque-temps > .panneau-temps {
     flex-basis: 100%;
     flex-wrap: wrap;
   }
@@ -3233,12 +3352,12 @@ button:disabled {
   position: relative;
 }
 
-/* Le saut, la proposition du mode nuit, la cause : SOUS la frise, par-dessus le ciel, sur le
-   voile des flottants. Dans le flux, ils feraient grandir la barre — et descendre tout ce qui
-   se pose sous elle — à chaque geste. */
+/* Le saut, la proposition du mode nuit, la cause : hors de la frise, par-dessus le ciel, sur
+   le voile des flottants. Dans le flux, ils feraient grandir le bloc du temps à chaque geste.
+   T-0413 — AU-DESSUS : le bloc tient le bas de l'écran, rien ne tient dessous. */
 .nuit-messages {
   position: absolute;
-  inset-block-start: calc(100% + var(--pas-2));
+  inset-block-end: calc(100% + var(--pas-2));
   inset-inline: 0;
   display: grid;
   gap: var(--pas-2);
@@ -3363,8 +3482,8 @@ button:disabled {
   transform: translateX(-50%);
 }
 
-/* Le survol : un trait à l'instant pointé et, AU-DESSOUS, la bulle qui le lit — la frise est
-   dans la barre haute, rien ne tient dessus (T-0411). La bulle se pose par-dessus le ciel,
+/* Le survol : un trait à l'instant pointé et, AU-DESSUS, la bulle qui le lit — la frise est
+   au bas de l'écran, rien ne tient dessous (T-0413). Elle couvre les heures le temps du survol. La bulle se pose par-dessus le ciel,
    au rang de toute bulle ; elle se centre sous son trait
    et, près d'un bord, se borne pour rester dans la frise (`100cqw` est la largeur de la
    frise). Ni l'un ni l'autre ne capte le
@@ -3382,14 +3501,15 @@ button:disabled {
 }
 .nuit-bulle {
   position: absolute;
-  inset-block-start: 100%;
+  /* T-0413 — au-dessus de la frise : le bloc du temps est au bas de l'écran. */
+  inset-block-end: 100%;
   inset-inline: 0;
   z-index: var(--plan-bulle);
   pointer-events: none;
 }
 .nuit-bulle-trait {
   position: absolute;
-  inset-block-start: 0;
+  inset-block-end: 0;
   inset-inline-start: var(--debut);
   block-size: var(--pas-3);
   border-inline-start: var(--trait) solid var(--texte);
@@ -3408,7 +3528,7 @@ button:disabled {
 .nuit-bulle-corps {
   --bulle-nuit-largeur: calc(26ch + var(--pas-6) + 3 * var(--pas-3));
   position: absolute;
-  inset-block-start: var(--pas-3);
+  inset-block-end: var(--pas-3);
   inset-inline-start: clamp(
     0%,
     calc(var(--fraction) * 100cqw - var(--bulle-nuit-largeur) / 2),

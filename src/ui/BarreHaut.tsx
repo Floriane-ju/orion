@@ -43,20 +43,14 @@
  * T-0411 — la barre porte le TEMPS : l'horloge, la frise de la nuit et le retour au présent,
  * en une rangée. La visée lui laisse la place et descend en bas à gauche de la scène, où se
  * posait la frise.
+ *
+ * T-0412 — la barre n'est plus un bandeau : la marque se pose seule sur le ciel, et le temps en
+ * un bloc au centre (`PanneauTemps`).
+ *
+ * T-0413 — le bloc du temps descend en bas au centre de la scène (`.coque-temps`) : la barre
+ * ne garde que la marque.
  */
 
-import type { ReactNode } from 'react'
-
-export interface BarreHautProps {
-  /** T-0411 — l'horloge et la frise liées (`PanneauTemps`). */
-  readonly temps: ReactNode
-}
-
-export function BarreHaut(props: BarreHautProps) {
-  return (
-    <>
-      <h1>Orion</h1>
-      {props.temps}
-    </>
-  )
+export function BarreHaut() {
+  return <h1>Orion</h1>
 }

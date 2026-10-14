@@ -63,14 +63,15 @@ describe('T-0411 — l’horloge et la frise règlent le même instant', () => {
     expect(html).toContain('update')
   })
 
-  it('monte le temps et la frise dans la barre haute', () => {
+  // T-0413 — le temps a quitté la barre haute pour le bas de la scène.
+  it('pose le temps et la frise en bas de la scène, hors de la barre haute', () => {
     const ecran = renderToStaticMarkup(<App />)
     const debut = ecran.indexOf('coque-topbar')
-    const fin = ecran.indexOf('</header>', debut)
-    const haut = ecran.slice(debut, fin)
-    expect(haut).toContain('panneau-temps')
-    expect(haut).toContain('panneau-nuit')
-    expect(ecran.slice(fin)).not.toContain('panneau-temps')
+    const haut = ecran.slice(debut, ecran.indexOf('</header>', debut))
+    expect(haut).not.toContain('panneau-temps')
+    const bas = ecran.slice(ecran.indexOf('coque-temps'))
+    expect(bas).toContain('panneau-temps')
+    expect(bas).toContain('panneau-nuit')
   })
 
   it('reprend la lecture DEPUIS l’instant choisi, sans sauter à l’heure du jour', () => {
@@ -126,5 +127,21 @@ describe('T-0138 — la date-heure se choisit sans confondre les fuseaux', () =>
     if (apresMinuit.getTimezoneOffset() !== 0) {
       expect(apresMinuit.toISOString().slice(0, 10)).not.toBe(jourLocalIso(apresMinuit))
     }
+  })
+})
+
+describe('T-0412 — la lecture de l’instant se pose sous l’horloge', () => {
+  it('range la phase et la Lune dans la colonne de l’horloge, avant la frise', () => {
+    // La frise prend toute la hauteur du bloc : ce qui qualifie l'instant se lit sous l'heure.
+    const html = renderToStaticMarkup(
+      <PanneauTemps
+        surNuitIso={() => undefined}
+        frise={<span className="frise-temoin" />}
+        lecture={<p className="lecture-temoin" />}
+      />,
+    )
+    const colonne = html.slice(html.indexOf('panneau-temps-date'), html.indexOf('frise-temoin'))
+    expect(colonne.indexOf('panneau-temps-heure')).toBeLessThan(colonne.indexOf('lecture-temoin'))
+    expect(colonne).toContain('lecture-temoin')
   })
 })

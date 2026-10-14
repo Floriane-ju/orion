@@ -36,7 +36,7 @@ import { BoutonChoixCible } from './BoutonChoixCible.tsx'
 import { useCiblesChoisies } from './cibles-choisies.ts'
 import { PlanSessionVue } from './PlanSession.tsx'
 import { RegionNuit } from './RegionNuit.tsx'
-import { CarteNuit, type CarteNuitProps } from './CarteNuit.tsx'
+import { CarteNuit, LectureNuit, type CarteNuitProps } from './CarteNuit.tsx'
 import { modeObjectif } from '../core/optics.ts'
 import {
   modeSeance,
@@ -393,4 +393,9 @@ export function NuitSeance({
       activeModeNuit={activeModeNuit}
     />
   ) : null
+}
+
+/** T-0412 — la phase et la Lune de l’instant, sous l’horloge ; absentes sans ciel, comme la frise. */
+export function LectureSeance({ chaine }: RegionSeanceProps) {
+  return chaine.ciel.ok ? <LectureNuit site={chaine.site} /> : null
 }

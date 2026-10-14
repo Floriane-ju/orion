@@ -11,6 +11,9 @@
  * en tirant les compteurs, sur la frise, ou en revenant au présent — qui rend aussi l'écoulement
  * réel. Le défilement accéléré n'a plus de commande.
  *
+ * T-0412 — la rangée devient un bloc posé sur le ciel, au centre du haut de l'écran : l'horloge
+ * et sa lecture (phase, Lune), la frise sur toute la hauteur, le retour au présent en carré.
+ *
  * Aucun `useScene()` ici. Le magasin publie l'instant rendu deux fois par seconde ; s'y
  * abonner en entier ferait rendre la barre au même rythme (T-0056). Seuls les deux morceaux
  * d'horloge s'abonnent à la SECONDE — pas aux millisecondes qu'ils affichent.
@@ -40,14 +43,20 @@ export interface PanneauTempsProps {
   readonly surNuitIso: (v: string) => void
   /** La frise de la nuit, entre l'horloge et le retour au présent ; absente sans ciel. */
   readonly frise?: ReactNode
+  /** T-0412 — la phase et la Lune de l'instant, sous l'heure ; absente sans ciel. */
+  readonly lecture?: ReactNode
 }
 
 export function PanneauTemps(props: PanneauTempsProps) {
   return (
     <section className="panneau-temps" role="region" aria-label="Temps de la scène">
       <div className="panneau-temps-date">
-        <Jour surNuitIso={props.surNuitIso} />
-        <Heure surNuitIso={props.surNuitIso} />
+        {/* T-0416 — la date et l'heure sur une ligne : le bloc perd une rangée, la frise s'affine. */}
+        <div className="panneau-temps-instant">
+          <Jour surNuitIso={props.surNuitIso} />
+          <Heure surNuitIso={props.surNuitIso} />
+        </div>
+        {props.lecture}
       </div>
       {props.frise}
       <BoutonMaintenant surNuitIso={props.surNuitIso} />

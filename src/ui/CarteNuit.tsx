@@ -113,12 +113,7 @@ export function CarteNuit({ site, nuit, modeNuitActif, activeModeNuit }: CarteNu
   // La frise suit le trajet image par image ; le reste, la minute publiée.
   const trajetMs = useInstantTrajet()
   const afficheMs = trajetMs ?? instantMs
-  // Les éphémérides de la frise se recalculent à l'heure, le défilement à chaque image.
-  const heureCalcul = Math.floor(afficheMs / MS_PAR_H)
-  const frise = useMemo(
-    () => friseCiel(site, fenetreCalculFrise(heureCalcul * MS_PAR_H)),
-    [site, heureCalcul],
-  )
+  const frise = useFriseCiel(site, afficheMs)
   // Ce que le dernier geste laisse à dire : un saut que la lisibilité a imposé, et la
   // proposition du mode nuit à l'arrivée. Le geste suivant efface les deux.
   const [saute, setSaute] = useState(false)
@@ -174,6 +169,36 @@ export function CarteNuit({ site, nuit, modeNuitActif, activeModeNuit }: CarteNu
         </div>
       )}
     </>
+  )
+}
+
+/** Les éphémérides de la frise se recalculent à l'heure, le défilement à chaque image. */
+function useFriseCiel(site: Site, afficheMs: number): FriseNuit {
+  const heureCalcul = Math.floor(afficheMs / MS_PAR_H)
+  return useMemo(
+    () => friseCiel(site, fenetreCalculFrise(heureCalcul * MS_PAR_H)),
+    [site, heureCalcul],
+  )
+}
+
+/**
+ * T-0412 — la phase du ciel et la Lune de l'instant affiché, sous l'horloge et non plus sous la
+ * frise : elles qualifient l'instant que l'horloge règle, et la frise prend toute la hauteur de
+ * la barre. §11.2 ne laisse rien de critique au seul survol : la ligne reste à demeure. L'heure
+ * n'y est plus — elle se lit juste au-dessus.
+ */
+export function LectureNuit({ site }: { readonly site: Site }) {
+  const minute = useTrancheScene(minuteAffichee)
+  const trajetMs = useInstantTrajet()
+  const afficheMs = trajetMs ?? minute * MS_PAR_MINUTE
+  const frise = useFriseCiel(site, afficheMs)
+  const lecture = lectureFrise(site, frise, new Date(afficheMs))
+  const lune = libellePhaseLune(lecture.luneCroissante, lecture.illuminationLune).toLowerCase()
+  return (
+    <p className="nuit-lecture">
+      <span>{LIBELLE_PHASE_CIEL[lecture.phase]}</span>
+      <span>Lune {lune}</span>
+    </p>
   )
 }
 
@@ -344,19 +369,18 @@ function Frise({
         )}
       </div>
       <div className="nuit-heures" aria-hidden="true">
-        {reperesHeures(vue).map((r) => (
+        {reperesHeures(vue, frise).map((r) => (
           <span
             key={r.cle}
-            className={r.majeur ? 'nuit-repere majeur' : 'nuit-repere'}
+            className={['nuit-repere', r.majeur && 'majeur', r.jour && 'jour']
+              .filter(Boolean)
+              .join(' ')}
             style={proprietes({ '--debut': r.position })}
           >
-            {r.majeur ? r.texte : null}
+            {r.majeur ? <span className="nuit-repere-texte">{r.texte}</span> : null}
           </span>
         ))}
       </div>
-      <p className="nuit-lecture" aria-hidden="true">
-        {lectureAffichee}
-      </p>
     </div>
   )
 }

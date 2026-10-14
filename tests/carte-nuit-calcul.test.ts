@@ -107,6 +107,21 @@ describe('la frise défile', () => {
     }
   })
 
+  // T-0418 — l'aplat de l'étiquette suit la phase sous son repère : clair de jour seulement.
+  it('dit de jour le repère qui tombe dans le jour, et lui seul', () => {
+    const vue = fenetreFrise(centre)
+    const reperes = reperesHeures(vue, frise)
+    for (const r of reperes) {
+      const t = Number(r.cle)
+      const segment = frise.segments.find((sg) => sg.debut.getTime() <= t && t < sg.fin.getTime())
+      expect(r.jour).toBe(segment?.phase === 'JOUR')
+    }
+    expect(reperes.some((r) => r.jour)).toBe(true)
+    expect(reperes.some((r) => !r.jour)).toBe(true)
+    // Sans frise, rien n'est de jour.
+    expect(reperesHeures(vue).some((r) => r.jour)).toBe(false)
+  })
+
   it('ne pose que ce qui touche la fenêtre vue', () => {
     const vue = fenetreFrise(centre)
     for (const b of bandesPhases(frise, vue)) {

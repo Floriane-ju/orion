@@ -11,6 +11,9 @@
  *
  * T-0411 — la barre haute porte maintenant le temps : la phrase descend en bas à gauche de la
  * scène, à la place de la frise qui est montée dans la barre.
+ *
+ * T-0414 — le temps est descendu en bas au centre : la phrase remonte en haut à droite de la
+ * scène, contre le panneau de séance.
  */
 
 import { useEffect, useMemo, useRef } from 'react'
@@ -119,10 +122,10 @@ export function Visee(props: { readonly site: Site; readonly gaiaCharge: boolean
 }
 
 /**
- * La carte Site s'arrête au-dessus de la visée : les deux partagent le flanc gauche, et la
- * visée a une hauteur que la feuille ne connaît pas — sous une fenêtre étroite, ses champs
- * passent à la ligne. Elle la publie donc sur la racine, où la carte la lit ; démontée, elle
- * ne réserve plus rien.
+ * T-0414 — les cartes du matériel partent sous la visée : les deux partagent le haut droit de
+ * la scène, et la visée a une hauteur que la feuille ne connaît pas — sous une fenêtre étroite,
+ * ses champs passent à la ligne. Elle la publie donc sur la racine, où la colonne la lit ;
+ * démontée, elle ne réserve plus rien.
  */
 function useHauteurPubliee() {
   const cadre = useRef<HTMLDivElement | null>(null)

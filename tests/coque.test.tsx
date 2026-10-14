@@ -161,12 +161,13 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
    * T-0411 — le temps a quitté la colonne de droite pour la barre haute. La colonne garde la
    * largeur : la barre et les cartes la lisent pour s'arrêter avant elle.
    */
-  it('laisse la colonne de droite au seul panneau, et porte le temps dans la barre', () => {
+  it('laisse la colonne de droite au seul panneau, et porte le temps hors d’elle', () => {
     const html = ecran()
-    const colonne = html.slice(html.indexOf('coque-droite'))
+    const colonne = html.slice(html.indexOf('coque-droite'), html.indexOf('coque-temps'))
     expect(colonne.indexOf('coque-lateral')).toBeGreaterThan(-1)
     expect(colonne).not.toContain('panneau-temps')
-    expect(html.indexOf('panneau-temps')).toBeLessThan(html.indexOf('coque-scene'))
+    // T-0413 — en bas de la scène, dans sa propre région.
+    expect(html.indexOf('panneau-temps')).toBeGreaterThan(html.indexOf('coque-temps'))
 
     const debut = CSS_COQUE.indexOf('.coque-droite {')
     expect(debut).toBeGreaterThan(-1)
@@ -688,8 +689,8 @@ describe('T-0183 — le plan de nuit est une carte, et il reste imprimable', () 
  * le tiroir n'existe plus. La barre basse démontée, la phrase est montée dans la barre haute.
  */
 describe('T-0153 — la phrase de visée se lit sans un clic', () => {
-  // T-0411 — la barre haute porte le temps : la phrase descend en bas à gauche de la scène.
-  it('pose la phrase en bas à gauche, hors de la barre haute', () => {
+  // T-0414 — la phrase se pose en haut à droite de la scène, contre le panneau.
+  it('pose la phrase en haut à droite, hors de la barre haute', () => {
     const html = ecran().replaceAll('<!-- -->', '')
     const visee = html.slice(html.indexOf('coque-visee'))
     // Six champs à préfixe, dans l'ordre de la phrase qu'ils remplacent.
@@ -698,7 +699,8 @@ describe('T-0153 — la phrase de visée se lit sans un clic', () => {
     expect(haut).not.toContain('coque-visee')
     // T-0325 — la légende a quitté la barre pour la modale info.
     expect(haut).not.toContain('Couleur — famille')
-    expect(haut.indexOf('<h1')).toBeLessThan(haut.indexOf('panneau-temps'))
+    expect(haut).toContain('<h1')
+    expect(haut).not.toContain('panneau-temps')
   })
 
   it('se rogne plutôt que de passer sous le panneau de séance', () => {

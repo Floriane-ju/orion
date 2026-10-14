@@ -6,8 +6,8 @@
  * panneaux de 20 et 24 rem prenaient 700 px, et un cadre de 0,8° se jugeait dans ce qui
  * restait. La scène prend maintenant toute la surface, et ce qui la commande vient dessus :
  *
- *   - la barre HAUTE nomme l'application et porte le temps : l'horloge et la frise de la
- *     nuit, liées (T-0411) ;
+ *   - la barre HAUTE nomme l'application ; le temps (horloge et frise liées, T-0411) l'a
+ *     quittée pour le bas de la scène (T-0413) ;
  *   - la carte SITE se pose en haut à gauche, à droite du rail : le lieu, résumé replié ;
  *   - le RAIL borde la scène à gauche et porte les bascules de la vue (T-0213) ;
  *   - les cartes du MATÉRIEL, Boîtier et Optique, se posent en haut à droite (T-0245) : c'est la
@@ -15,13 +15,14 @@
  *   - les CARTES portent le plan de nuit, repliable ;
  *   - la COLONNE DE DROITE porte le panneau de séance : ce qui se lit en longueur — le
  *     catalogue, le filé ;
- *   - la VISÉE se pose en bas à gauche, à côté du mode nuit (T-0411, à la place de la frise).
+ *   - la VISÉE se pose en haut à droite, contre le panneau (T-0414) ;
+ *   - le TEMPS se pose en bas au centre de la scène (T-0413).
  *
  * La coque ne connaît aucun contenu : elle reçoit six régions et les place. C'est ce qui
  * permet de remplir, vider et redécouper les panneaux sans toucher à la mise en page.
  *
  * L'ordre du DOM est l'ordre de tabulation : barre haute, scène, matériel, cartes, panneau,
- * visée. Il suit la lecture, pas la position à l'écran — un panneau ouvert au
+ * visée, temps. Il suit la lecture, pas la position à l'écran — un panneau ouvert au
  * clavier depuis la barre haute est le nœud suivant, pas le dernier de la page.
  *
  * Sous le repli, tout redevient un flux vertical : les cartes se dépilent sous la scène et le
@@ -34,8 +35,10 @@ import { useEffect, type ReactNode } from 'react'
 import { ancreTiroirs } from './tiroir-ancrage.ts'
 
 export interface CoqueProps {
-  /** Barre haute : identité, puis le temps. */
+  /** Barre haute : l'identité. */
   readonly topbar: ReactNode
+  /** T-0413 — le temps (horloge, frise, retour au présent), en bas au centre de la scène. */
+  readonly temps: ReactNode
   /** La scène. Elle occupe toute la coque, les autres régions se posent dessus. */
   readonly scene: ReactNode
   /** Les cartes du matériel, posées sur la scène contre la colonne de droite. */
@@ -44,7 +47,7 @@ export interface CoqueProps {
   readonly cartes: ReactNode
   /** Panneau de séance, dans la colonne de droite. */
   readonly lateral: ReactNode
-  /** La visée, en bas à gauche de la scène. */
+  /** La visée, en haut à droite de la scène (T-0414). */
   readonly visee: ReactNode
   /** T-0325 — la page info : dernière du DOM, elle couvre tout quand l'ancre la vise. */
   readonly page: ReactNode
@@ -63,6 +66,7 @@ export function Coque(props: CoqueProps) {
       <div className="coque-cartes">{props.cartes}</div>
       <div className="coque-droite">{props.lateral}</div>
       {props.visee}
+      <div className="coque-temps">{props.temps}</div>
       {props.page}
     </div>
   )
