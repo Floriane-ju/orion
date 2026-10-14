@@ -37,26 +37,26 @@
  * elle se lit pour comprendre le champ, pas pour agir, et la barre ne garde que la visée et
  * les commandes.
  *
- * La barre basse est démontée : la légende des couleurs et la phrase de visée montent ici,
- * entre la marque et les commandes. La phrase prend la place que les commandes laissent et
- * se rogne la première ; le lieu, lui, est devenu la carte « Site » posée sur la scène.
+ * La barre basse est démontée : la phrase de visée était montée ici ; le lieu, lui, est
+ * devenu la carte « Site » posée sur la scène.
+ *
+ * T-0411 — la barre porte le TEMPS : l'horloge, la frise de la nuit et le retour au présent,
+ * en une rangée. La visée lui laisse la place et descend en bas à gauche de la scène, où se
+ * posait la frise.
  */
 
-import type { Site } from '../core/ephem.ts'
-import { Visee } from './Visee.tsx'
+import type { ReactNode } from 'react'
 
 export interface BarreHautProps {
-  /** §3.3 — le site oriente le ciel : sans lui, la visée n'a pas de coordonnées J2000. */
-  readonly site: Site
-  /** §3.3 — le paquet Gaia décide jusqu'où le champ peut se refermer sans vider le ciel. */
-  readonly gaiaCharge: boolean
+  /** T-0411 — l'horloge et la frise liées (`PanneauTemps`). */
+  readonly temps: ReactNode
 }
 
 export function BarreHaut(props: BarreHautProps) {
   return (
     <>
       <h1>Orion</h1>
-      <Visee site={props.site} gaiaCharge={props.gaiaCharge} />
+      {props.temps}
     </>
   )
 }

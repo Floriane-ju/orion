@@ -8,9 +8,12 @@
  * T-0163 — elle ne date plus l'image : le panneau du temps porte le même instant, réglable.
  * La phrase ne garde que ce qui lui appartient — la visée, le cap, le champ — et ses cinq
  * nombres se tirent à l'horizontale.
+ *
+ * T-0411 — la barre haute porte maintenant le temps : la phrase descend en bas à gauche de la
+ * scène, à la place de la frise qui est montée dans la barre.
  */
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import type { Site } from '../core/ephem.ts'
 import { cielInstantane } from '../core/horloges.ts'
 import { bornesZoom } from '../core/projection.ts'
@@ -52,6 +55,7 @@ export function Visee(props: { readonly site: Site; readonly gaiaCharge: boolean
   const ciel = useMemo(() => cielInstantane(props.site, date), [props.site, date])
   const segments = segmentsVisee(vue, ciel.matrice)
   const bornes = bornesZoom(props.gaiaCharge, vue.mode)
+  const cadre = useHauteurPubliee()
 
   /**
    * Les cinq nombres de la phrase sont des ENTRÉES de la scène. Trois le sont directement ;
@@ -105,7 +109,35 @@ export function Visee(props: { readonly site: Site; readonly gaiaCharge: boolean
     />
   )
 
-  // T-0163 — la barre ne date plus l'image : le panneau du temps porte le même instant, et
-  // deux horloges à l'écran se contredisent à la seconde près.
-  return <div className="barrehaut-visee">{segments.map(compteur)}</div>
+  // T-0163 — la phrase ne date plus l'image : la barre porte le même instant, et deux
+  // horloges à l'écran se contredisent à la seconde près.
+  return (
+    <div ref={cadre} className="coque-visee">
+      {segments.map(compteur)}
+    </div>
+  )
+}
+
+/**
+ * La carte Site s'arrête au-dessus de la visée : les deux partagent le flanc gauche, et la
+ * visée a une hauteur que la feuille ne connaît pas — sous une fenêtre étroite, ses champs
+ * passent à la ligne. Elle la publie donc sur la racine, où la carte la lit ; démontée, elle
+ * ne réserve plus rien.
+ */
+function useHauteurPubliee() {
+  const cadre = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    const element = cadre.current
+    if (element === null || typeof ResizeObserver === 'undefined') return
+    const racine = document.documentElement
+    const observateur = new ResizeObserver(() => {
+      racine.style.setProperty('--visee-haut', `${element.offsetHeight}px`)
+    })
+    observateur.observe(element)
+    return () => {
+      observateur.disconnect()
+      racine.style.removeProperty('--visee-haut')
+    }
+  }, [])
+  return cadre
 }

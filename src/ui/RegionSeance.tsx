@@ -376,7 +376,7 @@ export function LateralSeance(props: RegionSeanceProps) {
 }
 
 /**
- * T-0346 — la nuit, en bas à gauche de la scène. Elle ne dépend que du lieu et de la date :
+ * T-0346 — la nuit ; T-0411 — dans la barre haute, liée à l’horloge. Elle ne dépend que du lieu et de la date :
  * elle se montre quel que soit le mode et même quand le matériel manque. Hors du panneau de
  * séance, elle ne défile plus avec la liste et ne la repousse plus.
  */

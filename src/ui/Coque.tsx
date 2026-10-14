@@ -6,27 +6,22 @@
  * panneaux de 20 et 24 rem prenaient 700 px, et un cadre de 0,8° se jugeait dans ce qui
  * restait. La scène prend maintenant toute la surface, et ce qui la commande vient dessus :
  *
- *   - la barre HAUTE nomme l'application, dit où pointe la vue et ouvre les panneaux — la
- *     barre basse, démontée, lui a laissé la légende et la phrase de visée ;
+ *   - la barre HAUTE nomme l'application et porte le temps : l'horloge et la frise de la
+ *     nuit, liées (T-0411) ;
  *   - la carte SITE se pose en haut à gauche, à droite du rail : le lieu, résumé replié ;
  *   - le RAIL borde la scène à gauche et porte les bascules de la vue (T-0213) ;
  *   - les cartes du MATÉRIEL, Boîtier et Optique, se posent en haut à droite (T-0245) : c'est la
  *     saisie qu'on relit le plus, dépliée au démarrage, mais repliable quand elle est réglée ;
  *   - les CARTES portent le plan de nuit, repliable ;
- *   - la COLONNE DE DROITE porte le panneau du temps (T-0314) puis le panneau de séance : la
- *     date et l'heure coiffent ce qui se lit en longueur — le catalogue, le filé ;
- *   - la frise de la NUIT se pose en bas à gauche, à côté du mode nuit (T-0346).
+ *   - la COLONNE DE DROITE porte le panneau de séance : ce qui se lit en longueur — le
+ *     catalogue, le filé ;
+ *   - la VISÉE se pose en bas à gauche, à côté du mode nuit (T-0411, à la place de la frise).
  *
  * La coque ne connaît aucun contenu : elle reçoit six régions et les place. C'est ce qui
  * permet de remplir, vider et redécouper les panneaux sans toucher à la mise en page.
  *
- * Le temps et le panneau de séance partagent UN conteneur plutôt que deux ancrages absolus :
- * c'est lui qui tient la largeur — les deux la partagent exactement, et le panneau du temps ne
- * se redimensionne jamais sous la main — et c'est le panneau de séance qui prend la hauteur
- * restante, quelle que soit celle du temps.
- *
- * L'ordre du DOM est l'ordre de tabulation : barre haute, scène, matériel, cartes, temps,
- * panneau, barre basse. Il suit la lecture, pas la position à l'écran — un panneau ouvert au
+ * L'ordre du DOM est l'ordre de tabulation : barre haute, scène, matériel, cartes, panneau,
+ * visée. Il suit la lecture, pas la position à l'écran — un panneau ouvert au
  * clavier depuis la barre haute est le nœud suivant, pas le dernier de la page.
  *
  * Sous le repli, tout redevient un flux vertical : les cartes se dépilent sous la scène et le
@@ -39,20 +34,18 @@ import { useEffect, type ReactNode } from 'react'
 import { ancreTiroirs } from './tiroir-ancrage.ts'
 
 export interface CoqueProps {
-  /** Barre haute : identité, visée, bascules de panneau. */
+  /** Barre haute : identité, puis le temps. */
   readonly topbar: ReactNode
   /** La scène. Elle occupe toute la coque, les autres régions se posent dessus. */
   readonly scene: ReactNode
-  /** Le panneau du temps : la date, l'heure et le transport, en tête de la colonne de droite. */
-  readonly temps: ReactNode
   /** Les cartes du matériel, posées sur la scène contre la colonne de droite. */
   readonly materiel: ReactNode
   /** Ce qui se pose sur la scène : le rail de la vue, puis la carte du plan de nuit. */
   readonly cartes: ReactNode
-  /** Panneau de séance, sous le temps dans la même colonne. */
+  /** Panneau de séance, dans la colonne de droite. */
   readonly lateral: ReactNode
-  /** La frise de la nuit, en bas à gauche de la scène. */
-  readonly nuit: ReactNode
+  /** La visée, en bas à gauche de la scène. */
+  readonly visee: ReactNode
   /** T-0325 — la page info : dernière du DOM, elle couvre tout quand l'ancre la vise. */
   readonly page: ReactNode
 }
@@ -68,11 +61,8 @@ export function Coque(props: CoqueProps) {
       <main className="coque-scene">{props.scene}</main>
       {props.materiel}
       <div className="coque-cartes">{props.cartes}</div>
-      <div className="coque-droite">
-        {props.temps}
-        {props.lateral}
-      </div>
-      {props.nuit}
+      <div className="coque-droite">{props.lateral}</div>
+      {props.visee}
       {props.page}
     </div>
   )

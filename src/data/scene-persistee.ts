@@ -50,7 +50,9 @@ const MODES_PROJECTION: readonly string[] = Object.freeze([
   'MODE_CADRE',
   'MODE_FISHEYE',
 ])
-const MODES_TEMPS: readonly string[] = Object.freeze(['MAINTENANT', 'FIGE', 'DEFILEMENT'])
+// T-0411 — le défilement n'a plus de commande : restauré, il ferait filer le ciel sans rien
+// pour l'arrêter. Il est écarté à la relecture, et la scène repart sur son défaut.
+const MODES_TEMPS: readonly string[] = Object.freeze(['MAINTENANT', 'FIGE'])
 
 function litVue(vue: Brut): NonNullable<ScenePersistee['vue']> {
   return garde(vue, {

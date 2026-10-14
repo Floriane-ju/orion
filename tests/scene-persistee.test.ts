@@ -87,4 +87,12 @@ describe('T-0355 — scène persistée', () => {
     cles.set('orion.scene', '{ pas du JSON')
     expect(litScenePersistee()).toStrictEqual({})
   })
+
+  // T-0411 — le défilement n'a plus de commande : relu, il ferait filer le ciel sans rien pour
+  // l'arrêter.
+  it('écarte un défilement enregistré avant que ses commandes disparaissent', () => {
+    const cles = stockage()
+    cles.set('orion.scene', JSON.stringify({ temps: { modeTemps: 'DEFILEMENT', decalageMs: 0 } }))
+    expect(litScenePersistee().temps?.modeTemps).toBeUndefined()
+  })
 })

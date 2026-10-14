@@ -22,6 +22,7 @@ import { cibleSeance, ouvreCible, relieCible, useTrancheSeance } from './ui/sean
 import { BarreHaut } from './ui/BarreHaut.tsx'
 import { BoutonInfo, PageInfo } from './ui/PageInfo.tsx'
 import { PanneauTemps } from './ui/PanneauTemps.tsx'
+import { Visee } from './ui/Visee.tsx'
 import { CartesSeance, LateralSeance, NuitSeance } from './ui/RegionSeance.tsx'
 import { useSaisieLieu, useSaisieMateriel, useSaisiePoids } from './ui/app-saisie.ts'
 import {
@@ -153,13 +154,6 @@ function AppPrete({
 
   const gaia = catalogues.etat === null ? false : gaiaCharge(catalogues.etat.catalogues)
 
-  const topbar = (
-    <BarreHaut
-      site={chaine.site}
-      gaiaCharge={gaia}
-    />
-  )
-
   const panneauMateriel = (
     <PanneauMateriel
       {...materiel}
@@ -220,9 +214,23 @@ function AppPrete({
 
   return (
     <Coque
-      topbar={topbar}
+      topbar={
+        <BarreHaut
+          temps={
+            <PanneauTemps
+              surNuitIso={lieu.surNuitIso}
+              frise={
+                <NuitSeance
+                  {...regions}
+                  modeNuitActif={modeNuit.actif}
+                  activeModeNuit={() => setModeNuit({ ...modeNuit, actif: true })}
+                />
+              }
+            />
+          }
+        />
+      }
       scene={scene}
-      temps={<PanneauTemps surNuitIso={lieu.surNuitIso} />}
       materiel={panneauMateriel}
       cartes={
         <>
@@ -234,13 +242,7 @@ function AppPrete({
         </>
       }
       lateral={<LateralSeance {...regions} />}
-      nuit={
-        <NuitSeance
-          {...regions}
-          modeNuitActif={modeNuit.actif}
-          activeModeNuit={() => setModeNuit({ ...modeNuit, actif: true })}
-        />
-      }
+      visee={<Visee site={chaine.site} gaiaCharge={gaia} />}
       page={
         <PageInfo
           etat={catalogues.etat}

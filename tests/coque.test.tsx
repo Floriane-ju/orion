@@ -105,7 +105,7 @@ function ongletsPanneau(html: string): string {
 }
 
 describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
-  it('monte les six régions : la barre, la scène, le temps, le matériel, les cartes, le panneau', () => {
+  it('monte les régions : la barre et son temps, la scène, le matériel, les cartes, le panneau, la visée', () => {
     const html = ecran()
     expect(html).toContain('coque-topbar')
     expect(html).toContain('coque-scene')
@@ -114,6 +114,7 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
     expect(html).toContain('cartes-materiel')
     expect(html).toContain('coque-cartes')
     expect(html).toContain('coque-lateral')
+    expect(html).toContain('coque-visee')
     // La barre basse est démontée : son contenu est monté dans la barre haute et la carte Site.
     expect(html).not.toContain('coque-barrebas')
     expect(html).not.toContain('<footer')
@@ -157,34 +158,20 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
   })
 
   /**
-   * T-0314 — le panneau du temps coiffe le panneau de séance, dans la colonne de droite.
-   *
-   * C'est la COLONNE qui porte la largeur, et non plus le panneau de séance seul : les deux
-   * boîtes la remplissent exactement, si bien que le temps ne se redimensionne jamais sous la
-   * main et que les deux cadres empilés s'alignent. La hauteur restante revient au panneau de
-   * séance, qui est ce qui défile.
+   * T-0411 — le temps a quitté la colonne de droite pour la barre haute. La colonne garde la
+   * largeur : la barre et les cartes la lisent pour s'arrêter avant elle.
    */
-  it('range le temps au-dessus du panneau, dans une colonne qui tient la largeur', () => {
+  it('laisse la colonne de droite au seul panneau, et porte le temps dans la barre', () => {
     const html = ecran()
-    expect(html.indexOf('coque-droite')).toBeGreaterThan(html.indexOf('coque-scene'))
-    expect(html.indexOf('panneau-temps')).toBeLessThan(html.indexOf('coque-lateral'))
+    const colonne = html.slice(html.indexOf('coque-droite'))
+    expect(colonne.indexOf('coque-lateral')).toBeGreaterThan(-1)
+    expect(colonne).not.toContain('panneau-temps')
+    expect(html.indexOf('panneau-temps')).toBeLessThan(html.indexOf('coque-scene'))
 
     const debut = CSS_COQUE.indexOf('.coque-droite {')
     expect(debut).toBeGreaterThan(-1)
-    const colonne = CSS_COQUE.slice(debut, CSS_COQUE.indexOf('}', debut))
-    expect(colonne).toContain('right: var(--jour-carte)')
-    expect(colonne).toContain('top: var(--jour-carte)')
-    expect(colonne).toContain('bottom: var(--jour-carte)')
-    expect(colonne).toContain('width: var(--lateral)')
-    expect(colonne).toContain('flex-direction: column')
-
-    // Ni le temps ni le panneau ne redéclarent de largeur : elle vient de la colonne, une fois.
-    const temps = CSS_COQUE.slice(
-      CSS_COQUE.indexOf('.panneau-temps {'),
-      CSS_COQUE.indexOf('}', CSS_COQUE.indexOf('.panneau-temps {')),
-    )
-    expect(temps).toContain('flex: none')
-    expect(temps).not.toMatch(/\bwidth:/)
+    const regle = CSS_COQUE.slice(debut, CSS_COQUE.indexOf('}', debut))
+    expect(regle).toContain('width: var(--lateral)')
   })
 
   it('déplie une carte du matériel sans toucher à l’autre', () => {
@@ -700,25 +687,25 @@ describe('T-0183 — le plan de nuit est une carte, et il reste imprimable', () 
  * pas le rendu. Ce qui se vérifie ici est donc double : la phrase est visible sans un clic, et
  * le tiroir n'existe plus. La barre basse démontée, la phrase est montée dans la barre haute.
  */
-describe('T-0153 — la barre porte la phrase qui date l’image', () => {
-  it('pose la phrase dans la barre haute, après la marque et la légende', () => {
-    const haut = barreHaute(ecran()).replaceAll('<!-- -->', '')
+describe('T-0153 — la phrase de visée se lit sans un clic', () => {
+  // T-0411 — la barre haute porte le temps : la phrase descend en bas à gauche de la scène.
+  it('pose la phrase en bas à gauche, hors de la barre haute', () => {
+    const html = ecran().replaceAll('<!-- -->', '')
+    const visee = html.slice(html.indexOf('coque-visee'))
     // Six champs à préfixe, dans l'ordre de la phrase qu'ils remplacent.
-    expect(haut).toMatch(/>AD<[\s\S]*>δ<[\s\S]*>AZ<[\s\S]*>H<[\s\S]*>CH<[\s\S]*>ROT</)
-    expect(haut).toContain('barrehaut-visee')
-    expect(haut.indexOf('<h1')).toBeLessThan(haut.indexOf('barrehaut-visee'))
+    expect(visee).toMatch(/>AD<[\s\S]*>δ<[\s\S]*>AZ<[\s\S]*>H<[\s\S]*>CH<[\s\S]*>ROT</)
+    const haut = barreHaute(html)
+    expect(haut).not.toContain('coque-visee')
     // T-0325 — la légende a quitté la barre pour la modale info.
     expect(haut).not.toContain('Couleur — famille')
-    expect(haut).not.toContain('panneau-temps')
+    expect(haut.indexOf('<h1')).toBeLessThan(haut.indexOf('panneau-temps'))
   })
 
-  it('lui laisse ce que la marque et les commandes ne prennent pas', () => {
-    const debut = CSS_COQUE.indexOf('.coque-topbar > .barrehaut-visee {')
+  it('se rogne plutôt que de passer sous le panneau de séance', () => {
+    const debut = CSS_COQUE.indexOf('.coque-visee {')
     expect(debut).toBeGreaterThan(-1)
     const corps = CSS_COQUE.slice(debut, CSS_COQUE.indexOf('}', debut))
-    expect(corps).toContain('flex: 1')
-    expect(corps).toContain('justify-content: flex-end')
-    // Elle se rogne plutôt que de pousser la barre.
+    expect(corps).toContain('right: calc(var(--lateral) + 2 * var(--jour-carte))')
     expect(corps).toContain('overflow: hidden')
   })
 

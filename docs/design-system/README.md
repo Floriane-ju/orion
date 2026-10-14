@@ -152,11 +152,12 @@ décollé des bords d'un `--jour-carte`, filet, barre de titre pleine sur la fic
 jamais. Il reste hors de `Carte` : son en-tête porte les onglets de mode (`.onglets`), et sur
 la fiche un retour et des commandes — ce qu'un en-tête-bouton ne peut contenir.
 
-Le panneau du temps (`.panneau-temps`) porte le même cadre et coiffe le panneau latéral : les
-deux partagent la colonne de droite (`.coque-droite`), **qui porte la largeur pour eux deux**.
-Il ne se replie pas non plus et n'a pas d'en-tête — la date qu'il affiche le nomme déjà — et il
-n'affiche rien d'intermittent : une lecture qui apparaît puis disparaît changerait sa taille, et
-deux cadres empilés qui ne s'alignent pas se lisent comme un défaut de montage.
+Le temps (`.panneau-temps`, T-0411) est une rangée de la barre haute, sans cadre, comme la
+marque : l'horloge, la frise de la nuit (`.panneau-nuit`) dont le curseur est cet instant, et le
+retour au présent. **Un seul endroit règle le temps** — tirer un compteur fait défiler la frise,
+cliquer la frise change l'horloge. Ce qu'un geste laisse à dire (`.nuit-messages`) tombe sous la
+frise, par-dessus le ciel, pour ne pas faire grandir la barre. La phrase de visée
+(`.coque-visee`) a laissé la barre et se pose en bas à gauche de la scène.
 
 Un aplat de surface ou une ombre n'auraient pas tenu : §11.1 confisque la luminance, et un
 trait se lit à n'importe laquelle. Les quatre sections **nommées** — `.scene`, `.cibles`,

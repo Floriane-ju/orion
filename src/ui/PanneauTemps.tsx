@@ -1,34 +1,22 @@
 /**
- * §3.2 / T-0314 — la date et l'heure tiennent un panneau, en tête de la colonne de droite.
+ * §3.2 / T-0411 — la date, l'heure et la frise de la nuit ne font qu'un réglage, dans la barre
+ * haute.
  *
- * T-0137 avait fait du temps un transport plutôt qu'un formulaire : un chevron porte à la fois
- * le sens, la vitesse et l'ordre de partir. Il fermait la barre basse, sur une ligne de la même
- * taille que la phrase de visée qui le précédait — l'une des deux entrées qui datent toute la
- * nuit se lisait comme une lecture de plus. Il devient un objet posé sur le ciel, avec le cadre
- * d'instrument du panneau de séance qu'il coiffe : la date et l'heure sur la première rangée —
- * l'instant se lit d'une traite —, le transport sur la seconde, fermé par le retour au présent.
+ * T-0314 tenait l'instant dans un panneau en tête de la colonne de droite, et la frise en bas à
+ * gauche : deux endroits pour régler la même chose, qui ne se lisaient pas comme liés. Ils
+ * forment maintenant une rangée — l'horloge, la frise dont le curseur EST cet instant, le retour
+ * au présent. Tirer un compteur fait défiler la frise ; cliquer la frise change l'horloge.
  *
- * Les quatre chevrons encadrent désormais le bouton de LECTURE et non le cadran : c'est lui qui
- * tient le milieu du transport, et l'ordre continue de dire dans quel sens chacun emmène le ciel.
- *
- * LES CINQ COMMANDES FORMENT UN GROUPE EXCLUSIF — voir `transportActif`. La lecture ne vaut que
- * le temps réel ; elle s'éteint dès qu'une vitesse prend la main, au lieu de rester allumée à
- * côté du chevron qui la contredit.
- *
- * LE FACTEUR APPLIQUÉ N'EST PLUS AFFICHÉ, ni l'écrêtage qui le produit. Le plafond de lisibilité
- * de §3.2 continue de s'appliquer — il vit dans `Planetarium`, qui dessine —, mais sa lecture
- * demandait au panneau une largeur variable : « ×1500 » puis rien, une phrase de trois lignes
- * puis rien. Un panneau qui change de taille sous la main coûte plus que le chiffre ne rapporte,
- * et le ciel qui ralentit se voit à l'écran.
+ * Le transport est retiré (lecture, pause, quatre chevrons) : choix produit. Le temps se règle
+ * en tirant les compteurs, sur la frise, ou en revenant au présent — qui rend aussi l'écoulement
+ * réel. Le défilement accéléré n'a plus de commande.
  *
  * Aucun `useScene()` ici. Le magasin publie l'instant rendu deux fois par seconde ; s'y
- * abonner en entier ferait rendre le panneau au même rythme (T-0056). Le panneau s'abonne à une
- * tranche d'identité stable, et seuls les deux morceaux d'horloge s'abonnent à la SECONDE —
- * pas aux millisecondes qu'ils affichent.
+ * abonner en entier ferait rendre la barre au même rythme (T-0056). Seuls les deux morceaux
+ * d'horloge s'abonnent à la SECONDE — pas aux millisecondes qu'ils affichent.
  */
 
 import { useRef, type ReactNode } from 'react'
-import { facteurDefilement } from '../core/curseur-temps.ts'
 import { nuitDeLInstant } from '../core/nuit-datee.ts'
 import {
   dateAvec,
@@ -39,67 +27,9 @@ import {
 } from './horaire.ts'
 import { BoutonGlyphe } from './BoutonGlyphe.tsx'
 import { Compteur } from './Compteur.tsx'
-import {
-  etatScene,
-  type EtatScene,
-  majTemps,
-  reprend,
-  secondeAffichee,
-  type TempsScene,
-  useTrancheScene,
-  vaA,
-} from './scene-etat.ts'
+import { etatScene, majTemps, secondeAffichee, useTrancheScene, vaA } from './scene-etat.ts'
 import { DOMAINES } from '../registry/domains.ts'
 import { destinationTrajet, traverse } from './trajet-scene.ts'
-
-/** Sélecteur défini au niveau du module — `useTrancheScene` exige une identité stable. */
-function tempsScene(etat: EtatScene): EtatScene['temps'] {
-  return etat.temps
-}
-
-/**
- * §3.2 / T-0314 — les cinq commandes du transport sont UN groupe exclusif : le temps réel, et
- * les quatre vitesses de défilement. Une seule s'allume à la fois.
- *
- * Le défaut que ça corrige : la lecture s'allumait dès que le temps s'écoulait, défilement
- * compris. Un ×1500 en cours montrait donc deux commandes enfoncées — la lecture ET son chevron
- * — sans que rien ne dise laquelle commandait la vitesse. La lecture ne vaut plus que `MAINTENANT`,
- * le seul régime où le ciel avance à la vitesse du ciel.
- *
- * `facteur` vaut `null` pour la lecture : le temps réel n'est pas une vitesse de défilement,
- * c'est l'absence de facteur.
- */
-export function transportActif(temps: TempsScene, facteur: number | null): boolean {
-  if (facteur === null) return temps.modeTemps === 'MAINTENANT'
-  return temps.modeTemps === 'DEFILEMENT' && temps.facteur === facteur
-}
-
-/**
- * Ce que la commande annonce, selon d'où l'on part. Elle fait trois choses différentes et ne
- * peut pas s'appeler pareil dans les trois cas : relâcher la lecture met en PAUSE, la reprendre
- * depuis une pause REND le temps à son écoulement, et l'atteindre depuis un défilement RAMÈNE au
- * temps réel — ce dernier n'est ni une reprise ni une pause.
- */
-function libelleLecture(temps: TempsScene): string {
-  if (transportActif(temps, null)) return 'Mettre le temps en pause'
-  if (temps.modeTemps === 'DEFILEMENT') return 'Revenir au temps réel'
-  return 'Reprendre l’écoulement du temps'
-}
-
-interface Cran {
-  readonly sens: -1 | 1
-  readonly rapide: boolean
-  readonly icone: string
-  readonly libelle: string
-}
-
-/** Les quatre chevrons, dans l'ordre où ils se lisent : les reculs à gauche de la lecture. */
-const CRANS: readonly Cran[] = Object.freeze([
-  { sens: -1, rapide: true, icone: 'keyboard_double_arrow_left', libelle: 'Reculer vite' },
-  { sens: -1, rapide: false, icone: 'chevron_left', libelle: 'Reculer' },
-  { sens: 1, rapide: false, icone: 'chevron_right', libelle: 'Avancer' },
-  { sens: 1, rapide: true, icone: 'keyboard_double_arrow_right', libelle: 'Avancer vite' },
-] as const)
 
 export interface PanneauTempsProps {
   /**
@@ -108,61 +38,20 @@ export interface PanneauTempsProps {
    * dans la nuit qu'on observe au lieu d'annoncer la suivante.
    */
   readonly surNuitIso: (v: string) => void
+  /** La frise de la nuit, entre l'horloge et le retour au présent ; absente sans ciel. */
+  readonly frise?: ReactNode
 }
 
 export function PanneauTemps(props: PanneauTempsProps) {
-  const temps = useTrancheScene(tempsScene)
-  const enLecture = transportActif(temps, null)
-  // La saisie exacte remplace la rangée de date : l'état vit ici, les deux morceaux d'horloge
-  // l'ouvrent chacun de leur côté sans se connaître.
-
-  /**
-   * Le geste commun aux cinq commandes : relâcher celle qui est allumée fige le temps, en
-   * choisir une autre l'allume. Sans le premier cas, arrêter un défilement demandait de viser
-   * une SECONDE commande — la pause — alors que le doigt est déjà sur celle qui l'a lancé.
-   */
-  function commande(facteur: number | null): void {
-    if (transportActif(temps, facteur)) return majTemps({ modeTemps: 'FIGE' })
-    if (facteur === null) return reprend()
-    majTemps({ modeTemps: 'DEFILEMENT', facteur })
-  }
-
-  const chevron = (cran: Cran) => {
-    const facteur = cran.sens * facteurDefilement(cran.rapide)
-    return (
-      <BoutonGlyphe
-        key={cran.libelle}
-        icone={cran.icone}
-        aide={cran.libelle}
-        variante="nu"
-        presse={transportActif(temps, facteur)}
-        onClick={() => commande(facteur)}
-      />
-    )
-  }
-
   return (
-    <div className="panneau-temps">
+    <section className="panneau-temps" role="region" aria-label="Temps de la scène">
       <div className="panneau-temps-date">
         <Jour surNuitIso={props.surNuitIso} />
         <Heure surNuitIso={props.surNuitIso} />
       </div>
-
-      <div className="panneau-temps-transport">
-        {CRANS.filter((c) => c.sens < 0).map(chevron)}
-        {/* Le glyphe dit ce que le clic FERA, pas où l'on est : sous un défilement, la
-            lecture n'est pas en cours, et c'est donc une flèche qu'elle montre. */}
-        <BoutonGlyphe
-          icone={enLecture ? 'pause' : 'play_arrow'}
-          aide={libelleLecture(temps)}
-          variante="nu"
-          presse={enLecture}
-          onClick={() => commande(null)}
-        />
-        {CRANS.filter((c) => c.sens > 0).map(chevron)}
-        <BoutonMaintenant surNuitIso={props.surNuitIso} />
-      </div>
-    </div>
+      {props.frise}
+      <BoutonMaintenant surNuitIso={props.surNuitIso} />
+    </section>
   )
 }
 
@@ -201,7 +90,7 @@ function valeurChamp(date: Date, champ: ChampInstant): number {
  * chaque mouvement une date déjà déplacée, et le jour dériverait avec elle.
  *
  * L'abonnement à la seconde vit ici, dans le morceau qui l'affiche, et non dans le panneau :
- * les cinq boutons du transport n'ont rien à redessiner à chaque battement (T-0056).
+ * la frise et le retour au présent n’ont rien à redessiner à chaque battement (T-0056).
  */
 function useCompteurs(props: PanneauTempsProps): {
   readonly date: Date

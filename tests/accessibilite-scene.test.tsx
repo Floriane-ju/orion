@@ -97,12 +97,15 @@ describe('T-0068 — la description dit ce que la vue montre en ce moment', () =
       description(html),
     )
     expect(commune).not.toBeNull()
-    // T-0153 — la barre porte la même phrase, au caractère près : elle a quitté le
-    // menu d'information de la barre haute, elle n'a pas été réécrite en chemin.
-    // T-0163 — elle l'entrecoupe désormais de compteurs : c'est le TEXTE qui doit coïncider,
-    // balises retirées. Composée deux fois, la phrase dériverait au premier `toFixed` retouché.
-    const barre = html.slice(html.indexOf('barrehaut-visee'))
-    expect(texteSeul(barre)).toContain(commune![1]!.trim())
+    // T-0153 — la visée affiche les mêmes nombres, au caractère près : composés deux fois, ils
+    // dériveraient au premier `toFixed` retouché. T-0163 — elle les porte en compteurs, dans
+    // l'ordre de la phrase : AD, δ, azimut, hauteur, champ (la rotation n'y figure pas).
+    // T-0411 — elle est descendue en bas à gauche, après la scène dans le DOM.
+    const debut = html.indexOf('coque-visee')
+    const visee = texteSeul(html.slice(debut, html.indexOf('</div>', debut)))
+    const nombres = visee.match(/[\d,]+°/g) ?? []
+    expect(nombres.length).toBeGreaterThanOrEqual(5)
+    for (const n of nombres.slice(0, 5)) expect(commune![1]!, n).toContain(n)
   })
 })
 

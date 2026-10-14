@@ -1,5 +1,5 @@
 /**
- * §8.1 — la nuit d'un coup d'œil, en bas à gauche de la scène.
+ * §8.1 — la nuit d'un coup d'œil, dans la barre haute entre l'horloge et le retour au présent.
  *
  * Avant de choisir une cible, on veut savoir quand il fera noir et ce que fera la Lune. La
  * carte « Plan de nuit » le dit en tableau, repliée sur la scène ; ici la même nuit se lit
@@ -22,6 +22,10 @@
  * de référence — astronomique, ou nautique quand la nuit noire manque (§8.1). Les flèches
  * restent des sauts : un pas de dix minutes n'a rien à montrer en chemin. Arrivé en nuit
  * noire, le mode nuit est PROPOSÉ, jamais imposé : T-0140 a retiré l'activation automatique.
+ *
+ * T-0411 — la frise monte dans la barre haute, liée à l'horloge : un seul endroit règle le
+ * temps. Ce qu'un geste laisse à dire (saut, proposition du mode nuit, cause) tombe SOUS la
+ * frise, par-dessus le ciel, plutôt que de faire grandir la barre.
  *
  * « Aller à la nuit » est l'appel d'entrée, au milieu du ciel : il s'adresse à qui arrive de
  * jour. Ouvert la nuit, il n'a rien à proposer. Dès que le temps bouge sans lui, ou que la
@@ -115,7 +119,6 @@ export function CarteNuit({ site, nuit, modeNuitActif, activeModeNuit }: CarteNu
     () => friseCiel(site, fenetreCalculFrise(heureCalcul * MS_PAR_H)),
     [site, heureCalcul],
   )
-  const cadre = useHauteurPubliee()
   // Ce que le dernier geste laisse à dire : un saut que la lisibilité a imposé, et la
   // proposition du mode nuit à l'arrivée. Le geste suivant efface les deux.
   const [saute, setSaute] = useState(false)
@@ -139,27 +142,29 @@ export function CarteNuit({ site, nuit, modeNuitActif, activeModeNuit }: CarteNu
 
   return (
     <>
-      <section ref={cadre} className="panneau-nuit" role="region" aria-label="La nuit">
-        {nuit.cause !== undefined && <Mention ton="cause">{nuit.cause}</Mention>}
+      <section className="panneau-nuit" role="region" aria-label="La nuit">
         <Frise frise={frise} site={site} instantMs={afficheMs} va={va} efface={efface} />
-        {saute && (
-          <Mention ton="etat" role="status">
-            Saut direct : à ce zoom, le trajet défilerait trop vite pour se lire.
-          </Mention>
-        )}
-        {proposeNuit && (
-          <div className="nuit-gestes">
-            <p className="nuit-proposition" role="status">
-              Nuit noire.
-            </p>
-            <button type="button" onClick={activeModeNuit}>
-              Passer en mode nuit
-            </button>
-            <button type="button" onClick={() => setPropose(false)}>
-              Plus tard
-            </button>
-          </div>
-        )}
+        <div className="nuit-messages">
+          {nuit.cause !== undefined && <Mention ton="cause">{nuit.cause}</Mention>}
+          {saute && (
+            <Mention ton="etat" role="status">
+              Saut direct : à ce zoom, le trajet défilerait trop vite pour se lire.
+            </Mention>
+          )}
+          {proposeNuit && (
+            <div className="nuit-gestes">
+              <p className="nuit-proposition" role="status">
+                Nuit noire.
+              </p>
+              <button type="button" onClick={activeModeNuit}>
+                Passer en mode nuit
+              </button>
+              <button type="button" onClick={() => setPropose(false)}>
+                Plus tard
+              </button>
+            </div>
+          )}
+        </div>
       </section>
       {appel && (
         <div className="nuit-appel">
@@ -213,29 +218,6 @@ function useAppelRetire(minute: number, nuitAuDepart: boolean): boolean {
     if (!retire && appelABouge(depart.current, { temps, minute, vue })) setRetire(true)
   }, [temps, minute, vue, retire])
   return retire
-}
-
-/**
- * La carte Site s'arrête au-dessus de la frise : les deux partagent le flanc gauche, et la
- * frise a une hauteur que la feuille ne connaît pas — une cause de nuit polaire s'y ajoute.
- * Elle la publie donc sur la racine, où la carte la lit ; démontée, elle ne réserve plus rien.
- */
-function useHauteurPubliee() {
-  const cadre = useRef<HTMLElement | null>(null)
-  useEffect(() => {
-    const element = cadre.current
-    if (element === null || typeof ResizeObserver === 'undefined') return
-    const racine = document.documentElement
-    const observateur = new ResizeObserver(() => {
-      racine.style.setProperty('--nuit-haut', `${element.offsetHeight}px`)
-    })
-    observateur.observe(element)
-    return () => {
-      observateur.disconnect()
-      racine.style.removeProperty('--nuit-haut')
-    }
-  }, [])
-  return cadre
 }
 
 interface Survol {
