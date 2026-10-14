@@ -323,8 +323,10 @@ function passeFond(passe: Passe): void {
   if (couches.voieLactee) traceBandeVoieLactee({ ...entree, projecteur: brut })
   // §4.1 — le sol, peint sur le fond et sur la bande, sous tout le reste.
   if (couches.sol) {
+    // T-0409 — le sol suit le Soleil de la scène, comme l'interface suit le sien.
+    const soleilLeve = entree.soleil !== undefined && entree.soleil.altitudeDeg > 0
     dessineSol(ctx, brut, entree.matriceCiel, entree.masque, {
-      sol: teintes.sol,
+      sol: soleilLeve ? teintes.solJour : teintes.sol,
       courbes: teintes.courbes,
     })
   }

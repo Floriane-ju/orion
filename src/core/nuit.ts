@@ -10,7 +10,7 @@
 import { Body, SearchAltitude, SearchRiseSet } from 'astronomy-engine'
 import { K } from '../registry/constants.ts'
 import type { Site } from './ephem.ts'
-import { observateur, verifieDomaineDesSeries, versDate } from './ephem.ts'
+import { observateur, positionCorps, verifieDomaineDesSeries, versDate } from './ephem.ts'
 import type { Traced } from './traced.ts'
 import { trace } from './traced.ts'
 import { DEG_PAR_HEURE, MIN_PAR_H, MS_PAR_MINUTE } from './unites.ts'
@@ -195,4 +195,21 @@ export function fenetreNocturne(site: Site, depart: Date): FenetreNocturne {
     modeDegrade: false,
     penaliteSbMag: 0,
   }
+}
+
+/**
+ * T-0409 — levé entre le lever et le coucher d'`astronomy-engine` (bord supérieur, réfraction
+ * comprise), et non à une hauteur choisie ici : le thème bascule à l'instant que la frise de la
+ * nuit annonce. Le Soleil est levé quand le prochain événement est un coucher.
+ *
+ * Sans lever ni coucher dans la fenêtre de recherche (soleil de minuit, nuit polaire), le
+ * Soleil reste du même côté de l'horizon tout ce temps : le signe de sa hauteur tranche.
+ */
+export function soleilLeve(site: Site, instant: Date): boolean {
+  const obs = observateur(site)
+  const coucher = versDate(SearchRiseSet(Body.Sun, obs, DESCENTE, instant, JOURS_DE_RECHERCHE))
+  const lever = versDate(SearchRiseSet(Body.Sun, obs, MONTEE, instant, JOURS_DE_RECHERCHE))
+  if (coucher !== null && lever !== null) return coucher < lever
+  if (coucher !== null || lever !== null) return coucher !== null
+  return positionCorps(Body.Sun, instant, site).hauteurDeg > 0
 }

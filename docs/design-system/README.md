@@ -86,6 +86,15 @@ mélanges avant de calculer les ratios WCAG.
 | `--barre-survol` | `--attenue` | aplat d'une commande de barre survolée (nuit : rouge 20) |
 | `--barre-survol-encre` | `--fond` | son glyphe (nuit : `--accent`) |
 
+> **Jour clair (T-0409).** Du lever au coucher du Soleil — instant affiché par la scène, lieu
+> saisi (`src/ui/jour-clair.ts`) — un troisième bloc, `:root[data-jour-clair='true']:not([data-mode-nuit='true'])`,
+> échange les origines (neutre `#1a1a1a` sur fond `#ffffff`) et redonne ce qui ne se déduit
+> pas d'un mélange : accent, avertissement, alerte, fond d'alerte, `--attenue` à 75 %,
+> `--surface-survol` à 10 %. Les ratios WCAG sont recalculés dans les trois modes. Le mode nuit
+> l'écarte par le sélecteur ; le canevas n'est pas concerné, et la frise de la nuit garde la
+> palette sombre (îlot `.nuit-frise`). Les jetons réécrits sont enregistrés `<color>`
+> (`@property`) : ils glissent sur `--fondu-nuit`.
+
 > En mode nuit, chacun devient `rgb(calc(var(--luminance-nuit) * N) 0 0)`. Canaux vert et bleu
 > strictement nuls : c'est le critère d'acceptation de §11.1, et il est calculé par un test.
 
@@ -110,7 +119,8 @@ l'un dérive.
 Le reste est **hors kit, et déclaré** : les traits filaires des figures, frontières, astérismes,
 de l'horizon et des courbes de niveau du sol (T-0395, sous l'horizon) sont une graduation propre à la scène, en voiles de blanc (`rgb(255 255 255 / a)`)
 plutôt qu'en gris opaques, pour rester plus clairs que le ciel qu'ils traversent ; les noms peints restent sous `--texte`
-pour ne pas lutter avec l'interface ; la nuit, les corps descendent sous l'ambre-rouge. Une
+pour ne pas lutter avec l'interface ; le sol passe à `solJour` (`rgb(59 61 69)`) tant que le
+Soleil de la scène est levé (T-0409), et reste rouge en mode nuit ; la nuit, les corps descendent sous l'ambre-rouge. Une
 teinte ajoutée à la palette de la scène sans être liée ni déclarée fait échouer le test. Les
 étoiles, objets et fonds de ciel restent hors du kit : ce sont des mesures.
 
@@ -229,7 +239,7 @@ pointillé d'aide) · `--voile` et `--voile-page` (le fond translucide d'un flot
 la scène, et celui de la page info)
 
 **Fondus** — `--fondu-etat` 150ms (retour d'état d'un contrôle, 80ms sous
-`prefers-reduced-motion`) · `--fondu-depli` 180ms (un dépli) · `--fondu-nuit` 600ms (le
+`prefers-reduced-motion`) · `--fondu-depli` 180ms (un dépli) · `--fondu-nuit` 300ms (le
 basculement de §11.1, 120ms sous la préférence : raccourci, jamais supprimé).
 Tous suivent `--courbe` (le smoothstep 3t² − 2t³, celui du canevas) : aucun `ease` ni
 `linear` écrit en dur (`echelles.test.ts`).

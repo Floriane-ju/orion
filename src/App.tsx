@@ -41,6 +41,7 @@ import {
   toucheBasculeModeNuit,
 } from './ui/ModeNuit.tsx'
 import { litEtatPersiste, type EtatModeNuit } from './data/mode-nuit.ts'
+import { useJourClair } from './ui/jour-clair.ts'
 import { installeEchap, installeFermetureDehors } from './ui/gere-echap.ts'
 import { Mention } from './ui/Mention.tsx'
 
@@ -135,6 +136,7 @@ function AppPrete({
   })
   const { calcul, ciel } = chaine
   const [modeNuit, setModeNuit] = useModeNuit()
+  useJourClair(chaine.site)
 
   // §6.4 — filtrer la liste filtre la scène : les cibles écartées s'y estompent au lieu d'y
   // rester indistinctes. `null` tant qu'aucun filtre n'est actif.

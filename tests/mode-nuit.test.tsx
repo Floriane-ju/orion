@@ -77,6 +77,21 @@ const paletteParDefaut = (): Readonly<Record<string, string>> =>
 const paletteDeNuit = (): Readonly<Record<string, string>> => jetonsDuBloc(blocModeNuit())
 
 /**
+ * T-0409 — la palette claire ne réécrit que ses origines et ce qui ne s'en déduit pas : ses
+ * jetons sont ceux du premier bloc, recalculés sous ses surcharges.
+ */
+const SELECTEUR_JOUR_CLAIR = ":root[data-jour-clair='true']:not([data-mode-nuit='true']) {"
+function blocJourClair(): string {
+  const debut = CSS.indexOf(SELECTEUR_JOUR_CLAIR)
+  expect(debut, 'aucun bloc de palette claire').toBeGreaterThan(-1)
+  return CSS.slice(debut, CSS.indexOf('}', debut))
+}
+const paletteClaire = (): Readonly<Record<string, string>> =>
+  jetonsDuBloc(
+    CSS.slice(CSS.indexOf(':root {'), CSS.indexOf('}', CSS.indexOf(':root {'))) + blocJourClair(),
+  )
+
+/**
  * Les canaux 0-255 d'une valeur de palette : `#rrggbb`, ou `rgb(N 0 0)`. La palette est écrite
  * au facteur de luminance nominal — le masque applique le facteur par-dessus — donc la lire
  * telle quelle revient à mesurer le meilleur cas, celui où le seuil doit tenir.
@@ -195,8 +210,43 @@ describe('palette du mode nuit §11.1', () => {
     expect(corps).not.toMatch(/\bhsla?\(/)
   })
 
+  it('garde la frise de la nuit dans la palette sombre, même de jour', () => {
+    // T-0409 — la frise est un morceau de ciel : elle ne blanchit pas avec l'interface. Son
+    // îlot recopie la palette par défaut ; une couleur qui y dériverait ferait deux frises.
+    const selecteur = ":root[data-jour-clair='true']:not([data-mode-nuit='true']) .nuit-frise {"
+    const debut = CSS.indexOf(selecteur)
+    expect(debut, 'aucun îlot sombre pour la frise').toBeGreaterThan(-1)
+    expect(debut).toBeLessThan(CSS.indexOf(":root[data-mode-nuit='true']"))
+    const ilot = jetonsDuBloc(CSS.slice(debut, CSS.indexOf('}', debut)))
+    const parDefaut = paletteParDefaut()
+    for (const jeton of Object.keys(parDefaut).filter((j) => j !== 'cible-clic')) {
+      expect(ilot[jeton], `--${jeton}`).toBe(parDefaut[jeton])
+    }
+  })
+
+  it('écarte la palette claire dès que le mode nuit est actif', () => {
+    // T-0409 — par le sélecteur, pas par l'ordre des blocs : un seul jeton clair qui
+    // l'emporterait, et le rouge ne serait plus total.
+    expect(blocJourClair()).toMatch(/color-scheme:\s*light/)
+    expect(CSS.indexOf(SELECTEUR_JOUR_CLAIR)).toBeLessThan(CSS.indexOf(":root[data-mode-nuit='true']"))
+  })
+
   it('prévoit une transition progressive plutôt qu’un basculement brutal', () => {
     expect(CSS).toMatch(/transition:\s*background-color/)
+  })
+
+  it('fond chaque jeton que la palette claire réécrit, et non le seul fond de page', () => {
+    // T-0409 — un jeton non enregistré ne s'interpole pas : il saute, et les cartes
+    // basculaient d'un coup sous un fond qui, lui, glissait. Enregistré `<color>`, il glisse,
+    // et chaque nuance tirée de lui par `color-mix` glisse avec.
+    const debut = CSS.lastIndexOf('\n:root {')
+    const fondu = /transition:\s*([^;]+);/.exec(CSS.slice(debut, CSS.indexOf('\n}', debut)))?.[1] ?? ''
+    for (const jeton of [...blocJourClair().matchAll(/--([a-z-]+):/g)].map((m) => m[1]!)) {
+      expect(CSS, `--${jeton} non enregistré`).toMatch(
+        new RegExp(`@property --${jeton} \\{[^}]*syntax: '<color>'`),
+      )
+      expect(fondu, `--${jeton} hors du fondu`).toContain(`--${jeton} var(--fondu-nuit)`)
+    }
   })
 
   it('ne fait jamais porter l’information par la seule couleur', () => {
@@ -261,6 +311,7 @@ describe('la scène reprend les jetons de l’interface', () => {
     'horizon',
     'courbes',
     'sol',
+    'solJour',
     'voieLactee',
     'texte',
   ]
@@ -339,12 +390,13 @@ describe('focus et couleurs du navigateur — T-0070', () => {
   })
 
   it('donne à l’anneau ≥ 3:1 sur toutes les surfaces, à luminance nominale', () => {
-    const palette = paletteParDefaut()
-    const anneau = palette[jetonFocus()]!
-    for (const surface of ['fond', 'surface', 'surface-haute']) {
-      expect(contraste(anneau, palette[surface]!), surface).toBeGreaterThanOrEqual(
-        CONTRASTE_FOCUS_MINIMAL,
-      )
+    for (const palette of [paletteParDefaut(), paletteClaire()]) {
+      const anneau = palette[jetonFocus()]!
+      for (const surface of ['fond', 'surface', 'surface-haute']) {
+        expect(contraste(anneau, palette[surface]!), surface).toBeGreaterThanOrEqual(
+          CONTRASTE_FOCUS_MINIMAL,
+        )
+      }
     }
   })
 
@@ -470,6 +522,7 @@ describe('contraste du texte — WCAG 2.2 AA', () => {
 
   for (const [mode, palette] of [
     ['normal', paletteParDefaut],
+    ['clair', paletteClaire],
     ['nuit', paletteDeNuit],
   ] as const) {
     it(`donne ≥ 4,5:1 à tout texte sur toute surface, en mode ${mode}`, () => {
@@ -486,7 +539,7 @@ describe('contraste du texte — WCAG 2.2 AA', () => {
   }
 
   it('lit l’encre d’une barre de titre sur son aplat, au repos comme au survol', () => {
-    for (const jetons of [paletteParDefaut(), paletteDeNuit()]) {
+    for (const jetons of [paletteParDefaut(), paletteClaire(), paletteDeNuit()]) {
       for (const [encre, aplat] of [
         ['barre-encre', 'barre-fond'],
         ['barre-survol-encre', 'barre-survol'],
@@ -532,6 +585,7 @@ describe('contraste des bordures de controle - WCAG 2.2 1.4.11', () => {
 
   for (const [mode, palette] of [
     ['normal', paletteParDefaut],
+    ['clair', paletteClaire],
     ['nuit', paletteDeNuit],
   ] as const) {
     it(`donne >= 3:1 aux bordures de controle sur toute surface, en mode ${mode}`, () => {
@@ -556,6 +610,7 @@ describe('contraste des bordures de controle - WCAG 2.2 1.4.11', () => {
 
     for (const [mode, palette] of [
       ['normal', paletteParDefaut],
+      ['clair', paletteClaire],
       ['nuit', paletteDeNuit],
     ] as const) {
       const jetons = palette()
@@ -736,8 +791,9 @@ describe('mouvement réduit — WCAG 2.3.3', () => {
     expect(impose).not.toMatch(/\banimation(-name)?:/)
     expect(impose).not.toMatch(/scroll-behavior:\s*smooth/)
     const transitions = [...impose.matchAll(/transition:\s*([^;]+);/g)].map((m) => m[1]!)
+    // T-0409 — un jeton de couleur enregistré qui glisse est un fondu, pas un mouvement.
     for (const declaration of transitions) {
-      expect(declaration, declaration).toMatch(/^(background-color|color)\b/)
+      expect(declaration, declaration).toMatch(/^(background-color|color|--[a-z-]+)\b/)
     }
   })
 

@@ -75,6 +75,113 @@
   --cible-clic: 44px;
 }
 
+/* T-0409 — LE JOUR CLAIR : encre sur papier, du lever au coucher du Soleil au lieu saisi
+   (`jour-clair.ts`). Les deux origines s'échangent — un neutre sombre sur un fond blanc — et
+   chaque nuance se recalcule d'elle-même : le premier bloc n'écrit que des mélanges.
+
+   Le sélecteur écarte le mode nuit au lieu de compter sur l'ordre des blocs : une palette
+   claire qui l'emporterait d'un seul jeton serait une lampe sur un œil adapté.
+
+   Ce qui ne se déduit pas d'un mélange est redonné : la teinte de l'accent, de
+   l'avertissement et de l'alerte, foncées pour tenir sur du blanc ; le texte secondaire monte
+   (69 → 75 %) et le survol sur le ciel descend (18 → 10 %), sans quoi --attenue et --alerte
+   y tombaient sous 4,5:1. Ratios recalculés par `mode-nuit.test.tsx`, comme les deux autres.
+   Le canevas ne lit pas la feuille : le ciel garde son rendu. */
+:root[data-jour-clair='true']:not([data-mode-nuit='true']) {
+  color-scheme: light;
+  --base-neutre: #1a1a1a;
+  --base-accent: #00796b;
+  --fond: #ffffff;
+  --surface-survol: color-mix(in srgb, var(--base-neutre) 10%, var(--fond));
+  --attenue: color-mix(in srgb, var(--base-neutre) 75%, var(--fond));
+  --avertissement: #8a5a00;
+  --alerte: #b71c1c;
+  --fond-alerte: #fdecea;
+}
+
+/* T-0409 — LA FRISE DE LA NUIT RESTE SOMBRE. Elle est un morceau de ciel, du coucher au lever :
+   blanchie avec l'interface, sa nuit noire devenait un aplat clair. Les jetons s'y redéclarent
+   tels que le premier bloc les écrit — les nuances se recalculent sur place, non héritées de
+   la racine claire — et `mode-nuit.test.tsx` refuse qu'ils s'en écartent. Le mode nuit
+   l'écarte comme la palette claire : la frise passe au rouge avec le reste. */
+:root[data-jour-clair='true']:not([data-mode-nuit='true']) .nuit-frise {
+  color-scheme: dark;
+  --base-neutre: #e9e9e9;
+  --base-accent: #8bffef;
+  --fond: #000000;
+  --surface: color-mix(in srgb, var(--base-neutre) 3%, var(--fond));
+  --surface-haute: color-mix(in srgb, var(--base-neutre) 8.5%, var(--fond));
+  --surface-survol: color-mix(in srgb, var(--base-neutre) 18%, var(--fond));
+  --texte: var(--base-neutre);
+  --attenue: color-mix(in srgb, var(--base-neutre) 69%, var(--fond));
+  --accent: var(--base-accent);
+  --avertissement: #f4c76a;
+  --bordure: color-mix(in srgb, var(--base-neutre) 83%, var(--fond));
+  --bordure-controle: color-mix(in srgb, var(--base-neutre) 59.3%, var(--fond));
+  --bordure-faible: color-mix(in srgb, var(--base-neutre) 21%, var(--fond));
+  --alerte: #ff6f5e;
+  --fond-alerte: #1a0f0d;
+  --barre-fond: var(--texte);
+  --barre-encre: var(--fond);
+  --barre-survol: var(--attenue);
+  --barre-survol-encre: var(--fond);
+  --voile: color-mix(in srgb, var(--surface) 82%, transparent);
+}
+
+/* T-0409 — LE FONDU DES JETONS. Un jeton non enregistré ne s'interpole pas : au lever, le
+   fond de page glissait et les cartes sautaient d'un coup. Enregistrés `<color>`, les jetons que
+   la palette claire réécrit glissent dans le fondu de `:root` (second bloc) — sur `body`, les nuances déjà résolues
+   à la racine auraient sauté —, et chaque nuance que la feuille
+   en tire par `color-mix` glisse avec. Leur valeur initiale ne sert jamais : le premier bloc
+   les déclare tous. Navigateur sans `@property` : la bascule reste franche, rien ne casse. */
+@property --base-neutre {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --base-accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --fond {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --surface-survol {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --attenue {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --avertissement {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --alerte {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --fond-alerte {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+
 /* §11.1 — sortie = (R, 0, 0). La palette est écrite au facteur de luminance nominal ; le
    facteur, réglable jusqu'à un plancher d'environ 2 %, est porté par le masque plus bas.
 
@@ -168,7 +275,9 @@
 
 /* Passage progressif, jamais un basculement brutal ni un flash (§11.1). */
 body {
-  transition: background-color var(--fondu-nuit) var(--courbe), color var(--fondu-nuit) var(--courbe);
+  transition:
+    background-color var(--fondu-nuit) var(--courbe),
+    color var(--fondu-nuit) var(--courbe);
 }
 
 /* Arbitrage entre §11.1 et WCAG 2.3.3.
@@ -219,6 +328,17 @@ pre {
    nominal et le dessin varierait d'un poste à l'autre. `tests/polices.test.ts` tient la
    correspondance — aucun nom sans fichier. */
 :root {
+  /* T-0409 — le fondu des jetons enregistrés plus haut : à la racine, où les nuances se
+     résolvent, pour qu'elles glissent avec leurs origines. */
+  transition:
+    --base-neutre var(--fondu-nuit) var(--courbe),
+    --base-accent var(--fondu-nuit) var(--courbe),
+    --fond var(--fondu-nuit) var(--courbe),
+    --surface-survol var(--fondu-nuit) var(--courbe),
+    --attenue var(--fondu-nuit) var(--courbe),
+    --avertissement var(--fondu-nuit) var(--courbe),
+    --alerte var(--fondu-nuit) var(--courbe),
+    --fond-alerte var(--fondu-nuit) var(--courbe);
   accent-color: var(--texte);
   caret-color: var(--texte);
   scrollbar-color: var(--bordure) var(--fond);
@@ -285,7 +405,7 @@ pre {
   /* T-0331 — les deux autres fondus, nommés par ce qu'ils accompagnent. Le basculement de
      §11.1 est lent pour qu'un œil adapté au noir le suive ; un dépli est court pour que le
      regard suive le contenu sans l'attendre. */
-  --fondu-nuit: 600ms;
+  --fondu-nuit: 300ms;
   --fondu-depli: 180ms;
   /* T-0391 — LA COURBE, une seule. La feuille mêlait `ease` et `ease-out` pendant que le
      canevas adoucissait par un smoothstep (`horizon-transition.ts`) : deux mouvements de la

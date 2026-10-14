@@ -32,7 +32,7 @@ import {
   type Projecteur,
   type Vue,
 } from '../src/core/projection.ts'
-import type { PositionCorps } from '../src/core/ephem.ts'
+import { Body, positionCorps, type PositionCorps } from '../src/core/ephem.ts'
 import { applique, transpose, versSpherique, versVecteur } from '../src/core/mat3.ts'
 import { depuisGalactique } from '../src/core/galactique.ts'
 import {
@@ -57,7 +57,7 @@ import { ancreLabel, libelleCible, titreCible } from '../src/ui/libelles-cibles.
 import { etoileLabellisable } from '../src/core/labels.ts'
 import { palette, paletteRealiste } from '../src/ui/couleurs.ts'
 import { OPACITE_OBJET_ESTOMPE, teintesObjets } from '../src/ui/apparence-objets.ts'
-import type { LuneEcran } from '../src/ui/dessine-fond-ciel.ts'
+import type { LuneEcran, SoleilEcran } from '../src/ui/dessine-fond-ciel.ts'
 import {
   OPACITE_ETOILE_PARCOURS,
   RAYON_MAX_ETOILE_PX,
@@ -220,6 +220,7 @@ function rend(
     cibleOuverte?: ObjetCielProfond
     apparition?: number
     trajetLune?: readonly PositionCorps[]
+    soleil?: SoleilEcran
   } = {},
 ) {
   const ctx = contexteEspion()
@@ -241,6 +242,7 @@ function rend(
     masque: options.masque ?? masquePlat(),
     vueRealiste: options.vueRealiste ?? false,
     ...(options.lune === undefined ? {} : { lune: options.lune }),
+    ...(options.soleil === undefined ? {} : { soleil: options.soleil }),
     index: construitIndex(etoiles),
     etoiles,
     objets: options.objets ?? [],
@@ -784,6 +786,34 @@ describe('fond de ciel réaliste §3.3', () => {
     expect(nuit.ctx.appels.filter((a) => a.nom === 'fill' && a.args[0] === 'evenodd').length).toBe(0)
     expect(clair.ctx.appels.filter((a) => a.nom === 'fill' && a.args[0] === 'evenodd').length,
     ).toBeGreaterThan(0)
+  })
+})
+
+describe('sol de jour — T-0409', () => {
+  const avecSol: CouchesActives = { ...COUCHES, sol: true }
+  const vise = { azimutDeg: 180, hauteurDeg: 10 }
+  // Le Soleil de la date de test, et le même passé sous l'horizon : seule sa hauteur décide.
+  const brut = positionCorps(Body.Sun, DATE, SITE)
+  const soleil = (signe: number): SoleilEcran => ({
+    adH: brut.adH,
+    decDeg: brut.decDeg,
+    altitudeDeg: signe * Math.abs(brut.hauteurDeg),
+  })
+
+  it('éclaircit le sol tant que le Soleil de la scène est levé', () => {
+    const { ctx } = rend({ couches: avecSol, vise, soleil: soleil(1) })
+    expect(ctx.couleurs).toContain(palette(false).solJour)
+  })
+
+  it('le rend sombre une fois le Soleil couché', () => {
+    const { ctx } = rend({ couches: avecSol, vise, soleil: soleil(-1) })
+    expect(ctx.couleurs).toContain(palette(false).sol)
+    expect(ctx.couleurs).not.toContain(palette(false).solJour)
+  })
+
+  it('garde le sol rouge en mode nuit, Soleil levé ou non', () => {
+    const { ctx } = rend({ couches: avecSol, vise, soleil: soleil(1), modeNuit: true })
+    expect(ctx.couleurs).toContain(palette(true).sol)
   })
 })
 

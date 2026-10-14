@@ -144,6 +144,12 @@ export interface PaletteCiel {
   readonly courbes: string
   /** §4.1 — le sol : opaque et très foncé, il se distingue du fond de ciel sans l'éclairer. */
   readonly sol: string
+  /**
+   * T-0409 — le sol tant que le Soleil de la scène est levé : un gris bleuté, sous un ciel de
+   * jour clair où le sol de nuit faisait un trou noir. La nuit rouge garde son sol : il n'y a
+   * pas de jour sous §11.1.
+   */
+  readonly solJour: string
   /** T-0033 — plan galactique : rose en vue normale, rouge pur en mode nuit comme le reste. */
   readonly voieLactee: string
   /**
@@ -170,6 +176,7 @@ const PALETTE_NUIT: PaletteCiel = Object.freeze({
   horizon: 'rgb(50 0 0)',
   courbes: 'rgb(36 0 0)',
   sol: 'rgb(18 0 0)',
+  solJour: 'rgb(18 0 0)',
   voieLactee: 'rgb(110 0 0)',
   parcours: 'rgb(250 0 0)',
   texte: 'rgb(170 0 0)',
@@ -216,6 +223,7 @@ const PALETTE_JOUR: PaletteCiel = Object.freeze({
   horizon: avecOpacite(BLANC, 0.33),
   courbes: avecOpacite(BLANC, 0.16),
   sol: 'rgb(5 5 5)',
+  solJour: 'rgb(59 61 69)',
   voieLactee: 'rgb(150 186 205)',
   parcours: 'rgb(233 233 233)',
   texte: 'rgb(214 214 214)',
