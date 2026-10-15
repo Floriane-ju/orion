@@ -20,7 +20,7 @@
  * Verrouiller au premier cran, pas à l'appui : un clic reste un clic, sans bandeau du
  * navigateur. Si le verrou est refusé, la capture suffit et le geste s'arrête au bord.
  *
- * UN CHAMP, PAS UN MOT. Le compteur a l'allure d'une saisie — un cadre, et un `prefixe` qui dit
+ * UN NOMBRE SOULIGNÉ. Le compteur porte un pointillé dessous, et un `prefixe` qui dit
  * ce qu'il règle, comme le « H » d'un éditeur graphique. Sous la souris, il se tire ; un clic
  * sans glisser, ou Entrée, l'ouvre en saisie : un `<input>` prend sa place, on tape le nombre,
  * Entrée ou la sortie du champ l'applique, Échap l'abandonne. Le champ de saisie n'existe que

@@ -849,24 +849,35 @@ body {
   overflow: hidden;
 }
 
-/* UN COMPTEUR EST UN CHAMP QU'ON TIRE (`Compteur.tsx`).
+/* UN COMPTEUR EST UN NOMBRE QU'ON TIRE (`Compteur.tsx`).
 
-   Il a l'allure d'une saisie — un aplat, et un préfixe atténué qui dit ce qu'il règle — parce
-   qu'il en est une : un clic sans glisser l'ouvre en frappe. Le curseur `ew-resize` annonce
+   Un préfixe atténué dit ce qu'il règle, et un clic sans glisser l'ouvre en frappe. Le curseur `ew-resize` annonce
    l'autre geste avant le clic : sous la souris, on le tire à l'horizontale. La sélection est
    coupée — un glisser sur du texte surligne au lieu de compter — et `touch-action: none` retire
    le geste au défilement de la page, sans quoi le doigt ferait glisser la page plutôt que la
-   valeur. Le cadre est là au repos, pas seulement au survol : au doigt, il n'y a pas de survol,
+   valeur. Le trait est là au repos, pas seulement au survol : au doigt, il n'y a pas de survol,
    et sans lui rien n'annonce qu'un nombre se règle.
+
+   UN NOMBRE SOULIGNÉ, PAS UN CHAMP ENCADRÉ. Le pointillé sous la valeur est le trait qui dit
+   « ceci se règle » (même épaisseur et même teinte que le rail du `Curseur`), coupé en tirets
+   pour qu'il ne se lise pas comme un lien ou un séparateur. Une tuile tiret + écart, centrée et
+   répétée : les deux bouts tombent en demi-tirets symétriques, quelle que soit la largeur.
+   `--compteur-trait` porte la teinte, les états n'ont qu'elle à changer.
 
    T-0264 — la valeur et son unité tiennent ensemble : `nowrap`. */
 .compteur {
+  --compteur-trait: var(--bordure-controle);
   display: inline-flex;
   align-items: baseline;
   gap: var(--pas-2);
-  padding: var(--pas-0) var(--pas-2);
-  background: var(--surface-haute);
-  border: var(--trait) solid var(--bordure-controle);
+  padding: var(--pas-0) 0 var(--pas-1);
+  background: linear-gradient(
+      to right,
+      transparent var(--pas-0),
+      var(--compteur-trait) 0 calc(100% - var(--pas-0)),
+      transparent 0
+    )
+    center bottom / var(--pas-2) calc(var(--trait) * 2) repeat-x;
   color: var(--texte);
   cursor: ew-resize;
   touch-action: none;
@@ -874,30 +885,26 @@ body {
   white-space: nowrap;
 }
 
-/* Le compteur et le curseur sont les deux contrôles qu'on TIRE. Sous la main, le filet monte
+/* Le compteur et le curseur sont les deux contrôles qu'on TIRE. Sous la main, le trait monte
    au --texte : « c'est la même chose, sous la main », sans teinte nouvelle qui dirait « autre
-   chose ». Le focus au clavier ouvre le même geste, il prend donc le même retour ; en frappe,
-   le champ garde ce filet plein tant qu'on tape. */
+   chose ». Le focus au clavier ouvre le même geste, il prend donc le même retour. */
 .compteur:hover,
 .compteur:active,
-.compteur:focus-visible,
-.compteur.en-saisie {
-  border-color: var(--texte);
+.compteur:focus-visible {
+  --compteur-trait: var(--texte);
 }
 
 .compteur.en-saisie {
   cursor: text;
 }
 
-/* Dès l'appui, le filet double et prend l'accent : clic ou glisser, c'est ce champ qu'on a en
-   main, et il se distingue du survol. La saisie qu'ouvre le clic garde ce filet tant qu'on
-   tape. L'épaisseur ajoutée est une ombre intérieure, pas une bordure : le champ garde sa
-   taille, ses voisins ne bougent pas. `:active` ne suffit pas : Safari iOS ne le pose pas
-   au doigt sans écouteur `touchstart`, d'où la classe posée au `pointerdown`. */
+/* Dès l'appui, le trait prend l'accent : clic ou glisser, c'est ce nombre qu'on a en main, et
+   il se distingue du survol. La saisie qu'ouvre le clic le garde tant qu'on tape. `:active` ne
+   suffit pas : Safari iOS ne le pose pas au doigt sans écouteur `touchstart`, d'où la classe
+   posée au `pointerdown`. */
 .compteur.appuye,
 .compteur.en-saisie {
-  border-color: var(--accent);
-  box-shadow: inset 0 0 0 var(--trait) var(--accent);
+  --compteur-trait: var(--accent);
 }
 
 .compteur-prefixe {
