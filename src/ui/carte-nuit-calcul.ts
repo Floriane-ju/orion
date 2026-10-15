@@ -92,6 +92,26 @@ export function instantGlisse(vue: Intervalle, departMs: number, dx: number): nu
   return departMs - dx * (vue.fin.getTime() - vue.debut.getTime())
 }
 
+/** Les unités de `WheelEvent.deltaMode` (DOM) : constantes de la plate-forme, pas des réglages. */
+export const WheelMode = Object.freeze({ PIXEL: 0, LIGNE: 1, PAGE: 2 } as const)
+
+/**
+ * T-0424 — le glisser (fraction de la largeur, sens de `instantGlisse`) qu'équivaut un
+ * défilement, ou `null` s'il est surtout vertical : celui-là reste à la page. Défiler vers la
+ * droite pousse le ruban vers la gauche — l'avenir arrive, comme un glisser vers la gauche.
+ * Firefox compte la molette en lignes : on les convertit, sans quoi le pas serait d'un pixel.
+ */
+export function glisseMolette(
+  e: { readonly deltaX: number; readonly deltaY: number; readonly deltaMode: number },
+  largeur: number,
+  lignePx: number,
+): number | null {
+  if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return null
+  const unite =
+    e.deltaMode === WheelMode.LIGNE ? lignePx : e.deltaMode === WheelMode.PAGE ? largeur : 1
+  return (-e.deltaX * unite) / largeur
+}
+
 /**
  * T-0390 — où mène une touche sur la frise, ou `null` si elle ne la règle pas. La frise
  * défile avec l'instant : les flèches n'ont pas de butée, Début et Fin mènent aux bords de

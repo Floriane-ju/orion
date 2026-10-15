@@ -68,6 +68,7 @@ import { encadre, MS_PAR_H, MS_PAR_MINUTE, POURCENT } from '../core/unites.ts'
 import { Mention } from './Mention.tsx'
 import { heure } from './horaire.ts'
 import {
+  instant,
   minuteAffichee,
   tempsScene,
   type TempsScene,
@@ -85,6 +86,7 @@ import {
   type DisqueLune,
   instantClavier,
   instantFraction,
+  glisseMolette,
   instantGlisse,
   LIBELLE_PHASE_CIEL,
   libelleLuneInstant,
@@ -288,6 +290,7 @@ function Frise({
   const appui = useRef<Appui | null>(null)
   // Le clic suit le relâché d'un glisser : il ne doit pas traverser vers l'instant sous le doigt.
   const vientDeGlisser = useRef(false)
+  const ciel = useRef<HTMLDivElement>(null)
   const vue = fenetreFrise(instantMs)
   const phases = bandesPhases(frise, vue)
   const marques = marquesLune(frise, vue)
@@ -355,6 +358,26 @@ function Frise({
     vaA(cible)
   }
 
+  // T-0424 — le défilement horizontal tire le ruban comme un glisser. Écouteur natif : celui de
+  // React est passif, il ne peut pas retenir le geste de retour arrière du navigateur. Le départ
+  // est `instant.ms`, à jour dès `vaA` : la molette tire plus vite que React ne rend, et la
+  // minute affichée arrondie perdrait les petits pas du trackpad.
+  useEffect(() => {
+    const el = ciel.current
+    if (el === null) return
+    const surMolette = (e: WheelEvent) => {
+      const ligne = parseFloat(getComputedStyle(document.documentElement).fontSize)
+      const dx = glisseMolette(e, el.getBoundingClientRect().width, ligne)
+      if (dx === null) return
+      e.preventDefault()
+      efface()
+      setSurvol(null)
+      vaA(instantGlisse(fenetreFrise(instant.ms), instant.ms, dx))
+    }
+    el.addEventListener('wheel', surMolette, { passive: false })
+    return () => el.removeEventListener('wheel', surMolette)
+  }, [efface])
+
   const resume =
     `De ${heure(vue.debut)} à ${heure(vue.fin)} : ` +
     phases.map((b) => LIBELLE_PHASE_CIEL[b.phase].toLowerCase()).join(', ') +
@@ -364,6 +387,7 @@ function Frise({
     <div className="nuit-frise">
       <div className="nuit-frise-zone">
         <div
+          ref={ciel}
           className="nuit-frise-ciel"
           role="slider"
           tabIndex={0}

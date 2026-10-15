@@ -11,6 +11,8 @@ import {
   hauteurFrise,
   instantClavier,
   instantFraction,
+  glisseMolette,
+  WheelMode,
   instantGlisse,
   libelleLuneInstant,
   marquesLune,
@@ -164,5 +166,27 @@ describe('les courbes du Soleil et de la Lune', () => {
       expect(x).toBeCloseTo(((h.instant.getTime() - vue.debut.getTime()) / duree) * 100, 1)
       expect(y).toBeCloseTo((1 - hauteurFrise(h.hauteurDeg)) * 100, 1)
     })
+  })
+})
+
+describe('glisseMolette — T-0424, le défilement horizontal tire la frise', () => {
+  const largeur = 800
+  const ligne = 16
+
+  it('défiler vers la droite tire la frise comme un glisser vers la gauche : le futur arrive', () => {
+    expect(glisseMolette({ deltaX: 80, deltaY: 0, deltaMode: WheelMode.PIXEL }, largeur, ligne)).toBe(-0.1)
+  })
+
+  it('un delta en lignes (Firefox) se compte en hauteurs de ligne', () => {
+    expect(glisseMolette({ deltaX: -5, deltaY: 0, deltaMode: WheelMode.LIGNE }, largeur, ligne)).toBe(0.1)
+  })
+
+  it('un delta en pages se compte en largeurs de frise', () => {
+    expect(glisseMolette({ deltaX: 1, deltaY: 0, deltaMode: WheelMode.PAGE }, largeur, ligne)).toBe(-1)
+  })
+
+  it('un défilement surtout vertical reste à la page', () => {
+    expect(glisseMolette({ deltaX: 3, deltaY: 40, deltaMode: WheelMode.PIXEL }, largeur, ligne)).toBeNull()
+    expect(glisseMolette({ deltaX: 0, deltaY: 0, deltaMode: WheelMode.PIXEL }, largeur, ligne)).toBeNull()
   })
 })
