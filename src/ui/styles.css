@@ -4293,21 +4293,11 @@ button:not(:disabled):active,
       margin var(--fondu-depli) var(--courbe), opacity var(--fondu-depli) var(--courbe);
   }
 
-  /* T-0346 — pendant le survol de la frise, le trait, son prolongement et la bulle GLISSENT
-     d'une position à l'autre : quand l'aimant accroche ou relâche, la position saute de
-     plusieurs pixels, et sans fondu le trait paraissait se téléporter. Le fondu d'état,
-     court, suit le pointeur sans traîner. Mouvement de position : il ne vit qu'ici. */
+  /* T-0423 — le trait de survol, son prolongement et la bulle suivent le pointeur SANS
+     transition de position : un fondu, si court soit-il, les laissait traîner derrière la
+     souris. Seule la teinte fond quand l'aimant accroche ou relâche. */
   .nuit-frise-zone:hover .nuit-survol-trait {
-    transition: inset-inline-start var(--fondu-etat) var(--courbe),
-      border-color var(--fondu-etat) var(--courbe);
-  }
-
-  .nuit-frise-zone:hover .nuit-bulle-trait {
-    transition: inset-inline-start var(--fondu-etat) var(--courbe);
-  }
-
-  .nuit-frise-zone:hover .nuit-bulle-corps {
-    transition: inset-inline-start var(--fondu-etat) var(--courbe);
+    transition: border-color var(--fondu-etat) var(--courbe);
   }
 
   .image-cible-encart {
