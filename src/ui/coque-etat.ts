@@ -17,7 +17,7 @@ import { creeAbonnes } from './abonnes.ts'
 import { booleen, gardeAuDepart, litLocal, objet } from '../data/stockage-local.ts'
 
 /** Les cartes posées sur la scène. Chacune est nommée d'après ce qu'elle montre. */
-export type CleCarte = 'SITE' | 'BOITIER' | 'OPTIQUE' | 'PLAN'
+export type CleCarte = 'SITE' | 'BOITIER' | 'OPTIQUE'
 
 export interface EtatCarte {
   readonly ouverte: boolean
@@ -28,8 +28,7 @@ export interface EtatCoque {
 }
 
 /**
- * Le plan démarre replié : il se consulte pendant qu'on regarde le ciel, il ne s'impose pas —
- * déplié au démarrage, il couvrirait la moitié de la scène avant qu'on ait rien demandé.
+ * Le plan de nuit n'est plus une carte : il est l'onglet « Mon plan » du panneau latéral.
  *
  * T-0182 — la carte Cible est partie : la fiche prend la place de la liste dans le panneau,
  * là où on l'a choisie.
@@ -52,12 +51,11 @@ const ETAT_INITIAL: EtatCoque = Object.freeze({
     SITE: { ouverte: false },
     BOITIER: { ouverte: false },
     OPTIQUE: { ouverte: false },
-    PLAN: { ouverte: false },
   }),
 })
 
 const CLE_STOCKAGE = 'orion.coque'
-const CLES_CARTES: readonly CleCarte[] = Object.freeze(['SITE', 'BOITIER', 'OPTIQUE', 'PLAN'])
+const CLES_CARTES: readonly CleCarte[] = Object.freeze(['SITE', 'BOITIER', 'OPTIQUE'])
 
 /**
  * T-0362, §11.3 — les cartes se rouvrent comme on les a laissées : la séance survit au

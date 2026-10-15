@@ -123,12 +123,11 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
   })
 
   // T-0213 — la carte Vue est devenue le rail : ses bascules bordent la scène au lieu de se
-  // déplier. Ce qui se pose sur la scène est donc le rail, puis la carte du plan.
-  it('pose le rail de la vue et la carte du plan sur la scène', () => {
+  // déplier. Le plan de nuit, lui, a quitté la scène pour l'onglet « Mon plan ».
+  it('pose le rail de la vue sur la scène, et plus aucune carte du plan', () => {
     const html = ecran()
-    for (const region of ['coque-rail', 'carte-plan']) {
-      expect(html, region).toContain(region)
-    }
+    expect(html).toContain('coque-rail')
+    expect(html).not.toContain('carte-plan')
     expect(html).not.toContain('carte-vue')
     expect(html).not.toContain('coque-seance')
   })
@@ -193,14 +192,11 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
     // T-0282 — le boîtier et son suivi : ce qui décide de la pose.
     expect(entete('boitier')).toMatch(/<span class="carte-resume">[^<]+ · [^<]+<\/span>/)
     expect(entete('optique')).toMatch(/<span class="carte-resume">[^<?]+ mm f\/[^<?]+<\/span>/)
-    // Le plan replié dit combien de cibles il ordonne — aucune au démarrage.
-    expect(entete('plan')).toContain('<span class="carte-resume">aucune cible choisie</span>')
 
     // Dépliée, la carte montre le détail dans ses champs : le résumé n'y répéterait qu'eux.
     basculeCarte('SITE')
     basculeCarte('BOITIER')
     basculeCarte('OPTIQUE')
-    basculeCarte('PLAN')
     expect(ecran()).not.toContain('carte-resume')
   })
 
@@ -318,19 +314,22 @@ describe('§11.2 — un seul jeu de réglages à la fois', () => {
   })
 
   it('ne monte pas le corps d’une carte repliée', () => {
-    // Le plan démarre replié. Son corps reste monté — il est la seule région imprimable
-    // (§11.2) — mais son en-tête annonce bien l'état fermé.
-    expect(ecran()).toContain('class="carte carte-plan" data-ouverte="false"')
-    ouvreCarte('PLAN')
-    expect(ecran()).toContain('class="carte carte-plan" data-ouverte="true"')
+    const site = (html: string) => {
+      const debut = html.indexOf('carte-site')
+      return html.slice(debut, html.indexOf('</section>', debut))
+    }
+    expect(site(ecran())).not.toContain('carte-corps')
+    ouvreCarte('SITE')
+    expect(site(ecran())).toContain('carte-corps')
   })
+
 
   // T-0213 — les bascules de la vue ne se déplient plus : elles sont là dès l'ouverture, et
   // c'est tout l'intérêt du rail. Une seule lecture du magasin, pas un abonnement complet.
   it('monte les huit bascules de la vue sans qu’on ait à déplier quoi que ce soit', () => {
     const rail = ecran()
     const debut = rail.indexOf('coque-rail')
-    const bloc = rail.slice(debut, rail.indexOf('carte-plan'))
+    const bloc = rail.slice(debut, rail.indexOf('carte-site'))
     for (const libelle of [
       'Vue comme l’appareil',
       'Vue réaliste',
@@ -351,7 +350,7 @@ describe('§11.2 — un seul jeu de réglages à la fois', () => {
   it('en Panorama, retire figures, frontières et astérismes mais garde la Voie lactée', () => {
     poseMode('PANORAMA')
     const html = ecran()
-    const rail = html.slice(html.indexOf('coque-rail'), html.indexOf('carte-plan'))
+    const rail = html.slice(html.indexOf('coque-rail'), html.indexOf('carte-site'))
     const absente = (libelle: string): string | undefined =>
       rail
         .slice(0, rail.indexOf(`aria-label="${libelle}"`))
@@ -370,7 +369,7 @@ describe('§11.2 — un seul jeu de réglages à la fois', () => {
    */
   it('garde les raccourcis clavier atteignables depuis le rail', () => {
     const html = ecran()
-    const rail = html.slice(html.indexOf('coque-rail'), html.indexOf('carte-plan'))
+    const rail = html.slice(html.indexOf('coque-rail'), html.indexOf('carte-site'))
     expect(rail).toContain('aria-label="Raccourcis clavier de la scène"')
     expect(rail).toMatch(/← ↑ ↓ →/)
   })
@@ -413,10 +412,12 @@ describe('§11.3 — le panneau est toujours ouvert et son contenu suit le mode'
     expect(CSS_COQUE).not.toContain('.coque-lateral[hidden]')
   })
 
-  it('ne porte plus le plan : il a sa carte', () => {
+  it('porte le plan dans l’onglet « Mon plan »', () => {
+    poseMode('PLAN')
     const html = ecran()
     const panneau = html.slice(html.indexOf('coque-lateral'))
-    expect(panneau.slice(0, panneau.indexOf('</aside>'))).not.toContain('plan-session')
+    expect(panneau.slice(0, panneau.indexOf('</aside>'))).toContain('plan-session')
+    expect(ongletsPanneau(html)).toContain('Mon plan')
   })
 })
 
@@ -490,15 +491,15 @@ describe('§11.3 — la bascule de mode forme les onglets du panneau latéral', 
 /** T-0113 — une carte se replie. T-0238 — elle ne se déplace plus. */
 describe('T-0113 — les cartes posées sur la scène', () => {
   it('replie et déplie une carte', () => {
-    expect(etatCoque().cartes.PLAN.ouverte).toBe(false)
-    basculeCarte('PLAN')
-    expect(etatCoque().cartes.PLAN.ouverte).toBe(true)
+    expect(etatCoque().cartes.SITE.ouverte).toBe(false)
+    basculeCarte('SITE')
+    expect(etatCoque().cartes.SITE.ouverte).toBe(true)
   })
 
   // T-0213 — la vue n'est plus une carte : ses bascules bordent la scène, et une commande
   // toujours visible n'a pas d'état de repli à tenir. T-0238 — le matériel en redevient deux.
-  it('connaît les cartes Site, Boîtier, Optique et Plan', () => {
-    expect(Object.keys(etatCoque().cartes)).toEqual(['SITE', 'BOITIER', 'OPTIQUE', 'PLAN'])
+  it('connaît les cartes Site, Boîtier et Optique', () => {
+    expect(Object.keys(etatCoque().cartes)).toEqual(['SITE', 'BOITIER', 'OPTIQUE'])
   })
 
   // T-0238 — une carte reste à sa place : son en-tête replie, il ne se traîne plus.
@@ -627,56 +628,46 @@ describe('T-0116 — les compteurs du filé ne rendent pas par image', () => {
   })
 })
 
-describe('T-0183 — le plan de nuit est une carte, et il reste imprimable', () => {
-  it('pose une carte Plan repliée au démarrage : le plan se consulte, il ne s’impose pas', () => {
-    expect(etatCoque().cartes.PLAN.ouverte).toBe(false)
-    expect(ecran()).toContain('carte-plan')
+describe('T-0183 — le plan de nuit est l’onglet « Mon plan », et il reste imprimable', () => {
+  it('n’est plus une carte posée sur la scène', () => {
+    expect(ecran()).not.toContain('carte-plan')
   })
 
-  it('garde le corps du plan monté même repliée, dans les deux modes', () => {
+  it('garde le plan monté, masqué, hors de son onglet', () => {
     for (const mode of ['CIEL_PROFOND', 'PANORAMA'] as const) {
       poseMode(mode)
       const html = ecran()
-      // Masqué, pas démonté : démonté, imprimer la carte fermée sortirait une page blanche.
-      expect(html, mode).toMatch(/<div class="carte-corps" hidden="">/)
+      // Masqué, pas démonté : démonté, imprimer depuis un autre onglet sortirait une page blanche.
+      expect(html, mode).toMatch(/<div class="lateral-plan" hidden="">/)
       expect(html, mode).toContain('plan-session')
     }
   })
 
-  it('déplie et replie comme les autres cartes', () => {
-    basculeCarte('PLAN')
-    expect(etatCoque().cartes.PLAN.ouverte).toBe(true)
-    expect(ecran()).not.toMatch(/<div class="carte-corps" hidden="">/)
+  it('montre le plan sur l’onglet « Mon plan », sans la liste', () => {
+    poseMode('PLAN')
+    const html = ecran()
+    expect(html).toContain('<div class="lateral-plan">')
+    expect(html).not.toContain('Ne montrer que les objets photographiables')
   })
 
   it('n’existe qu’en un exemplaire : un seul textarea d’export dans le document', () => {
-    for (const ouverte of [false, true]) {
-      if (ouverte) basculeCarte('PLAN')
+    for (const mode of ['CIEL_PROFOND', 'PLAN'] as const) {
+      poseMode(mode)
       const html = ecran()
-      expect(html.split('plan-export').length - 1, `ouverte=${ouverte}`).toBeLessThanOrEqual(1)
+      expect(html.split('plan-export').length - 1, mode).toBeLessThanOrEqual(1)
       expect(html.split('class="plan-session"').length - 1).toBe(1)
     }
   })
 
-  it('sort le plan à l’impression, carte repliée comprise, et rien d’autre', () => {
+  it('sort le plan à l’impression, depuis n’importe quel onglet, et rien d’autre', () => {
     const impression = CSS_COQUE.slice(CSS_COQUE.indexOf('@media print'))
-    // Ni coque, ni cartes, ni panneau, ni canevas.
-    expect(impression).toMatch(/\.coque-lateral,\n\s*\.carte \{\n\s*display: none/)
+    // Ni barres, ni scène, ni cartes, ni canevas.
+    expect(impression).toMatch(/\.panneau-temps,\n\s*\.carte \{\n\s*display: none/)
     expect(impression).toContain('.planetarium')
-    // Sauf la carte du plan, et son corps même porteur de `hidden`.
-    expect(impression).toContain('.carte-plan > .carte-corps[hidden]')
-    expect(impression).toContain('.carte-plan .carte-corps > *:not(.plan-session)')
-  })
-
-  it('donne au plan sa propre largeur : la table du budget ne défile pas de côté', () => {
-    const debut = CSS_COQUE.indexOf('.carte-plan {')
-    expect(debut).toBeGreaterThan(-1)
-    expect(CSS_COQUE.slice(debut, CSS_COQUE.indexOf('}', debut))).toContain(
-      'width: var(--carte-plan)',
-    )
-    // Le corps défile verticalement, lui, comme toute carte.
-    const corps = CSS_COQUE.indexOf('.carte-plan .carte-corps {')
-    expect(CSS_COQUE.slice(corps, CSS_COQUE.indexOf('}', corps))).toContain('max-height')
+    // Sauf l'onglet du plan, même porteur de `hidden`, et rien d'autre du panneau.
+    expect(impression).toContain('.lateral-plan[hidden]')
+    expect(impression).toContain('.lateral-corps > :not(.lateral-plan)')
+    expect(impression).toContain('.lateral-plan > :not(.plan-session)')
   })
 })
 

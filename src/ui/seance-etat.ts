@@ -36,8 +36,11 @@ import {
  * de ce que le panneau de droite porte. C'est l'ancienne case « Peindre le filé sur toute la
  * scène » promue en état nommé — un état de cette portée ne se règle pas au troisième niveau
  * d'un panneau.
+ *
+ * Le plan de nuit y entre en troisième position : il se lit en longueur comme la liste, et
+ * la scène reste celle du ciel profond — seul le panneau change.
  */
-export type ModeInterface = 'CIEL_PROFOND' | 'PANORAMA'
+export type ModeInterface = 'CIEL_PROFOND' | 'PANORAMA' | 'PLAN'
 
 /**
  * T-0182 — les deux états du panneau en Ciel profond. Ce n'est pas un onglet : on parcourt
@@ -155,7 +158,7 @@ function restaure(depart: EtatSeance): EtatSeance {
   }
 }
 
-const MODES_INTERFACE: readonly ModeInterface[] = Object.freeze(['CIEL_PROFOND', 'PANORAMA'])
+const MODES_INTERFACE: readonly ModeInterface[] = Object.freeze(['CIEL_PROFOND', 'PANORAMA', 'PLAN'])
 const VUES_CIBLES: readonly VueCibles[] = Object.freeze(['LISTE', 'FICHE'])
 
 let etat: EtatSeance = restaure(ETAT_INITIAL)

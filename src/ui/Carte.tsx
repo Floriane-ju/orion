@@ -19,17 +19,6 @@
 import type { ReactNode } from 'react'
 import { basculeCarte, useCoque, type CleCarte } from './coque-etat.ts'
 
-/**
- * T-0183 — l'exception au démontage, nommée plutôt que subie.
- *
- * Le corps d'une carte repliée n'est pas monté, et c'est ce qui rend le repli utile (T-0113).
- * Le plan de session, lui, est la SEULE région imprimable (§11.2) : démonté, il sortirait une
- * page blanche dès qu'on imprime la carte repliée. Il est donc masqué au lieu d'être démonté —
- * la seule alternative, un second exemplaire monté ailleurs, ferait deux `<textarea>` d'export
- * et deux fois la même étiquette dans l'arbre d'accessibilité.
- */
-const CARTES_MONTEES_REPLIEES: readonly CleCarte[] = ['PLAN']
-
 export interface CarteProps {
   readonly cle: CleCarte
   readonly titre: string
@@ -70,11 +59,7 @@ export function Carte(props: CarteProps) {
           {etat.ouverte ? '—' : '+'}
         </span>
       </button>
-      {(etat.ouverte || CARTES_MONTEES_REPLIEES.includes(props.cle)) && (
-        <div className="carte-corps" {...(etat.ouverte ? {} : { hidden: true })}>
-          {props.children}
-        </div>
-      )}
+      {etat.ouverte && <div className="carte-corps">{props.children}</div>}
     </section>
   )
 }

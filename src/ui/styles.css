@@ -501,10 +501,6 @@ pre {
      pour 228 disponibles. Une lecture tronquée dans un champ FERMÉ ne se rattrape pas : rien
      ne dit qu'il y avait une suite. La carte prend donc la largeur du panneau qu'elle borde. */
   --carte-large: 22rem;
-  /* Le plan porte une table de budget de nuit : à 22 rem elle défilerait horizontalement, et
-     un tableau qu'on fait glisser ne se compare plus d'une ligne à l'autre. Sa carte a donc
-     son propre gabarit. */
-  --carte-plan: 29rem;
   /* T-0363 — la hauteur de la carte de choix du lieu : assez pour une région autour du site,
      pas au point de repousser les champs du site sous le pli de la carte « Site ». */
   --choix-lieu-haut: 12rem;
@@ -1095,16 +1091,6 @@ body {
   width: max-content;
 }
 
-/* Le plan s'ancre en bas à droite, calé sur le panneau : c'est le bord libre, et
-   celui d'où il ne recouvre ni le matériel ni le rail. Le panneau est lui-même décollé du
-   bord d'un jour de carte (T-0243), d'où les deux jours. */
-.carte-plan {
-  width: var(--carte-plan);
-  right: calc(var(--lateral) + 2 * var(--jour-carte));
-  /* T-0413 — au-dessus du bloc du temps. */
-  bottom: var(--bandeau-bas);
-}
-
 /* Le site s'ancre en haut à gauche, à droite du rail : le lieu se relit à côté des bascules
    de la vue, sans couvrir ni le matériel ni le plan. */
 .carte-site {
@@ -1570,11 +1556,6 @@ body {
   max-height: calc(100dvh - var(--sous-barre) - 2 * var(--jour-carte));
   overflow-y: auto;
   padding: var(--pas-1) var(--pas-2) var(--pas-3);
-}
-
-/* Le plan est seul sur son flanc : il prend toute la hauteur laissée par les deux barres. */
-.carte-plan .carte-corps {
-  max-height: calc(100dvh - var(--sous-barre) - 3 * var(--jour-carte));
 }
 
 /* Le premier titre d'une carte suit son en-tête : il n'a pas à s'en détacher d'une marge
@@ -3276,8 +3257,8 @@ button:disabled {
     display: none;
   }
 
-  /* La coque elle-même ne s'imprime pas : ni barres, ni scène, ni panneau, ni cartes. De
-     tout cela ne survit que le plan de session, dans sa carte. */
+  /* La coque elle-même ne s'imprime pas : ni barres, ni scène, ni cartes. Du panneau ne
+     survit que le plan de session, dans l'onglet « Mon plan ». */
   .coque {
     display: block;
     height: auto;
@@ -3288,17 +3269,18 @@ button:disabled {
   .coque-scene,
   .cartes-materiel,
   .panneau-temps,
-  .coque-lateral,
   .carte {
     display: none;
   }
 
-  /* La carte du plan fait exception, et son corps avec : il s'imprime replié comme
-     déplié, dans les deux modes. Le corps replié porte `hidden` ; la règle d'auteur l'emporte
-     sur celle du navigateur, sans quoi imprimer une carte fermée sortirait une page blanche. */
-  .carte-plan,
-  .carte-plan > .carte-corps,
-  .carte-plan > .carte-corps[hidden] {
+  /* L'onglet du plan fait exception, dans tous les modes : hors de son onglet il porte
+     `hidden`, et la règle d'auteur l'emporte sur celle du navigateur — sans quoi imprimer
+     depuis la liste sortirait une page blanche. */
+  .coque-droite,
+  .coque-lateral,
+  .lateral-corps,
+  .lateral-plan,
+  .lateral-plan[hidden] {
     display: block;
     position: static;
     width: auto;
@@ -3309,11 +3291,12 @@ button:disabled {
     padding: 0;
   }
 
-
-  /* De la carte ne sort que le plan : son en-tête est une poignée, et la fenêtre nocturne se
-     lit à l'écran — elle n'a jamais fait partie de la feuille de route imprimée. */
-  .carte-plan > .carte-entete,
-  .carte-plan .carte-corps > *:not(.plan-session) {
+  /* Du panneau ne sort que le plan : ni onglets, ni en-tête, ni ce que les autres onglets
+     portent, ni la fenêtre nocturne — elle se lit à l'écran et n'a jamais fait partie de la
+     feuille de route imprimée. */
+  .coque-lateral > :not(.lateral-corps),
+  .lateral-corps > :not(.lateral-plan),
+  .lateral-plan > :not(.plan-session) {
     display: none;
   }
 

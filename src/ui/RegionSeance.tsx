@@ -33,7 +33,6 @@ import { Pastilles } from './Pastilles.tsx'
 import { Bulle } from './Bulle.tsx'
 import { AlignementCible, CadrerCible } from './BoutonCadrer.tsx'
 import { BoutonChoixCible } from './BoutonChoixCible.tsx'
-import { useCiblesChoisies } from './cibles-choisies.ts'
 import { PlanSessionVue } from './PlanSession.tsx'
 import { RegionNuit } from './RegionNuit.tsx'
 import { CarteNuit, LectureNuit } from './CarteNuit.tsx'
@@ -82,18 +81,9 @@ export function resumeSite(latitude: string, longitude: string): string {
 }
 
 /**
- * Le plan replié dit combien de cibles il ordonne : c'est ce qu'on vérifie d'un coup d'œil
- * avant de le déplier — le plan n'ordonne que ce qui a été choisi (§8.3).
- */
-function resumePlan(nombre: number): string {
-  if (nombre === 0) return 'aucune cible choisie'
-  return `${nombre} cible${nombre > 1 ? 's' : ''} choisie${nombre > 1 ? 's' : ''}`
-}
-
-/**
  * Les cartes de la scène.
  *
- * Le corps d'une carte repliée n'est PAS monté : replier le plan ne le cache pas, il cesse
+ * Le corps d'une carte repliée n'est PAS monté : replier une carte ne la cache pas, elle cesse
  * d'exister — donc de s'abonner aux magasins et d'y recalculer quoi que ce soit à chaque
  * geste de visée. C'est ce qui rend le repli utile et pas seulement discret.
  *
@@ -102,36 +92,12 @@ function resumePlan(nombre: number): string {
  */
 export function CartesSeance(props: RegionSeanceProps) {
   const { chaine, lieu, materiel } = props
-  const { calcul, ciel } = chaine
-  const choisies = useCiblesChoisies()
-
-  /* §11.2 — la seule région qui survit à l'impression : elle est nommée pour ça. */
-  const planImprimable =
-    calcul.ok && ciel.ok && chaine.plan !== null && chaine.fenetreUtile !== null ? (
-      <PlanSessionVue
-        plan={chaine.plan}
-        site={chaine.site}
-        fovHDeg={calcul.optique.fovHDeg.value}
-        fovLDeg={calcul.optique.fovLDeg.value}
-        mLimOeil={ciel.ciel.mLimOeil.value}
-        etoiles={props.etoiles}
-        nommees={props.constellations.etoilesNommees}
-        gaiaCharge={props.gaiaCharge}
-        enTete={{
-          nuitIso: lieu.nuitIso,
-          lieu: `${saisieLue(lieu.latitude)}° / ${saisieLue(lieu.longitude)}° — Bortle ${saisieLue(lieu.bortle)}`,
-          materiel:
-            `${saisieLue(materiel.focale)} mm f/${saisieLue(materiel.ouverture)} — ${calcul.boitier.libelle} · ` +
-            `ISO ${calcul.iso.iso} · ${libelleZpSource(calcul.zeroSysteme)}`,
-        }}
-      />
-    ) : null
 
   return (
     <>
       {/* T-0213 — le rail remplace la carte « Vue ». Ses réglages se prennent EN regardant le
           ciel : une carte à déplier puis replier coûtait deux gestes par bascule. Il est monté
-          avant la carte Plan pour que la tabulation le rencontre d'abord — il borde la scène,
+          avant la carte Site pour que la tabulation le rencontre d'abord — il borde la scène,
           elle flotte dessus. */}
       <RailVue
         modeObjectif={modeObjectif(materiel.typeObjectif)}
@@ -157,29 +123,61 @@ export function CartesSeance(props: RegionSeanceProps) {
           cielRefus={chaine.cielRefus}
         />
       </Carte>
+    </>
+  )
+}
 
-      {/* T-0183 — le plan se consulte pendant qu'on regarde le ciel : vérifier l'heure du
-          prochain créneau, la pose retenue, ce qui a été écarté. C'est ce qui en fait une
-          carte, et non une colonne qu'on parcourt. Son corps reste monté replié — il est la
-          seule région imprimable (§11.2). */}
-      <Carte cle="PLAN" titre="Plan de nuit" resume={resumePlan(choisies.size)}>
-        {ciel.ok && (
-          <RegionNuit
-            nuit={ciel.nuit}
-            ciel={ciel.ciel}
-            offsetMidi={ciel.offsetMidi}
-            nuitIso={lieu.nuitIso}
-            planIndisponible={chaine.plan === null && props.catalogue.length === 0}
-          />
-        )}
-        {/* T-0291 — le plan est calculé hors du rendu de la frappe : tant qu'il est en vol,
-            ce bloc montre celui de la saisie précédente, et le dit. Un horaire de créneau qui
-            ne correspond plus à la focale tapée est faux s'il ne s'annonce pas. */}
-        {chaine.recalculEnCours && <Mention ton="etat">{RECALCUL_EN_COURS}</Mention>}
-        <div className="plan-session" aria-busy={chaine.recalculEnCours}>
-          {planImprimable}
-        </div>
-      </Carte>
+/**
+ * L'onglet « Mon plan » : la fenêtre nocturne, puis le plan de session.
+ *
+ * Il reste monté hors de son onglet, masqué : le plan est la SEULE région imprimable (§11.2),
+ * et démonté il sortirait une page blanche dès qu'on imprime depuis un autre onglet. Un second
+ * exemplaire monté pour l'impression ferait deux `<textarea>` d'export dans l'arbre.
+ */
+function PlanNuit(props: RegionSeanceProps) {
+  const { chaine, lieu, materiel } = props
+  const { calcul, ciel } = chaine
+
+  /* §11.2 — la seule région qui survit à l'impression : elle est nommée pour ça. */
+  const planImprimable =
+    calcul.ok && ciel.ok && chaine.plan !== null && chaine.fenetreUtile !== null ? (
+      <PlanSessionVue
+        plan={chaine.plan}
+        site={chaine.site}
+        fovHDeg={calcul.optique.fovHDeg.value}
+        fovLDeg={calcul.optique.fovLDeg.value}
+        mLimOeil={ciel.ciel.mLimOeil.value}
+        etoiles={props.etoiles}
+        nommees={props.constellations.etoilesNommees}
+        gaiaCharge={props.gaiaCharge}
+        enTete={{
+          nuitIso: lieu.nuitIso,
+          lieu: `${saisieLue(lieu.latitude)}° / ${saisieLue(lieu.longitude)}° — Bortle ${saisieLue(lieu.bortle)}`,
+          materiel:
+            `${saisieLue(materiel.focale)} mm f/${saisieLue(materiel.ouverture)} — ${calcul.boitier.libelle} · ` +
+            `ISO ${calcul.iso.iso} · ${libelleZpSource(calcul.zeroSysteme)}`,
+        }}
+      />
+    ) : null
+
+  return (
+    <>
+      {ciel.ok && (
+        <RegionNuit
+          nuit={ciel.nuit}
+          ciel={ciel.ciel}
+          offsetMidi={ciel.offsetMidi}
+          nuitIso={lieu.nuitIso}
+          planIndisponible={chaine.plan === null && props.catalogue.length === 0}
+        />
+      )}
+      {/* T-0291 — le plan est calculé hors du rendu de la frappe : tant qu'il est en vol,
+          ce bloc montre celui de la saisie précédente, et le dit. Un horaire de créneau qui
+          ne correspond plus à la focale tapée est faux s'il ne s'annonce pas. */}
+      {chaine.recalculEnCours && <Mention ton="etat">{RECALCUL_EN_COURS}</Mention>}
+      <div className="plan-session" aria-busy={chaine.recalculEnCours}>
+        {planImprimable}
+      </div>
     </>
   )
 }
@@ -213,7 +211,8 @@ function RappelFacilite({ etat }: { readonly etat: EtatCible }) {
  * Le panneau latéral et son plan imprimable.
  *
  * T-0181 — il n'y a plus de panneau à choisir : le mode le dit. En Ciel profond on choisit une
- * cible dans le catalogue, en Panorama on règle le panorama, et rien d'autre n'est monté.
+ * cible dans le catalogue, en Panorama on règle le panorama, sur « Mon plan » on relit la
+ * nuit et le plan. Seul le plan reste monté hors de son onglet, masqué, pour l'impression.
  *
  * T-0188 — gestion du focus quand le contenu du panneau change.
  */
@@ -328,49 +327,54 @@ export function LateralSeance(props: RegionSeanceProps) {
       }
       titreRef={titreRef}
     >
-      {fiche && props.cibleDuCiel !== null ? (
-        /* T-0149 — sans optique chiffrable, la fiche dit ce qui manque plutôt que de meubler. */
-        chaine.contexteFiche === null ? (
-          <p className="etat">{AIDE_MATERIEL_INCOMPLET}</p>
-        ) : (
-          <FicheSousZoom
-            zoom={chaine.zoom}
-            {...chaine.contexteFiche}
-            objet={props.cibleDuCiel}
+      <>
+        {mode === 'PLAN' ? null : fiche && props.cibleDuCiel !== null ? (
+          /* T-0149 — sans optique chiffrable, la fiche dit ce qui manque plutôt que de meubler. */
+          chaine.contexteFiche === null ? (
+            <p className="etat">{AIDE_MATERIEL_INCOMPLET}</p>
+          ) : (
+            <FicheSousZoom
+              zoom={chaine.zoom}
+              {...chaine.contexteFiche}
+              objet={props.cibleDuCiel}
+              site={chaine.site}
+              contexteSession={chaine.contexteSession}
+              ecarteePlan={ecarteePlan}
+              etapePlan={etapePlan}
+              facilite={facilite}
+            />
+          )
+        ) : mode === 'PANORAMA' ? (
+          chaine.panneauFile === null ? (
+            <p className="etat">{AIDE_MATERIEL_INCOMPLET}</p>
+          ) : (
+            <PanneauFile {...chaine.panneauFile} />
+          )
+        ) : /* T-0149 — la liste chiffre un cadrage : sans optique, elle dit ce qui manque.
+               T-0291 — c'est le contexte de séance qui la monte, et non `calcul.ok && ciel.ok` :
+               les deux conditions sont équivalentes, mais la première est celle dont la liste
+               tire ses lectures, et c'est elle qui porte la cadence différée. */
+        chaine.contexteSession !== null ? (
+          <PanneauCibles
+            catalogue={catalogue}
             site={chaine.site}
             contexteSession={chaine.contexteSession}
-            ecarteePlan={ecarteePlan}
-            etapePlan={etapePlan}
-            facilite={facilite}
+            etats={chaine.etatsCibles}
+            profil={chaine.profilsCadre[0]}
+            gaiaCharge={props.gaiaCharge}
+            parc={props.materiel.objectifs}
+            zoom={chaine.zoom}
+            recalcul={chaine.recalculEnCours}
+            enCharge={props.catalogueEnCharge}
+            inputRef={rechercheRef}
           />
-        )
-      ) : mode === 'PANORAMA' ? (
-        chaine.panneauFile === null ? (
-          <p className="etat">{AIDE_MATERIEL_INCOMPLET}</p>
         ) : (
-          <PanneauFile {...chaine.panneauFile} />
-        )
-      ) : /* T-0149 — la liste chiffre un cadrage : sans optique, elle dit ce qui manque.
-             T-0291 — c'est le contexte de séance qui la monte, et non `calcul.ok && ciel.ok` :
-             les deux conditions sont équivalentes, mais la première est celle dont la liste
-             tire ses lectures, et c'est elle qui porte la cadence différée. */
-      chaine.contexteSession !== null ? (
-        <PanneauCibles
-          catalogue={catalogue}
-          site={chaine.site}
-          contexteSession={chaine.contexteSession}
-          etats={chaine.etatsCibles}
-          profil={chaine.profilsCadre[0]}
-          gaiaCharge={props.gaiaCharge}
-          parc={props.materiel.objectifs}
-          zoom={chaine.zoom}
-          recalcul={chaine.recalculEnCours}
-          enCharge={props.catalogueEnCharge}
-          inputRef={rechercheRef}
-        />
-      ) : (
-        <p className="etat">{AIDE_MATERIEL_INCOMPLET}</p>
-      )}
+          <p className="etat">{AIDE_MATERIEL_INCOMPLET}</p>
+        )}
+        <div className="lateral-plan" {...(mode === 'PLAN' ? {} : { hidden: true })}>
+          <PlanNuit {...props} />
+        </div>
+      </>
     </PanneauLateral>
   )
 }

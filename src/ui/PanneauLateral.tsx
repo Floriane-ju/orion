@@ -16,6 +16,9 @@
  * décide de ce que le panneau porte : sa commande se pose donc sur le panneau, et le titre qui
  * répétait le mode (« Toutes les cibles », « Panorama ») disparaît. Les onglets restent au-dessus
  * de la fiche — on en sort vers Panorama sans repasser par la liste.
+ *
+ * Le plan de nuit quitte sa carte pour un troisième onglet, « Mon plan » : il se lit de haut
+ * en bas, comme la liste dont il ordonne les choix.
  */
 
 import type { ReactNode, RefObject } from 'react'
@@ -23,12 +26,13 @@ import { BoutonGlyphe } from './BoutonGlyphe.tsx'
 import { modeSeance, poseMode, useTrancheSeance, type ModeInterface } from './seance-etat.ts'
 
 /**
- * Les deux positions, dans l'ordre de la rangée. L'ordre est un contrat : le défaut d'abord, à
+ * Les trois positions, dans l'ordre de la rangée. L'ordre est un contrat : le défaut d'abord, à
  * gauche — la position dit laquelle est active autant que le fond.
  */
 const MODES: readonly (readonly [ModeInterface, string])[] = [
   ['CIEL_PROFOND', 'Ciel profond'],
   ['PANORAMA', 'Panorama'],
+  ['PLAN', 'Mon plan'],
 ]
 
 /** L'en-tête de la fiche ouverte. */
@@ -40,7 +44,7 @@ export interface EnteteFiche {
 }
 
 export interface PanneauLateralProps {
-  /** `null` sur la liste et en Panorama : il n'y a rien derrière, donc ni titre ni retour. */
+  /** `null` sur la liste, en Panorama et sur le plan : il n'y a rien derrière, donc ni titre ni retour. */
   readonly fiche: EnteteFiche | null
   readonly children: ReactNode
   /** T-0188 — ref au titre pour la gestion du focus quand on ouvre une fiche. */
@@ -52,8 +56,8 @@ export function PanneauLateral(props: PanneauLateralProps) {
   return (
     <aside className="coque-lateral" id="panneau-lateral" aria-label="Panneau de séance">
       {/* §11.3 — le commutateur de premier rang. `aria-pressed` plutôt qu'`aria-expanded` :
-          ces deux boutons ne déplient rien, ils choisissent lequel des deux états l'écran
-          tient — et l'un des deux est toujours vrai. */}
+          ces boutons ne déplient rien, ils choisissent lequel des états l'écran tient — et
+          l'un d'eux est toujours vrai. */}
       <div className="onglets" role="group" aria-label="Mode d’interface">
         {MODES.map(([cle, libelle]) => (
           <button

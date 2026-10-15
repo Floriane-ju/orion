@@ -27,9 +27,9 @@ import { planSession, type ContexteSession } from '../src/core/session.ts'
 import { planEnTexte } from '../src/core/plan-texte.ts'
 import type { ObjetCielProfond } from '../src/data/deepsky.ts'
 import { reinitialiseScene } from '../src/ui/scene-etat.ts'
-import { ouvreCible, reinitialiseSeance } from '../src/ui/seance-etat.ts'
+import { ouvreCible, poseMode, reinitialiseSeance } from '../src/ui/seance-etat.ts'
 import { reinitialiseCatalogue } from '../src/ui/catalogue-etat.ts'
-import { ouvreCarte, reinitialiseCoque } from '../src/ui/coque-etat.ts'
+import { reinitialiseCoque } from '../src/ui/coque-etat.ts'
 import {
   LIBELLE_CAUSE_ECART,
   LIBELLE_DISPONIBILITE_HORS_LIGNE,
@@ -238,7 +238,7 @@ describe('T-0275 — les surfaces principales ne montrent aucun identifiant inte
   })
 
   it('le plan de la nuit, et les cibles qu’il écarte avec leur cause', () => {
-    ouvreCarte('PLAN')
+    poseMode('PLAN')
     expect(codesRendus(renderToStaticMarkup(<App />))).toEqual([])
   })
 
