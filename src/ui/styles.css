@@ -64,8 +64,8 @@
   --fond-alerte: #1a0f0d;
   /* Les courbes du Soleil et de la Lune dans la frise : chaque astre a sa teinte, le Soleil
      chaud, la Lune froide. La frise reste sombre de jour : la palette claire n'y touche pas. */
-  --astre-soleil: #ffa64d;
-  --astre-lune: #6fa8ff;
+  --astre-soleil: #ff5d00;
+  --astre-lune: #00becc;
   /* LA BARRE DE TITRE — sections, cartes, panneau, modale. Le jour, un aplat de texte sous un
      titre couleur de fond ; la nuit, un bandeau noir sous un titre rouge (§11.1). Tout ce qui
      s'y pose — titre, commande, pastille — prend `--barre-encre`, ce qu'on y survole prend
@@ -111,7 +111,11 @@
 
    T-0422 — l'îlot vaut aussi de nuit, où il redit la racine : réservé au jour, il se retirait
    au coucher et la frise héritait des jetons de la racine en plein fondu — elle s'éclaircissait
-   puis revenait. Posés sur elle, ses jetons ne suivent plus aucun fondu. */
+   puis revenait. Posés sur elle, ses jetons ne suivent plus aucun fondu.
+
+   Le disque de la Lune du bloc du temps est du même ciel : sur le voile clair du jour, ses
+   jetons inversés peignaient la part éclairée en sombre. */
+:root:not([data-mode-nuit='true']) .nuit-lecture-disque,
 :root:not([data-mode-nuit='true']) .nuit-frise {
   color-scheme: dark;
   --base-neutre: #e9e9e9;
@@ -129,8 +133,8 @@
   --bordure-faible: color-mix(in srgb, var(--base-neutre) 21%, var(--fond));
   --alerte: #ff6f5e;
   --fond-alerte: #1a0f0d;
-  --astre-soleil: #ffa64d;
-  --astre-lune: #6fa8ff;
+  --astre-soleil: #ff5d00;
+  --astre-lune: #00becc;
   --barre-fond: var(--texte);
   --barre-encre: var(--fond);
   --barre-survol: var(--attenue);
@@ -477,10 +481,11 @@ pre {
   /* T-0413 — le bandeau du bas : le bloc du temps et un jour de carte d'air autour. Ce qui
      s'ancre en bas de la scène, entre le rail et le panneau, se pose au-dessus de lui. */
   --bandeau-bas: calc(var(--temps-haut) + 2 * var(--jour-carte));
-  /* T-0416 — la hauteur du bloc du temps : la date et l'heure sur une ligne, un compteur
-     (0,85 × 1,6 + 2 × 0,125 + deux filets), puis la lecture sur deux lignes (2 × 0,65 + 0,125),
-     l'écart entre les deux (0,25) et le rembourrage (2 × 0,25) : 3,9 rem, arrondie au quart. */
-  --temps-haut: 4rem;
+  /* T-0416 — la hauteur du bloc du temps : l'heure au-dessus de la date, deux compteurs
+     (2 × (0,85 × 1,6 + 2 × 0,125 + deux filets)), l'écart entre eux (0,25) et le rembourrage
+     (2 × 0,5), assez d'air pour que les deux lignes ne touchent pas les filets : 4,6 rem,
+     arrondie au quart. */
+  --temps-haut: 4.75rem;
   /* La barre de titre d'une fenêtre : la hauteur d'une ligne de micro-libellé et son air. */
   --barre-titre: 1.375rem;
   --lateral: 22rem;
@@ -870,7 +875,7 @@ body {
   display: inline-flex;
   align-items: baseline;
   gap: var(--pas-2);
-  padding: var(--pas-0) 0 var(--pas-1);
+  padding: var(--pas-0) 0;
   background: linear-gradient(
       to right,
       transparent var(--pas-0),
@@ -1175,8 +1180,10 @@ body {
   border: var(--trait) solid var(--bordure);
 }
 
-/* La date au-dessus de l'heure, puis la phase et la Lune de cet instant : l'instant se lit
-   d'une traite, à gauche de la frise qu'il fait défiler. */
+/* L'heure au-dessus de la date : l'instant se lit d'une traite, en tête du bloc.
+
+   Les filets entre les cases sont en --bordure-controle : --bordure-faible disparaissait sur le
+   voile clair du jour. */
 .panneau-temps-date {
   flex: none;
   display: flex;
@@ -1184,38 +1191,50 @@ body {
   justify-content: center;
   align-items: flex-start;
   gap: var(--pas-1);
-  padding: var(--pas-1) var(--pas-4);
-  border-inline-end: var(--trait) solid var(--bordure-faible);
+  padding: var(--pas-2) var(--pas-5);
+  border-inline-end: var(--trait) solid var(--bordure-controle);
 }
 
-/* T-0416 — la date et l'heure côte à côte, sur la ligne de base de leurs chiffres. */
-.panneau-temps-instant {
-  display: flex;
-  align-items: baseline;
-  gap: var(--pas-4);
-}
-
-/* T-0415 — la largeur de la lecture ne dépend pas de ce qu'elle dit : sans elle, la frise
-   rétrécissait au crépuscule astronomique et s'élargissait de jour. La phase sur une ligne, la
-   Lune sur la suivante, à la largeur de la plus longue des deux — « Crépuscule astronomique »
-   et « Lune décroissante 100 % », 23 signes, un de marge. La police est à chasse fixe : `ch`
-   la mesure exactement. */
-.panneau-temps-date > .nuit-lecture {
+/* T-0412 — le retour au présent : un carré, entre l'horloge et l'astre, séparé d'un filet. Le
+   bouton vit dans l'ancre de sa bulle (`.bulle-ancre`) : c'est elle, enfant du bloc, qui prend
+   la case, et le bouton la remplit. Deux classes sur le bouton : la variante `nu` vient plus bas. */
+.panneau-temps > :has(> .panneau-temps-maintenant) {
+  flex: none;
   display: grid;
+  align-self: stretch;
+  inline-size: var(--temps-haut);
+  border-inline-end: var(--trait) solid var(--bordure-controle);
+}
+.panneau-temps .panneau-temps-maintenant {
+  inline-size: 100%;
+  block-size: 100%;
+  border: 0;
+}
+
+/* La Lune de l'instant, à sa phase et nommée dessous. Une case de largeur fixe — deux carrés —,
+   sans quoi la frise changerait de largeur avec le libellé de la phase. */
+.panneau-temps-astre {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: calc(2 * var(--temps-haut));
+  border-inline-end: var(--trait) solid var(--bordure-controle);
+}
+.nuit-lecture {
+  display: grid;
+  justify-items: center;
   gap: var(--pas-0);
-  inline-size: 24ch;
+  margin: 0;
   color: var(--attenue);
+  font-size: var(--texte-mini);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--interligne-serre);
   white-space: nowrap;
 }
-
-/* T-0412 — le retour au présent : un carré noir, du côté du bloc, séparé de la frise d'un filet.
-   Deux classes : la variante `nu` du bouton-glyphe vient plus bas dans la feuille. */
-.panneau-temps > .panneau-temps-maintenant {
-  flex: none;
-  inline-size: var(--temps-haut);
-  background: var(--fond);
-  border: 0;
-  border-inline-start: var(--trait) solid var(--bordure-faible);
+.nuit-lecture-disque {
+  display: block;
+  inline-size: var(--pas-6);
+  block-size: var(--pas-6);
 }
 
 /* T-0327 — LA DATE ET L'HEURE SONT DES CHAMPS DU MÊME CORPS. Elles se règlent du même geste :
@@ -1223,6 +1242,9 @@ body {
    s'aligneraient pas. Le corps est celui d'une saisie. */
 .panneau-temps-jour,
 .panneau-temps-heure {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--pas-1);
   font-size: var(--texte-appui);
   color: var(--texte);
   white-space: nowrap;
@@ -1246,18 +1268,29 @@ body {
   border-block: 0;
 }
 
-/* T-0417 — les heures DANS la frise, au bas : elle gagne la hauteur de leur rangée. Elles ne
-   prennent pas le pointeur : un clic dessous règle l'instant. */
+/* T-0417 — les heures DANS la frise, posées sur l'horizon : elles en sont les graduations, et la
+   frise garde toute sa hauteur au ciel. Une heure sur deux, sans trait — le pointillé de
+   l'horizon tient lieu de règle. Elles ne prennent pas le pointeur : un clic dessus règle
+   l'instant. */
 .panneau-temps .nuit-heures {
   position: absolute;
-  inset-inline: 0;
-  inset-block-end: 0;
+  inset: 0;
+  block-size: auto;
   pointer-events: none;
+}
+.panneau-temps .nuit-repere {
+  inset-block: 50% auto;
+  transform: translate(-50%, -50%);
+}
+.panneau-temps .nuit-repere::before {
+  content: none;
+}
+.panneau-temps .nuit-repere:not(.majeur) {
+  display: none;
 }
 /* T-0418 — chaque heure porte son aplat, sur le texte seul : noir sur la nuit et les
    crépuscules, clair sur le jour, encre inverse. Posée sur une trame de points ou à cheval sur
-   deux phases, elle se lit pareil. Le trait reste nu ; sur l'aplat du jour il passe à l'encre
-   sombre, sans quoi il s'y fondrait. */
+   deux phases, elle se lit pareil, et elle coupe l'horizon au lieu de s'y mêler. */
 .panneau-temps .nuit-repere-texte {
   padding-inline: var(--pas-0);
   background: var(--fond);
@@ -1267,17 +1300,11 @@ body {
   background: var(--texte);
   color: var(--fond);
 }
-.panneau-temps .nuit-repere.jour::before {
-  background: var(--fond);
-}
 /* §11.1 — la nuit, le jour de la frise est hachuré, pas plein (T-0375) : son étiquette garde
-   l'aplat noir de toutes les autres, et le trait repasse à l'encre. */
+   l'aplat noir de toutes les autres. */
 :root[data-mode-nuit='true'] .panneau-temps .nuit-repere.jour > .nuit-repere-texte {
   background: var(--fond);
   color: var(--texte);
-}
-:root[data-mode-nuit='true'] .panneau-temps .nuit-repere.jour::before {
-  background: var(--texte);
 }
 
 /* LE RAIL DE LA VUE : les bascules de rendu, posées au flanc gauche de la scène.
@@ -3466,13 +3493,6 @@ button:disabled {
   font-size: var(--texte-appui);
   letter-spacing: var(--suivi-titre);
 }
-.nuit-lecture {
-  margin: 0;
-  color: var(--texte);
-  font-size: var(--texte-mini);
-  font-variant-numeric: tabular-nums;
-  line-height: var(--interligne-serre);
-}
 .nuit-bande {
   position: absolute;
   inset-block: 0;
@@ -3595,15 +3615,30 @@ button:disabled {
   overflow: visible;
   pointer-events: none;
 }
-.nuit-courbes polyline,
-.nuit-horizon {
+.nuit-courbes polyline {
   fill: none;
   vector-effect: non-scaling-stroke;
   stroke-linejoin: round;
 }
+/* L'horizon, en pointillé : le trait d'une règle, pas celui d'un astre. Un élément et non une
+   ligne du SVG — étiré sans proportion, le SVG déformerait ses tirets. Une tuile par heure, son
+   écart sur l'heure pleine : `--heure` et `--premiere` (fractions de la frise, `tiretsHorizon`)
+   accrochent les tirets au temps, et ils défilent avec le ciel. `100cqw` est la largeur de la
+   frise (`.nuit-frise-zone`). */
 .nuit-horizon {
-  stroke: var(--attenue);
-  stroke-width: var(--trait);
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 50%;
+  block-size: calc(2 * var(--trait));
+  translate: 0 -50%;
+  background: linear-gradient(
+      to right,
+      transparent var(--pas-1),
+      var(--attenue) 0 calc(100% - var(--pas-1)),
+      transparent 0
+    )
+    calc(var(--premiere) * 100cqw) 0 / calc(var(--heure) * 100cqw) 100% repeat-x;
+  pointer-events: none;
 }
 .nuit-courbe-trait {
   stroke-width: calc(2 * var(--trait));
@@ -3613,6 +3648,29 @@ button:disabled {
 }
 .nuit-courbe-lune {
   stroke: var(--astre-lune);
+}
+/* Le Soleil et la Lune à l'instant du curseur : un point plein sur chaque courbe. Le cadre est
+   celui des courbes (`.nuit-courbes`), pour que le point tombe sur le trait. */
+.nuit-astres {
+  position: absolute;
+  inset-block: var(--pas-1);
+  inset-inline: 0;
+  pointer-events: none;
+}
+.nuit-astre {
+  position: absolute;
+  inset-inline-start: var(--debut);
+  inset-block-start: var(--haut);
+  inline-size: var(--pas-3);
+  block-size: var(--pas-3);
+  border-radius: 50%;
+  translate: -50% -50%;
+}
+.nuit-astre-soleil {
+  background: var(--astre-soleil);
+}
+.nuit-astre-lune {
+  background: var(--astre-lune);
 }
 /* §11.1 — la nuit, les deux teintes passent au rouge : la Lune se distingue à son tiret. */
 :root[data-mode-nuit='true'] .nuit-courbe-lune {

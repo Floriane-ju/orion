@@ -174,6 +174,17 @@ export function reperesHeures(vue: Intervalle, frise?: FriseNuit): readonly Repe
   return reperes
 }
 
+/**
+ * Le pas des tirets de l'horizon, en fractions de la frise : une heure, et la place de la
+ * première heure pleine. Les tirets sont accrochés aux heures et défilent avec elles — posés à
+ * pas fixe sur l'écran, ils restaient immobiles sous un ciel qui glissait.
+ */
+export function tiretsHorizon(vue: Intervalle): { readonly heure: number; readonly premiere: number } {
+  const duree = vue.fin.getTime() - vue.debut.getTime()
+  const premiere = Math.ceil(vue.debut.getTime() / MS_PAR_H) * MS_PAR_H
+  return { heure: MS_PAR_H / duree, premiere: fraction(vue, new Date(premiere)) }
+}
+
 /** L'instant affiché sur la frise, ou `null` quand il tombe hors de la fenêtre vue. */
 export function curseurInstant(vue: Intervalle, instant: Date): string | null {
   return dansVue(vue, instant) ? pourcentCss(fraction(vue, instant)) : null
@@ -213,6 +224,26 @@ export function pointsCourbe(hauteurs: readonly HauteurAstre[], vue: Intervalle)
       return `${x.toFixed(2)},${y.toFixed(2)}`
     })
     .join(' ')
+}
+
+/**
+ * La hauteur d'un astre à `instant`, lue sur sa courbe échantillonnée : le point posé sur la
+ * courbe au curseur doit tomber SUR le trait, pas sur un calcul d'éphéméride qui s'en écarterait
+ * entre deux échantillons. `null` hors de la courbe.
+ */
+export function hauteurSurCourbe(hauteurs: readonly HauteurAstre[], instant: Date): number | null {
+  const t = instant.getTime()
+  const apres = hauteurs.findIndex((p) => p.instant.getTime() >= t)
+  if (apres <= 0) return apres === 0 && hauteurs[0]!.instant.getTime() === t ? hauteurs[0]!.hauteurDeg : null
+  const a = hauteurs[apres - 1]!
+  const b = hauteurs[apres]!
+  const k = (t - a.instant.getTime()) / (b.instant.getTime() - a.instant.getTime())
+  return a.hauteurDeg + (b.hauteurDeg - a.hauteurDeg) * k
+}
+
+/** L'ordonnée CSS d'une hauteur dans la frise, du haut : le repère de `pointsCourbe`. */
+export function ordonneeFrise(hauteurDeg: number): string {
+  return pourcentCss(1 - hauteurFrise(hauteurDeg))
 }
 
 export interface MarqueLune {

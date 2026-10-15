@@ -21,27 +21,26 @@ export function heure(date: Date): string {
 }
 
 /**
- * T-0314 — le quantième, le mois abrégé, l'année.
+ * Le jour tout en chiffres, à deux chiffres : « 07/01/2026 ».
  *
- * T-0164 avait mis ce jour tout en chiffres : « août » et « mai » n'ont pas la même largeur, et
- * la date se tire champ par champ. Le glisser capture le pointeur — le compteur tiré reste sous
- * le doigt quelle que soit sa largeur, et seuls ses voisins bougent, après coup.
+ * T-0314 avait abrégé le mois en lettres ; la maquette du bloc du temps revient aux chiffres :
+ * trois compteurs de largeur fixe, alignés sous les deux de l'heure. Le glisser capture le
+ * pointeur, la largeur n'a de toute façon jamais gêné le geste.
  *
  * T-0327 — le jour de la semaine est retiré : ce n'est pas un champ réglable, et posé en texte
  * devant trois champs encadrés, il se lisait comme un quatrième qui ne répondait pas.
  */
 const OPTIONS_JOUR: Intl.DateTimeFormatOptions = {
-  day: 'numeric',
-  month: 'short',
+  day: '2-digit',
+  month: '2-digit',
   year: 'numeric',
 }
 
-/** L'heure à la seconde. Le défilement §3.2 avance de 2,5 min par seconde : la minute seule
- * afficherait une horloge qui saute par paliers de soixante. */
+/** L'heure à la minute : le transport accéléré n'existe plus, la seconde n'avait plus rien à
+ * montrer — l'horloge ne se tire plus qu'à la main, et la frise vise la minute. */
 const OPTIONS_HEURE: Intl.DateTimeFormatOptions = {
   hour: '2-digit',
   minute: '2-digit',
-  second: '2-digit',
 }
 
 /**

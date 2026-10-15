@@ -87,16 +87,19 @@ import {
   instantClavier,
   instantFraction,
   glisseMolette,
+  hauteurSurCourbe,
   instantGlisse,
   LIBELLE_PHASE_CIEL,
   libelleLuneInstant,
   libellePhaseLune,
   type MarqueLune,
   marquesLune,
+  ordonneeFrise,
   pointsCourbe,
   pourcentCss,
   reperesHeures,
   resumeLuneFrise,
+  tiretsHorizon,
 } from './carte-nuit-calcul.ts'
 
 export interface CarteNuitProps {
@@ -173,10 +176,11 @@ function useFriseCiel(site: Site, afficheMs: number): FriseNuit {
 }
 
 /**
- * T-0412 — la phase du ciel et la Lune de l'instant affiché, sous l'horloge et non plus sous la
- * frise : elles qualifient l'instant que l'horloge règle, et la frise prend toute la hauteur de
- * la barre. §11.2 ne laisse rien de critique au seul survol : la ligne reste à demeure. L'heure
- * n'y est plus — elle se lit juste au-dessus.
+ * T-0412 — la Lune de l'instant affiché, dans sa case du bloc du temps, dessinée à sa phase et
+ * nommée dessous — de jour comme de nuit : sa phase se prépare avant la nuit. Le disque se lit d'un coup d'œil
+ * là où « Lune décroissante 10 % » demandait une lecture ; la phase du ciel, elle, se voit dans
+ * la frise juste à côté, et reste dite dans le nom accessible (§11.2 : rien de critique au seul
+ * survol, et un lecteur d'écran n'a pas le disque).
  */
 export function LectureNuit({ site }: { readonly site: Site }) {
   const minute = useTrancheScene(minuteAffichee)
@@ -184,11 +188,20 @@ export function LectureNuit({ site }: { readonly site: Site }) {
   const afficheMs = trajetMs ?? minute * MS_PAR_MINUTE
   const frise = useFriseCiel(site, afficheMs)
   const lecture = lectureFrise(site, frise, new Date(afficheMs))
-  const lune = libellePhaseLune(lecture.luneCroissante, lecture.illuminationLune).toLowerCase()
+  const lune = libellePhaseLune(lecture.luneCroissante, lecture.illuminationLune)
+  const ciel = LIBELLE_PHASE_CIEL[lecture.phase]
+  const disque = disqueLune(
+    { illumination: lecture.illuminationLune, croissante: lecture.luneCroissante },
+    site.latitudeDeg,
+  )
   return (
-    <p className="nuit-lecture">
-      <span>{LIBELLE_PHASE_CIEL[lecture.phase]}</span>
-      <span>Lune {lune}</span>
+    <p className="nuit-lecture" role="img" aria-label={`${ciel} · Lune ${lune.toLowerCase()}`}>
+      <span className="nuit-lecture-disque">
+        <DisqueLuneVue disque={disque} />
+      </span>
+      <span className="nuit-lecture-phase" aria-hidden="true">
+        {lune}
+      </span>
     </p>
   )
 }
@@ -279,6 +292,12 @@ function Frise({
   const lecture =
     survol === null ? null : lectureFrise(site, frise, new Date(instantFraction(vue, survol.fraction)))
   const curseur = curseurInstant(vue, new Date(instantMs))
+  const tirets = tiretsHorizon(vue)
+  // Chaque astre marqué d'un point sur sa courbe, à l'instant du curseur.
+  const astres = [
+    { astre: 'soleil', hauteurDeg: hauteurSurCourbe(frise.soleil, new Date(instantMs)) },
+    { astre: 'lune', hauteurDeg: hauteurSurCourbe(frise.lune.hauteurs, new Date(instantMs)) },
+  ] as const
   const debut = vue.debut.getTime()
   const fin = vue.fin.getTime()
   const phaseAffichee = phaseFrise(site, frise, new Date(instantMs))
@@ -389,14 +408,21 @@ function Frise({
               style={proprietes({ '--debut': b.debut, '--largeur': b.largeur })}
             />
           ))}
-          {/* Le Soleil et la Lune sur une même échelle, l'horizon au milieu. */}
+          {/* L'horizon en pointillé, les heures posées dessus ; le Soleil et la Lune sur une
+              même échelle de part et d'autre. */}
+          <span
+            className="nuit-horizon"
+            style={proprietes({
+              '--heure': String(tirets.heure),
+              '--premiere': String(tirets.premiere),
+            })}
+          />
           <svg
             className="nuit-courbes"
             viewBox={`0 0 ${POURCENT} ${POURCENT}`}
             preserveAspectRatio="none"
             aria-hidden="true"
           >
-            <line className="nuit-horizon" x1={0} y1={POURCENT / 2} x2={POURCENT} y2={POURCENT / 2} />
             {courbes.map((c) => (
               <polyline
                 key={c.astre}
@@ -437,6 +463,22 @@ function Frise({
           </span>
         ))}
       </div>
+      {/* Après les heures, pour passer dessus : posée sur l'horizon, une étiquette cachait la
+          Lune qui s'y levait. */}
+      {curseur !== null && (
+        <span className="nuit-astres" aria-hidden="true">
+          {astres.map(
+            (a) =>
+              a.hauteurDeg !== null && (
+                <span
+                  key={a.astre}
+                  className={`nuit-astre nuit-astre-${a.astre}`}
+                  style={proprietes({ '--debut': curseur, '--haut': ordonneeFrise(a.hauteurDeg) })}
+                />
+              ),
+          )}
+        </span>
+      )}
     </div>
   )
 }

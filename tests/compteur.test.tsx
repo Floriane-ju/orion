@@ -87,7 +87,7 @@ describe('T-0327 — un champ ne change pas de taille avec sa valeur', () => {
     )
     expect(LARGEURS_INSTANT.month).toBe(Math.max(...mois))
     expect(LARGEURS_INSTANT.hour).toBe(2)
-    expect(LARGEURS_INSTANT.second).toBe(2)
+    expect(LARGEURS_INSTANT.minute).toBe(2)
   })
 
   it('pose sur chaque champ de la visée la largeur de sa valeur extrême', () => {
@@ -190,19 +190,19 @@ describe('T-0162 — un champ de l’instant réécrit', () => {
   it('découpe l’instant sans en changer le format', () => {
     const recompose = (parties: readonly Intl.DateTimeFormatPart[]) =>
       parties.map((p) => p.value).join('')
-    // T-0314 — mois abrégé : le découpage suit la locale, il ne la réécrit
-    // pas, et c'est justement ce que cette recomposition vérifie.
+    // Le découpage suit la locale, il ne la réécrit pas, et c'est justement ce que cette
+    // recomposition vérifie. Le jour en chiffres, l'heure à la minute.
     expect(recompose(partiesJour(nuit))).toBe(nuit.toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
+      day: '2-digit',
+      month: '2-digit',
       year: 'numeric',
     }))
-    expect(recompose(partiesHeure(nuit))).toMatch(/\d{2}:\d{2}:\d{2}/)
+    expect(recompose(partiesHeure(nuit))).toMatch(/^\d{2}:\d{2}$/)
   })
 
-  it('pose un compteur nommé et réglable au clavier sur chacun des six champs', () => {
+  it('pose un compteur nommé et réglable au clavier sur chacun des cinq champs', () => {
     const html = ecran()
-    for (const libelle of ['Jour', 'Mois', 'Année', 'Heure', 'Minute', 'Seconde']) {
+    for (const libelle of ['Jour', 'Mois', 'Année', 'Heure', 'Minute']) {
       const balise = compteur(html, libelle)
       expect(balise, libelle).toContain('role="spinbutton"')
       expect(balise, libelle).toContain('tabindex="0"')

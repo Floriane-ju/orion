@@ -34,9 +34,9 @@ afterEach(() => {
 })
 
 describe('T-0411 — l’horloge et la frise règlent le même instant', () => {
-  it('porte six compteurs et le retour au présent, sans transport', () => {
+  it('porte cinq compteurs et le retour au présent, sans transport', () => {
     const html = barre()
-    for (const libelle of ['Jour', 'Mois', 'Année', 'Heure', 'Minute', 'Seconde']) {
+    for (const libelle of ['Jour', 'Mois', 'Année', 'Heure', 'Minute']) {
       expect(place(html, libelle), libelle).toBeGreaterThan(-1)
     }
     for (const retire of ['Reculer', 'Avancer', 'Mettre le temps en pause']) {
@@ -46,12 +46,25 @@ describe('T-0411 — l’horloge et la frise règlent le même instant', () => {
     expect(html).not.toContain('panneau-temps-transport')
   })
 
-  it('pose la frise entre l’horloge et le retour au présent', () => {
-    // L'ordre EST le lien : l'instant, le ciel qui défile sous lui, la destination « maintenant ».
-    const html = barre()
-    expect(html.indexOf('panneau-temps-jour')).toBeLessThan(html.indexOf('panneau-temps-heure'))
-    expect(html.indexOf('panneau-temps-heure')).toBeLessThan(html.indexOf('frise-temoin'))
-    expect(html.indexOf('frise-temoin')).toBeLessThan(html.indexOf('panneau-temps-maintenant'))
+  it('pose l’heure, la date, le retour au présent, l’astre, puis la frise', () => {
+    // L'ordre de la maquette : l'instant, sa destination « maintenant », l'astre de cet
+    // instant, et le ciel qui défile sous lui.
+    const html = renderToStaticMarkup(
+      <PanneauTemps
+        surNuitIso={() => undefined}
+        frise={<span className="frise-temoin" />}
+        lecture={<p className="lecture-temoin" />}
+      />,
+    )
+    const ordre = [
+      'panneau-temps-heure',
+      'panneau-temps-jour',
+      'panneau-temps-maintenant',
+      'lecture-temoin',
+      'frise-temoin',
+    ].map((c) => html.indexOf(c))
+    expect(ordre.every((p) => p > -1)).toBe(true)
+    expect([...ordre].sort((a, b) => a - b)).toEqual(ordre)
   })
 
   it('offre un retour à l’instant présent, en un bouton', () => {
@@ -60,7 +73,7 @@ describe('T-0411 — l’horloge et la frise règlent le même instant', () => {
     const html = barre()
     expect(html).toContain('panneau-temps-maintenant')
     expect(html).toContain('Revenir à maintenant')
-    expect(html).toContain('update')
+    expect(html).toContain('history')
   })
 
   // T-0413 — le temps a quitté la barre haute pour le bas de la scène.
@@ -91,18 +104,19 @@ describe('T-0411 — l’horloge et la frise règlent le même instant', () => {
     expect(etatScene().temps.decalageMs).toBe(0)
   })
 
-  it('date l’instant à la seconde, sans jour de semaine', () => {
+  it('date l’instant à la minute, en chiffres, sans jour de semaine', () => {
     // T-0162 — chaque champ est un compteur : c'est le texte rendu, balises retirées, qui
-    // porte encore la date et l'heure à la seconde. T-0314 — le mois abrégé ; T-0327 — plus de
-    // jour de semaine. Le format reste celui de la locale, il n'est pas réécrit ici.
+    // porte encore la date et l'heure. T-0327 — plus de jour de semaine. Le format reste celui
+    // de la locale, il n'est pas réécrit ici.
     const texte = barre().replaceAll('<!-- -->', '').replace(/<[^>]*>/g, '')
     const attendu = new Intl.DateTimeFormat('fr-FR', {
-      day: 'numeric',
-      month: 'short',
+      day: '2-digit',
+      month: '2-digit',
       year: 'numeric',
     }).format(new Date(etatScene().msAffiche))
     expect(texte).toContain(attendu)
-    expect(texte).toMatch(/\d{2}:\d{2}:\d{2}/)
+    expect(texte).toMatch(/\d{2}:\d{2}/)
+    expect(texte).not.toMatch(/\d{2}:\d{2}:\d{2}/)
     const semaine = new Intl.DateTimeFormat('fr-FR', { weekday: 'short' }).format(
       new Date(etatScene().msAffiche),
     )
@@ -127,21 +141,5 @@ describe('T-0138 — la date-heure se choisit sans confondre les fuseaux', () =>
     if (apresMinuit.getTimezoneOffset() !== 0) {
       expect(apresMinuit.toISOString().slice(0, 10)).not.toBe(jourLocalIso(apresMinuit))
     }
-  })
-})
-
-describe('T-0412 — la lecture de l’instant se pose sous l’horloge', () => {
-  it('range la phase et la Lune dans la colonne de l’horloge, avant la frise', () => {
-    // La frise prend toute la hauteur du bloc : ce qui qualifie l'instant se lit sous l'heure.
-    const html = renderToStaticMarkup(
-      <PanneauTemps
-        surNuitIso={() => undefined}
-        frise={<span className="frise-temoin" />}
-        lecture={<p className="lecture-temoin" />}
-      />,
-    )
-    const colonne = html.slice(html.indexOf('panneau-temps-date'), html.indexOf('frise-temoin'))
-    expect(colonne.indexOf('panneau-temps-heure')).toBeLessThan(colonne.indexOf('lecture-temoin'))
-    expect(colonne).toContain('lecture-temoin')
   })
 })

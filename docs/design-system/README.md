@@ -152,9 +152,11 @@ décollé des bords d'un `--jour-carte`, filet, barre de titre pleine sur la fic
 jamais. Il reste hors de `Carte` : son en-tête porte les onglets de mode (`.onglets`), et sur
 la fiche un retour et des commandes — ce qu'un en-tête-bouton ne peut contenir.
 
-Le temps (`.panneau-temps`, T-0411) est une rangée de la barre haute, sans cadre, comme la
-marque : l'horloge, la frise de la nuit (`.panneau-nuit`) dont le curseur est cet instant, et le
-retour au présent. **Un seul endroit règle le temps** — tirer un compteur fait défiler la frise,
+Le temps (`.panneau-temps`, T-0411) est un bloc de quatre cases qui se touchent : l'heure
+au-dessus de la date, le retour au présent, l'astre de l'instant (`.panneau-temps-astre` — le
+Soleil levé, sinon la Lune à sa phase), puis la frise de la nuit (`.panneau-nuit`) dont le
+curseur est cet instant. Dans la frise, les heures se posent sur l'horizon en pointillé, et un
+point marque le Soleil et la Lune sur leur courbe, à l'instant du curseur. **Un seul endroit règle le temps** — tirer un compteur fait défiler la frise,
 cliquer la frise change l'horloge. Ce qu'un geste laisse à dire (`.nuit-messages`) tombe sous la
 frise, par-dessus le ciel, pour ne pas faire grandir la barre. La phrase de visée
 (`.coque-visee`) a laissé la barre et se pose en bas à gauche de la scène.

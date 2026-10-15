@@ -9,6 +9,8 @@ import {
   bandesPhases,
   curseurInstant,
   hauteurFrise,
+  hauteurSurCourbe,
+  ordonneeFrise,
   instantClavier,
   instantFraction,
   glisseMolette,
@@ -19,10 +21,11 @@ import {
   pointsCourbe,
   pourcentCss,
   reperesHeures,
+  tiretsHorizon,
   type MarqueLune,
 } from '../src/ui/carte-nuit-calcul.ts'
 import { fenetreCalculFrise, fenetreFrise, friseCiel } from '../src/core/frise-nuit.ts'
-import { MS_PAR_MINUTE } from '../src/core/unites.ts'
+import { MS_PAR_H, MS_PAR_MINUTE } from '../src/core/unites.ts'
 import { K } from '../src/registry/constants.ts'
 import { SITE_REFERENCE } from './fixtures.ts'
 
@@ -188,5 +191,41 @@ describe('glisseMolette — T-0424, le défilement horizontal tire la frise', ()
   it('un défilement surtout vertical reste à la page', () => {
     expect(glisseMolette({ deltaX: 3, deltaY: 40, deltaMode: WheelMode.PIXEL }, largeur, ligne)).toBeNull()
     expect(glisseMolette({ deltaX: 0, deltaY: 0, deltaMode: WheelMode.PIXEL }, largeur, ligne)).toBeNull()
+  })
+})
+
+describe('hauteurSurCourbe — le point du curseur tombe sur le trait', () => {
+  const t0 = new Date(2026, 0, 7, 18, 0)
+  const courbe = [
+    { instant: t0, hauteurDeg: -10 },
+    { instant: new Date(t0.getTime() + 60 * 60_000), hauteurDeg: 20 },
+  ]
+  it('interpole entre deux échantillons', () => {
+    const milieu = new Date(t0.getTime() + 30 * 60_000)
+    expect(hauteurSurCourbe(courbe, milieu)).toBeCloseTo(5, 9)
+    expect(hauteurSurCourbe(courbe, t0)).toBe(-10)
+  })
+  it('ne dit rien hors de la courbe', () => {
+    expect(hauteurSurCourbe(courbe, new Date(t0.getTime() - 1))).toBeNull()
+    expect(hauteurSurCourbe(courbe, new Date(t0.getTime() + 2 * 60 * 60_000))).toBeNull()
+  })
+  it('place l’horizon au milieu de la frise', () => {
+    expect(ordonneeFrise(0)).toBe(pourcentCss(1 / 2))
+  })
+})
+
+describe('tiretsHorizon — les tirets de l’horizon suivent les heures', () => {
+  it('accroche la tuile à la première heure pleine, d’une heure de large', () => {
+    const debut = new Date(2026, 0, 7, 18, 15)
+    const vue = { debut, fin: new Date(debut.getTime() + 24 * MS_PAR_H) }
+    const { heure, premiere } = tiretsHorizon(vue)
+    expect(heure).toBeCloseTo(1 / 24, 12)
+    expect(premiere).toBeCloseTo(0.75 / 24, 12)
+  })
+  it('décale la tuile quand la frise défile', () => {
+    const a = new Date(2026, 0, 7, 18, 15)
+    const b = new Date(a.getTime() + 30 * 60_000)
+    const vue = (d: Date) => ({ debut: d, fin: new Date(d.getTime() + 24 * MS_PAR_H) })
+    expect(tiretsHorizon(vue(a)).premiere).not.toBeCloseTo(tiretsHorizon(vue(b)).premiere, 6)
   })
 })

@@ -16,7 +16,7 @@
  *
  * Aucun `useScene()` ici. Le magasin publie l'instant rendu deux fois par seconde ; s'y
  * abonner en entier ferait rendre la barre au même rythme (T-0056). Seuls les deux morceaux
- * d'horloge s'abonnent à la SECONDE — pas aux millisecondes qu'ils affichent.
+ * d'horloge s'abonnent à la MINUTE — pas aux millisecondes.
  */
 
 import { useRef, type ReactNode } from 'react'
@@ -30,7 +30,8 @@ import {
 } from './horaire.ts'
 import { BoutonGlyphe } from './BoutonGlyphe.tsx'
 import { Compteur } from './Compteur.tsx'
-import { etatScene, majTemps, secondeAffichee, useTrancheScene, vaA } from './scene-etat.ts'
+import { etatScene, majTemps, minuteAffichee, useTrancheScene, vaA } from './scene-etat.ts'
+import { MS_PAR_MINUTE } from '../core/unites.ts'
 import { DOMAINES } from '../registry/domains.ts'
 import { destinationTrajet, traverse } from './trajet-scene.ts'
 
@@ -41,25 +42,24 @@ export interface PanneauTempsProps {
    * dans la nuit qu'on observe au lieu d'annoncer la suivante.
    */
   readonly surNuitIso: (v: string) => void
-  /** La frise de la nuit, entre l'horloge et le retour au présent ; absente sans ciel. */
+  /** La frise de la nuit, après l'horloge, le retour au présent et l'astre ; absente sans ciel. */
   readonly frise?: ReactNode
-  /** T-0412 — la phase et la Lune de l'instant, sous l'heure ; absente sans ciel. */
+  /** L'astre de l'instant — Soleil ou Lune —, dans sa case avant la frise ; absent sans ciel. */
   readonly lecture?: ReactNode
 }
 
 export function PanneauTemps(props: PanneauTempsProps) {
   return (
     <section className="panneau-temps" role="region" aria-label="Temps de la scène">
+      {/* L'heure au-dessus de la date, le retour au présent, l'astre de l'instant, puis la frise
+          qui les prolonge : quatre cases qui se touchent. */}
       <div className="panneau-temps-date">
-        {/* T-0416 — la date et l'heure sur une ligne : le bloc perd une rangée, la frise s'affine. */}
-        <div className="panneau-temps-instant">
-          <Jour surNuitIso={props.surNuitIso} />
-          <Heure surNuitIso={props.surNuitIso} />
-        </div>
-        {props.lecture}
+        <Heure surNuitIso={props.surNuitIso} />
+        <Jour surNuitIso={props.surNuitIso} />
       </div>
-      {props.frise}
       <BoutonMaintenant surNuitIso={props.surNuitIso} />
+      {props.lecture !== undefined && <div className="panneau-temps-astre">{props.lecture}</div>}
+      {props.frise}
     </section>
   )
 }
@@ -98,17 +98,17 @@ function valeurChamp(date: Date, champ: ChampInstant): number {
  * `depart` gèle l'instant AU DÉBUT du geste. Sans lui, tirer les mois depuis un 31 relirait à
  * chaque mouvement une date déjà déplacée, et le jour dériverait avec elle.
  *
- * L'abonnement à la seconde vit ici, dans le morceau qui l'affiche, et non dans le panneau :
+ * L'abonnement à la minute vit ici, dans le morceau qui l'affiche, et non dans le panneau :
  * la frise et le retour au présent n’ont rien à redessiner à chaque battement (T-0056).
  */
 function useCompteurs(props: PanneauTempsProps): {
   readonly date: Date
   readonly compteurs: (parties: readonly Intl.DateTimeFormatPart[]) => readonly ReactNode[]
 } {
-  const seconde = useTrancheScene(secondeAffichee)
+  const minute = useTrancheScene(minuteAffichee)
   const depart = useRef<Date | null>(null)
   // T-0394 — pendant un trajet, l'instant demandé, pas celui que le ciel traverse.
-  const date = new Date(destinationTrajet() ?? seconde * 1000)
+  const date = new Date(destinationTrajet() ?? minute * MS_PAR_MINUTE)
 
   /**
    * T-0292 — la nuit suit l'instant, mais pas à chaque cran d'un glisser : changer de nuit
@@ -167,15 +167,15 @@ function useCompteurs(props: PanneauTempsProps): {
 }
 
 /**
- * T-0314 — le mois abrégé, là où T-0164 avait mis des chiffres. Le jour de la semaine n'y est
- * plus (T-0327) : voir `partiesJour`.
+ * Le jour en chiffres, sous l'heure. Le jour de la semaine n'y est plus (T-0327) : voir
+ * `partiesJour`.
  */
 function Jour(props: PanneauTempsProps) {
   const { date, compteurs } = useCompteurs(props)
   return <span className="panneau-temps-jour">{compteurs(partiesJour(date))}</span>
 }
 
-/** L'heure à la seconde, en champs du même corps que ceux de la date (T-0327). */
+/** L'heure à la minute, en champs du même corps que ceux de la date (T-0327). */
 function Heure(props: PanneauTempsProps) {
   const { date, compteurs } = useCompteurs(props)
   return <span className="panneau-temps-heure">{compteurs(partiesHeure(date))}</span>
@@ -201,7 +201,7 @@ function BoutonMaintenant(props: PanneauTempsProps) {
 
   return (
     <BoutonGlyphe
-      icone="update"
+      icone="history"
       aide="Revenir à maintenant"
       variante="nu"
       classe="panneau-temps-maintenant"
