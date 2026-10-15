@@ -109,8 +109,8 @@ export interface EtatBoucle {
   readonly enAvant: ReadonlySet<string> | null
   /** §8.4 / T-0324 — le trajet de pointage montré, `null` quand la scène est celle de tous les jours. */
   readonly parcours: ParcoursScene | null
-  /** §6.4 / T-0283 — la cible dont la fiche est ouverte, `null` hors de la fiche. */
-  readonly cibleOuverte: ObjetCielProfond | null
+  /** §6.4 / T-0283 — la cible de la fiche ouverte, ou celles du plan sur « Mon plan ». */
+  readonly ciblesOuvertes: readonly ObjetCielProfond[]
   readonly vue: VueScene
   readonly modeTemps: string
   readonly facteur: number
@@ -410,7 +410,7 @@ export function useBoucleRendu(entree: {
         ...(courant.poseCadre === null ? {} : { poseCadre: courant.poseCadre }),
         ...(courant.enAvant === null ? {} : { enAvant: courant.enAvant }),
         ...(courant.parcours === null ? {} : { parcours: courant.parcours }),
-        ...(courant.cibleOuverte === null ? {} : { cibleOuverte: courant.cibleOuverte }),
+        ciblesOuvertes: courant.ciblesOuvertes,
         couches: courant.couches,
         magLimite: courant.magLimite,
         apparition: courant.apparition,

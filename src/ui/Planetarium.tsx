@@ -78,7 +78,12 @@ export {
 const ID_DESCRIPTION = 'planetarium-description'
 export type { MaterielFile } from './planetarium-materiel.ts'
 
-import { cibleMarquee, poseCadreAffichee, type MaterielFile } from './planetarium-materiel.ts'
+import {
+  ciblesMarquees,
+  enAvantScene,
+  poseCadreAffichee,
+  type MaterielFile,
+} from './planetarium-materiel.ts'
 
 /** T-0297 — ce que la scène dit tant que le catalogue d'étoiles est en route. */
 export const ETOILES_EN_CHARGE = 'Chargement des étoiles…'
@@ -100,6 +105,11 @@ export interface PlanetariumProps {
    * marqueurs s'estompent. `null` : aucun filtre actif, la scène est entière.
    */
   readonly enAvant: ReadonlySet<string> | null
+  /**
+   * Les cibles que le plan de la nuit photographie, `null` tant qu'il n'est pas calculé. Sur
+   * « Mon plan », elles seules restent en pleine lumière, chacune réticulée.
+   */
+  readonly ciblesPlan: readonly ObjetCielProfond[] | null
   readonly constellations: PaquetConstellations
   /** Profils de cadre à superposer (§3.5). Vide : l'app demande le profil, sans en inventer. */
   readonly profils: readonly ProfilCadre[]
@@ -326,9 +336,9 @@ export function Planetarium(props: PlanetariumProps) {
     couches: couchesScene,
     jour,
     poseCadre: poseCadreAffichee(mode, file.poseDansCadre, props.file),
-    enAvant: props.enAvant,
+    enAvant: enAvantScene(mode, props.enAvant, props.ciblesPlan),
     parcours: rendu.parcours,
-    cibleOuverte: cibleMarquee(mode, seance.vueCibles, seance.cible),
+    ciblesOuvertes: ciblesMarquees(mode, seance.vueCibles, seance.cible, props.ciblesPlan),
     magLimite: jour ? Number.NEGATIVE_INFINITY : profondeur.magLimite.value,
     apparition:
       rendu.vueRealiste && soleil !== null ? apparitionReperes(soleil.altitudeDeg) : 1,

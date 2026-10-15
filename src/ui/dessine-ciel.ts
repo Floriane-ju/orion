@@ -222,8 +222,11 @@ export interface EntreeDessin {
    * étoiles de fond très atténuées, et le trajet lui-même.
    */
   readonly parcours?: ParcoursScene | undefined
-  /** §6.4 / T-0283 — la cible dont la fiche est ouverte : réticulée et nommée à tout champ. */
-  readonly cibleOuverte?: ObjetCielProfond | undefined
+  /**
+   * §6.4 / T-0283 — la cible dont la fiche est ouverte, ou les cibles du plan sur « Mon plan » :
+   * réticulées et nommées à tout champ.
+   */
+  readonly ciblesOuvertes?: readonly ObjetCielProfond[] | undefined
 }
 
 export interface SortieDessin {
@@ -233,8 +236,8 @@ export interface SortieDessin {
   readonly labels: readonly CandidatLabel[]
   /** T-0085 — le label transitoire du survol, hors budget de §3.4. */
   readonly revele: BoiteLabel | null
-  /** T-0283 — le repère de la cible ouverte, `null` sans cible ou hors de l'écran. */
-  readonly repere: BoiteLabel | null
+  /** T-0283 — les repères des cibles ouvertes à l'écran ; vide sans cible ou hors de l'écran. */
+  readonly reperes: readonly BoiteLabel[]
 }
 
 /* T-0109 — la mise en page des labels appartient à `libelles-cibles.ts` : les tailles y sont
@@ -554,7 +557,7 @@ function passeObjets(passe: Passe): void {
     }
     cibles.push(cible)
     // T-0283 — la cible ouverte porte son nom au repère : la nommer ici l'écrirait deux fois.
-    const ouverte = objet.designation === entree.cibleOuverte?.designation
+    const ouverte = entree.ciblesOuvertes?.some((c) => c.designation === objet.designation) ?? false
     const texte = peintReperes && !ouverte ? libelleCible(cible) : null
     if (texte !== null) {
       candidats.push({
@@ -869,17 +872,19 @@ export function dessineCiel(entreeBrute: EntreeDessin): SortieDessin {
   dessineContourCadre(cadreMateriel)
   const { labels, revele } = passeLabels(passe)
   // T-0283 — au-dessus des libellés : le nom de la cible ouverte ne cède à aucun autre.
-  const repere =
-    peintReperes && entree.cibleOuverte !== undefined
-      ? dessineRepereCible({
+  const reperes = peintReperes
+    ? (entree.ciblesOuvertes ?? []).flatMap((objet) => {
+        const boite = dessineRepereCible({
           ctx: entree.ctx,
           projecteur,
-          objet: entree.cibleOuverte,
+          objet,
           teinte: teintes.cadre,
           largeur,
           hauteur,
         })
-      : null
+        return boite === null ? [] : [boite]
+      })
+    : []
   dessineCarteDansCadre(cadreMateriel)
   // T-0324 — EN DERNIER : le trajet passe au-dessus du contour du cadre qu'il traverse. Peint
   // avant, il se ferait couper par le seul repère qu'on lui a laissé.
@@ -900,9 +905,9 @@ export function dessineCiel(entreeBrute: EntreeDessin): SortieDessin {
   // l'y survoler nommait du vide. Un marqueur d'objet ou un corps n'y est pas peint du tout —
   // le survoler nommait un repère que l'image ne montre pas. La règle est la même pour les
   // trois : ce que l'aperçu n'a pas peint, le curseur ne le trouve pas.
-  if (!peintReperes) return { stats, etoilesDessinees, cibles: [], labels, revele, repere }
+  if (!peintReperes) return { stats, etoilesDessinees, cibles: [], labels, revele, reperes }
 
-  return { stats, etoilesDessinees, cibles: ciblesUniques, labels, revele, repere }
+  return { stats, etoilesDessinees, cibles: ciblesUniques, labels, revele, reperes }
 }
 
 /**

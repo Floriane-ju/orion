@@ -218,7 +218,7 @@ function rend(
     poseCadre?: OptiquePose
     enAvant?: ReadonlySet<string>
     parcours?: ParcoursScene
-    cibleOuverte?: ObjetCielProfond
+    ciblesOuvertes?: readonly ObjetCielProfond[]
     apparition?: number
     trajetLune?: readonly PositionCorps[]
     soleil?: SoleilEcran
@@ -280,7 +280,7 @@ function rend(
     poseCadre: options.poseCadre,
     enAvant: options.enAvant,
     parcours: options.parcours,
-    cibleOuverte: options.cibleOuverte,
+    ciblesOuvertes: options.ciblesOuvertes,
     apparition: options.apparition,
     trajetLune: options.trajetLune,
   }
@@ -1918,26 +1918,33 @@ describe('repère de la cible ouverte — T-0283', () => {
     r.ctx.appels.filter((a) => a.nom === 'fillText').map((a) => a.args[0])
 
   it('marque la cible ouverte et la nomme, une seule fois', () => {
-    const r = rend({ objets: [OBJET_AU_CENTRE], cibleOuverte: OBJET_AU_CENTRE })
-    expect(r.sortie.repere?.texte).toBe(OBJET_AU_CENTRE.designation)
+    const r = rend({ objets: [OBJET_AU_CENTRE], ciblesOuvertes: [OBJET_AU_CENTRE] })
+    expect(r.sortie.reperes.map((b) => b.texte)).toEqual([OBJET_AU_CENTRE.designation])
     expect(textes(r).filter((t) => t === OBJET_AU_CENTRE.designation)).toHaveLength(1)
   })
 
   it('tient à grand champ, où le nom de l’objet serait masqué', () => {
-    const r = rend({ objets: [], cibleOuverte: OBJET_AU_CENTRE, fovDeg: 180 })
-    expect(r.sortie.repere).not.toBeNull()
+    const r = rend({ objets: [], ciblesOuvertes: [OBJET_AU_CENTRE], fovDeg: 180 })
+    expect(r.sortie.reperes).toHaveLength(1)
     expect(textes(r)).toContain(OBJET_AU_CENTRE.designation)
   })
 
   it('marque aussi une cible trop faible pour le plafond des marqueurs', () => {
     const faible = { ...OBJET_AU_CENTRE, vMag: null }
-    expect(rend({ objets: [faible], cibleOuverte: faible }).sortie.repere).not.toBeNull()
+    expect(rend({ objets: [faible], ciblesOuvertes: [faible] }).sortie.reperes).toHaveLength(1)
   })
 
   it('ne marque rien sans cible ouverte, ni hors du champ', () => {
-    expect(rend({ objets: [OBJET_AU_CENTRE] }).sortie.repere).toBeNull()
-    const dos = rend({ cibleOuverte: OBJET_AU_CENTRE, vise: { azimutDeg: 0, hauteurDeg: -45 } })
-    expect(dos.sortie.repere).toBeNull()
+    expect(rend({ objets: [OBJET_AU_CENTRE] }).sortie.reperes).toEqual([])
+    const dos = rend({ ciblesOuvertes: [OBJET_AU_CENTRE], vise: { azimutDeg: 0, hauteurDeg: -45 } })
+    expect(dos.sortie.reperes).toEqual([])
+  })
+
+  it('marque chacune des cibles du plan, nommée une seule fois', () => {
+    const voisin = { ...OBJET_AU_CENTRE, designation: 'M32', adDeg: OBJET_AU_CENTRE.adDeg + 1 }
+    const r = rend({ objets: [OBJET_AU_CENTRE, voisin], ciblesOuvertes: [OBJET_AU_CENTRE, voisin] })
+    expect(r.sortie.reperes.map((b) => b.texte)).toEqual(['M31', 'M32'])
+    expect(textes(r).filter((t) => t === 'M32')).toHaveLength(1)
   })
 })
 

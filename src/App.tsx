@@ -141,6 +141,8 @@ function AppPrete({
   // §6.4 — filtrer la liste filtre la scène : les cibles écartées s'y estompent au lieu d'y
   // rester indistinctes. `null` tant qu'aucun filtre n'est actif.
   const enAvant = useCiblesEnAvant(catalogues.objets, chaine.etatsCibles)
+  // Sur « Mon plan », la scène ne garde en pleine lumière que ce que le plan photographie.
+  const ciblesPlan = chaine.plan?.etapes.map((e) => e.objet) ?? null
 
   // §12.3 — le lieu et le matériel s'enregistrent au fil de la saisie, et l'export les
   // emporte tels qu'ils sont à l'écran.
@@ -185,6 +187,7 @@ function AppPrete({
       index={catalogues.index}
       objets={catalogues.objets}
       enAvant={enAvant}
+      ciblesPlan={ciblesPlan}
       constellations={catalogues.constellations}
       profils={chaine.profilsCadre}
       sbCiel={ciel.ciel.sbCiel.value}

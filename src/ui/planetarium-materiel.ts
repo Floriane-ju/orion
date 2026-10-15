@@ -32,11 +32,31 @@ export function poseCadreAffichee(
  * T-0283 — la scène marque la cible tant que sa fiche est ouverte, et seulement alors : au
  * retour à la liste, la séance garde la cible pour y revenir, mais la scène n'a plus rien
  * à désigner. En Panorama, il n'y a pas de fiche.
+ *
+ * Sur « Mon plan », le même repère se pose sur CHAQUE cible photographiée cette nuit : le plan
+ * se lit alors dans le ciel comme la fiche y lit sa cible. `null` : plan pas encore calculé.
  */
-export function cibleMarquee(
+export function ciblesMarquees(
   mode: ModeInterface,
   vueCibles: VueCibles,
   cible: ObjetCielProfond | null,
-): ObjetCielProfond | null {
-  return mode === 'CIEL_PROFOND' && vueCibles === 'FICHE' ? cible : null
+  ciblesPlan: readonly ObjetCielProfond[] | null,
+): readonly ObjetCielProfond[] {
+  if (mode === 'PLAN') return ciblesPlan ?? []
+  return mode === 'CIEL_PROFOND' && vueCibles === 'FICHE' && cible !== null ? [cible] : []
+}
+
+/**
+ * §6.4 — ce que la scène garde en pleine lumière. Sur « Mon plan », la question n'est plus
+ * celle des filtres du catalogue mais celle du plan : tout objet qu'il ne photographie pas
+ * s'estompe — estompé, jamais retiré, pour la même raison que sous les filtres
+ * (`cibles-en-avant.ts`). Plan pas encore calculé : les filtres restent la réponse.
+ */
+export function enAvantScene(
+  mode: ModeInterface,
+  enAvant: ReadonlySet<string> | null,
+  ciblesPlan: readonly ObjetCielProfond[] | null,
+): ReadonlySet<string> | null {
+  if (mode !== 'PLAN' || ciblesPlan === null) return enAvant
+  return new Set(ciblesPlan.map((o) => o.designation))
 }

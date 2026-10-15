@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  cibleMarquee,
+  ciblesMarquees,
+  enAvantScene,
   poseCadreAffichee,
   type MaterielFile,
 } from '../src/ui/planetarium-materiel.ts'
@@ -24,15 +25,38 @@ describe('poseCadreAffichee — T-0377', () => {
   })
 })
 
-describe('cibleMarquee — T-0283', () => {
+describe('ciblesMarquees — T-0283', () => {
   const CIBLE = { designation: 'B144' } as ObjetCielProfond
+  const PLAN = [{ designation: 'M31' }, { designation: 'M42' }] as ObjetCielProfond[]
 
   it('marque la cible tant que sa fiche est ouverte', () => {
-    expect(cibleMarquee('CIEL_PROFOND', 'FICHE', CIBLE)).toBe(CIBLE)
+    expect(ciblesMarquees('CIEL_PROFOND', 'FICHE', CIBLE, PLAN)).toEqual([CIBLE])
   })
 
   it('efface le repère au retour à la liste, et en Panorama', () => {
-    expect(cibleMarquee('CIEL_PROFOND', 'LISTE', CIBLE)).toBeNull()
-    expect(cibleMarquee('PANORAMA', 'FICHE', CIBLE)).toBeNull()
+    expect(ciblesMarquees('CIEL_PROFOND', 'LISTE', CIBLE, PLAN)).toEqual([])
+    expect(ciblesMarquees('PANORAMA', 'FICHE', CIBLE, PLAN)).toEqual([])
+  })
+
+  it('sur « Mon plan », marque chaque cible photographiée cette nuit', () => {
+    expect(ciblesMarquees('PLAN', 'FICHE', CIBLE, PLAN)).toEqual(PLAN)
+  })
+})
+
+describe('enAvantScene — onglet « Mon plan »', () => {
+  const FILTRE: ReadonlySet<string> = new Set(['NGC 7000'])
+  const PLAN = [{ designation: 'M31' }, { designation: 'M42' }] as ObjetCielProfond[]
+
+  it('sur « Mon plan », seules les cibles du plan restent en pleine lumière', () => {
+    expect(enAvantScene('PLAN', FILTRE, PLAN)).toEqual(new Set(['M31', 'M42']))
+  })
+
+  it('un plan vide estompe tout le ciel profond', () => {
+    expect(enAvantScene('PLAN', null, [])).toEqual(new Set())
+  })
+
+  it('ailleurs, les filtres du catalogue décident', () => {
+    expect(enAvantScene('CIEL_PROFOND', FILTRE, PLAN)).toBe(FILTRE)
+    expect(enAvantScene('PANORAMA', null, PLAN)).toBeNull()
   })
 })
