@@ -852,6 +852,14 @@ body {
   align-items: center;
   gap: var(--pas-2);
   overflow: hidden;
+  /* T-0425 — le cadre d'une carte : à nu, les compteurs se lisaient mal sur un ciel chargé.
+     La boîte épouse ses champs et se cale à droite (`margin-left: auto` absorbe l'écart)
+     au lieu de barrer la scène d'un bord à l'autre. */
+  width: fit-content;
+  margin-left: auto;
+  padding: var(--pas-1) var(--pas-2);
+  border: var(--trait) solid var(--bordure);
+  background: var(--surface);
 }
 
 /* UN COMPTEUR EST UN NOMBRE QU'ON TIRE (`Compteur.tsx`).
