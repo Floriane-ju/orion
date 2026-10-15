@@ -204,6 +204,7 @@ function rend(
     etoiles?: readonly Etoile[]
     objets?: readonly ObjetCielProfond[]
     passeFile?: (ctx: CanvasRenderingContext2D, projecteur: Projecteur) => void
+    etoilesFilent?: boolean
     sbCiel?: number
     latitudeDeg?: number
     vise?: { azimutDeg: number; hauteurDeg: number }
@@ -275,6 +276,7 @@ function rend(
     modeNuit: options.modeNuit ?? false,
     survol: options.survol,
     passeFile: options.passeFile,
+    etoilesFilent: options.etoilesFilent,
     poseCadre: options.poseCadre,
     enAvant: options.enAvant,
     parcours: options.parcours,
@@ -1227,6 +1229,12 @@ describe('T-0171 — l’aperçu efface les repères, garde ce qui cadre', () =>
   it('éteint le trait du plan avec sa couche, comme hors aperçu', () => {
     const couches: CouchesActives = { ...COUCHES, voieLactee: false }
     const ctx = scene({ passeFile: () => undefined, couches }).ctx
+    expect(ctx.couleurs).not.toContain(palette(false).voieLactee)
+  })
+
+  it('éteint le trait du plan quand les étoiles filent (T-0427)', () => {
+    const ctx = scene({ passeFile: () => undefined, etoilesFilent: true }).ctx
+    expect(ctx.couleurs).toContain(palette(false).horizon)
     expect(ctx.couleurs).not.toContain(palette(false).voieLactee)
   })
 

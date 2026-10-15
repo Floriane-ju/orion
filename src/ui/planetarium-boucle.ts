@@ -424,6 +424,8 @@ export function useBoucleRendu(entree: {
         masque,
         modeNuit: courant.modeNuit,
         survol: survol.current ?? undefined,
+        // T-0427 — le plafond de lisibilité n'existe que sous un filé (`useParametresFile`).
+        etoilesFilent: params !== null && params.couvertureMax !== null,
         passeFile:
           params === null
             ? undefined

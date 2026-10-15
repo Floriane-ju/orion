@@ -191,6 +191,12 @@ export interface EntreeDessin {
     | ((ctx: CanvasRenderingContext2D, projecteur: Projecteur) => void)
     | undefined
   /**
+   * T-0427 — l'aperçu est un filé : le temps de prise de vue dépasse la pose max à étoiles
+   * ponctuelles. Le ciel tourne pendant la prise de vue ; un trait figé à l'instant affiché
+   * n'y correspond à rien.
+   */
+  readonly etoilesFilent?: boolean | undefined
+  /**
    * T-0399 — la Lune aux instants de la prise de vue, de l'instant affiché à la fin du filé.
    * Lue seulement sous l'aperçu : la pose à monture coupée y étire le disque en trace.
    */
@@ -381,7 +387,8 @@ function passeTraces(passe: Passe): CandidatLabel | null {
   // cadre. La bande, le repère du centre et les noms, eux, l'annotent : ils restent éteints.
   // T-0324 — sous un parcours il s'éteint quand même : ce qui cadre une PRISE DE VUE n'aide pas
   // à aller d'une étoile à la suivante, et la scène du parcours ne garde que le cadre matériel.
-  if (entree.couches.voieLactee && !passe.modeParcours) {
+  // T-0427 — sous un filé non plus : la bande a tourné avec le ciel pendant la prise de vue.
+  if (entree.couches.voieLactee && !passe.modeParcours && entree.etoilesFilent !== true) {
     ctx.strokeStyle = teintes.voieLactee
     ctx.lineWidth = 1
     ctx.globalAlpha = passe.apparition
