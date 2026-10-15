@@ -3426,10 +3426,15 @@ button:disabled {
   background: var(--surface);
 }
 /* T-0390 — la frise règle l'instant : elle se clique. T-0419 — et se tire : le doigt la fait
-   défiler au lieu de faire défiler la page. */
+   défiler au lieu de faire défiler la page. La sélection est coupée, comme sur `.compteur` : un
+   double-clic laissait une sélection sur la frise, et le glisser suivant partait d'elle — le
+   navigateur la déposait comme une image au lieu de faire défiler le temps. */
 .nuit-frise-ciel {
   cursor: pointer;
   touch-action: none;
+}
+.nuit-frise {
+  user-select: none;
 }
 .nuit-frise-ciel:active {
   cursor: grabbing;
