@@ -220,11 +220,7 @@ function AppPrete({
           <PanneauTemps
             surNuitIso={lieu.surNuitIso}
             frise={
-              <NuitSeance
-                {...regions}
-                modeNuitActif={modeNuit.actif}
-                activeModeNuit={() => setModeNuit({ ...modeNuit, actif: true })}
-              />
+              <NuitSeance {...regions} />
             }
             lecture={<LectureSeance {...regions} />}
           />

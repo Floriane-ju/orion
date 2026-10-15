@@ -20,11 +20,11 @@
  * T-0394 — revue DA §4.2, « La tombée de la nuit ». Un clic sur la frise TRAVERSE le temps
  * jusqu'à l'instant visé, et « Aller à la nuit » fait le même trajet jusqu'au début de la nuit
  * de référence — astronomique, ou nautique quand la nuit noire manque (§8.1). Les flèches
- * restent des sauts : un pas de dix minutes n'a rien à montrer en chemin. Arrivé en nuit
- * noire, le mode nuit est PROPOSÉ, jamais imposé : T-0140 a retiré l'activation automatique.
+ * restent des sauts : un pas de dix minutes n'a rien à montrer en chemin. Le mode nuit ne se
+ * propose plus à l'arrivée : il reste un geste de l'utilisateur, jamais une sollicitation.
  *
  * T-0411 — la frise monte dans la barre haute, liée à l'horloge : un seul endroit règle le
- * temps. Ce qu'un geste laisse à dire (saut, proposition du mode nuit, cause) tombe SOUS la
+ * temps. Ce qu'un geste laisse à dire (saut, cause) tombe SOUS la
  * frise, par-dessus le ciel, plutôt que de faire grandir la barre.
  *
  * « Aller à la nuit » est l'appel d'entrée, au milieu du ciel : il s'adresse à qui arrive de
@@ -102,9 +102,6 @@ import {
 export interface CarteNuitProps {
   readonly site: Site
   readonly nuit: FenetreNocturne
-  /** T-0394 — l'état du mode nuit, pour ne proposer que ce qui n'est pas déjà fait. */
-  readonly modeNuitActif: boolean
-  readonly activeModeNuit: () => void
 }
 
 /** Des propriétés personnalisées, jamais une couleur en ligne : la feuille garde la main. */
@@ -120,33 +117,27 @@ function enPourcent(fraction: number): string {
   return pourcentCss(encadre(fraction, 0, 1))
 }
 
-export function CarteNuit({ site, nuit, modeNuitActif, activeModeNuit }: CarteNuitProps) {
+export function CarteNuit({ site, nuit }: CarteNuitProps) {
   const minute = useTrancheScene(minuteAffichee)
   const instantMs = minute * MS_PAR_MINUTE
   // La frise suit le trajet image par image ; le reste, la minute publiée.
   const trajetMs = useInstantTrajet()
   const afficheMs = trajetMs ?? instantMs
   const frise = useFriseCiel(site, afficheMs)
-  // Ce que le dernier geste laisse à dire : un saut que la lisibilité a imposé, et la
-  // proposition du mode nuit à l'arrivée. Le geste suivant efface les deux.
+  // Ce que le dernier geste laisse à dire : un saut que la lisibilité a imposé. Le geste
+  // suivant l'efface.
   const [saute, setSaute] = useState(false)
-  const [propose, setPropose] = useState(false)
 
   const va = (ms: number, force = false): void => {
-    setPropose(false)
-    const plan = traverse(ms, () => setPropose(true), { force })
+    const plan = traverse(ms, undefined, { force })
     setSaute(plan.saut && plan.raison === 'ILLISIBLE')
   }
-  const efface = (): void => {
-    setSaute(false)
-    setPropose(false)
-  }
+  const efface = (): void => setSaute(false)
 
   const debutNuit = nuit.debutReference
   const phase = phaseFrise(site, frise, new Date(instantMs))
   const appelRetire = useAppelRetire(minute, phase !== 'JOUR')
   const appel = !appelRetire && debutNuit !== null && instantMs < debutNuit.getTime()
-  const proposeNuit = propose && !modeNuitActif && phase === 'NUIT_NOIRE'
 
   return (
     <>
@@ -158,19 +149,6 @@ export function CarteNuit({ site, nuit, modeNuitActif, activeModeNuit }: CarteNu
             <Mention ton="etat" role="status">
               Saut direct : à ce zoom, le trajet défilerait trop vite pour se lire.
             </Mention>
-          )}
-          {proposeNuit && (
-            <div className="nuit-gestes">
-              <p className="nuit-proposition" role="status">
-                Nuit noire.
-              </p>
-              <button type="button" onClick={activeModeNuit}>
-                Passer en mode nuit
-              </button>
-              <button type="button" onClick={() => setPropose(false)}>
-                Plus tard
-              </button>
-            </div>
           )}
         </div>
       </section>

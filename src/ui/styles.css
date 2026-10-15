@@ -3454,18 +3454,6 @@ button:disabled {
   font-size: var(--texte-appui);
   letter-spacing: var(--suivi-titre);
 }
-/* T-0394 — les gestes qui suivent la lecture : aller à la nuit, puis la proposition du mode
-   nuit à l'arrivée. Ils n'existent que lorsqu'ils ont quelque chose à faire. */
-.nuit-gestes {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--pas-2);
-}
-.nuit-proposition {
-  margin: 0;
-  font-size: var(--texte-legende);
-}
 .nuit-lecture {
   margin: 0;
   color: var(--texte);
