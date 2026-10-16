@@ -4096,20 +4096,20 @@ button:disabled {
    reconnaît avant de lire. Le titre perd sa barre et garde la voix d'une barre (mono, micro) :
    un aplat `--texte` posé sur l'aplat gris ferait un damier. La barre s'éteint par ses
    jetons, pas en recolorant le titre : une seule règle encre le titre de section.
-   Panorama et « Mon plan » prennent la même carte : trois onglets, un seul aplat. */
-:is(.fiche, .lateral-corps, .lateral-plan, .plan-session) > section:not([class]) {
+   « Mon plan » prend la même carte : deux onglets, un seul aplat. */
+:is(.fiche, .lateral-plan, .plan-session) > section:not([class]) {
   --barre-fond: transparent;
   --barre-encre: var(--attenue);
   margin-block-start: var(--pas-2);
   border: 0;
   background: var(--surface-survol);
 }
-:is(.fiche, .lateral-corps, .lateral-plan, .plan-session) > section:not([class]) > h2:first-child {
+:is(.fiche, .lateral-plan, .plan-session) > section:not([class]) > h2:first-child {
   border-bottom: 0;
 }
 /* Le filet discret d'une lecture tracée disparaît sur l'aplat (même constat que
    `.cible-pied-saison`) : celui d'un contrôle sépare encore les lignes. */
-:is(.fiche, :is(.lateral-corps, .lateral-plan, .plan-session) > section) :is(.tracee, .tracee-vide) {
+:is(.fiche, :is(.lateral-plan, .plan-session) > section) :is(.tracee, .tracee-vide) {
   border-bottom-color: var(--bordure-controle);
 }
 /* Le filet SÉPARE deux lectures : sous la dernière, il ne sépare plus rien, et le bas de
@@ -4121,6 +4121,27 @@ button:disabled {
    les deux les donnerait pour deux lignes indépendantes. */
 :is(.fiche, :is(.lateral-corps, .lateral-plan, .plan-session) > section) :is(.tracee, .tracee-vide):has(+ .curseur) {
   border-bottom: 0;
+}
+
+/* Panorama n'a que deux régions sous une seule saisie : en cartes, elles se lisaient comme
+   deux objets à part. Elles se posent à même le panneau, le titre garde la voix d'une barre
+   sans son aplat, et un filet les sépare — le seul trait qui reste à dire « autre chose ». */
+.lateral-corps > section:not([class]) {
+  --barre-fond: transparent;
+  --barre-encre: var(--attenue);
+  margin-block-start: var(--pas-2);
+  padding: 0;
+  border: 0;
+}
+.lateral-corps > section:not([class]) > h2:first-child {
+  margin: 0;
+  padding: 0;
+  border-bottom: 0;
+}
+.lateral-corps > section:not([class]) + section:not([class]) {
+  margin-block-start: var(--pas-4);
+  padding-block-start: var(--pas-2);
+  border-top: var(--trait) solid var(--bordure);
 }
 
 /* T-0381 — la tête d'une carte de fiche : ce qu'elle nomme à gauche, une qualification au bord
