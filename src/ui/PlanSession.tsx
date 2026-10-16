@@ -114,10 +114,10 @@ export function PlanSessionVue(props: PlanSessionProps) {
             une cible ou d’en reporter une.
           </Mention>
         )}
-        <Mention ton="cause">{plan.avertissementMeteo}</Mention>
         {plan.avertissementBatterie !== undefined && (
           <Mention ton="cause">{plan.avertissementBatterie}</Mention>
         )}
+        <Ecartees ecartees={plan.ciblesEcartees} />
 
         {plan.etapes.map((etape, index) => (
           <Etape
@@ -131,8 +131,6 @@ export function PlanSessionVue(props: PlanSessionProps) {
       </section>
 
       <PlanCalibration calibration={plan.calibration} />
-
-      <Ecartees ecartees={plan.ciblesEcartees} />
 
       <section>
         <h2>Export imprimable</h2>
@@ -165,18 +163,22 @@ export function PlanSessionVue(props: PlanSessionProps) {
  * choisies qu'un changement de matériel a rendues impossibles depuis.
  *
  * La cause vient du moteur, jamais d'ici, et le code interne ne s'affiche pas.
+ *
+ * T-0429 — plus de carte à part : ces cibles sont la suite du plan, pas une autre rubrique.
+ * Une seule alerte les regroupe, en tête du plan, là où l'on vérifie ce qu'on a demandé.
  */
 function Ecartees({ ecartees }: { readonly ecartees: readonly CibleEcartee[] }) {
   if (ecartees.length === 0) return null
   return (
-    <section>
-      <h2>Choisies, sans place cette nuit</h2>
+    <Mention ton="cause">
+      Hors de portée cette nuit :
       {ecartees.map((ecartee) => (
-        <p key={ecartee.designation} className="etat">
+        <span key={ecartee.designation}>
+          <br />
           {ecartee.designation} — {ecartee.cause}
-        </p>
+        </span>
       ))}
-    </section>
+    </Mention>
   )
 }
 
