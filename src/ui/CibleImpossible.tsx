@@ -136,7 +136,7 @@ function phraseCreneau({ cause, message }: ExclusionCreneau): string {
 export function CibleImpossible({ phrases }: { readonly phrases: readonly string[] }) {
   return (
     <span className="cible-impossible">
-      <span className="cible-impossible-titre">Photographie impossible</span>
+      <span className="libelle">Photographie impossible</span>
       {phrases.map((p) => (
         <span key={p} className="cible-cause">
           {p}
@@ -147,10 +147,10 @@ export function CibleImpossible({ phrases }: { readonly phrases: readonly string
 }
 
 /**
- * Hors du bouton de fiche, comme « Cadrer » : un `<button>` ne s'imbrique pas. C'est pourquoi
- * la phrase « hors saison » quitte le corps de la carte pour le pied : elle s'y pose sur la
- * même ligne que le bouton qui la lève. Glyphe seul, la bulle nomme le geste. Sans créneau
- * dans l'année, le bouton le DIT et s'éteint — un clic qui ne fait rien serait un mensonge.
+ * Hors du bouton de fiche, comme « Cadrer » : un `<button>` ne s'imbrique pas. Il se pose donc
+ * dans le pied de la carte, à côté de « Cadrer », pendant que la phrase « hors saison » reste
+ * avec les autres causes. Sans créneau dans l'année, le bouton le DIT et s'éteint — un clic
+ * qui ne fait rien serait un mensonge.
  */
 export interface BoutonProchainCreneauProps {
   readonly objet: ObjetCielProfond
@@ -160,6 +160,8 @@ export interface BoutonProchainCreneauProps {
   readonly gaiaCharge: boolean
   /** Ce qui écarte la cible ce soir : la saison (par défaut) ou la Lune. */
   readonly attendre?: keyof typeof RECHERCHES
+  /** Le pied de la carte de liste nomme le geste en toutes lettres : la phrase de la bulle. */
+  readonly avecLibelle?: boolean
 }
 
 export function BoutonProchainCreneau({
@@ -168,6 +170,7 @@ export function BoutonProchainCreneau({
   profil,
   gaiaCharge,
   attendre = 'SAISON',
+  avecLibelle = false,
 }: BoutonProchainCreneauProps) {
   const [introuvable, setIntrouvable] = useState(false)
   const recherche = RECHERCHES[attendre]
@@ -177,6 +180,7 @@ export function BoutonProchainCreneau({
       aide={introuvable ? recherche.introuvable : recherche.aide}
       place="gauche"
       eteinte={introuvable}
+      {...(avecLibelle ? { texte: recherche.aide } : {})}
       onClick={() => {
         if (introuvable) return
         const instant = recherche.chercher(contexte, objet)

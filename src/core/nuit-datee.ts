@@ -51,6 +51,14 @@ function lendemainIso(nuitIso: string): string {
   return jourLocalIso(matin)
 }
 
+/**
+ * T-0431 — l'instant où ouvrir une nuit qu'on n'est pas en train de vivre : son minuit LOCAL,
+ * au cœur de la nuit, quand le midi qui l'ouvre peindrait un ciel de jour.
+ */
+export function minuitDeLaNuit(nuitIso: string): Date {
+  return new Date(`${lendemainIso(nuitIso)}T00:00:00`)
+}
+
 const enClair = (iso: string): string => iso.split('-').reverse().join('/')
 
 /**

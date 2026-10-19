@@ -56,9 +56,10 @@ export function Verification(props: VerificationProps) {
             <>
               <p className="etat">réseau : {LIBELLE_MODE_RESEAU[props.modeReseau]}</p>
               <p className="etat">
-                stockage persistant : {etat.stockage.persistant ? 'accordé' : 'non accordé'}
-                {etat.stockage.usageMo !== null &&
-                  ` · ${nombre(etat.stockage.usageMo, 1)} Mo utilisés`}
+                stockage local :{' '}
+                {etat.stockage.usageMo === null
+                  ? 'usage inconnu'
+                  : `${nombre(etat.stockage.usageMo, 1)} Mo utilisés`}
               </p>
               {etat.stockage.avertissement !== undefined && (
                 <Mention ton="cause">{etat.stockage.avertissement}</Mention>

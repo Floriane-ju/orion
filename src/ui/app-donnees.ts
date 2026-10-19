@@ -21,7 +21,6 @@ import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { Etoile } from '../data/catalog.ts'
 import { INDEX_VIDE, type IndexCiel } from '../core/index-ciel.ts'
 import {
-  demandePersistance,
   enregistrePoidsScoring,
   enregistreProfilActif,
   enregistreSiteActif,
@@ -42,8 +41,13 @@ import {
   type SaisiePoids,
 } from './app-saisie.ts'
 import { departLieu, departMateriel } from './saisie-persistee.ts'
-import { litCiblesChoisies } from '../data/db.ts'
+import { ecritCiblesChoisies, litCiblesChoisies } from '../data/db.ts'
 import { poseCiblesChoisies } from './cibles-choisies.ts'
+import { appliqueLieuUrl, litPlanUrl } from './plan-url.ts'
+import { appliqueMaterielUrl } from './plan-url-materiel.ts'
+import { nuitDeLaScene } from './app-saisie.ts'
+import { minuitDeLaNuit } from '../core/nuit-datee.ts'
+import { vaA } from './scene-etat.ts'
 
 export interface Catalogues {
   readonly etat: EtatDemarrage | null
@@ -123,6 +127,8 @@ export interface SaisieRestauree {
   readonly poids: PoidsScoring | null
   /** Renseigné quand la relecture a échoué : les écritures restent alors suspendues. */
   readonly erreur: string | null
+  /** T-0431 — la saisie vient de l'URL : elle s'enregistre dès l'ouverture, sans attendre un geste. */
+  readonly planDeLUrl: boolean
 }
 
 const RIEN_A_RESTAURER: SaisieRestauree = Object.freeze({
@@ -130,7 +136,51 @@ const RIEN_A_RESTAURER: SaisieRestauree = Object.freeze({
   materiel: null,
   poids: null,
   erreur: null,
+  planDeLUrl: false,
 })
+
+/**
+ * T-0431 — le plan porté par l'URL l'emporte sur celui de la base : ouvrir le lien sur un autre
+ * appareil y reprend la nuit, le lieu, le matériel, les poids et la sélection, et les y
+ * enregistre. Le masque d'horizon reste celui de l'appareil.
+ *
+ * `ouvreEcritures` à faux quand la base n'a pas pu être relue : ce qu'on n'a pas su lire ne
+ * doit pas être écrasé, l'URL s'affiche sans s'enregistrer.
+ *
+ * Une fois enregistré, le plan quitte l'URL : elle reste nue hors partage, et un rechargement
+ * relit la base — qui suit les gestes faits depuis, quand l'URL les aurait ignorés. Non
+ * enregistré, il y reste : c'est alors la seule copie qui survive au rechargement.
+ */
+export function avecPlanUrl(
+  restauree: SaisieRestauree,
+  choisies: readonly string[],
+  ouvreEcritures: boolean,
+): SaisieRestauree {
+  const url = litPlanUrl(typeof location === 'undefined' ? '' : location.search)
+  poseCiblesChoisies(url.cibles ?? choisies, ouvreEcritures)
+  if (ouvreEcritures && url.cibles !== undefined) {
+    void ecritCiblesChoisies([...url.cibles]).catch(() => undefined)
+  }
+  // Une nuit qui n'est pas celle de la scène l'y amène : sinon la saisie, qui date la nuit
+  // d'après la scène, la perdrait au premier geste sur la barre de temps.
+  if (url.nuitIso !== undefined && url.nuitIso !== nuitDeLaScene()) {
+    vaA(minuitDeLaNuit(url.nuitIso).getTime())
+  }
+  const suivante = {
+    ...restauree,
+    lieu: appliqueLieuUrl(restauree.lieu, url),
+    materiel: appliqueMaterielUrl(restauree.materiel, url, crypto.randomUUID()),
+    poids: url.poids ?? restauree.poids,
+  }
+  const change =
+    suivante.lieu !== restauree.lieu ||
+    suivante.materiel !== restauree.materiel ||
+    suivante.poids !== restauree.poids
+  if (ouvreEcritures && typeof history !== 'undefined' && location.search !== '') {
+    history.replaceState(history.state, '', `${location.pathname}${location.hash}`)
+  }
+  return { ...suivante, planDeLUrl: ouvreEcritures && change }
+}
 
 /**
  * §12.3 — la saisie enregistrée, relue avant le premier rendu.
@@ -144,7 +194,7 @@ const RIEN_A_RESTAURER: SaisieRestauree = Object.freeze({
  */
 export function useSaisieRestauree(): SaisieRestauree | null {
   const [restauree, setRestauree] = useState<SaisieRestauree | null>(() =>
-    typeof indexedDB === 'undefined' ? RIEN_A_RESTAURER : null,
+    typeof indexedDB === 'undefined' ? avecPlanUrl(RIEN_A_RESTAURER, [], false) : null,
   )
 
   useEffect(() => {
@@ -160,26 +210,36 @@ export function useSaisieRestauree(): SaisieRestauree | null {
         // §8.3 — la sélection va au magasin, pas à la saisie : elle ne se saisit pas, elle se
         // coche. Posée AVANT le premier rendu, comme le lieu, sans quoi la première image
         // afficherait un plan vide avant de le remplacer par celui de la veille.
-        poseCiblesChoisies(choisies)
-        setRestauree({
-          lieu: departLieu(site),
-          materiel: departMateriel(profil),
-          poids,
-          erreur: null,
-        })
+        setRestauree(
+          avecPlanUrl(
+            {
+              lieu: departLieu(site),
+              materiel: departMateriel(profil),
+              poids,
+              erreur: null,
+              planDeLUrl: false,
+            },
+            choisies,
+            true,
+          ),
+        )
       } catch (erreur) {
         // Ce qu'on n'a pas su lire ne doit surtout pas être écrasé : la saisie repart des
         // valeurs par défaut, mais plus rien ne s'enregistre tant que la cause est là — la
         // sélection de cibles comprise, dont le magasin reste non hydraté, donc muet en base.
         console.error('Orion — relecture des données enregistrées', erreur)
-        setRestauree({
-          lieu: null,
-          materiel: null,
-          poids: null,
-          erreur:
-            'Données enregistrées illisibles : valeurs par défaut, et plus rien ne s’enregistre. ' +
-            `Exportez-les avant de continuer, bouton ${BOUTON_EXPORT} ci-dessus.`,
-        })
+        setRestauree(
+          avecPlanUrl(
+            {
+              ...RIEN_A_RESTAURER,
+              erreur:
+                'Données enregistrées illisibles : valeurs par défaut, et plus rien ne s’enregistre. ' +
+                `Exportez-les avant de continuer, bouton ${BOUTON_EXPORT} ci-dessus.`,
+            },
+            [],
+            false,
+          ),
+        )
       }
     })()
   }, [])
@@ -212,6 +272,8 @@ export interface EntreePersistance {
   readonly poids: SaisiePoids
   /** L'échec de relecture du démarrage, qui suspend les écritures. */
   readonly erreurRestauration: string | null
+  /** T-0431 — le lieu ouvert depuis l'URL n'est pas encore en base : il s'écrit d'emblée. */
+  readonly ecritAuDepart: boolean
 }
 
 /**
@@ -226,30 +288,12 @@ export function usePersistance(entree: EntreePersistance): Persistance {
       ? null
       : { texte: entree.erreurRestauration, echec: true },
   )
-  const persistanceDemandee = useRef(false)
   /**
    * Un import remplace en base le lieu et le matériel, mais l'écran, lui, tient encore la
    * saisie précédente : continuer à l'enregistrer réécrirait par-dessus ce qui vient d'être
    * importé. Les écritures s'arrêtent donc jusqu'au rechargement, qui relit la base.
    */
   const [suspendues, setSuspendues] = useState(false)
-
-  /**
-   * §12.3 — la demande de mode persistant, une seule fois, après une première action utile :
-   * une demande non motivée au chargement est refusée par réflexe. Le résultat s'affiche,
-   * comme le critère d'acceptation l'exige.
-   */
-  async function demandeLaPersistanceUneFois(): Promise<void> {
-    if (persistanceDemandee.current) return
-    persistanceDemandee.current = true
-    const accorde = await demandePersistance()
-    setAvis({
-      texte: accorde
-        ? 'Vos données sont conservées durablement.'
-        : 'Le navigateur peut effacer vos données : installez l’application ou gardez un export.',
-      echec: false,
-    })
-  }
 
   /**
    * La valeur des enregistrements sert de clé d'effet : ils sont reconstruits à chaque rendu,
@@ -267,10 +311,9 @@ export function usePersistance(entree: EntreePersistance): Persistance {
 
   /**
    * L'état du démarrage : il sort de la base, ou n'a pas encore été saisi. Tant que rien ne
-   * s'en écarte, il n'y a rien à écrire — et surtout rien qui justifie de demander le mode
-   * persistant, qu'une demande au chargement fait refuser par réflexe (§12.3).
+   * s'en écarte, il n'y a rien à écrire.
    */
-  const auDepart = useRef(aEcrire)
+  const auDepart = useRef(entree.ecritAuDepart ? null : aEcrire)
 
   useEffect(() => {
     if (aEcrire === null || aEcrire === auDepart.current) return
@@ -280,9 +323,6 @@ export function usePersistance(entree: EntreePersistance): Persistance {
         if (site !== null) await enregistreSiteActif(site)
         if (profil !== null) await enregistreProfilActif(profil)
         await enregistrePoidsScoring(poids.poids)
-        // La saisie enregistrée EST la première action utile : c'est elle qu'une éviction
-        // détruirait, pas l'export qui viendra peut-être.
-        await demandeLaPersistanceUneFois()
       } catch (erreur) {
         console.error('Orion — enregistrement de la saisie', erreur)
         setAvis({
@@ -314,7 +354,6 @@ export function usePersistance(entree: EntreePersistance): Persistance {
       // le téléchargement que le clic vient de demander.
       setTimeout(() => URL.revokeObjectURL(url))
       setAvis({ texte: `Export écrit dans ${lien.download}.`, echec: false })
-      await demandeLaPersistanceUneFois()
     } catch {
       setAvis({
         texte: 'Export impossible : le stockage local n’a pas pu être relu.',

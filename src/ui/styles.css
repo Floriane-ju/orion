@@ -1030,8 +1030,9 @@ body {
 
 /* La description du canevas : ce que la vue montre en ce moment, et les raccourcis
    qui la pilotent. Elle est retirée du flux visuel mais reste dans l'arbre d'accessibilité,
-   où `display: none` l'aurait supprimée. */
-.scene-description {
+   où `display: none` l'aurait supprimée. T-0431 — l'annonce du partage, même raison. */
+.scene-description,
+.annonce-lecteur {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -3796,18 +3797,13 @@ button:disabled {
   list-style: none;
 }
 
-/* Deux colonnes — l'image, le corps — et deux rangées — le texte, le pied. Le bouton de fiche
-   couvre toute la carte en SOUS-GRILLE : un clic n'importe où ouvre la fiche, et « Cadrer » et
-   « Photographier », frères posés par-dessus, se rangent dans les mêmes pistes sans être ses
-   enfants. Le pied est facultatif : sans lui, la rangée reste vide et la carte ne change pas
-   de forme. */
+/* T-0430 — la carte en fiche technique : un en-tête (l'image, ce qu'elle nomme), une rangée de
+   mesures étiquetées, un pied de gestes. Le bouton de fiche couvre les deux premiers — un clic
+   n'importe où ouvre la fiche —, le pied est son frère : un bouton ne s'imbrique pas. */
 .cible-item {
-  /* La part de l'image, nommée une fois : la grille et « Cadrer » s'y règlent tous deux. */
-  --cible-part-image: 40%;
-  position: relative;
+  /* Le côté de la vignette : assez grand pour reconnaître l'objet avant de lire son nom. */
+  --cible-vignette: 5rem;
   display: grid;
-  grid-template-columns: var(--cible-part-image) minmax(0, 1fr);
-  grid-template-rows: 1fr auto;
   min-width: 0;
   /* Un aplat, pas un filet : deux cents cartes cernées feraient un damier de traits ; le fond
      les détache du panneau sans en dessiner le contour. --surface est le fond du panneau
@@ -3815,48 +3811,9 @@ button:disabled {
   background: var(--surface-survol);
 }
 
-/* « Cadrer », posé sur le coin bas droit de l'image : une commande sur le ciel, d'où la
-   variante `flottant` — son voile la détache d'une photo claire comme d'une case vide.
-
-   En position absolue, il ne réserve aucune piste : posé dans la grille, il ouvrait la rangée
-   du pied sur une carte qui n'en a pas. Son bord droit se compte depuis celui de la CARTE —
-   la colonne de texte plus un pas —, pas depuis une zone de grille : la zone nommée d'un
-   enfant absolu ne s'est pas appliquée, et le bouton couvrait la cause d'écart. */
-.cible-cadrer {
-  position: absolute;
-  inset-block-end: var(--pas-1);
-  inset-inline-end: calc(100% - var(--cible-part-image) + var(--pas-1));
-}
-
-.cible-pied {
-  grid-column: 2;
-  grid-row: 2;
-  justify-self: end;
-  padding: 0 var(--pas-2) var(--pas-2);
-}
-
-/* T-0380 — la phrase « hors saison » et le bouton qui la lève, sur une ligne : la phrase à
-   gauche, alignée sur les autres causes, le bouton au bord droit. */
-.cible-pied-saison {
-  justify-self: stretch;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--pas-2);
-}
-/* Le filet discret de `cadre` (--bordure-faible) disparaît sur l'aplat de la carte : posé seul
-   au bout d'une phrase, le bouton doit se lire comme un bouton — filet de contrôle. */
-.cible-pied-saison .bouton-glyphe {
-  border-color: var(--bordure-controle);
-}
-
 .cible-ligne {
-  grid-column: 1 / -1;
-  grid-row: 1 / -1;
-  min-width: 0;
   display: grid;
-  grid-template-columns: subgrid;
-  grid-template-rows: subgrid;
+  min-width: 0;
   padding: 0;
   min-height: var(--cible-clic);
   background: transparent;
@@ -3866,14 +3823,14 @@ button:disabled {
   cursor: pointer;
   text-align: left;
   /* Une carte porte des NOMS et des LECTURES, pas une commande : les capitales du bouton
-     générique rendraient « Fish on the Platter » illisible. Seule la désignation les garde,
-     parce qu'elle est un identifiant de catalogue. */
+     générique rendraient « Fish on the Platter » illisible. La désignation et les étiquettes
+     les gardent, parce qu'elles nomment. */
   letter-spacing: normal;
   text-transform: none;
 }
 /* Le survol se lit au FILET qui passe au --texte, comme partout ailleurs : l'aplat est déjà
    pris par la carte, et aucun gris plus clair n'existe dans la palette. Posé sur la carte
-   entière, pas sur le bouton seul — « Cadrer » et « Photographier » en font partie.
+   entière, pas sur le bouton seul — le pied de gestes en fait partie.
    `:not(:disabled)` donne la spécificité de `button:not(:disabled):hover`, qui sinon
    repeindrait le fond. */
 .cible-item:has(> .cible-ligne:hover) {
@@ -3883,23 +3840,25 @@ button:disabled {
   background: transparent;
 }
 
-.cible-corps {
-  grid-column: 2;
-  grid-row: 1;
-  min-width: 0;
-  display: grid;
-  align-content: start;
-  gap: var(--pas-1);
+.cible-entete {
+  display: flex;
+  align-items: center;
+  gap: var(--pas-3);
   padding: var(--pas-2);
 }
 
-/* La désignation à gauche, la note à droite : la note se compare d'une carte à sa voisine,
-   elle tient donc le même bord partout. */
-.cible-titre {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.cible-corps {
+  flex: 1;
+  min-width: 0;
+  display: grid;
   gap: var(--pas-1);
+}
+
+/* La désignation, et sous elle le type en micro-libellé : ce que l'objet EST se lit avant ce
+   qu'il vaut. */
+.cible-titre {
+  display: grid;
+  gap: var(--pas-0);
 }
 
 /* Une désignation ne se tronque pas (T-0264) : « NGC 6960 » passe à la ligne plutôt que de
@@ -3922,21 +3881,43 @@ button:disabled {
   font-size: var(--texte-legende);
 }
 
-/* La cible écartée : un filet, puis la cause du moteur. Atténuée, jamais en alerte — ce
-   n'est pas une erreur de l'application, c'est une réponse. */
+/* Les filets INTÉRIEURS de la carte sont au --fond : un --bordure-faible disparaît sur l'aplat
+   de la carte, et c'est le fond qui passe entre deux cases — un trait qui tient dans les trois
+   modes sans jeton de plus. */
+.cible-mesures {
+  display: flex;
+  border-top: var(--trait) solid var(--fond);
+}
+
+/* La facilité et le cadre épousent leur contenu, la pose prend le reste : la case la plus
+   longue (« 9 h 20 · 2 nuits ») a la place, les autres ne l'étirent pas. */
+.cible-mesure {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: var(--pas-1);
+  padding: var(--pas-2) var(--pas-4);
+  font-family: var(--police-mono);
+  font-size: var(--texte-appui);
+}
+.cible-mesure:last-child {
+  flex-grow: 1;
+}
+.cible-mesure + .cible-mesure {
+  border-inline-start: var(--trait) solid var(--fond);
+}
+
+/* La cible écartée : sa cause à la place des mesures. Atténuée, jamais en alerte — ce n'est
+   pas une erreur de l'application, c'est une réponse. */
 .cible-impossible {
   display: grid;
-  gap: var(--pas-0);
-  padding-top: var(--pas-1);
-  border-top: var(--trait) solid var(--bordure-faible);
-  font-size: var(--texte-legende);
-}
-.cible-impossible-titre {
-  color: var(--texte);
+  gap: var(--pas-1);
+  padding: var(--pas-2) var(--pas-4);
+  border-top: var(--trait) solid var(--fond);
 }
 .cible-cause {
-  color: var(--attenue);
-  font-size: var(--texte-mini);
+  font-size: var(--texte-legende);
 }
 
 /* §6.4 — la note de facilité. Les pastilles n'ont pas de forme propre : elles héritent de
@@ -3975,49 +3956,54 @@ button:disabled {
   color: var(--barre-encre);
 }
 
-/* T-0378 — sur la carte, la note est un appoint de la désignation, pas une lecture : des
-   pastilles plus petites et d'un trait plus fin que sur la fiche. */
-.cible-titre .facilite .icone {
+/* T-0378 — sur la carte, la note est une mesure parmi trois : des pastilles plus petites et
+   d'un trait plus fin que sur la fiche. */
+.cible-mesure .facilite .icone {
   font-size: var(--texte-mini);
 }
-.cible-titre .facilite-pleine {
+.cible-mesure .facilite-pleine {
   --icone-graisse: 300;
 }
-.cible-titre .facilite-vide {
+.cible-mesure .facilite-vide {
   --icone-graisse: 200;
 }
 
-.cible-lectures {
+/* Le pied : les gestes de la carte, à parts égales, nommés en toutes lettres. Sans aucun geste
+   à offrir — ni cadre du matériel, ni pose —, il disparaît. */
+.cible-actions {
   display: flex;
-  flex-wrap: wrap;
+  border-top: var(--trait) solid var(--fond);
+}
+.cible-actions:empty {
+  display: none;
+}
+.cible-actions > .bulle-ancre {
+  flex: 1;
+  align-self: stretch;
+  min-width: 0;
+}
+.cible-actions > .bulle-ancre + .bulle-ancre {
+  border-inline-start: var(--trait) solid var(--fond);
+}
+/* Posés dans une rangée qui les borde déjà : pas de filet au repos — le survol en prend un,
+   comme tout bouton. */
+.cible-actions button {
+  flex: 1;
+  align-self: stretch;
+  justify-content: center;
   gap: var(--pas-1);
-  color: var(--attenue);
-  font-family: var(--police-mono);
-  font-size: var(--texte-micro);
-}
-/* Chaque puce est un bloc insécable : sur une carte étroite, la rangée passe à la suivante
-   ENTRE deux mesures, jamais au milieu de « 1 h 45 ». */
-.cible-puce {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--pas-0);
-  padding: var(--pas-0) var(--pas-1);
-  border: var(--trait) solid var(--bordure-faible);
-  white-space: nowrap;
-}
-.cible-puce .icone {
-  font-size: var(--texte-appui);
+  padding-inline: var(--pas-2);
+  border-color: transparent;
 }
 
-/* « Photographier », en bas à droite du corps. */
+/* « Photographier » : enfoncé, le glyphe se remplit — la forme dit l'état (§11.1). L'aplat
+   descend au --fond : un gris se perdrait sur celui de la carte. */
 .cible-photographier {
   display: flex;
   align-items: center;
-  gap: var(--pas-1);
 }
-/* §11.1 — enfoncé, le glyphe se remplit : la forme dit l'état, la teinte ne fait qu'appuyer. */
 .cible-photographier[aria-pressed='true'] {
-  background: var(--bordure-faible);
+  background: var(--fond);
 }
 .cible-photographier[aria-pressed='true'] > .icone {
   --icone-remplissage: 1;
@@ -4151,13 +4137,12 @@ button:disabled {
   text-transform: uppercase;
 }
 
-/* La vignette de carte occupe toute la colonne de gauche, au moins carrée, garnie ou non :
-   l'arrivée de l'image ne décale rien. Elle s'étire si le corps est plus haut qu'elle. */
+/* La vignette de carte : un carré fixe, garni ou non —
+   l'arrivée de l'image ne décale rien. */
 .cible-vignette {
-  grid-column: 1;
-  grid-row: 1 / -1;
+  flex: none;
   display: block;
-  width: 100%;
+  inline-size: var(--cible-vignette);
   aspect-ratio: 1;
   overflow: hidden;
   border-width: 0;

@@ -21,6 +21,7 @@ import { PanneauCibles } from '../src/ui/PanneauCibles.tsx'
 import { basculeChoixCible, reinitialiseCiblesChoisies } from '../src/ui/cibles-choisies.ts'
 import { majCatalogue, reinitialiseCatalogue } from '../src/ui/catalogue-etat.ts'
 import { reinitialiseScene, vaA } from '../src/ui/scene-etat.ts'
+import { LIBELLE_TYPE_OBJET } from '../src/ui/libelles-objet.ts'
 import { objetNebuleuse as objet, SITE_REFERENCE as SITE } from './fixtures.ts'
 
 const NUIT = fenetreNocturne(SITE, new Date('2026-08-14T12:00:00Z'))
@@ -118,5 +119,20 @@ describe('§8.3 — ajouter au plan depuis la liste', () => {
     const retenue = ligne(liste(), CADRABLE.designation)
     expect(retenue).toContain('aria-pressed="true"')
     expect(retenue).toContain('Retirer NGC7000 du plan de nuit')
+  })
+})
+
+describe('§6.4 — la carte de liste en fiche technique', () => {
+  it('étiquette ses trois mesures : facilité, cadre, pose', () => {
+    const carte = ligne(liste(), CADRABLE.designation)
+    for (const etiquette of ['Facilité', 'Cadre', 'Pose']) {
+      expect(carte, etiquette).toContain(`>${etiquette}</span>`)
+    }
+  })
+
+  it('nomme le type sous la désignation, et le nom d’usage à part', () => {
+    const carte = ligne(liste(), CADRABLE.designation)
+    expect(carte).toContain(`>${LIBELLE_TYPE_OBJET[CADRABLE.type]}</span>`)
+    expect(carte).toContain(CADRABLE.nomsCommuns)
   })
 })

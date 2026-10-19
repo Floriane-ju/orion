@@ -248,7 +248,6 @@ export function demarrageEchoue(): EtatDemarrage {
       cause: 'Le démarrage a échoué : rechargez la page.',
     },
     stockage: {
-      persistant: false,
       supporte: false,
       quotaMo: null,
       usageMo: null,

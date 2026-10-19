@@ -86,8 +86,9 @@ export interface BoutonCadrerProps {
   /** Le cadre du matériel déclaré ; absent tant que le matériel n'est pas chiffrable. */
   readonly profil: ProfilCadre | undefined
   readonly gaiaCharge: boolean
-  /** La carte de liste le pose sur l'image, comme une commande sur le ciel : `flottant`. */
   readonly variante?: VarianteGlyphe
+  /** Le pied de la carte de liste nomme le geste en toutes lettres. */
+  readonly avecLibelle?: boolean
 }
 
 /**
@@ -120,6 +121,7 @@ export function BoutonCadrer({
   profil,
   gaiaCharge,
   variante,
+  avecLibelle = false,
 }: BoutonCadrerProps) {
   if (profil === undefined) return null
   const aide = `Cadrer ${designation} avec le cadre du matériel`
@@ -129,6 +131,7 @@ export function BoutonCadrer({
       aide={hauteurDeg > 0 ? aide : `${aide} — sous l’horizon`}
       place="gauche"
       {...(variante === undefined ? {} : { variante })}
+      {...(avecLibelle ? { texte: 'Cadrer' } : {})}
       onClick={() => cadreScene(azimutDeg, hauteurDeg, profil, gaiaCharge)}
     />
   )

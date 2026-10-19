@@ -55,7 +55,6 @@ import {
   BoutonProchainCreneau,
   causesCarte,
   CibleImpossible,
-  HORS_SAISON,
 } from './CibleImpossible.tsx'
 import { trieParPhotographiabilite } from '../core/cible-ecartee.ts'
 import { Mention } from './Mention.tsx'
@@ -405,12 +404,15 @@ function resumeTypes(offerts: readonly TypeObjet[], types: ReadonlySet<TypeObjet
 }
 
 /**
- * Une carte : l'image à gauche — c'est elle qu'on reconnaît avant de lire —, puis la
- * désignation et sa note, le nom, et ce qui décide de la prise de vue : la part du cadre et le
- * temps de pose, ou, pour une cible écartée, pourquoi elle l'est.
+ * T-0430 — une carte en fiche technique : l'image et ce qu'elle nomme — désignation, type, nom
+ * d'usage —, puis une rangée de mesures ÉTIQUETÉES (facilité, cadre, pose). Les puces à glyphe
+ * seul obligeaient à survoler pour savoir quelle mesure on lisait ; une étiquette en capitales
+ * est la grammaire du produit pour « ce qui nomme ». Une cible écartée met sa cause à la place
+ * des mesures : c'est la même question — peut-on la photographier — à la même place.
  *
- * Trois boutons distincts et non imbriqués : cadrer la scène, ouvrir la fiche et ajouter au
- * plan sont trois intentions, et un `<button>` dans un `<button>` n'est pas du HTML valide.
+ * Le bouton de fiche couvre l'en-tête et les mesures : un clic n'importe où ouvre la fiche. Les
+ * gestes — cadrer, ajouter au plan, aller au prochain créneau — sont ses frères, dans un pied
+ * nommé en toutes lettres : un `<button>` dans un `<button>` n'est pas du HTML valide.
  */
 interface LigneListeProps {
   readonly ligne: LigneCible
@@ -434,94 +436,88 @@ function LigneListe({ ligne, etat, contexte, profil, gaiaCharge, parc }: LigneLi
   return (
     <li className="cible-item">
       <button type="button" className="cible-ligne" onClick={() => ouvreCible(objet)}>
-        {/* §6.4 — depuis le cache seulement : le défilement de la liste n'émet aucune requête.
-            C'est le préchargement du haut de liste qui garnit ce cache, en une salve plafonnée. */}
-        <VignetteCible objet={objet} />
-        <span className="cible-corps">
-          <span className="cible-titre">
-            <span className="cible-designation">{objet.designation}</span>
+        <span className="cible-entete">
+          {/* §6.4 — depuis le cache seulement : le défilement de la liste n'émet aucune requête.
+              C'est le préchargement du haut de liste qui garnit ce cache, en une salve plafonnée. */}
+          <VignetteCible objet={objet} />
+          <span className="cible-corps">
+            <span className="cible-titre">
+              <span className="cible-designation">{objet.designation}</span>
+              <span className="libelle">{LIBELLE_TYPE_OBJET[objet.type]}</span>
+            </span>
+            {nom !== '' && <span className="cible-commun">{nom}</span>}
+          </span>
+        </span>
+        {ecart !== null ? (
+          // §8.3 — une écartée dit pourquoi, sur la carte même : un zéro muet ne dit pas
+          // quel levier tirer (T-0379, T-0380).
+          // T-0382 — écartée pour la Lune : la cause en une phrase, la gêne chiffrée reste sur
+          // la fiche.
+          <CibleImpossible
+            phrases={etat?.code === 'LUNE' ? [LIBELLE_CAUSE_ECART.LUNE] : ecart.phrases}
+          />
+        ) : (
+          <span className="cible-mesures">
             {/* Sans note, aucune pastille : cinq pastilles vides se lisent « impossible », ce
                 qui serait faux d'une cible que le moteur n'a simplement pas évaluée. */}
             {etat !== null && (
-              <Pastilles note={etat.note} libelle={etat.libelle} cause={etat.cause} />
+              <span className="cible-mesure">
+                <span className="libelle">Facilité</span>
+                <Pastilles note={etat.note} libelle={etat.libelle} cause={etat.cause} />
+              </span>
+            )}
+            <span className="cible-mesure">
+              <span className="libelle">Cadre</span>
+              {libelleEncombrement(ligne)}
+            </span>
+            {pose !== null && (
+              <span className="cible-mesure">
+                <span className="libelle">Pose</span>
+                {libellePose(pose)}
+              </span>
             )}
           </span>
-          <span className="cible-commun">
-            {nom === '' ? LIBELLE_TYPE_OBJET[objet.type] : nom}
-          </span>
-          {ecart !== null ? (
-            // §8.3 — une écartée dit pourquoi, sur la carte même : un zéro muet ne dit pas
-            // quel levier tirer (T-0379, T-0380).
-            // T-0382 — écartée pour la Lune : le pied dit la cause à côté de son bouton, la
-            // gêne chiffrée reste sur la fiche.
-            <CibleImpossible
-              phrases={
-                etat?.code === 'LUNE'
-                  ? []
-                  : ecart.phrases.filter((p) => !ecart.horsSaison || p !== HORS_SAISON)
-              }
-            />
-          ) : (
-            <span className="cible-lectures">
-              {/* Le glyphe porte seul le nom de la mesure : il est donc nommé, pas masqué. */}
-              <span className="cible-puce">
-                <Icone nom="crop_free" libelle="Part du cadre" />
-                {libelleEncombrement(ligne)}
-              </span>
-              {pose !== null && (
-                <span className="cible-puce">
-                  <Icone nom="timer" libelle="Temps de pose" />
-                  {libellePose(pose)}
-                </span>
-              )}
-            </span>
-          )}
-        </span>
+        )}
       </button>
-      {/* Posé SUR l'image, mais frère du bouton de fiche et non son enfant : un `<button>` dans
-          un `<button>` n'est pas du HTML valide. Après lui dans le DOM, donc dans l'ordre du
-          focus : on lit la carte avant d'en cadrer la cible. */}
-      <div className="cible-cadrer">
+      {/* Après le bouton de fiche dans le DOM, donc dans l'ordre du focus : on lit la carte
+          avant d'en tirer un geste. Vide — ni cadre du matériel ni geste offert —, le pied
+          disparaît (`:empty`). */}
+      <div className="cible-actions">
         <BoutonCadrer
           designation={objet.designation}
           azimutDeg={ligne.azimutDeg}
           hauteurDeg={ligne.hauteurDeg}
           profil={profil}
           gaiaCharge={gaiaCharge}
-          variante="flottant"
+          variante="nu"
+          avecLibelle
         />
-      </div>
-      {/* §8.3 — ajouter au plan sans ouvrir la fiche : empiler trois cibles est un geste de
-          liste. Offert sous le même critère que la fiche — la pose que le moteur annonce. */}
-      {photographiable(etat ?? undefined) && (
-        <div className="cible-pied">
+        {/* §8.3 — ajouter au plan sans ouvrir la fiche : empiler trois cibles est un geste de
+            liste. Offert sous le même critère que la fiche — la pose que le moteur annonce. */}
+        {photographiable(etat ?? undefined) && (
           <BoutonChoixCible designation={objet.designation} avecLibelle />
-        </div>
-      )}
-      {ecart?.horsSaison === true && (
-        <div className="cible-pied cible-pied-saison">
-          <span className="cible-cause">{HORS_SAISON}</span>
+        )}
+        {ecart?.horsSaison === true && (
           <BoutonProchainCreneau
             objet={objet}
             contexte={contexte}
             profil={profil}
             gaiaCharge={gaiaCharge}
+            avecLibelle
           />
-        </div>
-      )}
-      {/* T-0382 — la Lune passe en quelques nuits : la date est le levier, comme la saison. */}
-      {etat?.code === 'LUNE' && (
-        <div className="cible-pied cible-pied-saison">
-          <span className="cible-cause">{LIBELLE_CAUSE_ECART.LUNE}</span>
+        )}
+        {/* T-0382 — la Lune passe en quelques nuits : la date est le levier, comme la saison. */}
+        {etat?.code === 'LUNE' && (
           <BoutonProchainCreneau
             objet={objet}
             contexte={contexte}
             profil={profil}
             gaiaCharge={gaiaCharge}
             attendre="LUNE"
+            avecLibelle
           />
-        </div>
-      )}
+        )}
+      </div>
     </li>
   )
 }
@@ -536,11 +532,10 @@ function libellePose(pose: PoseCible): string {
  * La place sur la photo, et rien d'autre : c'est la question qu'on se pose devant une carte de
  * catalogue. Le diamètre en pixels reste sur la fiche cible (§6.2), où il tranche le détail —
  * sur une liste il se lisait comme un encombrement, ce qu'il n'est pas.
+ *
+ * T-0430 — sous un zoom, la part est celle de la focale optimale (T-0407), mais la focale ne
+ * se nomme plus ici : la case « Cadre » épouse son contenu, et la fiche dit la focale.
  */
-function libelleEncombrement(ligne: LigneCible): string {
-  const { remplissage, focaleMm } = ligne
-  if (remplissage === null) return 'dimensions absentes'
-  // T-0407 — sous un zoom, la part du cadre est celle de la focale optimale : elle se nomme.
-  if (focaleMm !== null) return `Cadre optimal · ${nombre(focaleMm, 0)} mm · ${pourcentage(remplissage)}`
-  return pourcentage(remplissage)
+function libelleEncombrement({ remplissage }: LigneCible): string {
+  return remplissage === null ? 'dimensions absentes' : pourcentage(remplissage)
 }

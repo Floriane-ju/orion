@@ -45,10 +45,11 @@ function pose(suivant: ReadonlySet<string>): void {
  * §12.3 — la sélection relue de la base, posée avant le premier rendu.
  *
  * C'est elle qui ouvre les écritures : tant qu'elle n'a pas eu lieu, le magasin lit et ne
- * grave rien.
+ * grave rien. T-0431 — une relecture échouée garde les écritures fermées, mais la sélection
+ * portée par l'URL s'affiche quand même : `ouvreEcritures` à faux.
  */
-export function poseCiblesChoisies(designations: readonly string[]): void {
-  hydrate = true
+export function poseCiblesChoisies(designations: readonly string[], ouvreEcritures = true): void {
+  if (ouvreEcritures) hydrate = true
   pose(new Set(designations))
 }
 

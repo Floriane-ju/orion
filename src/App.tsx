@@ -25,6 +25,7 @@ import { PanneauTemps } from './ui/PanneauTemps.tsx'
 import { Visee } from './ui/Visee.tsx'
 import { CartesSeance, LateralSeance, LectureSeance, NuitSeance } from './ui/RegionSeance.tsx'
 import { useSaisieLieu, useSaisieMateriel, useSaisiePoids } from './ui/app-saisie.ts'
+import { BoutonPartage } from './ui/BoutonPartage.tsx'
 import {
   useCatalogues,
   usePersistance,
@@ -151,6 +152,7 @@ function AppPrete({
     profil: profilAEnregistrer(materiel),
     poids,
     erreurRestauration: restauree.erreur,
+    ecritAuDepart: restauree.planDeLUrl,
   })
 
   const gaia = catalogues.etat === null ? false : gaiaCharge(catalogues.etat.catalogues)
@@ -234,6 +236,7 @@ function AppPrete({
           <>
             <CartesSeance {...regions} />
             <div className="coque-nuit">
+              <BoutonPartage plan={{ ...lieu, materiel, poids: poids.poids }} />
               <BoutonModeNuit etat={modeNuit} surChangement={setModeNuit} />
               <BoutonInfo persistance={persistance} />
             </div>

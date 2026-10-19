@@ -64,21 +64,25 @@ export interface DepartLieu {
   readonly sqm: string
 }
 
+/**
+ * T-0267 — la nuit en cours, pas le jour civil : démarrer l'application à 2 h du matin sur
+ * le terrain doit ouvrir le plan qu'on est en train d'exécuter, pas celui du soir suivant.
+ * T-0355 — la nuit de l'instant que la scène a relu : un instant figé au rechargement garde
+ * sa nuit. En `MAINTENANT`, l'horloge fait foi, avec le décalage que la scène a gardé.
+ */
+export function nuitDeLaScene(): string {
+  const { modeTemps, decalageMs } = etatScene().temps
+  const ms = modeTemps === 'MAINTENANT' ? Date.now() + decalageMs : instant.ms
+  return nuitDeLInstant(new Date(borneInstant(ms)))
+}
+
 export function useSaisieLieu(depart: DepartLieu | null): SaisieLieu {
   const [latitude, surLatitude] = useState(depart?.latitude ?? DEFAUT.latitude)
   const [longitude, surLongitude] = useState(depart?.longitude ?? DEFAUT.longitude)
   const [altitude, surAltitude] = useState(depart?.altitude ?? DEFAUT.altitude)
   const [bortle, surBortle] = useState(depart?.bortle ?? DEFAUT.bortle)
   const [sqm, surSqm] = useState(depart?.sqm ?? '')
-  // T-0267 — la nuit en cours, pas le jour civil : démarrer l'application à 2 h du matin sur
-  // le terrain doit ouvrir le plan qu'on est en train d'exécuter, pas celui du soir suivant.
-  // T-0355 — la nuit de l'instant que la scène a relu : un instant figé au rechargement garde
-  // sa nuit. En `MAINTENANT`, l'horloge fait foi, avec le décalage que la scène a gardé.
-  const [nuitIso, surNuitIso] = useState(() => {
-    const { modeTemps, decalageMs } = etatScene().temps
-    const ms = modeTemps === 'MAINTENANT' ? Date.now() + decalageMs : instant.ms
-    return nuitDeLInstant(new Date(borneInstant(ms)))
-  })
+  const [nuitIso, surNuitIso] = useState(nuitDeLaScene)
 
   return {
     latitude,
@@ -158,21 +162,35 @@ export interface DepartMateriel {
   readonly typeMonture?: TypeMonture
 }
 
+/**
+ * Le matériel du premier démarrage : le format et la résolution de l'Annexe A (`DEFAUT`), le
+ * reste vide ou à sa valeur la plus prudente. Partagé avec l'URL du plan (T-0431), qui en part
+ * quand un champ manque ou se refuse.
+ */
+export const MATERIEL_PAR_DEFAUT: DepartMateriel = Object.freeze({
+  boitier: Object.freeze({
+    formatCapteur: 'PLEIN_FORMAT',
+    resolutionMpx: DEFAUT.resolutionMpx,
+    ...BOITIER_VIDE,
+  }),
+  iso: '',
+  focale: DEFAUT.focale,
+  ouverture: DEFAUT.ouverture,
+  capteurMode: 'FULL_FRAME',
+  typeObjectif: 'RECTILINEAIRE',
+  suiviActif: false,
+  qualiteMes: 'INCONNUE',
+  typeMonture: 'TRACKER',
+})
+
 export function useSaisieMateriel(depart: DepartMateriel | null): SaisieMateriel {
   // Un identifiant disparu de la base — ligne supprimée, fichier édité — retombe sur le mode
   // personnalisé, avec les champs enregistrés : la saisie reste utilisable, rien n'est perdu.
   const [boitierId, setBoitierId] = useState(() =>
     ligneBoitier(depart?.boitierId ?? '') === null ? '' : (depart?.boitierId ?? ''),
   )
-  const [boitier, surBoitier] = useState<SaisieBoitier>(
-    () =>
-      depart?.boitier ?? {
-        formatCapteur: 'PLEIN_FORMAT',
-        resolutionMpx: DEFAUT.resolutionMpx,
-        ...BOITIER_VIDE,
-      },
-  )
-  const [iso, surIso] = useState(depart?.iso ?? '')
+  const [boitier, surBoitier] = useState<SaisieBoitier>(depart?.boitier ?? MATERIEL_PAR_DEFAUT.boitier)
+  const [iso, surIso] = useState(depart?.iso ?? MATERIEL_PAR_DEFAUT.iso)
   const [parcInitial] = useState(() =>
     parcDeDepart(
       {
@@ -195,15 +213,12 @@ export function useSaisieMateriel(depart: DepartMateriel | null): SaisieMateriel
     const focaleDepart = depart?.focale ?? DEFAUT.focale
     return monte === null ? (depart?.ouverture ?? DEFAUT.ouverture) : String(plancherA(monte, focaleDepart))
   })
-  const [capteurMode, surCapteurMode] = useState<CapteurMode>(depart?.capteurMode ?? 'FULL_FRAME')
-  const [typeObjectif, setTypeObjectif] = useState<TypeObjectif>(
-    depart?.typeObjectif ?? 'RECTILINEAIRE',
-  )
-  const [suiviActif, surSuiviActif] = useState(depart?.suiviActif ?? false)
-  const [qualiteMes, surQualiteMes] = useState<QualiteMiseEnStation>(
-    depart?.qualiteMes ?? 'INCONNUE',
-  )
-  const [typeMonture, surTypeMonture] = useState<TypeMonture>(depart?.typeMonture ?? 'TRACKER')
+  const d = depart ?? MATERIEL_PAR_DEFAUT
+  const [capteurMode, surCapteurMode] = useState<CapteurMode>(d.capteurMode)
+  const [typeObjectif, setTypeObjectif] = useState<TypeObjectif>(d.typeObjectif)
+  const [suiviActif, surSuiviActif] = useState(d.suiviActif)
+  const [qualiteMes, surQualiteMes] = useState<QualiteMiseEnStation>(d.qualiteMes ?? 'INCONNUE')
+  const [typeMonture, surTypeMonture] = useState<TypeMonture>(d.typeMonture ?? 'TRACKER')
 
   /**
    * T-0204 — quitter un boîtier de la base recopie ses grandeurs dans les champs : on repart

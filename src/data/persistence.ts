@@ -1,15 +1,10 @@
 /**
- * §12.3 — Persistance du stockage et résistance à l'éviction.
+ * §12.3 — Stockage local et résistance à l'éviction.
  *
- * LE VOLUME N'EST PAS LE RISQUE. L'ÉVICTION EST LE RISQUE. Par défaut le stockage
- * navigateur est en « meilleur effort » : il peut être effacé sans avertissement sous
- * pression disque. Neuf mégaoctets de catalogues effacés en silence, c'est une application
- * vide au prochain démarrage hors réseau, sur le terrain, sans moyen de la recharger.
- *
- * Stratégie à trois étages :
- *   1. demander persist() dès la première visite, APRÈS la première action utile ;
- *   2. vérifier persisted() à chaque démarrage et avertir si le mode n'est pas accordé ;
- *   3. vérifier l'intégrité des catalogues au démarrage.
+ * Le stockage reste en « meilleur effort » : `persist()` n'est plus demandé. Sous Firefox, la
+ * demande ouvrait une invite à chaque nouvel utilisateur, pour un risque jugé mineur — une
+ * éviction n'a lieu que sous pression disque, les catalogues se retéléchargent, le plan de
+ * la nuit voyage dans l'URL et le reste dans l'export JSON.
  */
 
 import { db } from './db.ts'
@@ -21,11 +16,10 @@ import { TABLE_FORMATS_CAPTEUR, estFormatCapteur } from '../registry/capteur-for
 import { valideObjectif, type Objectif } from '../core/objectif.ts'
 
 export interface EtatStockage {
-  readonly persistant: boolean
   readonly supporte: boolean
   readonly quotaMo: number | null
   readonly usageMo: number | null
-  /** Renseigné quand le mode persistant n'est pas accordé. */
+  /** Renseigné quand le navigateur n'offre pas de stockage local. */
   readonly avertissement?: string
 }
 
@@ -35,13 +29,9 @@ export const AVERTISSEMENT_SANS_BASE =
   'Stockage local indisponible : le ciel est chargé pour cette session, mais rien de ce que ' +
   'vous saisissez ne sera mémorisé.'
 
-const AVERTISSEMENT_NON_PERSISTANT =
-  'Le navigateur peut effacer vos données : installez l’application ou exportez-les.'
-
 export async function etatStockage(): Promise<EtatStockage> {
   if (typeof navigator === 'undefined' || navigator.storage === undefined) {
     return {
-      persistant: false,
       supporte: false,
       quotaMo: null,
       usageMo: null,
@@ -49,26 +39,12 @@ export async function etatStockage(): Promise<EtatStockage> {
         'Ce navigateur peut effacer vos données : exportez-les régulièrement.',
     }
   }
-  const persistant = (await navigator.storage.persisted?.()) ?? false
   const estimation = (await navigator.storage.estimate?.()) ?? {}
   return {
-    persistant,
     supporte: true,
     quotaMo: estimation.quota === undefined ? null : estimation.quota / OCTETS_PAR_MO,
     usageMo: estimation.usage === undefined ? null : estimation.usage / OCTETS_PAR_MO,
-    ...(persistant ? {} : { avertissement: AVERTISSEMENT_NON_PERSISTANT }),
   }
-}
-
-/**
- * À n'appeler qu'après une première action utile de l'utilisateur : une demande non
- * motivée au chargement est refusée par réflexe (§12.3).
- */
-export async function demandePersistance(): Promise<boolean> {
-  if (typeof navigator === 'undefined' || navigator.storage?.persist === undefined) {
-    return false
-  }
-  return navigator.storage.persist()
 }
 
 const FORMAT_EXPORT = 'orion-export'

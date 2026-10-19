@@ -40,6 +40,8 @@ export interface BoutonGlypheProps {
   readonly eteinte?: boolean
   /** Classe de PLACE, pour une règle de disposition — jamais pour repeindre le bouton. */
   readonly classe?: string
+  /** Le mot posé après le glyphe, quand la place le permet. */
+  readonly texte?: string
   readonly onClick?: () => void
 }
 
@@ -52,6 +54,7 @@ export function BoutonGlyphe({
   presse,
   eteinte = false,
   classe,
+  texte,
   onClick,
 }: BoutonGlypheProps) {
   const classes = ['bouton-glyphe', `bouton-glyphe-${variante}`]
@@ -67,6 +70,7 @@ export function BoutonGlyphe({
         {...(onClick === undefined ? {} : { onClick })}
       >
         <Icone nom={icone} />
+        {texte}
       </button>
     </Bulle>
   )
