@@ -18,19 +18,12 @@
  * plutôt que de promener le curseur dans une nuit figée qui en sortait.
  *
  * T-0394 — revue DA §4.2, « La tombée de la nuit ». Un clic sur la frise TRAVERSE le temps
- * jusqu'à l'instant visé, et « Aller à la nuit » fait le même trajet jusqu'au début de la nuit
- * de référence — astronomique, ou nautique quand la nuit noire manque (§8.1). Les flèches
- * restent des sauts : un pas de dix minutes n'a rien à montrer en chemin. Le mode nuit ne se
- * propose plus à l'arrivée : il reste un geste de l'utilisateur, jamais une sollicitation.
+ * jusqu'à l'instant visé. Les flèches restent des sauts : un pas de dix minutes n'a rien à
+ * montrer en chemin.
  *
  * T-0411 — la frise monte dans la barre haute, liée à l'horloge : un seul endroit règle le
  * temps. Ce qu'un geste laisse à dire (saut, cause) tombe SOUS la
  * frise, par-dessus le ciel, plutôt que de faire grandir la barre.
- *
- * « Aller à la nuit » est l'appel d'entrée, au milieu du ciel : il s'adresse à qui arrive de
- * jour. Ouvert la nuit, il n'a rien à proposer. Dès que le temps bouge sans lui, ou que la
- * visée bouge, l'utilisateur a trouvé ses gestes par lui-même, et l'appel se retire pour la
- * session.
  *
  * T-0419 — la frise se tire aussi : un glisser fait défiler l'instant sous le curseur, en
  * continu et sans trajet — le geste EST le trajet. En deçà du seuil d'un tremblement, l'appui
@@ -38,7 +31,6 @@
  *
  * T-0420 — un clic sur la frise traverse TOUJOURS le temps, comme le panneau de temps : on
  * vise un instant pour le voir venir, et un saut imposé par le zoom ôtait au clic son sens.
- * « Aller à la nuit » reste plafonné.
  */
 
 import {
@@ -70,12 +62,8 @@ import { heure } from './horaire.ts'
 import {
   instant,
   minuteAffichee,
-  tempsScene,
-  type TempsScene,
   useTrancheScene,
   vaA,
-  vueScene,
-  type VueScene,
 } from './scene-etat.ts'
 import { traverse, useInstantTrajet } from './trajet-scene.ts'
 import {
@@ -137,32 +125,18 @@ export function CarteNuit({ site, nuit }: CarteNuitProps) {
   }
   const efface = (): void => setSaute(false)
 
-  const debutNuit = nuit.debutReference
-  const phase = phaseFrise(site, frise, new Date(instantMs))
-  const appelRetire = useAppelRetire(minute, phase !== 'JOUR')
-  const appel = !appelRetire && debutNuit !== null && instantMs < debutNuit.getTime()
-
   return (
-    <>
-      <section className="panneau-nuit" role="region" aria-label="La nuit">
-        <Frise frise={frise} site={site} instantMs={afficheMs} va={va} efface={efface} />
-        <div className="nuit-messages">
-          {nuit.cause !== undefined && <Mention ton="cause">{nuit.cause}</Mention>}
-          {saute && (
-            <Mention ton="etat" role="status">
-              Saut direct : à ce zoom, le trajet défilerait trop vite pour se lire.
-            </Mention>
-          )}
-        </div>
-      </section>
-      {appel && (
-        <div className="nuit-appel">
-          <button type="button" onClick={() => va(debutNuit.getTime())}>
-            Aller à la nuit
-          </button>
-        </div>
-      )}
-    </>
+    <section className="panneau-nuit" role="region" aria-label="La nuit">
+      <Frise frise={frise} site={site} instantMs={afficheMs} va={va} efface={efface} />
+      <div className="nuit-messages">
+        {nuit.cause !== undefined && <Mention ton="cause">{nuit.cause}</Mention>}
+        {saute && (
+          <Mention ton="etat" role="status">
+            Saut direct : à ce zoom, le trajet défilerait trop vite pour se lire.
+          </Mention>
+        )}
+      </div>
+    </section>
   )
 }
 
@@ -204,49 +178,6 @@ export function LectureNuit({ site }: { readonly site: Site }) {
       </span>
     </p>
   )
-}
-
-/** Ce que l'appel compare à son ouverture : le temps, la minute affichée, la visée. */
-export interface ReperesAppel {
-  readonly temps: TempsScene
-  readonly minute: number
-  readonly vue: Pick<VueScene, 'azimutDeg' | 'hauteurDeg' | 'fovDeg'>
-}
-
-/**
- * L'utilisateur a-t-il bougé le temps ou la visée depuis `depart` ?
- *
- * Le temps : un changement de mode, de vitesse ou de décalage — le magasin ne rend une tranche
- * neuve que si elle change ; temps figé, une minute réécrite aussi (compteur, frise, trajet).
- * En lecture ou en défilement la minute avance seule, elle ne compte pas.
- *
- * La visée : azimut, hauteur, champ — glisser, zoomer, cadrer. Pas la définition ni le
- * décalage de centre : ils se mesurent sur la boîte après le montage, sans geste.
- */
-export function appelABouge(depart: ReperesAppel, courant: ReperesAppel): boolean {
-  const { temps, minute, vue } = courant
-  return (
-    temps !== depart.temps ||
-    (temps.modeTemps === 'FIGE' && minute !== depart.minute) ||
-    vue.azimutDeg !== depart.vue.azimutDeg ||
-    vue.hauteurDeg !== depart.vue.hauteurDeg ||
-    vue.fovDeg !== depart.vue.fovDeg
-  )
-}
-
-/**
- * Vrai, et pour la session, quand l'appel n'a plus lieu d'être : il faisait déjà nuit à
- * l'ouverture, ou l'utilisateur a bougé le temps ou la visée depuis.
- */
-function useAppelRetire(minute: number, nuitAuDepart: boolean): boolean {
-  const temps = useTrancheScene(tempsScene)
-  const vue = useTrancheScene(vueScene)
-  const depart = useRef<ReperesAppel>({ temps, minute, vue })
-  const [retire, setRetire] = useState(nuitAuDepart)
-  useEffect(() => {
-    if (!retire && appelABouge(depart.current, { temps, minute, vue })) setRetire(true)
-  }, [temps, minute, vue, retire])
-  return retire
 }
 
 /** Un appui sur la frise : où il a commencé, l'instant d'alors, et s'il a déjà glissé. */

@@ -1674,8 +1674,7 @@ body {
   .coque-rail,
   .coque-nuit,
   .coque-lateral,
-  .coque-visee,
-  .nuit-appel {
+  .coque-visee {
     position: static;
     inset: auto;
     width: auto;
@@ -3459,31 +3458,6 @@ button:disabled {
 }
 /* T-0390 — l'heure et la phase de l'instant affiché, à demeure : §11.2 ne laisse rien de
    critique au seul survol. Une ligne, au corps des repères d'heure qu'elle prolonge. */
-/* T-0394 — « Aller à la nuit », l'appel d'entrée : au milieu du ciel libre, entre le rail et
-   le panneau de droite, là où le regard se pose en arrivant. Le conteneur laisse passer le
-   pointeur, seul le bouton le prend : le ciel reste manipulable autour. L'accent est réservé à
-   ce qu'on vise ; l'appel se distingue par sa taille et son filet plein, posé sur le voile des
-   flottants. */
-/* `fixed` et non `absolute` : la frise vit dans la barre, qui serait sinon son repère — l'appel
-   se centrerait dans la barre au lieu du ciel. La coque couvre la fenêtre, les deux coïncident. */
-.nuit-appel {
-  position: fixed;
-  inset-block: 0;
-  inset-inline-start: calc(var(--rail) + 2 * var(--jour-carte));
-  inset-inline-end: calc(var(--lateral) + 2 * var(--jour-carte));
-  z-index: var(--plan-panneaux);
-  display: grid;
-  place-items: center;
-  pointer-events: none;
-}
-.nuit-appel button {
-  pointer-events: auto;
-  padding: var(--pas-4) var(--pas-6);
-  background: var(--voile);
-  border-color: var(--texte);
-  font-size: var(--texte-appui);
-  letter-spacing: var(--suivi-titre);
-}
 .nuit-bande {
   position: absolute;
   inset-block: 0;
