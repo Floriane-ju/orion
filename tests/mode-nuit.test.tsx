@@ -813,11 +813,12 @@ describe('mouvement réduit — WCAG 2.3.3', () => {
     // T-0325 — ouvrir un `<details>` au clic est un geste aussi : l'état `[open]` en porte la
     // trace. Il se retire du sélecteur pour retrouver celui de la règle de base qui s'anime.
     // Choisir Panorama aussi : `[data-absente='true']` ne change qu'à la bascule de mode.
-    const ETATS = ['[open]', "[data-absente='true']"]
+    // Le bouton Filtre de même : `[data-ouvert='false']` ne change qu'à son clic.
+    const ETATS = ['[open]', "[data-absente='true']", "[data-ouvert='false']"]
     const sansEtat = (sel: string): string => ETATS.reduce((s, etat) => s.replaceAll(etat, ''), sel)
     const gestes = [
       ...CSS.matchAll(
-        /^[^{}\n]*(?::(?:hover|focus)|\[open\]|\[data-absente='true'\])[^{}\n]*\{/gm,
+        /^[^{}\n]*(?::(?:hover|focus)|\[open\]|\[data-absente='true'\]|\[data-ouvert='false'\])[^{}\n]*\{/gm,
       ),
     ].map((m) => sansEtat(m[0]))
     const animes = [...accepte.matchAll(/^ {2}([^\s{][^{\n]*)\{/gm)].map((m) => m[1]!.trim())

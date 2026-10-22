@@ -314,8 +314,9 @@ qu'elle nomme ce qu'on survole où que ce soit. `echelles.test.ts` tient les deu
 > **Un champ du produit n'utilise pas `ChampChoix`, et c'est écrit dans son en-tête :** le
 > choix de RSB de `Verdicts` (valeur numérique).
 >
-> Le filtre « Type » de `PanneauCibles` est un **choix multiple** : un `<details>` dont le
-> résumé garde l'allure d'un `<select>`, et une `Interrupteur` par type présent. Pas de
+> Le filtre « Type » de `PanneauCibles` est un **choix multiple** : une rangée de chips
+> (`<button aria-pressed>`, coche quand retenu), un par type présent ; aucun retenu = tous les types. Lui et la magnitude vivent dans un volet
+> ouvert par le `BoutonGlyphe` `filter_list` à droite de la recherche. Pas de
 > `<select multiple>` — il faut Ctrl ou Cmd pour y cocher, ce qui ne se fait pas au gant (§11.2).
 
 ### Texte et explication

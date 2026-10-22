@@ -200,8 +200,10 @@ describe('filtreLignes — les trois restrictions de §6.4', () => {
     ).toEqual(['GLOB', 'OBSCURE_SOUS_HORIZON'])
   })
 
-  it('ne garde rien quand aucun type n’est coché', () => {
-    expect(filtreLignes(LIGNES, { ...SANS_FILTRE, types: new Set() })).toEqual([])
+  it('garde tout quand aucun type n’est retenu', () => {
+    expect(filtreLignes(LIGNES, { ...SANS_FILTRE, types: new Set() })).toEqual(
+      filtreLignes(LIGNES, SANS_FILTRE),
+    )
   })
 
   it('écarte une magnitude absente dès que le filtre de magnitude est actif', () => {

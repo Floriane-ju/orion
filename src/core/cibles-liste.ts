@@ -246,9 +246,10 @@ export function filtreObjets(
   return chercheCatalogue(parMag, filtre.recherche, parMag.length)
 }
 
-/** Vrai dès qu'un type au moins est décoché : la scène n'estompe rien tant que tout l'est. */
+/** Vrai dès qu'un type est retenu sans que tous le soient : aucun retenu ne restreint rien,
+    un filtre vide qui viderait la liste ne dirait que « rien », jamais pourquoi. */
 export function restreintParType(types: ReadonlySet<TypeObjet>): boolean {
-  return TYPES_OBJET.some((t) => !types.has(t))
+  return types.size > 0 && TYPES_OBJET.some((t) => !types.has(t))
 }
 
 /**

@@ -16,19 +16,18 @@
  * plan de séance : la liste, la carte Cible et le plan ne peuvent pas annoncer deux poses —
  * ni deux notes — différentes pour la même cible.
  *
- * §6.4 — le filtre par type est un choix MULTIPLE (`types_retenus`). Des cases repliées
- * derrière un résumé plutôt qu'un `<select multiple>` : ce dernier demande Ctrl ou Cmd pour
- * cocher, ce qui ne se fait pas au gant (§11.2).
+ * §6.4 — le filtre par type est un choix MULTIPLE (`types_retenus`). Des chips à bascule
+ * plutôt qu'un `<select multiple>` : ce dernier demande Ctrl ou Cmd pour cocher, ce qui ne
+ * se fait pas au gant (§11.2).
  */
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, type ReactNode } from 'react'
 import { dureeLisible, nombre, pourcentage } from '../registry/ecriture.ts'
 import {
   ajouteCoordonnees,
   filtreLignes,
   lignesInvariantes,
   photographiable,
-  restreintParType,
   typesPresents,
   type EtatCible,
   type LigneCible,
@@ -45,11 +44,12 @@ import type { ContexteSession } from '../core/session.ts'
 import { K } from '../registry/constants.ts'
 import { DOMAINES } from '../registry/domains.ts'
 import { I } from '../registry/imagerie.ts'
-import { TYPES_OBJET, type ObjetCielProfond, type TypeObjet } from '../data/deepsky.ts'
+import type { ObjetCielProfond, TypeObjet } from '../data/deepsky.ts'
 import { RECALCUL_EN_COURS } from './app-calcul.ts'
 import { BoutonCadrer } from './BoutonCadrer.tsx'
 import type { ProfilCadre } from '../core/cadre.ts'
 import { BoutonChoixCible } from './BoutonChoixCible.tsx'
+import { BoutonGlyphe } from './BoutonGlyphe.tsx'
 import { Bulle } from './Bulle.tsx'
 import {
   BoutonProchainCreneau,
@@ -154,7 +154,7 @@ export function PanneauCibles(props: PanneauCiblesProps) {
   const sbCiel = contexteSession.sbCielNoir
   // T-0182 — la saisie vit dans le magasin : la fiche démonte cette liste, et une recherche
   // perdue au retour ferait recommencer le tri à chaque cible consultée.
-  const { photographiablesSeules, recherche, types, magMax } = useCatalogue()
+  const { photographiablesSeules, recherche, types, magMax, filtresOuverts } = useCatalogue()
 
   // T-0056 — la minute affichée, pas l'instant : la scène publie deux fois par seconde, et
   // une minute de granularité ne change pas la hauteur au degré près sur 14 000 entrées.
@@ -247,73 +247,73 @@ export function PanneauCibles(props: PanneauCiblesProps) {
        en train d'être remplacée. Hors région vive — l'annoncer à chaque touche ne dirait rien
        de neuf, et couvrirait le compte que T-0187 fait annoncer. */
     <section className="cibles" aria-busy={props.recalcul}>
-      <input
-        ref={props.inputRef}
-        className="cibles-recherche"
-        type="search"
-        aria-label="Rechercher un objet du catalogue"
-        value={recherche}
-        placeholder="M42, dentelles du Cygne, NGC 7000…"
-        onChange={(e) => majCatalogue({ recherche: e.target.value })}
-      />
+      <div className="cibles-recherche">
+        <input
+          ref={props.inputRef}
+          type="search"
+          aria-label="Rechercher un objet du catalogue"
+          value={recherche}
+          placeholder="M42, dentelles du Cygne, NGC 7000…"
+          onChange={(e) => majCatalogue({ recherche: e.target.value })}
+        />
+        <BoutonGlyphe
+          icone="filter_list"
+          classe="cibles-filtre-bouton"
+          aide={filtresOuverts ? 'Masquer les filtres' : 'Filtrer par type et magnitude'}
+          presse={filtresOuverts}
+          onClick={() => majCatalogue({ filtresOuverts: !filtresOuverts })}
+        />
+      </div>
 
-      <Bulle texte={aidePortee(seuil, taille, tropPetites)} place="bas">
-        <Interrupteur
-          actif={photographiablesSeules}
-          surChangement={(actif) => majCatalogue({ photographiablesSeules: actif })}
-        >
-          <span className="aide">Ne montrer que les objets photographiables</span>
-        </Interrupteur>
-      </Bulle>
-
-      <div className="cibles-filtres">
-        <details className="cibles-types">
-          {/* Le résumé dit la sélection fermé : un filtre replié qui restreint sans le dire
-              ferait chercher pourquoi la liste est courte. */}
-          <summary>
-            <span className="libelle">Type</span>
-            <span className="cibles-types-valeur">
-              {resumeTypes(typesOfferts, types)}
-              <Icone nom="expand_more" classe="chevron" />
-            </span>
-          </summary>
-          <div className="cibles-types-choix" role="group" aria-label="Types d’objet retenus">
-            <div className="cibles-types-tout">
-              <button type="button" onClick={() => majCatalogue({ types: new Set(TYPES_OBJET) })}>
-                Tout cocher
-              </button>
-              <button type="button" onClick={() => majCatalogue({ types: new Set() })}>
-                Tout décocher
-              </button>
-            </div>
-            {typesOfferts.map((t) => (
+      {/* Le volet se déplie DANS le flux, pas en surimpression : rien ne vient masquer les
+          lignes que le filtre est justement en train de changer. */}
+      {/* Toujours monté, inerte une fois replié : c'est ce qui laisse au repli le temps de
+          s'animer, comme une couche absente du rail (`RailVue`). */}
+      <div className="cibles-volet" data-ouvert={filtresOuverts} inert={!filtresOuverts}>
+        <div>
+          <div className="cibles-filtres">
+            <Bulle texte={aidePortee(seuil, taille, tropPetites)} place="bas">
               <Interrupteur
-                key={t}
-                actif={types.has(t)}
-                surChangement={(actif) => majCatalogue({ types: bascule(types, t, actif) })}
+                actif={photographiablesSeules}
+                surChangement={(actif) => majCatalogue({ photographiablesSeules: actif })}
               >
-                {LIBELLE_TYPE_OBJET[t]}
+                <span className="aide">Ne montrer que les objets photographiables</span>
               </Interrupteur>
-            ))}
+            </Bulle>
+            {/* Aucun chip retenu = aucun type écarté. */}
+            <div className="cibles-types">
+              <span className="libelle" id="cibles-types-libelle">Type</span>
+              <div className="cibles-types-choix" role="group" aria-labelledby="cibles-types-libelle">
+                {typesOfferts.map((t) => (
+                  <ChipType
+                    key={t}
+                    actif={types.has(t)}
+                    sur={(actif) => majCatalogue({ types: bascule(types, t, actif) })}
+                  >
+                    {LIBELLE_TYPE_OBJET[t]}
+                  </ChipType>
+                ))}
+              </div>
+            </div>
+            <label>
+              <span className="libelle">
+                Magnitude max
+                <span className="cibles-mag-valeur">
+                  {magMax >= DOMAINE_MAG.max ? 'toutes' : nombre(magMax, 1)}
+                </span>
+              </span>
+              <Curseur
+                libelle="Magnitude max"
+                valeur={magMax}
+                min={DOMAINE_MAG.min}
+                max={DOMAINE_MAG.max}
+                pas={DOMAINE_MAG.pas}
+                texte={magMax >= DOMAINE_MAG.max ? 'toutes' : `${nombre(magMax, 1)} mag`}
+                sur={(magMax) => majCatalogue({ magMax })}
+              />
+            </label>
           </div>
-        </details>
-        <label>
-          <span className="libelle">
-            Jusqu’à la magnitude{' '}
-            <span className="cibles-mag-valeur">
-              {magMax >= DOMAINE_MAG.max ? 'toutes' : nombre(magMax, 1)}
-            </span>
-          </span>
-          <Curseur
-            libelle="Jusqu’à la magnitude"
-            valeur={magMax}
-            min={DOMAINE_MAG.min}
-            max={DOMAINE_MAG.max}
-            pas={DOMAINE_MAG.pas}
-            texte={magMax >= DOMAINE_MAG.max ? 'toutes' : `${nombre(magMax, 1)} mag`}
-            sur={(magMax) => majCatalogue({ magMax })}
-          />
-        </label>
+        </div>
       </div>
 
       {/* T-0187 — une seule région vive pour le compte ET le message de liste vide.
@@ -392,15 +392,18 @@ function bascule(
   return new Set(actif ? [...types, type] : [...types].filter((t) => t !== type))
 }
 
-/** Compté sur les types PROPOSÉS : « 3 types sur 10 » ne doit pas compter ceux qu'on ne voit pas. */
-function resumeTypes(offerts: readonly TypeObjet[], types: ReadonlySet<TypeObjet>): string {
-  if (!restreintParType(types)) return 'Tous types'
-  const coches = offerts.filter((t) => types.has(t))
-  if (coches.length === 0) return 'Aucun type'
-  if (coches.length === offerts.length) return 'Tous types'
-  const [premier] = coches
-  if (coches.length === 1 && premier !== undefined) return LIBELLE_TYPE_OBJET[premier]
-  return `${coches.length} types sur ${offerts.length}`
+/** §11.1 — l'état ne passe pas par la seule couleur : retenu, le chip porte une coche. */
+function ChipType(props: {
+  readonly actif: boolean
+  readonly sur: (actif: boolean) => void
+  readonly children: ReactNode
+}) {
+  return (
+    <button type="button" aria-pressed={props.actif} onClick={() => props.sur(!props.actif)}>
+      {props.actif && <Icone nom="check" />}
+      {props.children}
+    </button>
+  )
 }
 
 /**

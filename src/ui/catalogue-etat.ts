@@ -21,17 +21,20 @@ export interface EtatCatalogue {
    */
   readonly photographiablesSeules: boolean
   readonly recherche: string
-  /** Les types cochés du filtre — tous au départ, aucun restreint. */
+  /** Les types retenus du filtre — aucun au départ, ce qui n'en écarte aucun. */
   readonly types: ReadonlySet<TypeObjet>
   readonly magMax: number
+  /** Le volet des filtres, replié au départ et jamais restauré : c'est un geste, pas un réglage. */
+  readonly filtresOuverts: boolean
 }
 
 const ETAT_INITIAL: EtatCatalogue = Object.freeze({
   photographiablesSeules: true,
   recherche: '',
-  types: new Set(TYPES_OBJET),
+  types: new Set<TypeObjet>(),
   // La borne du domaine, jamais un nombre écrit ici : le curseur lit le même registre.
   magMax: DOMAINES.m_int.max,
+  filtresOuverts: false,
 })
 
 const CLE_STOCKAGE = 'orion.catalogue'
@@ -49,9 +52,13 @@ function restaure(depart: EtatCatalogue): EtatCatalogue {
     recherche: chaine,
     magMax: dans('m_int'),
   })
-  const types = Array.isArray(lu.types)
-    ? { types: new Set(TYPES_OBJET.filter((t) => (lu.types as unknown[]).includes(t))) }
-    : {}
+  // Une liste sauvegardée avec tous les types cochés date d'avant les chips : elle retombe sur
+  // « aucun retenu », sans quoi tous les chips s'afficheraient enfoncés.
+  const retenus = Array.isArray(lu.types)
+    ? TYPES_OBJET.filter((t) => (lu.types as unknown[]).includes(t))
+    : null
+  const types =
+    retenus === null ? {} : { types: new Set<TypeObjet>(retenus.length === TYPES_OBJET.length ? [] : retenus) }
   return { ...depart, ...champs, ...types }
 }
 

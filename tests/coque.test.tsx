@@ -989,20 +989,25 @@ describe('T-0128 — le catalogue remplace les deux chemins vers les cibles', ()
     expect(ecran()).not.toContain('Ne montrer que les objets photographiables')
   })
 
-  it('porte la recherche et les deux filtres, que plus personne d’autre ne porte', () => {
-    const ouvert = ecran()
-    expect(ouvert).toMatch(/<input[^>]+type="search"/)
-    expect(ouvert).toContain('Tous types')
-    expect(ouvert).toContain('Jusqu’à la magnitude')
+  it('replie les filtres derrière un bouton à droite de la recherche', () => {
+    const ferme = ecran()
+    expect(ferme).toMatch(/<input[^>]+type="search"[^>]*\/>.*?filter_list/)
+    expect(ferme).toMatch(/class="cibles-volet" data-ouvert="false" inert=""/)
   })
 
-  it('filtre par plusieurs types à la fois, et se coche ou se vide d’un geste', () => {
+  it('porte la recherche et les deux filtres, que plus personne d’autre ne porte', () => {
+    majCatalogue({ filtresOuverts: true })
     const ouvert = ecran()
-    expect(ouvert).not.toContain('<option value="">Tous types')
-    expect(ouvert).toContain('Tout cocher')
-    expect(ouvert).toContain('Tout décocher')
-    majCatalogue({ types: new Set() })
-    expect(ecran()).toContain('Aucun type')
+    expect(ouvert).toMatch(/<input[^>]+type="search"/)
+    expect(ouvert).toContain('cibles-types-choix')
+    expect(ouvert).toContain('Magnitude max')
+  })
+
+  it('filtre par types en chips, sans chip « Tous types » : aucun retenu les garde tous', () => {
+    majCatalogue({ filtresOuverts: true })
+    const ouvert = ecran()
+    expect(ouvert).toContain('role="group" aria-labelledby="cibles-types-libelle"')
+    expect(ouvert).not.toContain('Tous types')
   })
 
   it('a vidé la fiche de son choix de cible : elle ne fait plus que décrire', () => {
@@ -1013,6 +1018,7 @@ describe('T-0128 — le catalogue remplace les deux chemins vers les cibles', ()
   })
 
   it('borne le filtre de magnitude sur le domaine du registre, sans le réécrire', () => {
+    majCatalogue({ filtresOuverts: true })
     const ouvert = ecran()
     expect(ouvert).toContain(`min="${DOMAINES.m_int.min}"`)
     expect(ouvert).toContain(`max="${DOMAINES.m_int.max}"`)

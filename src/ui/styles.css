@@ -3718,65 +3718,88 @@ button:disabled {
    qu'on lise son nom, et une vignette de 44 px ne la montrait pas. Côte à côte plutôt
    qu'empilées, parce que la colonne de droite doit tenir la phrase d'une cible écartée. */
 .cibles-recherche {
-  width: 100%;
+  display: flex;
+  gap: var(--pas-1);
   margin: var(--pas-2) 0;
 }
+.cibles-recherche > input {
+  flex: 1;
+  min-width: 0;
+}
+/* Ouvert, le bouton prend le filet du volet qu'il commande, comme un chip retenu. */
+.cibles-filtre-bouton[aria-pressed='true'] {
+  border-color: var(--texte);
+}
 
+/* Le volet des filtres replié : sa piste de grille tombe à `0fr` plutôt qu'un `display: none`,
+   ce qui se laisse animer jusqu'à la taille du contenu dans Firefox (voir `.rail-bascule`).
+   La piste est un `<div>` nu : le cadre et ses écarts vivent dessous, sans quoi leur hauteur
+   empêcherait la piste de tomber à zéro. */
+.cibles-volet {
+  display: grid;
+  grid-template-rows: 1fr;
+}
+.cibles-volet[data-ouvert='false'] {
+  grid-template-rows: 0fr;
+  overflow: hidden;
+  opacity: 0;
+}
+.cibles-volet > div {
+  min-height: 0;
+}
+/* Ouvert, un filet borne le volet : on voit où s'arrêtent les filtres et où reprend la liste. */
 .cibles-filtres {
   display: grid;
   gap: var(--pas-2);
-  margin: var(--pas-2) 0;
+  margin-block-end: var(--pas-2);
+  padding: var(--pas-2);
+  border: var(--trait) solid var(--bordure-controle);
+}
+/* Un filet entre deux filtres : chacun se lit comme une rangée à part. */
+.cibles-filtres > * + * {
+  padding-block-start: var(--pas-2);
+  border-top: var(--trait) solid var(--bordure-faible);
 }
 .cibles-filtres > label {
   display: grid;
   gap: var(--pas-1);
+}
+.cibles-filtres > label > .libelle {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--pas-2);
 }
 .cibles-mag-valeur {
   color: var(--texte);
   font-family: var(--police-mono);
 }
 
-/* Le filtre par type : des cases repliées derrière un résumé qui garde l'allure du `<select>`
-   qu'il remplace. Il se déplie DANS le flux, pas en surimpression : la liste descend, mais rien
-   ne vient masquer les lignes que le filtre est justement en train de changer. */
-.cibles-types > summary {
+/* Le filtre par type : une rangée de chips qui passe à la ligne. Retenu, le chip prend
+   l'aplat et le filet du survol, et une coche — la couleur seule ne dirait pas l'état. */
+.cibles-types {
   display: grid;
   gap: var(--pas-1);
-  cursor: pointer;
-  list-style: none;
-}
-.cibles-types > summary::-webkit-details-marker {
-  display: none;
-}
-.cibles-types-valeur {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--pas-2);
-  min-height: var(--cible-clic);
-  padding: var(--pas-2);
-  background: var(--surface-haute);
-  color: var(--texte);
-  border: var(--trait) solid var(--bordure-controle);
-  font: var(--texte-appui)/var(--interligne-controle) var(--police-mono);
-  letter-spacing: var(--suivi-saisie);
-}
-.cibles-types > summary:hover > .cibles-types-valeur {
-  border-color: var(--texte);
-}
-.cibles-types .chevron {
-  color: var(--attenue);
-}
-.cibles-types[open] .chevron {
-  transform: rotate(180deg);
 }
 .cibles-types-choix {
-  display: grid;
-  padding-top: var(--pas-1);
-}
-.cibles-types-tout {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--pas-1);
+}
+/* ponytail: sous la cible gantée de §11.2 (44px), demandé ainsi — une rangée compacte. */
+.cibles-types-choix > button {
+  display: flex;
+  align-items: center;
+  gap: var(--pas-0);
+  min-height: 0;
+  padding: var(--pas-1) var(--pas-2);
+  font-size: var(--texte-mini);
+}
+.cibles-types-choix > button > .icone {
+  font-size: var(--texte-micro);
+}
+.cibles-types-choix > button[aria-pressed='true'] {
+  background: var(--surface-haute);
+  border-color: var(--texte);
 }
 
 /* T-0280 — les deux issues d'une liste vide, côte à côte sous la cause qui les motive. Une
@@ -4332,6 +4355,19 @@ button:not(:disabled):active,
 
   .image-cible-encart {
     transition: width var(--fondu-etat) var(--courbe);
+  }
+
+  /* Le volet des filtres : même mécanique que `.rail-bascule` — le rognage tient jusqu'à la fin
+     du dépli, sans quoi le contenu déborderait à pleine taille de sa piste encore fermée. */
+  .cibles-volet {
+    transition: grid-template-rows var(--fondu-depli) var(--courbe),
+      opacity var(--fondu-depli) var(--courbe),
+      overflow var(--fondu-depli) var(--courbe) var(--fondu-depli) allow-discrete;
+  }
+
+  .cibles-volet[data-ouvert='false'] {
+    transition: grid-template-rows var(--fondu-depli) var(--courbe),
+      opacity var(--fondu-depli) var(--courbe);
   }
 
   .image-cible-encart-mention {
