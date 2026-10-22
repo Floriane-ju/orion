@@ -248,14 +248,17 @@ export function PanneauCibles(props: PanneauCiblesProps) {
        de neuf, et couvrirait le compte que T-0187 fait annoncer. */
     <section className="cibles" aria-busy={props.recalcul}>
       <div className="cibles-recherche">
-        <input
-          ref={props.inputRef}
-          type="search"
-          aria-label="Rechercher un objet du catalogue"
-          value={recherche}
-          placeholder="M42, dentelles du Cygne, NGC 7000…"
-          onChange={(e) => majCatalogue({ recherche: e.target.value })}
-        />
+        <div className="cibles-champ">
+          <Icone nom="search" />
+          <input
+            ref={props.inputRef}
+            type="search"
+            aria-label="Rechercher un objet du catalogue"
+            value={recherche}
+            placeholder="M42, Andromède…"
+            onChange={(e) => majCatalogue({ recherche: e.target.value })}
+          />
+        </div>
         <BoutonGlyphe
           icone="filter_list"
           classe="cibles-filtre-bouton"

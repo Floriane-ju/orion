@@ -3722,9 +3722,27 @@ button:disabled {
   gap: var(--pas-1);
   margin: var(--pas-2) 0;
 }
-.cibles-recherche > input {
+/* La loupe se pose DANS le champ : elle dit ce qu'il fait sans prendre de largeur à la rangée.
+   Elle laisse passer le clic, qui doit atteindre le champ dessous. */
+.cibles-champ {
+  position: relative;
+  display: flex;
   flex: 1;
   min-width: 0;
+}
+.cibles-champ > input {
+  flex: 1;
+  min-width: 0;
+  /* Retrait + loupe (≈ `--pas-6`) + un `--pas-2` d'air avant le texte. */
+  padding-left: calc(var(--pas-6) + var(--pas-2));
+}
+.cibles-champ > .icone {
+  position: absolute;
+  left: var(--pas-2);
+  top: 50%;
+  translate: 0 -50%;
+  color: var(--texte);
+  pointer-events: none;
 }
 /* Ouvert, le bouton prend le filet du volet qu'il commande, comme un chip retenu. */
 .cibles-filtre-bouton[aria-pressed='true'] {
