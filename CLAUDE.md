@@ -62,6 +62,13 @@ pnpm bench:file       # banc de mesure du filé incrusté
   partagées.
 - **Commits** : Conventional Commits en français (`feat:`, `fix:`, `chore:`…).
 
+## Dépôt et git
+
+- Dépôt **public** : `github.com:Floriane-ju/orion.git` (remote `origin`). Tout push publie :
+  seul le travail de ce dépôt y entre, jamais de secret ni de donnée sensible.
+- Workflow solo : commits directs sur `main`, sans PR. Pas de branche protégée ni de ruleset.
+- CLI : `pnpm` uniquement ; `supabase` CLI occasionnel.
+
 ## Suivi de projet — `ovrsee/`
 
 Tickets, plans et carte des pages vivent dans `ovrsee/` (skills `ovrsee` et `ovrsee-tickets`).
