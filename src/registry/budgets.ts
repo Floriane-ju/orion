@@ -118,6 +118,17 @@ export const BUDGETS = Object.freeze({
     source: 'convention d’interaction — deux lectures par seconde',
     tolerance: 'sans objet — budget d’interface, pas une grandeur mesurée',
   }),
+
+  /**
+   * T-0435 — le temps pendant lequel le bouton de partage dit « copié » avant de redevenir le
+   * bouton de partage : assez pour être lu, pas assez pour qu'on cherche le bouton.
+   */
+  COMPTE_RENDU_COPIE_MS: valeur({
+    valeur: 2000,
+    unite: 'ms',
+    source: 'convention d’interaction — durée de lecture d’un compte rendu bref',
+    tolerance: 'sans objet — budget d’interface, pas une grandeur mesurée',
+  }),
 } satisfies Record<string, ValeurBudget>)
 
 export type IdBudget = keyof typeof BUDGETS

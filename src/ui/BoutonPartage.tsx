@@ -5,11 +5,13 @@
  * Posé au-dessus du mode nuit, sur le flanc gauche du ciel (§11.1) : c'est un geste qu'on fait
  * en partant, le téléphone déjà en main.
  *
- * Le compte rendu vaut pour CE lien : dès que le plan change, il s'efface — sans minuterie, et
- * sans jamais dire « copié » d'un lien qui n'est plus celui du plan affiché.
+ * Le compte rendu vaut pour CE lien : il s'efface dès que le plan change, sans jamais dire
+ * « copié » d'un lien qui n'est plus celui du plan affiché, et sinon au bout d'un bref délai
+ * pour que le bouton redevienne celui du partage.
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { B } from '../registry/budgets.ts'
 import { BoutonGlyphe } from './BoutonGlyphe.tsx'
 import { useCiblesChoisies } from './cibles-choisies.ts'
 import { ecritPlanUrl, lienDuPlan, type PlanAEcrire } from './plan-url.ts'
@@ -30,6 +32,12 @@ export function BoutonPartage({ plan }: BoutonPartageProps) {
   const recherche = ecritPlanUrl(complet)
   const [copie, setCopie] = useState<Copie | null>(null)
   const courante = copie?.recherche === recherche ? copie : null
+
+  useEffect(() => {
+    if (copie === null) return
+    const minuterie = setTimeout(() => setCopie(null), B('COMPTE_RENDU_COPIE_MS'))
+    return () => clearTimeout(minuterie)
+  }, [copie])
   const annonce =
     courante === null
       ? ''
