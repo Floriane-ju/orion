@@ -13,7 +13,7 @@ import { ARCMIN_PAR_DEG } from '../src/core/unites.ts'
 import { fenetreNocturne } from '../src/core/nuit.ts'
 import { fenetreUtile } from '../src/core/moon.ts'
 import { masquePlat } from '../src/core/site.ts'
-import { focaleOptimale, type Objectif } from '../src/core/objectif.ts'
+import { focaleOptimale, objectifOptimal, type Objectif } from '../src/core/objectif.ts'
 import { profilOptique } from '../src/core/optics.ts'
 import { planSession, type ContexteSession } from '../src/core/session.ts'
 import type { ContexteDe } from '../src/core/session-types.ts'
@@ -135,5 +135,25 @@ describe('T-0407 — le plan évalue la cible à la focale de la liste', () => {
     expect(etape?.tPoseS).toBe(pose?.tPoseS)
     expect(etape?.focaleMm).toBe(contexteDe(PETITE).focaleMm)
     expect(etape?.focaleMm).toBeGreaterThan(ZOOM.focaleMinMm)
+  })
+})
+
+describe('T-0436 — chaque cible choisit l’objectif du parc', () => {
+  const COURT: Objectif = { ...ZOOM, id: 'court', nom: '100', focaleMinMm: 100, focaleMaxMm: 100 }
+  const LONG: Objectif = { ...ZOOM, id: 'long', nom: '400', focaleMinMm: 400, focaleMaxMm: 400 }
+  /** Le résolveur de la chaîne, réduit à l'essentiel : objectif optimal, puis sa focale. */
+  const contexteDe: ContexteDe = (objet) => {
+    const choix = objectifOptimal([COURT, LONG], objet.majAxArcmin!, CAPTEUR.capteurHMm)!
+    return { ...contexteA(choix.focaleMm), objectifNom: choix.objectif.nom }
+  }
+
+  it('deux fixes, sans zoom : la cible trop petite au court ressort au long, que l’étape nomme', () => {
+    expect(etatsCibles(BASE, [PETITE]).get('PETITE')?.code).toBe('CADRAGE')
+    const pose = etatsCibles(BASE, [PETITE], contexteDe).get('PETITE')?.pose
+    expect(pose).not.toBeNull()
+    const etape = planSession(BASE, [PETITE], contexteDe).etapes.find((e) => e.objet.designation === 'PETITE')
+    expect(etape?.tPoseS).toBe(pose?.tPoseS)
+    expect(etape?.objectifNom).toBe(LONG.nom)
+    expect(etape?.focaleMm).toBe(LONG.focaleMinMm)
   })
 })

@@ -211,8 +211,10 @@ export function Etape({ etape, rang, imprime, ...props }: EtapeProps) {
         <span className="etape-horaire">
           {heure(etape.creneauAlloue.debut)} → {heure(etape.creneauAlloue.fin)} ·{' '}
           {dureeMinLisible(etape.dureeAlloueeMin)}
-          {/* T-0407 — sous un zoom, la bague se règle à chaque cible : l'étape le dit. */}
-          {etape.focaleMm !== undefined && ` · ${nombre(etape.focaleMm, 0)} mm`}
+          {/* T-0407 — sous un zoom, la bague se règle à chaque cible : l'étape le dit. T-0436 :
+              et l'objectif se change, quand le parc en offre plusieurs. */}
+          {etape.objectifNom !== undefined && ` · ${etape.objectifNom} à`}
+          {etape.focaleMm !== undefined && ` ${etape.objectifNom === undefined ? '· ' : ''}${nombre(etape.focaleMm, 0)} mm`}
         </span>
       </p>
       {/* §6.4 — la seule lecture qui reste : elle se compte d'un coup d'œil, à la frontale,

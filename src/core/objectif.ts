@@ -164,3 +164,48 @@ export function ouvertureA(
   const plancher = plancherAuPas(ouverturePlancher(objectif, focaleMm))
   return ouvertureN <= plancherCourant ? plancher : Math.max(ouvertureN, plancher)
 }
+
+/** T-0436 — ce que la règle de cadrage décrit : un fisheye n'a pas de focale de cadrage. */
+function rectilineaires(parc: readonly Objectif[]): readonly Objectif[] {
+  return parc.filter((o) => o.typeObjectif === 'RECTILINEAIRE')
+}
+
+/**
+ * T-0436 — la liste choisit l'objectif dès qu'il y a un choix à faire : un zoom monté (T-0407),
+ * ou au moins deux rectilinéaires au parc. Un fixe seul n'a rien à choisir.
+ */
+export function autoParc(parc: readonly Objectif[], monte: Objectif | null): boolean {
+  return estZoom(monte) || rectilineaires(parc).length >= 2
+}
+
+/**
+ * T-0436 — l'objectif du parc qui cadre le mieux la cible, réglé à sa focale optimale.
+ *
+ * D'abord le cadrage : l'écart à la focale visée se mesure en RAPPORT (|ln f/f*|), car le
+ * remplissage suit f — 10 mm de trop à 20 mm ne sont pas 10 mm de trop à 200. Puis, à cadrage
+ * égal, la plus grande ouverture au plancher : sur un objet étendu, le signal par pixel suit
+ * 1/N². Puis l'ordre du parc, pour un choix stable.
+ */
+export function objectifOptimal(
+  parc: readonly Objectif[],
+  tailleMajArcmin: number,
+  capteurHMm: number,
+): { readonly objectif: Objectif; readonly focaleMm: number } | null {
+  const fVisee = focalePourChamp(capteurHMm, tailleMajArcmin / ARCMIN_PAR_DEG / K('REMPLISSAGE_ZOOM_OPTIMAL'))
+  const candidats = rectilineaires(parc).map((objectif) => {
+    const focaleMm = focaleOptimale(objectif, tailleMajArcmin, capteurHMm)
+    // L'écart se lit sur la focale RÉGLÉE, au mm : un fixe de 50 et un zoom réglé à 50 cadrent
+    // pareil, et c'est l'ouverture qui doit les départager.
+    return {
+      objectif,
+      focaleMm,
+      ecart: Math.abs(Math.log(focaleMm / fVisee)),
+      n: plancherAuPas(ouverturePlancher(objectif, focaleMm)),
+    }
+  })
+  const meilleur = candidats.reduce<(typeof candidats)[number] | null>(
+    (m, c) => (m === null || c.ecart < m.ecart || (c.ecart === m.ecart && c.n < m.n) ? c : m),
+    null,
+  )
+  return meilleur === null ? null : { objectif: meilleur.objectif, focaleMm: meilleur.focaleMm }
+}

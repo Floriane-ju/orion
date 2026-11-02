@@ -8,7 +8,9 @@
 
 import { describe, expect, it } from 'vitest'
 import {
+  autoParc,
   focaleOptimale,
+  objectifOptimal,
   objectifPour,
   ouvertureA,
   ouverturePlancher,
@@ -194,5 +196,53 @@ describe('T-0407 — l’ouverture à une autre focale de la plage', () => {
     expect(ouvertureA(zoom, entre, zoom.focaleMinMm, zoom.focaleMaxMm)).toBe(
       plancher(zoom.focaleMaxMm),
     )
+  })
+})
+
+describe('T-0436 — l’objectif optimal du parc pour une cible', () => {
+  const capteurHMm = 15.6
+  const tailleCadreeA = (focaleMm: number): number =>
+    fovDeg(capteurHMm, focaleMm).value * K('REMPLISSAGE_ZOOM_OPTIMAL') * ARCMIN_PAR_DEG
+  const transStd = objectif()
+  const tele = objectif({ id: 'tele', nom: '70-200', focaleMinMm: 70, focaleMaxMm: 200, ouvertureGrandAngleN: 4, ouvertureTeleN: 4 })
+  const fixe50 = objectif({ id: 'f50', nom: '50', focaleMinMm: 50, focaleMaxMm: 50, ouvertureGrandAngleN: 1.8, ouvertureTeleN: 1.8 })
+  const fisheye = objectif({ id: 'fe', nom: 'fisheye', focaleMinMm: 8, focaleMaxMm: 8, typeObjectif: 'FISHEYE' })
+
+  it('prend l’objectif dont la plage atteint la focale optimale, à cette focale', () => {
+    const choix = objectifOptimal([transStd, tele], tailleCadreeA(135), capteurHMm)
+    expect(choix?.objectif.id).toBe('tele')
+    expect(choix?.focaleMm).toBe(focaleOptimale(tele, tailleCadreeA(135), capteurHMm))
+  })
+
+  it('sans plage qui l’atteigne, le plus proche en rapport de focales', () => {
+    // 60 mm : 55 est à ×1,09, 70 à ×1,17 — l'écart absolu (5 contre 10 mm) dirait la même chose,
+    // pas à 62 mm où seul le rapport départage (55 : ×1,127 ; 70 : ×1,129).
+    expect(objectifOptimal([transStd, tele], tailleCadreeA(60), capteurHMm)?.objectif.id).toBe('trans')
+    const f = Math.sqrt(55 * 70) + 0.1
+    expect(objectifOptimal([transStd, tele], tailleCadreeA(f), capteurHMm)?.objectif.id).toBe('tele')
+  })
+
+  it('à cadrage égal au mm, la plus grande ouverture au plancher', () => {
+    expect(objectifOptimal([transStd, fixe50], tailleCadreeA(50), capteurHMm)?.objectif.id).toBe('f50')
+    // Le zoom atteint 50,3 mm exactement, mais se règle à 50 comme le fixe.
+    expect(objectifOptimal([transStd, fixe50], tailleCadreeA(50.3), capteurHMm)?.objectif.id).toBe('f50')
+  })
+
+  it('à tout égal, l’ordre du parc', () => {
+    const jumeau = { ...fixe50, id: 'f50b' }
+    expect(objectifOptimal([fixe50, jumeau], tailleCadreeA(50), capteurHMm)?.objectif.id).toBe('f50')
+  })
+
+  it('un fisheye n’est jamais choisi', () => {
+    expect(objectifOptimal([fisheye], tailleCadreeA(8), capteurHMm)).toBeNull()
+    expect(objectifOptimal([fisheye, transStd], tailleCadreeA(8), capteurHMm)?.objectif.id).toBe('trans')
+  })
+
+  it('s’active sous un zoom monté ou dès deux rectilinéaires au parc', () => {
+    expect(autoParc([], null)).toBe(false)
+    expect(autoParc([fixe50], fixe50)).toBe(false)
+    expect(autoParc([fixe50, fisheye], fixe50)).toBe(false)
+    expect(autoParc([transStd], transStd)).toBe(true)
+    expect(autoParc([fixe50, tele], null)).toBe(true)
   })
 })

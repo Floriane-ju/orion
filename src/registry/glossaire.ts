@@ -247,6 +247,14 @@ export const GLOSSAIRE = Object.freeze({
     libelle: 'Mon boîtier',
     sections: ['5.1'],
   }),
+  objectif_cible: terme({
+    libelle: 'Objectif',
+    glose: 'Celui du parc qui cadre le mieux la cible',
+    explication:
+      'Celui du parc qui cadre le mieux cette cible. À cadrage égal, c’est le plus lumineux. ' +
+      'En essayer un autre ici ne change pas l’objectif monté.',
+    sections: ['5.1'],
+  }),
   iso_recommande: terme({
     libelle: 'ISO recommandé',
     glose: 'Meilleur ISO pour ce boîtier',

@@ -61,7 +61,7 @@ const CIBLE: ObjetCielProfond = {
   surfBr: null,
 }
 
-function aFocale(focaleMm: number, ouvertureN: number) {
+function aFocale(_objectif: Objectif, focaleMm: number, ouvertureN: number) {
   const optique = profilOptique({ focaleMm, ouvertureN, ...CAPTEUR })
   const tMaxS = 200
   const fiche: ContexteFiche = {
@@ -106,11 +106,12 @@ function aFocale(focaleMm: number, ouvertureN: number) {
   return { fiche, contexte }
 }
 
-const BASE = aFocale(ZOOM.focaleMinMm, N)
+const BASE = aFocale(ZOOM, ZOOM.focaleMinMm, N)
 
-function rendu(objectif: Objectif | null): string {
+function rendu(objectif: Objectif | null, parc: readonly Objectif[] = objectif === null ? [] : [objectif]): string {
   const zoom = zoomSur({
-    objectif,
+    monte: objectif,
+    parc,
     base: BASE.contexte,
     focaleMm: ZOOM.focaleMinMm,
     ouvertureN: N,
@@ -130,19 +131,20 @@ function rendu(objectif: Objectif | null): string {
 describe('T-0408 — la bague de zoom de la fiche', () => {
   it('s’ouvre sur la focale optimale et y lit le cadrage', () => {
     const zoom = zoomSur({
-      objectif: ZOOM,
+      monte: ZOOM,
+      parc: [ZOOM],
       base: BASE.contexte,
       focaleMm: ZOOM.focaleMinMm,
       ouvertureN: N,
       evalue: aFocale,
     })!
-    const optimale = zoom.focaleDe(CIBLE)!
+    const optimale = zoom.choixDe(CIBLE)!.focaleMm
     expect(optimale).toBeGreaterThan(ZOOM.focaleMinMm)
     expect(optimale).toBeLessThan(ZOOM.focaleMaxMm)
 
     const html = rendu(ZOOM)
     expect(html).toContain(`aria-valuenow="${optimale}"`)
-    const optique = zoom.aFocale(optimale)!.fiche.optique
+    const optique = zoom.aFocale(ZOOM, optimale)!.fiche.optique
     const attendu = ficheCadrage({
       fovHDeg: optique.fovHDeg.value,
       echApx: optique.echApx.value,
@@ -165,7 +167,8 @@ describe('T-0408 — la bague de zoom de la fiche', () => {
 
 describe('sous un zoom, les cadres de la scène', () => {
   const zoom = zoomSur({
-    objectif: ZOOM,
+    monte: ZOOM,
+    parc: [ZOOM],
     base: BASE.contexte,
     focaleMm: ZOOM.focaleMinMm,
     ouvertureN: N,
@@ -180,7 +183,7 @@ describe('sous un zoom, les cadres de la scène', () => {
     capteurHMm: CAPTEUR.capteurHMm,
     tPoseS: BASE.fiche.tMaxS,
   }
-  const champA = (f: number) => zoom.aFocale(f)!.fiche.optique.fovHDeg.value
+  const champA = (f: number) => zoom.aFocale(ZOOM, f)!.fiche.optique.fovHDeg.value
 
   it('sont le réglage, puis les deux bouts de la bague, grand-angle d’abord', () => {
     expect(profilsScene(zoom, [MODELE]).map((p) => p.fovHDeg)).toEqual([
@@ -192,12 +195,58 @@ describe('sous un zoom, les cadres de la scène', () => {
   })
 
   it('posent celui de la cible à sa focale optimale, ou à celle essayée sur SA fiche', () => {
-    const optimale = zoom.focaleDe(CIBLE)!
+    const optimale = zoom.choixDe(CIBLE)!.focaleMm
     expect(profilCible(zoom, CIBLE, null, [MODELE])?.fovHDeg).toBe(champA(optimale))
-    const essai = { designation: CIBLE.designation, focaleMm: ZOOM.focaleMaxMm }
+    const essai = { designation: CIBLE.designation, objectifId: ZOOM.id, focaleMm: ZOOM.focaleMaxMm }
     expect(profilCible(zoom, CIBLE, essai, [MODELE])?.fovHDeg).toBe(champA(ZOOM.focaleMaxMm))
-    const ailleurs = { designation: 'AUTRE', focaleMm: ZOOM.focaleMaxMm }
+    const ailleurs = { designation: 'AUTRE', objectifId: ZOOM.id, focaleMm: ZOOM.focaleMaxMm }
     expect(profilCible(zoom, CIBLE, ailleurs, [MODELE])?.fovHDeg).toBe(champA(optimale))
     expect(profilCible(null, CIBLE, null, [MODELE])).toBeNull()
+  })
+})
+
+describe('T-0436 — la fiche choisit l’objectif du parc', () => {
+  // Un fixe court et un fixe long : la cible (400′) se cadre au long, aucun zoom au parc.
+  const COURT: Objectif = { ...ZOOM, id: 'court', nom: '50', focaleMinMm: 50, focaleMaxMm: 50 }
+  const LONG: Objectif = { ...ZOOM, id: 'long', nom: '200', focaleMinMm: 200, focaleMaxMm: 200 }
+  const zoom = zoomSur({
+    monte: COURT,
+    parc: [COURT, LONG],
+    base: BASE.contexte,
+    focaleMm: COURT.focaleMinMm,
+    ouvertureN: N,
+    evalue: aFocale,
+  })!
+
+  it('deux fixes au parc suffisent à choisir, un seul non', () => {
+    expect(zoom).not.toBeNull()
+    expect(zoomSur({ monte: COURT, parc: [COURT], base: BASE.contexte, focaleMm: 50, ouvertureN: N, evalue: aFocale })).toBeNull()
+  })
+
+  it('s’ouvre sur l’objectif optimal, le nomme, sans bague sur un fixe', () => {
+    expect(zoom.choixDe(CIBLE)).toEqual({ objectif: LONG, focaleMm: LONG.focaleMinMm })
+    const html = rendu(COURT, [COURT, LONG])
+    expect(html).toContain('Optique</h2>')
+    expect(html).toMatch(/<option value="long" selected="">200 \(optimal\)<\/option>/)
+    expect(html).not.toContain('aria-valuenow')
+  })
+
+  it('un essai sur un autre objectif ne vaut que pour SA cible, et rien ne touche le monté', () => {
+    const MODELE: ProfilCadre = {
+      libelle: 'réglage',
+      fovLDeg: BASE.fiche.optique.fovLDeg.value,
+      fovHDeg: BASE.fiche.optique.fovHDeg.value,
+      modeObjectif: 'MODE_CADRE',
+      echApx: BASE.fiche.optique.echApx.value,
+      capteurHMm: CAPTEUR.capteurHMm,
+      tPoseS: BASE.fiche.tMaxS,
+    }
+    const champ = (o: Objectif) => zoom.aFocale(o, o.focaleMinMm)!.fiche.optique.fovHDeg.value
+    const essai = { designation: CIBLE.designation, objectifId: COURT.id, focaleMm: COURT.focaleMinMm }
+    expect(profilCible(zoom, CIBLE, essai, [MODELE])?.fovHDeg).toBe(champ(COURT))
+    expect(profilCible(zoom, CIBLE, null, [MODELE])?.fovHDeg).toBe(champ(LONG))
+    // Le monté est un fixe : la scène ne peint que le réglage.
+    expect(profilsScene(zoom, [MODELE])).toEqual([MODELE])
+    expect(zoom.monte).toBe(COURT)
   })
 })

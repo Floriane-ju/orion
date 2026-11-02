@@ -11,7 +11,16 @@
  * partagée entre la liste et le plan.
  */
 
-import { estZoom, focaleOptimale, ouvertureA, type Objectif } from '../core/objectif.ts'
+import {
+  autoParc,
+  estZoom,
+  focaleOptimale,
+  objectifOptimal,
+  ouvertureA,
+  ouverturePlancher,
+  plancherAuPas,
+  type Objectif,
+} from '../core/objectif.ts'
 import type { ContexteDe, ContexteSession } from '../core/session-types.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { ContexteFiche } from './fiche-cible-calcul.ts'
@@ -24,69 +33,105 @@ export interface ZoomAFocale {
   readonly fiche: ContexteFiche
 }
 
-export interface Zoom {
+/** T-0436 — l'objectif du parc retenu pour une cible, et la focale où le régler. */
+export interface ChoixOptique {
   readonly objectif: Objectif
-  /** La focale optimale d'une cible, `null` sans dimensions au catalogue. */
-  readonly focaleDe: (objet: ObjetCielProfond) => number | null
+  readonly focaleMm: number
+}
+
+export interface Zoom {
+  /** L'objectif monté : la scène peint les bouts de SA bague, et de nulle autre. */
+  readonly monte: Objectif | null
+  /** T-0436 — les objectifs parmi lesquels chaque cible choisit : les rectilinéaires du parc. */
+  readonly parc: readonly Objectif[]
+  /** L'objectif et la focale optimaux d'une cible, `null` sans dimensions au catalogue. */
+  readonly choixDe: (objet: ObjetCielProfond) => ChoixOptique | null
   readonly contexteDe: ContexteDe
   /** `null` quand le matériel n'est pas chiffrable à cette focale. */
-  readonly aFocale: (focaleMm: number) => ZoomAFocale | null
+  readonly aFocale: (objectif: Objectif, focaleMm: number) => ZoomAFocale | null
 }
 
 export interface EntreeZoom {
-  readonly objectif: Objectif | null
+  readonly monte: Objectif | null
+  /** T-0436 — tout le parc ; les fisheyes en sont écartés ici. */
+  readonly parc: readonly Objectif[]
   /** Le contexte du réglage courant : repli des cibles sans dimensions. */
   readonly base: ContexteSession
   readonly focaleMm: number
   readonly ouvertureN: number
-  /** Le matériel évalué à une autre focale et une autre ouverture, par la chaîne. */
-  readonly evalue: (focaleMm: number, ouvertureN: number) => ZoomAFocale | null
+  /** Le matériel évalué sous un autre objectif, à une autre focale et une autre ouverture. */
+  readonly evalue: (objectif: Objectif, focaleMm: number, ouvertureN: number) => ZoomAFocale | null
 }
 
-/** `null` hors zoom — objectif libre ou focale fixe : le contexte unique suffit. */
+/**
+ * `null` quand il n'y a rien à choisir — objectif libre, ou un fixe seul au parc : le contexte
+ * unique suffit. Le monté reste au parc même s'il en a disparu : c'est lui qui est réglé.
+ */
 export function zoomSur(entree: EntreeZoom): Zoom | null {
-  const { objectif, base } = entree
-  if (!estZoom(objectif)) return null
-  const parFocale = new Map<number, ZoomAFocale | null>()
+  const { monte, base } = entree
+  if (!autoParc(entree.parc, monte)) return null
+  const rectilineaires = entree.parc.filter((o) => o.typeObjectif === 'RECTILINEAIRE')
+  const parc =
+    monte !== null && monte.typeObjectif === 'RECTILINEAIRE' && !rectilineaires.some((o) => o.id === monte.id)
+      ? [...rectilineaires, monte]
+      : rectilineaires
+  const parFocale = new Map<string, ZoomAFocale | null>()
 
-  const aFocale = (focaleMm: number): ZoomAFocale | null => {
-    const deja = parFocale.get(focaleMm)
+  const aFocale = (objectif: Objectif, focaleMm: number): ZoomAFocale | null => {
+    const cle = `${objectif.id}@${focaleMm}`
+    const deja = parFocale.get(cle)
     if (deja !== undefined) return deja
-    const n = ouvertureA(objectif, entree.ouvertureN, entree.focaleMm, focaleMm)
-    const calcule = entree.evalue(focaleMm, n)
-    parFocale.set(focaleMm, calcule)
+    // Le monté suit la règle de la saisie (T-0407) ; un objectif qui n'est pas monté n'a pas
+    // d'ouverture saisie : il est lu à son plancher, comme la liste lit le monté (T-0433).
+    const n =
+      objectif.id === monte?.id
+        ? ouvertureA(objectif, entree.ouvertureN, entree.focaleMm, focaleMm)
+        : plancherAuPas(ouverturePlancher(objectif, focaleMm))
+    const calcule = entree.evalue(objectif, focaleMm, n)
+    parFocale.set(cle, calcule)
     return calcule
   }
 
-  const focaleDe = (objet: ObjetCielProfond): number | null =>
+  const choixDe = (objet: ObjetCielProfond): ChoixOptique | null =>
     objet.majAxArcmin === null || objet.majAxArcmin <= 0
       ? null
-      : focaleOptimale(objectif, objet.majAxArcmin, base.capteurHMm)
+      : objectifOptimal(parc, objet.majAxArcmin, base.capteurHMm)
 
   return {
-    objectif,
-    focaleDe,
+    monte,
+    parc,
+    choixDe,
     aFocale,
     contexteDe: (objet) => {
-      const f = focaleDe(objet)
-      return f === null ? base : (aFocale(f)?.contexte ?? base)
+      const choix = choixDe(objet)
+      if (choix === null) return base
+      const contexte = aFocale(choix.objectif, choix.focaleMm)?.contexte
+      return contexte === undefined ? base : contexte
     },
   }
 }
 
+/** T-0436 — la focale optimale d'une cible sous un objectif donné : le choix d'une fiche. */
+export function focaleSous(objectif: Objectif, objet: ObjetCielProfond, capteurHMm: number): number {
+  return objet.majAxArcmin === null || objet.majAxArcmin <= 0
+    ? objectif.focaleMinMm
+    : focaleOptimale(objectif, objet.majAxArcmin, capteurHMm)
+}
+
 /**
  * T-0407 — le champ aux deux bouts de la plage : la borne basse de taille se lit au télé, la
- * borne haute au grand-angle. Hors zoom, les deux valent le champ du réglage courant.
+ * borne haute au grand-angle. T-0436 : sur tout le parc, le télé le plus long et le grand-angle
+ * le plus court. Hors zoom, les deux valent le champ du réglage courant.
  */
 export function champsExtremes(
   zoom: Zoom | null,
   fovHDeg: number,
 ): { readonly teleDeg: number; readonly grandAngleDeg: number } {
   if (zoom === null) return { teleDeg: fovHDeg, grandAngleDeg: fovHDeg }
-  const fov = (f: number) => zoom.aFocale(f)?.contexte.fovHDeg ?? fovHDeg
+  const fov = (o: Objectif, f: number) => zoom.aFocale(o, f)?.contexte.fovHDeg ?? fovHDeg
   return {
-    teleDeg: fov(zoom.objectif.focaleMaxMm),
-    grandAngleDeg: fov(zoom.objectif.focaleMinMm),
+    teleDeg: Math.min(...zoom.parc.map((o) => fov(o, o.focaleMaxMm))),
+    grandAngleDeg: Math.max(...zoom.parc.map((o) => fov(o, o.focaleMinMm))),
   }
 }
 
@@ -95,8 +140,13 @@ export function champsExtremes(
  * il porte ce que la focale ne change pas — la projection de l'objectif, le libellé du mode.
  * `null` quand le matériel n'est pas chiffrable à cette focale.
  */
-export function profilA(zoom: Zoom, focaleMm: number, modele: ProfilCadre): ProfilCadre | null {
-  const fiche = zoom.aFocale(focaleMm)?.fiche
+export function profilA(
+  zoom: Zoom,
+  objectif: Objectif,
+  focaleMm: number,
+  modele: ProfilCadre,
+): ProfilCadre | null {
+  const fiche = zoom.aFocale(objectif, focaleMm)?.fiche
   if (fiche === undefined) return null
   return {
     ...modele,
@@ -112,26 +162,39 @@ export function profilA(zoom: Zoom, focaleMm: number, modele: ProfilCadre): Prof
 /**
  * Sous un zoom, la scène montre le cadre du réglage, PUIS ce que la bague peut donner : le cadre
  * du grand-angle et celui du télé. Le réglage reste premier — c'est lui qui porte la carte de
- * pose et le trait plein ; les deux bouts se peignent estompés. Hors zoom, le réglage seul.
+ * pose et le trait plein ; les deux bouts se peignent estompés. Hors zoom MONTÉ, le réglage seul :
+ * les autres objectifs du parc ne sont pas sur le boîtier (T-0436).
  */
 export function profilsScene(zoom: Zoom | null, profils: readonly ProfilCadre[]): readonly ProfilCadre[] {
   const modele = profils[0]
-  if (zoom === null || modele === undefined) return profils
-  return [modele, ...[zoom.objectif.focaleMinMm, zoom.objectif.focaleMaxMm].flatMap((f) => {
-    const profil = profilA(zoom, f, modele)
+  const monte = zoom?.monte ?? null
+  if (zoom === null || modele === undefined || !estZoom(monte)) return profils
+  return [modele, ...[monte.focaleMinMm, monte.focaleMaxMm].flatMap((f) => {
+    const profil = profilA(zoom, monte, f, modele)
     return profil === null ? [] : [profil]
   })]
 }
 
-/** La focale essayée sur la bague d'une fiche, retenue pour sa seule cible. */
+/** L'objectif et la focale essayés sur une fiche, retenus pour sa seule cible. */
 export interface EssaiZoom {
   readonly designation: string
+  readonly objectifId: string
   readonly focaleMm: number
 }
 
 /**
- * Le cadre que la cible obtiendrait : à la focale essayée sur sa fiche, sinon à sa focale
- * optimale. `null` hors zoom — le cadre du réglage EST alors celui de la cible — ou sans
+ * T-0436 — l'objectif et la focale d'une fiche : l'essai fait sur SA cible, sinon le choix
+ * optimal. Un essai dont l'objectif a quitté le parc retombe sur le choix.
+ */
+export function choixFiche(zoom: Zoom, objet: ObjetCielProfond, essai: EssaiZoom | null): ChoixOptique | null {
+  const objectif =
+    essai?.designation === objet.designation ? zoom.parc.find((o) => o.id === essai.objectifId) : undefined
+  return objectif === undefined || essai === null ? zoom.choixDe(objet) : { objectif, focaleMm: essai.focaleMm }
+}
+
+/**
+ * Le cadre que la cible obtiendrait : à l'objectif et la focale essayés sur sa fiche, sinon à
+ * ses optimaux. `null` hors zoom — le cadre du réglage EST alors celui de la cible — ou sans
  * dimensions au catalogue.
  */
 export function profilCible(
@@ -142,7 +205,6 @@ export function profilCible(
 ): ProfilCadre | null {
   const modele = profils[0]
   if (zoom === null || modele === undefined) return null
-  const focaleMm =
-    essai?.designation === objet.designation ? essai.focaleMm : zoom.focaleDe(objet)
-  return focaleMm === null ? null : profilA(zoom, focaleMm, modele)
+  const choix = choixFiche(zoom, objet, essai)
+  return choix === null ? null : profilA(zoom, choix.objectif, choix.focaleMm, modele)
 }

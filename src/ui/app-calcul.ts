@@ -483,19 +483,25 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
    * jamais celui de la saisie en cours — deux régions qui liraient l'un et l'autre
    * s'afficheraient contradictoires le temps d'un rendu.
    */
+  // T-0436 — le parc se compare par son CONTENU : un tableau rebâti à l'identique (import d'un
+  // lien, rendu du panneau) ne doit pas relancer la liste et le plan (T-0433).
+  const cleParc = JSON.stringify(materiel.objectifs)
+  const parc = useMemo(() => materiel.objectifs, [cleParc])
   const zoom = useMemo(() => {
     if (contexteSession === null || !ciel.ok) return null
     return zoomSur({
-      objectif,
+      monte: objectif,
+      parc,
       base: contexteSession,
       focaleMm: focaleListe,
       ouvertureN: ouvertureListe,
-      evalue: (focaleMm, ouvertureN) => {
-        const c = evalueMateriel(materiel, { ...materielBorne, focaleMm, ouvertureN })
+      evalue: (o, focaleMm, ouvertureN) => {
+        const sous = { ...materiel, typeObjectif: o.typeObjectif }
+        const c = evalueMateriel(sous, { ...materielBorne, focaleMm, ouvertureN })
         return c.ok
           ? {
-              contexte: { ...contexteSession, ...champsDeFocale(c) },
-              fiche: contexteFiche(c, ciel, materiel, lieu),
+              contexte: { ...contexteSession, ...champsDeFocale(c), objectifNom: o.nom },
+              fiche: contexteFiche(c, ciel, sous, lieu),
             }
           : null
       },
@@ -503,6 +509,7 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
     // Mêmes clés que `calcul` : `materiel` est neuf à chaque rendu, ses champs ne le sont pas.
   }, [
     objectif,
+    parc,
     contexteSession,
     ciel,
     materiel.boitierId,

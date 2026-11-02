@@ -154,7 +154,7 @@ export function planSession(
   const etapes =
     contexteDe === undefined
       ? allouees
-      : allouees.map((e) => focaleDEtape(e, contexteDe(e.objet).focaleMm))
+      : allouees.map((e) => optiqueDEtape(e, contexteDe(e.objet)))
   const calibration = calibrationDeSession(contexte, etapes)
   const budget = calculeBudget(contexte, etapes, calibration)
 
@@ -186,8 +186,15 @@ export function planSession(
  * de ce moteur en a besoin, pas seulement le plan. T-0294 — l'évaluation passe par celle que
  * la liste a déjà faite sur le même contexte : une cible n'est chiffrée qu'une fois.
  */
-function focaleDEtape(etape: EtapePlan, focaleMm: number | undefined): EtapePlan {
-  return focaleMm === undefined ? etape : { ...etape, focaleMm }
+function optiqueDEtape(
+  etape: EtapePlan,
+  { focaleMm, objectifNom }: Pick<ContexteSession, 'focaleMm' | 'objectifNom'>,
+): EtapePlan {
+  return {
+    ...etape,
+    ...(focaleMm === undefined ? {} : { focaleMm }),
+    ...(objectifNom === undefined ? {} : { objectifNom }),
+  }
 }
 
 function evalueCandidates(

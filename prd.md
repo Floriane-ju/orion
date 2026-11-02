@@ -1441,6 +1441,48 @@ Alors cadrage et pose de la fiche suivent, la focale du matériel et le cadre de
 Quand la liste s'affiche
 Alors la carte dit 400 mm et le remplissage réel, inférieur à 80 %
 ```
+
+### Objectif optimal d'une cible dans le parc
+
+```
+LE PARC SE CHOISIT, IL NE SE MONTE PAS (T-0436)
+  Dès que le parc compte deux objectifs rectilinéaires ou plus, ou qu'un zoom est monté,
+  chaque cible choisit l'objectif du parc avant sa focale. Pour chaque objectif :
+    f = f_opt bornée à SA plage, au mm (ci-dessus)
+    écart = | ln( f / f* ) |      f* = f_opt non bornée
+  Retenu : le plus petit écart ; à écart égal, le plus petit plancher N_min(f) — sur un objet
+  étendu, le signal par pixel suit 1/N² ; puis l'ordre du parc. Les fisheyes n'y entrent pas :
+  la règle de cadrage ne les décrit pas.
+
+  L'écart est un RAPPORT : le remplissage suit f, et 10 mm de trop à 20 mm ne sont pas 10 mm
+  de trop à 200. Il se lit sur la focale réglée au mm : un fixe de 50 et un zoom réglé à 50
+  cadrent pareil, et l'ouverture les départage.
+
+  Ouverture : l'objectif monté suit la règle ci-dessus ; un autre objectif, qui n'a pas
+  d'ouverture saisie, est lu à son plancher.
+
+  L'objectif monté ne règle plus que le cadre de la scène et le panneau Matériel. Liste
+  (§6.4), plan (§8.3) et fiche lisent l'objectif optimal ; la fiche en laisse essayer un
+  autre, localement, et rouvre alors sur la focale optimale de celui-ci.
+```
+
+```gherkin
+Étant donné un parc 50 mm f/1,8 et 70-200 f/4, le 50 monté, et une cible trop petite à 50 mm
+Quand la liste « photographiables » s'affiche
+Alors la cible y figure, lue au 70-200 à sa focale optimale
+
+Étant donné cette cible ajoutée au plan
+Quand le plan se compose
+Alors son étape dit « 70-200 à N mm » et annonce la même pose que la liste
+
+Étant donné la fiche de cette cible
+Quand j'y choisis le 50 mm
+Alors cadrage et pose de la fiche suivent, l'objectif monté non
+
+Étant donné deux objectifs qui atteignent la même focale optimale au mm      # cas limite
+Quand la cible choisit
+Alors elle retient le plus lumineux à cette focale
+```
 ---
 
 ## 5.2 Feature — Profil Suivi
@@ -1767,6 +1809,8 @@ POURQUOI UNE LISTE, ET PAS UN CHAMP DE SAISIE
 SOUS UN ZOOM (§5.1) — chaque ligne est lue à la focale optimale de sa cible : une cible est
   photographiable dès qu'une focale de la plage la cadre, et les bornes de taille annoncées
   sont celles de la plage entière (borne basse au télé, borne haute au grand-angle).
+  Sous un parc (§5.1, T-0436), chaque ligne est lue à l'objectif optimal de sa cible, et les
+  bornes sont celles du parc entier : télé le plus long, grand-angle le plus court.
 
 CIBLES VISIBLES — deux motifs d'exclusion, et deux seulement
   1. sous l'horizon à l'instant affiché    (hauteur ≤ 0°)
@@ -2744,7 +2788,8 @@ Coordonnées : OpenNGC, Messier, Sharpless, Barnard. Transformations et instants
    Un plan qu'on n'a pas composé est un palmarès de plus, et un palmarès n'est pas
    exécutable — c'est déjà ce que le point 3 refuse en sortie, ça vaut aussi en entrée.
    Sous un zoom (§5.1), chaque cible choisie est évaluée à la focale optimale que sa carte
-   de liste annonce, et son étape la dit : la bague se règle entre deux cibles.
+   de liste annonce, et son étape la dit : la bague se règle entre deux cibles. Sous un
+   parc (§5.1, T-0436), l'étape nomme aussi l'objectif : « 70-200 à 135 mm ».
    Sélection vide → l'app le DIT et nomme le geste qui manque. Elle ne propose alors ni
    contrainte dominante — aucune contrainte n'a joué — ni domaine de repli : le grand
    champ répond à « aucune cible compatible », pas à « rien n'a été coché ».

@@ -87,6 +87,8 @@ export interface ContexteSession {
   readonly masque: MasqueHorizon
   /** T-0407 — la focale de ce contexte ; renseignée par la chaîne, absente des fixtures. */
   readonly focaleMm?: number
+  /** T-0436 — l'objectif du parc de ce contexte, quand la cible l'a choisi. */
+  readonly objectifNom?: string
   readonly fovHDeg: number
   readonly echApx: number
   readonly dMm: number
@@ -139,6 +141,8 @@ export interface EtapePlan {
   readonly objet: ObjetCielProfond
   /** T-0407 — la focale de l'étape sous un zoom ; absente quand toutes partagent la même. */
   readonly focaleMm?: number
+  /** T-0436 — l'objectif du parc de l'étape, quand chaque cible choisit le sien. */
+  readonly objectifNom?: string
   readonly creneauAlloue: Intervalle
   readonly dureeAlloueeMin: number
   readonly tPoseS: number
