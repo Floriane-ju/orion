@@ -232,8 +232,20 @@ export interface LecturesScene {
   readonly selection: SelectionScene | null
 }
 
+/**
+ * La cible que la visée suit depuis « Cadrer ». Coordonnées équatoriales : ce sont elles qui
+ * restent fixes quand le ciel tourne, l'azimut et la hauteur se recalculent à chaque image.
+ */
+export interface SuiviScene {
+  readonly designation: string
+  readonly adDeg: number
+  readonly decDeg: number
+}
+
 export interface EtatScene {
   readonly vue: VueScene
+  /** `null` dès que l'utilisateur déplace la visée : on ne lui reprend pas la main. */
+  readonly suivi: SuiviScene | null
   readonly temps: TempsScene
   readonly rendu: RenduScene
   readonly lectures: LecturesScene
@@ -274,6 +286,7 @@ const ETAT_INITIAL: EtatScene = {
     // recouvre — c'est aussi ce que rend un rendu serveur, qui n'a pas de boîtes à mesurer.
     decalageCentreXPx: 0,
   },
+  suivi: null,
   temps: { modeTemps: 'MAINTENANT', facteur: K('FACTEUR_DEFILEMENT_NORMAL'), decalageMs: 0 },
   rendu: {
     couches: {
@@ -369,13 +382,34 @@ function pose(suivant: EtatScene): void {
  * un chemin qui ne borne que le champ, jamais le mode.
  */
 export function majVue(retouche: Retouche<VueScene>): void {
+  ecritVue(retouche, false)
+}
+
+/**
+ * Seul déplacer la visée rompt le suivi : zoomer ou tourner le boîtier garde la cible au
+ * centre, et c'est précisément ce qu'on fait une fois la cible cadrée.
+ */
+function ecritVue(retouche: Retouche<VueScene>, garderSuivi: boolean): void {
   const vue = applique(etat.vue, retouche)
   const fovMaxDeg = fovMaxSelonMode(vue.mode)
   if (vue === etat.vue && vue.fovDeg <= fovMaxDeg) return
+  const deplacee = vue.azimutDeg !== etat.vue.azimutDeg || vue.hauteurDeg !== etat.vue.hauteurDeg
   pose({
     ...etat,
     vue: vue.fovDeg <= fovMaxDeg ? vue : { ...vue, fovDeg: fovMaxDeg },
+    suivi: garderSuivi || !deplacee ? etat.suivi : null,
   })
+}
+
+/** « Cadrer » : la visée part sur la cible et la suit jusqu'au prochain geste de pointage. */
+export function suisCible(suivi: SuiviScene, retouche: Partial<VueScene>): void {
+  pose({ ...etat, suivi })
+  ecritVue(retouche, true)
+}
+
+/** La boucle de rendu recale la visée sur la cible suivie, quand l'heure l'a fait dériver. */
+export function recaleSuivi(azimutDeg: number, hauteurDeg: number): void {
+  if (etat.suivi !== null) ecritVue({ azimutDeg, hauteurDeg }, true)
 }
 
 export function majTemps(retouche: Retouche<TempsScene>): void {
@@ -558,6 +592,10 @@ export function renduScene(etat: EtatScene): RenduScene {
  */
 export function parcoursScene(etat: EtatScene): ParcoursScene | null {
   return etat.rendu.parcours
+}
+
+export function suiviScene(etat: EtatScene): SuiviScene | null {
+  return etat.suivi
 }
 
 /** Les commandes du magasin, telles que la scène et ses gestes les reçoivent. */

@@ -26,7 +26,9 @@ import {
   BORDURES_SCENE,
   masqueParcours,
   montreParcours,
+  recaleSuivi,
   reinitialiseScene,
+  suisCible,
   vaA,
   type EtatScene,
   type ParcoursScene,
@@ -376,5 +378,34 @@ describe('T-0292 — une écriture qui ne change rien ne notifie pas', () => {
     const avant = etatScene()
     majVue({ fovDeg: avant.vue.fovDeg / 2 })
     expect(etatScene()).not.toBe(avant)
+  })
+})
+
+describe('« Cadrer » suit la cible jusqu’au premier geste de pointage', () => {
+  beforeEach(() => reinitialiseScene())
+
+  // Le magasin ne lit pas les coordonnées : c'est la boucle de rendu qui les projette.
+  const suivi = { designation: 'M 31', adDeg: 0, decDeg: 0 }
+
+  it('le recalage de la boucle garde le suivi', () => {
+    suisCible(suivi, { azimutDeg: 90, hauteurDeg: 30 })
+    recaleSuivi(91, 31)
+    expect(etatScene().suivi).toBe(suivi)
+    expect(etatScene().vue.azimutDeg).toBe(91)
+  })
+
+  it('zoomer ou tourner le boîtier ne rompt pas le suivi', () => {
+    suisCible(suivi, { azimutDeg: 90, hauteurDeg: 30 })
+    majVue((v) => ({ fovDeg: v.fovDeg / 2, rotationCadreDeg: v.rotationCadreDeg + 10 }))
+    expect(etatScene().suivi).toBe(suivi)
+  })
+
+  it('déplacer la visée rompt le suivi, et un recalage ne la reprend plus', () => {
+    suisCible(suivi, { azimutDeg: 90, hauteurDeg: 30 })
+    majVue((v) => ({ azimutDeg: v.azimutDeg + 1 }))
+    expect(etatScene().suivi).toBeNull()
+    const azimut = etatScene().vue.azimutDeg
+    recaleSuivi(0, 0)
+    expect(etatScene().vue.azimutDeg).toBe(azimut)
   })
 })

@@ -192,7 +192,7 @@ export function BoutonProchainCreneau({
         // La direction À CET INSTANT-LÀ, pas à l'instant quitté : la cible y est au plus haut.
         const matrice = matriceALaMinute(contexte.site, Math.floor(instant.getTime() / MS_PAR_MINUTE))
         const { azimutDeg, hauteurDeg } = coordonneesHorizon(objet, matrice)
-        cadreScene(azimutDeg, hauteurDeg, profil, gaiaCharge)
+        cadreScene(objet, azimutDeg, hauteurDeg, profil, gaiaCharge)
       }}
     />
   )

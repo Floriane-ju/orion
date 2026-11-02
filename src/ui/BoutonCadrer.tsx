@@ -21,7 +21,14 @@ import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { bornesZoom } from '../core/projection.ts'
 import { BoutonGlyphe, type VarianteGlyphe } from './BoutonGlyphe.tsx'
 import { champPourCadrer } from './planetarium-gestes.ts'
-import { etatScene, majVue, minuteAffichee, useTrancheScene, vueScene } from './scene-etat.ts'
+import {
+  etatScene,
+  majVue,
+  minuteAffichee,
+  suisCible,
+  useTrancheScene,
+  vueScene,
+} from './scene-etat.ts'
 
 export interface AlignementCibleProps {
   readonly objet: ObjetCielProfond
@@ -70,7 +77,7 @@ export function CadrerCible({ objet, site, profil, gaiaCharge }: CadrerCibleProp
   const { azimutDeg, hauteurDeg } = coordonneesHorizon(objet, matriceALaMinute(site, minute))
   return (
     <BoutonCadrer
-      designation={objet.designation}
+      objet={objet}
       azimutDeg={azimutDeg}
       hauteurDeg={hauteurDeg}
       profil={profil}
@@ -80,7 +87,7 @@ export function CadrerCible({ objet, site, profil, gaiaCharge }: CadrerCibleProp
 }
 
 export interface BoutonCadrerProps {
-  readonly designation: string
+  readonly objet: ObjetCielProfond
   readonly azimutDeg: number
   readonly hauteurDeg: number
   /** Le cadre du matériel déclaré ; absent tant que le matériel n'est pas chiffrable. */
@@ -95,19 +102,24 @@ export interface BoutonCadrerProps {
  * Le geste « Cadrer » lui-même, partagé avec « Prochain créneau » (T-0380) : sauter à une nuit
  * sans tourner la vue vers la cible laisserait chercher, dans un ciel nouveau, ce qu'on vient
  * de demander. Sans cadre du matériel, la vue se centre sans changer de champ.
+ *
+ * La visée suit ensuite la cible dans la rotation du ciel, jusqu'au premier geste qui la
+ * déplace : un cadre qui laisse filer sa cible en quelques minutes n'a cadré qu'un instant.
  */
 export function cadreScene(
+  objet: ObjetCielProfond,
   azimutDeg: number,
   hauteurDeg: number,
   profil: ProfilCadre | undefined,
   gaiaCharge: boolean,
 ): void {
+  const suivi = { designation: objet.designation, adDeg: objet.adDeg, decDeg: objet.decDeg }
   if (profil === undefined) {
-    majVue({ azimutDeg, hauteurDeg })
+    suisCible(suivi, { azimutDeg, hauteurDeg })
     return
   }
   const fovDeg = champPourCadrer(profil.fovLDeg, bornesZoom(gaiaCharge, etatScene().vue.mode))
-  majVue({ azimutDeg, hauteurDeg, fovDeg })
+  suisCible(suivi, { azimutDeg, hauteurDeg, fovDeg })
 }
 
 /**
@@ -115,7 +127,7 @@ export function cadreScene(
  * abonner ferait redessiner chaque ligne à chaque glissé de la scène.
  */
 export function BoutonCadrer({
-  designation,
+  objet,
   azimutDeg,
   hauteurDeg,
   profil,
@@ -124,7 +136,7 @@ export function BoutonCadrer({
   avecLibelle = false,
 }: BoutonCadrerProps) {
   if (profil === undefined) return null
-  const aide = `Cadrer ${designation} avec le cadre du matériel`
+  const aide = `Cadrer ${objet.designation} avec le cadre du matériel`
   return (
     <BoutonGlyphe
       icone="center_focus_strong"
@@ -132,7 +144,7 @@ export function BoutonCadrer({
       place="gauche"
       {...(variante === undefined ? {} : { variante })}
       {...(avecLibelle ? { texte: 'Cadrer' } : {})}
-      onClick={() => cadreScene(azimutDeg, hauteurDeg, profil, gaiaCharge)}
+      onClick={() => cadreScene(objet, azimutDeg, hauteurDeg, profil, gaiaCharge)}
     />
   )
 }

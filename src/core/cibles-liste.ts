@@ -120,7 +120,7 @@ export function ajouteCoordonnees(
 
 /** T-0221 — la liste et la fiche visent avec la même transformation, jamais deux. */
 export function coordonneesHorizon(
-  objet: ObjetCielProfond,
+  objet: Pick<ObjetCielProfond, 'adDeg' | 'decDeg'>,
   matriceCiel: Mat3,
 ): { readonly hauteurDeg: number; readonly azimutDeg: number } {
   const horizon = versSpherique(applique(matriceCiel, versVecteur(objet.adDeg, objet.decDeg)))

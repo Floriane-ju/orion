@@ -490,7 +490,7 @@ function LigneListe({ ligne, etat, contexte, profil, gaiaCharge, parc }: LigneLi
           disparaît (`:empty`). */}
       <div className="cible-actions">
         <BoutonCadrer
-          designation={objet.designation}
+          objet={objet}
           azimutDeg={ligne.azimutDeg}
           hauteurDeg={ligne.hauteurDeg}
           profil={profil}

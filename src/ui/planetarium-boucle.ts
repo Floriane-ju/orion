@@ -26,13 +26,16 @@ import {
   type EtatEphemerides,
 } from '../core/horloges.ts'
 import { projecteur, type Vue } from '../core/projection.ts'
-import type { Mat3 } from '../core/mat3.ts'
+import { separationDeg, versVecteur, type Mat3 } from '../core/mat3.ts'
+import { coordonneesHorizon } from '../core/cibles-liste.ts'
 import type { Cadre, ProfilCadre } from '../core/cadre.ts'
 import type { MasqueHorizon } from '../core/site.ts'
 import { Body, type Site } from '../core/ephem.ts'
 import {
   afficheInstant,
   borneInstant,
+  etatScene,
+  recaleSuivi,
   type ParcoursScene,
   vuePlanetarium,
   type VueScene,
@@ -72,6 +75,28 @@ const DERIVE_VISIBLE_PX = 1
 
 /** T-0395 — un relief en transition n'a pas de courbes : celles d'arrivée attendent qu'il soit posé. */
 const COURBES_VIDES = new Float32Array(0)
+
+/**
+ * La visée de la cible suivie à l'instant de l'image, `null` sans suivi.
+ *
+ * L'image se peint avec ELLE, pas avec la vue du rendu React : celle-ci a toujours un rendu
+ * de retard, et le ciel peint à l'instant courant sous une visée d'avant avançait d'un pixel
+ * puis revenait — le suivi saccadait. Le magasin, lui, n'est recalé qu'au pixel de dérive :
+ * en deçà, le réécrire réveillerait React à chaque image sans rien changer aux lectures.
+ */
+function suitCible(site: Site, date: Date): { azimutDeg: number; hauteurDeg: number } | null {
+  const { suivi, vue } = etatScene()
+  if (suivi === null) return null
+  const visee = coordonneesHorizon(suivi, cielInstantane(site, date).matrice)
+  const ecartDeg = separationDeg(
+    versVecteur(visee.azimutDeg, visee.hauteurDeg),
+    versVecteur(vue.azimutDeg, vue.hauteurDeg),
+  )
+  if (ecartDeg * pxParDegre(vue.largeurPx, vue.fovDeg) >= DERIVE_VISIBLE_PX) {
+    recaleSuivi(visee.azimutDeg, visee.hauteurDeg)
+  }
+  return visee
+}
 
 /** Tout ce que la boucle lit à chaque image, réécrit à chaque rendu React. */
 export interface EtatBoucle {
@@ -243,6 +268,8 @@ export function useBoucleRendu(entree: {
       dernierTs = ts
 
       instant.ms = instantSuivant(courant, instant.ms, dt, Date.now())
+      instantDate.setTime(instant.ms)
+      const visee = suitCible(courant.site, instantDate)
 
       const courante: ImageLue = {
         etat: courant,
@@ -259,7 +286,7 @@ export function useBoucleRendu(entree: {
       const recue = horsFil !== null && horsFil.version() !== versionPeinte
       if (enTransition || recue || doitDessiner(peinte, courante)) {
         if (horsFil !== null) versionPeinte = horsFil.version()
-        dessine(courant, horizon)
+        dessine(courant, horizon, visee)
         // Pendant la transition, aucune image n'est définitive : la suivante se peint aussi,
         // y compris celle qui pose la cible.
         peinte = enTransition ? null : courante
@@ -315,7 +342,11 @@ export function useBoucleRendu(entree: {
       })
     }
 
-    const dessine = (courant: EtatBoucle, horizon: readonly number[]): void => {
+    const dessine = (
+      courant: EtatBoucle,
+      horizon: readonly number[],
+      visee: { readonly azimutDeg: number; readonly hauteurDeg: number } | null,
+    ): void => {
       instantDate.setTime(instant.ms)
       const ciel = cielInstantane(courant.site, instantDate)
       ephemerides.current = avanceEphemerides(
@@ -330,7 +361,7 @@ export function useBoucleRendu(entree: {
             (c) => !courant.jour || c.corps === Body.Sun || c.corps === Body.Moon,
           )
 
-      const vue = courant.vue
+      const vue = visee === null ? courant.vue : { ...courant.vue, ...visee }
       // §3.5 — le boîtier tourne, la vue non : c'est ce qui rend le contour du cadre mobile
       // à l'écran au lieu de faire tourner tout le ciel derrière un cadre immobile (T-0084).
       const vueCourante = vuePlanetarium(vue)

@@ -62,6 +62,7 @@ import { heure } from './horaire.ts'
 import {
   instant,
   minuteAffichee,
+  suiviScene,
   useTrancheScene,
   vaA,
 } from './scene-etat.ts'
@@ -115,6 +116,7 @@ export function CarteNuit({ site, nuit }: CarteNuitProps) {
   const trajetMs = useInstantTrajet()
   const afficheMs = trajetMs ?? instantMs
   const frise = useFriseCiel(site, afficheMs)
+  const suivi = useTrancheScene(suiviScene)
   // Ce que le dernier geste laisse à dire : un saut que la lisibilité a imposé. Le geste
   // suivant l'efface.
   const [saute, setSaute] = useState(false)
@@ -129,6 +131,12 @@ export function CarteNuit({ site, nuit }: CarteNuitProps) {
     <section className="panneau-nuit" role="region" aria-label="La nuit">
       <Frise frise={frise} site={site} instantMs={afficheMs} va={va} efface={efface} />
       <div className="nuit-messages">
+        {/* Dire ce que la visée suit : sans cela, le ciel qui glisse seul passerait pour un bug. */}
+        {suivi !== null && (
+          <Mention ton="etat" role="status">
+            Cadré : {suivi.designation} — la visée suit la rotation du ciel.
+          </Mention>
+        )}
         {nuit.cause !== undefined && <Mention ton="cause">{nuit.cause}</Mention>}
         {saute && (
           <Mention ton="etat" role="status">
