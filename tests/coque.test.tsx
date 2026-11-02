@@ -326,7 +326,7 @@ describe('§11.2 — un seul jeu de réglages à la fois', () => {
 
   // T-0213 — les bascules de la vue ne se déplient plus : elles sont là dès l'ouverture, et
   // c'est tout l'intérêt du rail. Une seule lecture du magasin, pas un abonnement complet.
-  it('monte les huit bascules de la vue sans qu’on ait à déplier quoi que ce soit', () => {
+  it('monte les huit bascules de la vue, calques compris, dès l’ouverture', () => {
     const rail = ecran()
     const debut = rail.indexOf('coque-rail')
     const bloc = rail.slice(debut, rail.indexOf('carte-site'))
@@ -343,6 +343,22 @@ describe('§11.2 — un seul jeu de réglages à la fois', () => {
       expect(bloc, libelle).toContain(`aria-label="${libelle}"`)
     }
     expect((bloc.match(/aria-pressed=/g) ?? []).length).toBe(8)
+  })
+
+  // Les couches d'habillage du ciel se rangent dans le tiroir « Calques » ; le cadre matériel,
+  // ce qu'on vise, reste seul sur le rail.
+  it('range figures, frontières, astérismes, sol et voie lactée dans les calques, pas le cadre', () => {
+    const html = ecran()
+    const rail = html.slice(html.indexOf('coque-rail'), html.indexOf('carte-site'))
+    const debut = rail.indexOf('tiroir-calques')
+    const fin = rail.indexOf('</details>', debut)
+    expect(debut).toBeGreaterThan(-1)
+    const calques = rail.slice(debut, fin)
+    for (const libelle of ['Figures IAU', 'Frontières IAU', 'Astérismes', 'Sol', 'Voie lactée']) {
+      expect(calques, libelle).toContain(`aria-label="${libelle}"`)
+    }
+    expect(calques).not.toContain('aria-label="Cadre matériel"')
+    expect(rail).toContain('aria-label="Cadre matériel"')
   })
 
   // T-0403 — en Panorama, le rail retire ce qui n'agit plus sous l'aperçu, mais garde la Voie

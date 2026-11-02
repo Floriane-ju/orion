@@ -26,6 +26,9 @@ import {
 import { bornesZoom, type ModeProjection } from '../core/projection.ts'
 import type { MasqueHorizon } from '../core/site.ts'
 import { BoutonGlyphe } from './BoutonGlyphe.tsx'
+import { Bulle } from './Bulle.tsx'
+import { Icone } from './Icone.tsx'
+import { Tiroir } from './Tiroir.tsx'
 import type { CouchesActives } from './dessine-ciel.ts'
 import { RACCOURCIS_CLAVIER } from './planetarium-gestes.ts'
 import {
@@ -67,17 +70,24 @@ function cibleParcours(etat: EtatScene): string | null {
  * (`CouchesActives.horizon`), toujours allumée, que les tests de tracé isolent couche par
  * couche.
  *
+ * Elles se rangent dans le tiroir « Calques » : six glyphes empilés au flanc de la scène se
+ * lisaient comme une liste sans nom. Le cadre matériel reste seul sur le rail — ce n'est pas
+ * un habillage du ciel mais ce qu'on vise, et il se bascule en cadrant, sans ouvrir de menu.
+ *
  * `filter_hdr` et non `terrain` pour le sol : la ligature `terrain` n'existe pas dans la
  * police livrée, et une ligature absente s'affiche en toutes lettres.
  */
-const COUCHES: readonly (readonly [keyof CouchesActives, string, string])[] = [
+type Couche = readonly [keyof CouchesActives, string, string]
+
+const CALQUES: readonly Couche[] = [
   ['figures', 'polyline', 'Figures IAU'],
   ['frontieres', 'map', 'Frontières IAU'],
   ['asterismes', 'auto_awesome', 'Astérismes'],
-  ['cadre', 'crop', 'Cadre matériel'],
   ['sol', 'filter_hdr', 'Sol'],
   ['voieLactee', 'blur_on', 'Voie lactée'],
 ]
+
+const CADRE: Couche = ['cadre', 'crop', 'Cadre matériel']
 
 /**
  * T-0171 — sous l'aperçu peint sur toute la scène (§9.5), seuls le sol, l'horizon, le cadre
@@ -111,6 +121,9 @@ function aide(libelle: string, ...notes: readonly (string | undefined)[]): strin
 
 interface BasculeProps {
   readonly nom: string
+  /** Le libellé écrit après le glyphe — dans le tiroir, où la place le permet. */
+  readonly texte?: string
+  readonly variante?: 'flottant' | 'nu'
   /** Nom accessible du bouton : court, c'est lui qu'un lecteur d'écran annonce. */
   readonly libelle: string
   /** Ce que la bulle dit au survol et au focus. Elle DÉCRIT le bouton, elle ne le nomme pas. */
@@ -130,7 +143,8 @@ function Bascule(props: BasculeProps) {
       aide={props.aide}
       libelle={props.libelle}
       place="droite"
-      variante="flottant"
+      variante={props.variante ?? 'flottant'}
+      {...(props.texte === undefined ? {} : { texte: props.texte })}
       presse={props.actif}
       eteinte={props.eteinte === true}
       onClick={props.sur}
@@ -220,30 +234,42 @@ export function RailVue(props: RailVueProps) {
         )}
 
         <div className="rail-groupe" role="group" aria-label="Couches">
-          {COUCHES.map(([cle, glyphe, libelle]) => {
-            // Une couche absente reste montée, inerte : c'est ce qui laisse au rail le temps de
-            // la faire glisser hors de la scène au lieu de la retirer d'un coup.
-            const absente = modeInterface === 'PANORAMA' && ABSENTES_EN_PANORAMA.includes(cle)
-            return (
-              <div
-                key={cle}
-                className="rail-bascule"
-                data-absente={absente}
-                inert={absente}
-              >
-                <Bascule
-                  nom={glyphe}
-                  libelle={libelle}
-                  aide={aide(libelle, notes[cle], parcours ? NOTE_PARCOURS : undefined)}
-                  actif={couches[cle]}
-                  eteinte={parcours}
-                  sur={() =>
-                    majRendu((r) => ({ couches: { ...r.couches, [cle]: !r.couches[cle] } }))
-                  }
-                />
+          <Bascule
+            nom={CADRE[1]}
+            libelle={CADRE[2]}
+            aide={aide(CADRE[2], parcours ? NOTE_PARCOURS : undefined)}
+            actif={couches.cadre}
+            eteinte={parcours}
+            sur={() => majRendu((r) => ({ couches: { ...r.couches, cadre: !r.couches.cadre } }))}
+          />
+          <Bulle texte="Calques" place="droite">
+            <Tiroir modificateur="calques" resume={<Icone nom="layers" libelle="Calques" />}>
+              <div className="calques" role="group" aria-label="Calques">
+                {CALQUES.map(([cle, glyphe, libelle]) => {
+                  // Une couche sans effet en Panorama reste montée, inerte et cachée : son état
+                  // est conservé pour le retour en Ciel profond.
+                  const absente =
+                    modeInterface === 'PANORAMA' && ABSENTES_EN_PANORAMA.includes(cle)
+                  return (
+                    <div key={cle} className="calque" data-absente={absente} inert={absente}>
+                      <Bascule
+                        nom={glyphe}
+                        libelle={libelle}
+                        texte={libelle}
+                        variante="nu"
+                        aide={aide(libelle, notes[cle], parcours ? NOTE_PARCOURS : undefined)}
+                        actif={couches[cle]}
+                        eteinte={parcours}
+                        sur={() =>
+                          majRendu((r) => ({ couches: { ...r.couches, [cle]: !r.couches[cle] } }))
+                        }
+                      />
+                    </div>
+                  )
+                })}
               </div>
-            )
-          })}
+            </Tiroir>
+          </Bulle>
         </div>
 
         {/* T-0069 — « un raccourci qui n'est écrit que dans le code n'existe pas ». La carte

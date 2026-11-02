@@ -1346,29 +1346,47 @@ body {
   pointer-events: auto;
 }
 
-/* Une couche sans effet en Panorama quitte le rail (`RailVue`). Elle reste montée et inerte :
-   sa piste de grille tombe à `0fr` et l'écart qui la précède se résorbe, de sorte que les
-   voisines se resserrent. `0fr` plutôt que `display: none` : c'est ce qui se laisse animer
-   jusqu'à la taille du contenu dans Firefox (voir `.accordeon`). Le bouton est calé au BAS de
-   sa piste : quand elle se referme, il remonte sous son bord haut au lieu de se rogner par
-   les deux côtés à la fois. Le rognage ne vaut que pour la couche absente — posé sur la
-   présente, il couperait sa bulle. */
-.rail-bascule {
-  display: grid;
-  grid-template-rows: 1fr;
-  justify-items: center;
+/* LE TIROIR DES CALQUES : posé dans le rail, il s'ouvre À DROITE de son bouton, sur le ciel.
+   Absolu et non fixé : `tiroir-ancrage.ts` ne le cale pas sous le bouton, il le laisse au
+   flanc — sous le bouton, il recouvrirait le reste du rail. Le rail laisse passer le pointeur :
+   le résumé et la fenêtre le reprennent. */
+.tiroir-calques > summary {
+  pointer-events: auto;
 }
 
-.rail-bascule > * {
-  min-height: 0;
-  align-self: end;
+.coque .coque-rail .tiroir-calques[open] > .tiroir-contenu {
+  position: absolute;
+  top: 0;
+  right: auto;
+  left: calc(100% + var(--pas-2));
+  width: max-content;
+  max-height: none;
+  padding: var(--pas-2);
+  pointer-events: auto;
 }
 
-.rail-bascule[data-absente='true'] {
-  grid-template-rows: 0fr;
-  margin-block-start: calc(-1 * var(--pas-2));
-  overflow: hidden;
-  opacity: 0;
+.calques {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pas-1);
+}
+
+/* L'ancre de bulle est `inline-flex` : elle serrerait le bouton sur son contenu. */
+.calques .calque > * {
+  display: flex;
+}
+
+/* Un calque libellé : glyphe puis mot, calé à gauche — la liste se lit par ses mots. */
+.calques .bouton-glyphe {
+  justify-content: flex-start;
+  gap: var(--pas-2);
+  width: 100%;
+  padding-inline: var(--pas-2) var(--pas-3);
+}
+
+/* Sans effet en Panorama : le calque quitte la liste, son état reste dans le magasin. */
+.calque[data-absente='true'] {
+  display: none;
 }
 
 /* LE BOUTON-GLYPHE (`BoutonGlyphe.tsx`). Il porte un glyphe, pas un mot : il perd le
@@ -1747,24 +1765,6 @@ body {
     flex-direction: row;
   }
 
-  /* En rangée, la couche absente se replie en largeur : c'est l'écart qui la PRÉCÈDE sur la
-     ligne qui se résorbe. */
-  .rail-bascule {
-    grid-template-columns: 1fr;
-  }
-
-  .rail-bascule > * {
-    min-width: 0;
-    justify-self: end;
-  }
-
-  .rail-bascule[data-absente='true'] {
-    grid-template-rows: 1fr;
-    grid-template-columns: 0fr;
-    margin-block-start: 0;
-    margin-inline-start: calc(-1 * var(--pas-2));
-  }
-
   .carte[data-ouverte='false'] {
     width: auto;
   }
@@ -1958,7 +1958,8 @@ body {
 
 /* L'alerte de persistance garde son rembourrage : elle porte du texte, pas un glyphe seul. */
 .coque-nuit .bouton-info:not([data-alerte='true']),
-.tiroir-nuit > summary {
+.tiroir-nuit > summary,
+.tiroir-calques > summary {
   justify-content: center;
   min-width: var(--cible-clic);
   padding: 0;
@@ -1975,7 +1976,8 @@ body {
    sont déjà un aplat plein : il s'atténue sous la main, seul retour possible sur un aplat allumé. */
 .bouton-glyphe-flottant:not(:disabled):hover,
 .coque-nuit .bouton-info:not([data-alerte='true']):hover,
-.tiroir-nuit > summary:hover {
+.tiroir-nuit > summary:hover,
+.tiroir-calques > summary:hover {
   background: var(--surface-survol);
   border-color: var(--texte);
   color: var(--texte);
@@ -3758,7 +3760,7 @@ button:disabled {
 }
 
 /* Le volet des filtres replié : sa piste de grille tombe à `0fr` plutôt qu'un `display: none`,
-   ce qui se laisse animer jusqu'à la taille du contenu dans Firefox (voir `.rail-bascule`).
+   ce qui se laisse animer jusqu'à la taille du contenu dans Firefox (voir `.accordeon`).
    La piste est un `<div>` nu : le cadre et ses écarts vivent dessous, sans quoi leur hauteur
    empêcherait la piste de tomber à zéro. */
 .cibles-volet {
@@ -4350,28 +4352,6 @@ button:not(:disabled):active,
    La transition porte la règle de base, pas le survol : sans quoi l'encart s'agrandirait en
    douceur et se rétracterait d'un coup. */
 @media (prefers-reduced-motion: no-preference) {
-  /* La couche qui quitte le rail en Panorama remonte en s'effaçant pendant que ses voisines se
-     resserrent, et redescend au retour. Mouvement de taille : il ne vit qu'ici, hors de quoi
-     elle part et revient d'un coup.
-
-     Au retour, le rognage tient jusqu'à la fin du dépli : levé d'emblée, le bouton déborderait
-     à pleine taille de sa piste encore fermée et chevaucherait son voisin. `overflow` est
-     discret — il bascule à mi-course, d'où le délai d'un dépli entier. Au départ, la règle de
-     la couche absente ne le transite pas : le rognage tombe tout de suite. Un navigateur sans
-     `allow-discrete` lève le rognage d'emblée, sans rien casser. */
-  .rail-bascule {
-    transition: grid-template-rows var(--fondu-depli) var(--courbe),
-      grid-template-columns var(--fondu-depli) var(--courbe),
-      margin var(--fondu-depli) var(--courbe), opacity var(--fondu-depli) var(--courbe),
-      overflow var(--fondu-depli) var(--courbe) var(--fondu-depli) allow-discrete;
-  }
-
-  .rail-bascule[data-absente='true'] {
-    transition: grid-template-rows var(--fondu-depli) var(--courbe),
-      grid-template-columns var(--fondu-depli) var(--courbe),
-      margin var(--fondu-depli) var(--courbe), opacity var(--fondu-depli) var(--courbe);
-  }
-
   /* T-0423 — le trait de survol, son prolongement et la bulle suivent le pointeur SANS
      transition de position : un fondu, si court soit-il, les laissait traîner derrière la
      souris. Seule la teinte fond quand l'aimant accroche ou relâche. */
@@ -4383,7 +4363,7 @@ button:not(:disabled):active,
     transition: width var(--fondu-etat) var(--courbe);
   }
 
-  /* Le volet des filtres : même mécanique que `.rail-bascule` — le rognage tient jusqu'à la fin
+  /* Le volet des filtres : même mécanique que `.accordeon` — le rognage tient jusqu'à la fin
      du dépli, sans quoi le contenu déborderait à pleine taille de sa piste encore fermée. */
   .cibles-volet {
     transition: grid-template-rows var(--fondu-depli) var(--courbe),
