@@ -10,6 +10,8 @@ import { K } from '../src/registry/constants.ts'
 import { R } from '../src/registry/relief.ts'
 import {
   courbesNiveau,
+  creteFine,
+  silhouettes,
   elevationApparenteDeg,
   pointA,
   profilRelief,
@@ -189,6 +191,78 @@ describe('courbes de niveau vues depuis le site (T-0395)', () => {
 
   it('rend null sans altitude au site', () => {
     expect(courbesNiveau(() => null, SITE.latDeg, SITE.lonDeg)).toBeNull()
+  })
+
+  describe('crête fine pour le dessin (T-0438)', () => {
+    /** Un pic étroit plein sud, décalé d'un demi-degré : il tombe entre deux azimuts entiers. */
+    const pic = (lat: number, lon: number): number => {
+      const sud = versLeSud(lat)
+      const est = (lon - SITE.lonDeg) * RAD * RAYON_TERRE_M * Math.cos(SITE.latDeg * RAD)
+      const largeurM = 20
+      const axe = -Math.tan(0.5 * RAD) * sud
+      return sud > 5000 && sud < 5200 && Math.abs(est - axe) < largeurM ? sol + denivele : sol
+    }
+
+    it('voit un pic que le masque au degré manque', () => {
+      const parDeg = 1 / R('PAS_AZIMUT_CRETE_DEG')
+      const crete = creteFine(pic, SITE.latDeg, SITE.lonDeg)!
+      const masque = profilRelief(pic, SITE.latDeg, SITE.lonDeg)!
+      expect(crete).toHaveLength(360 * parDeg)
+      expect(Math.max(...crete)).toBeGreaterThan(Math.max(...masque) + 1)
+    })
+
+    it('dessine la rive d’en face sous l’horizontale, là où le masque reste à 0°', () => {
+      // Une plaine au niveau du sol : la courbure la fait plonger sous l'horizontale de l'œil.
+      const plaine = (): number => sol
+      const crete = creteFine(plaine, SITE.latDeg, SITE.lonDeg)!
+      const masque = profilRelief(plaine, SITE.latDeg, SITE.lonDeg)!
+      expect(Math.max(...crete)).toBeLessThan(0)
+      expect(Math.min(...masque)).toBe(0)
+    })
+
+    it('rend null sans altitude au site', () => {
+      expect(creteFine(() => null, SITE.latDeg, SITE.lonDeg)).toBeNull()
+    })
+  })
+
+  describe('lignes de silhouette (T-0438)', () => {
+    const butteM = R('EQUIDISTANCE_COURBES_M') * 2
+    const montagneM = R('EQUIDISTANCE_COURBES_M') * 40
+    /** Une butte basse et proche au sud, devant une montagne lointaine qui la dépasse. */
+    const etage = (s: number): number => {
+      if (s >= 1500 && s <= 2500) return sol + butteM
+      if (s > dernierM / 3) return sol + montagneM * ((s - dernierM / 3) / (dernierM * (2 / 3)))
+      return sol
+    }
+
+    it('ne trace rien sur une plaine', () => {
+      expect(silhouettes(() => sol, SITE.latDeg, SITE.lonDeg)).toHaveLength(0)
+    })
+
+    it('trace le bord d’une butte devant la montagne qu’elle cache', () => {
+      const bords = silhouettes((lat) => etage(versLeSud(lat)), SITE.latDeg, SITE.lonDeg)!
+      const auSud = dansLeSecteur(bords, 170, 190)
+      expect(auSud.length).toBeGreaterThan(0)
+      // Vue d'en bas, une butte à sommet plat se borde de son rebord avant, au pas radial près.
+      const pas = R('PAS_RADIAL_RELIEF_M')
+      const haut = attendueDeg(butteM - R('HAUTEUR_OEIL_M'), 1500)
+      const bas = attendueDeg(butteM - R('HAUTEUR_OEIL_M'), 1500 + pas)
+      for (const s of auSud) {
+        expect(s[1]!).toBeGreaterThanOrEqual(bas - 1e-3)
+        expect(s[1]!).toBeLessThanOrEqual(haut + 1e-3)
+      }
+      // Au nord, ni butte ni montagne : rien ne se cache.
+      expect(dansLeSecteur(bords, 0, 10)).toHaveLength(0)
+    })
+
+    it('ne reprend pas la crête de l’horizon, que le sol trace déjà', () => {
+      // Le versant seul ne cache rien derrière lui : son sommet est la crête, pas une silhouette.
+      expect(silhouettes((lat) => versant(versLeSud(lat)), SITE.latDeg, SITE.lonDeg)).toHaveLength(0)
+    })
+
+    it('rend null sans altitude au site', () => {
+      expect(silhouettes(() => null, SITE.latDeg, SITE.lonDeg)).toBeNull()
+    })
   })
 
   it('enchaîne chaque courbe en une seule ligne au lieu de segments épars', () => {

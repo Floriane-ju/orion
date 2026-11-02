@@ -21,7 +21,7 @@ import { DOMAINES } from '../registry/domains.ts'
 import { R } from '../registry/relief.ts'
 import { DEG, versVecteur, type Vec3 } from './mat3.ts'
 import { NB_AZIMUTS } from './site.ts'
-import { TOUR_DEG } from './unites.ts'
+import { ecartCourt, ramene, TOUR_DEG } from './unites.ts'
 
 const M_PAR_KM = 1000
 
@@ -66,6 +66,37 @@ export function profilRelief(
   latDeg: number,
   lonDeg: number,
 ): readonly number[] | null {
+  const profil = profilSurAzimuts(
+    altitude,
+    latDeg,
+    lonDeg,
+    NB_AZIMUTS,
+    DOMAINES.masque_horizon_deg.min,
+  )
+  return profil === null ? null : Array.from(profil)
+}
+
+/**
+ * T-0438 — le même profil au pas de `PAS_AZIMUT_CRETE_DEG`, pour dessiner la crête : au degré,
+ * un sommet lointain tombe entre deux azimuts et se dessine écrêté, en triangle.
+ *
+ * Sans le plancher du masque : au-dessus d'un lac ou d'une plaine, la rive d'en face est sous
+ * l'horizontale, et ramenée à 0° sa forme disparaissait derrière un trait plat. Le plancher
+ * vaut pour les créneaux, pas pour le dessin.
+ */
+export function creteFine(altitude: Altimetre, latDeg: number, lonDeg: number): Float32Array | null {
+  const nbAz = Math.round(NB_AZIMUTS / R('PAS_AZIMUT_CRETE_DEG'))
+  const profil = profilSurAzimuts(altitude, latDeg, lonDeg, nbAz, -Infinity)
+  return profil === null ? null : Float32Array.from(profil)
+}
+
+function profilSurAzimuts(
+  altitude: Altimetre,
+  latDeg: number,
+  lonDeg: number,
+  nbAz: number,
+  plancherDeg: number,
+): Float64Array | null {
   const sol = altitude(latDeg, lonDeg)
   if (sol === null) return null
   const oeilM = sol + R('HAUTEUR_OEIL_M')
@@ -74,9 +105,10 @@ export function profilRelief(
   // Le champ proche est laissé au relevé : le bruit du modèle y invente des secteurs entiers.
   const premierPas = Math.max(1, Math.ceil(R('DISTANCE_MIN_RELIEF_M') / pas))
   const { min, max } = DOMAINES.masque_horizon_deg
-
-  return Array.from({ length: NB_AZIMUTS }, (_, azimut) => {
-    let haut = min
+  const profil = new Float64Array(nbAz)
+  for (let a = 0; a < nbAz; a++) {
+    const azimut = (a * TOUR_DEG) / nbAz
+    let haut = plancherDeg
     for (let rang = premierPas; rang <= nbPas; rang++) {
       const d = rang * pas
       const point = pointA(latDeg, lonDeg, azimut, d)
@@ -84,8 +116,10 @@ export function profilRelief(
       if (h === null) continue
       haut = Math.max(haut, elevationApparenteDeg(h - oeilM, d))
     }
-    return Math.min(haut, max)
-  })
+    // Un azimut sans aucune altitude lue n'a rien à dessiner sous l'horizontale.
+    profil[a] = Math.min(haut === -Infinity ? min : haut, max)
+  }
+  return profil
 }
 
 /**
@@ -150,13 +184,51 @@ export function courbesNiveau(
     const az = ((Math.atan2(est, nord) / DEG) % TOUR_DEG + TOUR_DEG) % TOUR_DEG
     return [az, elevationApparenteDeg(niveau - oeilM, d), d]
   }
+  // T-0438 — une coupe née au milieu d'un segment, là où il passe derrière le relief, n'a pas
+  // d'arête de grille pour la nommer : elle prend une clé négative, qu'aucune maille ne reprend.
+  let cleLibre = -1
+  const pasEchantillonDeg = R('PAS_AZIMUT_COURBES_DEG') / 2
+  /**
+   * T-0438 — le masquage se décide par morceau, pas par segment. À 10 km, une maille de 100 m
+   * couvre un demi-degré d'azimut : décidé sur son seul milieu, un segment à cheval sur le
+   * bord d'une arête passait tout entier devant elle, et les courbes croisaient les silhouettes.
+   */
   const segment = (p: Coupe, q: Coupe, niveau: number): void => {
     const [azP, eP, dP] = vers(p.est, p.nord, niveau)
     const [azQ, eQ, dQ] = vers(q.est, q.nord, niveau)
     if (Math.min(dP, dQ) < minM || Math.max(dP, dQ) > rayonM) return
-    const [azM, eM, dM] = vers((p.est + q.est) / 2, (p.nord + q.nord) / 2, niveau)
-    if (eM < devant(azM, dM)) return
-    lignes.relie(p.cle, azP, eP, q.cle, azQ, eQ)
+    const ecartAz = Math.abs(ecartCourt(azP, azQ, TOUR_DEG))
+    const n = Math.max(1, Math.ceil(ecartAz / pasEchantillonDeg))
+    const en = (t: number): readonly [number, number, number] =>
+      vers(p.est + t * (q.est - p.est), p.nord + t * (q.nord - p.nord), niveau)
+    const visible = (k: number): boolean => {
+      const [az, e, d] = en((2 * k + 1) / (2 * n))
+      return e >= devant(az, d)
+    }
+    // Tous les points du découpage, et non les seuls bouts : tout près du site, une maille
+    // couvre plusieurs degrés, et sa corde tirée droite coupait l'arc qu'elle remplace.
+    // `simplifieLigne` retire ensuite ceux qui sont alignés.
+    const relieMorceau = (de: number, a: number): void => {
+      let cleA = de === 0 ? p.cle : cleLibre--
+      let [azA, eA] = de === 0 ? [azP, eP] : en(de / n)
+      for (let k = de + 1; k <= a; k++) {
+        const cleB = k === n ? q.cle : cleLibre--
+        const [azB, eB] = k === n ? [azQ, eQ] : en(k / n)
+        lignes.relie(cleA, azA, eA, cleB, azB, eB)
+        cleA = cleB
+        azA = azB
+        eA = eB
+      }
+    }
+    let debut = -1
+    for (let k = 0; k <= n; k++) {
+      const vu = k < n && visible(k)
+      if (vu && debut < 0) debut = k
+      if (!vu && debut >= 0) {
+        relieMorceau(debut, k)
+        debut = -1
+      }
+    }
   }
 
   for (let j = 0; j + 1 < cote; j++) {
@@ -198,6 +270,96 @@ export function courbesNiveau(
   return lignes.polylignes(R('TOLERANCE_COURBES_DEG'), R('CORDE_MAX_COURBES_DEG'))
 }
 
+/**
+ * T-0438 — les lignes de silhouette : le bord d'un relief proche qui cache un terrain plus
+ * lointain, au même format que les courbes. Ce sont elles qui détachent un versant de celui
+ * qu'il masque — les courbes de niveau, qui suivent une altitude, s'y fondent.
+ *
+ * Le long de chaque azimut, un point est le bord d'une silhouette quand il se voit et que le
+ * suivant ne se voit plus. Le dernier bord d'un azimut — rien ne se voit derrière — est la
+ * crête de l'horizon : le sol la trace déjà de son contour, elle n'est pas reprise ici.
+ *
+ * Les bords d'azimuts voisins se raboutent quand leurs distances sont proches : un bord isolé,
+ * ou une chaîne plus courte que `ETENDUE_MIN_SILHOUETTE_DEG`, n'est pas une arête mais un
+ * accident du modèle, et ne se trace pas.
+ */
+export function silhouettes(
+  altitude: Altimetre,
+  latDeg: number,
+  lonDeg: number,
+): Float32Array | null {
+  const sol = altitude(latDeg, lonDeg)
+  if (sol === null) return null
+  const oeilM = sol + R('HAUTEUR_OEIL_M')
+  const pas = R('PAS_RADIAL_RELIEF_M')
+  const nbRangs = Math.floor((R('RAYON_RELIEF_KM') * M_PAR_KM) / pas) + 1
+  const premier = Math.max(1, Math.ceil(R('DISTANCE_MIN_RELIEF_M') / pas))
+  const profondeurMin = Math.ceil(R('PROFONDEUR_MIN_SILHOUETTE_M') / pas)
+  const ecart = R('ECART_RACCORD_SILHOUETTE')
+  const parDeg = 1 / R('PAS_AZIMUT_COURBES_DEG')
+  const nbAz = Math.round(NB_AZIMUTS * parDeg)
+
+  // Par azimut, les bords : leur rang radial et leur hauteur apparente.
+  const bords: { readonly rang: number; readonly e: number }[][] = []
+  for (let a = 0; a < nbAz; a++) {
+    const e = new Float64Array(nbRangs).fill(Number.NaN)
+    for (let r = premier; r < nbRangs; r++) {
+      const point = pointA(latDeg, lonDeg, a / parDeg, r * pas)
+      const h = altitude(point.latDeg, point.lonDeg)
+      if (h !== null) e[r] = elevationApparenteDeg(h - oeilM, r * pas)
+    }
+    const ici: { rang: number; e: number }[] = []
+    let haut = -Infinity
+    let bord: { rang: number; e: number } | null = null
+    let caches = 0
+    for (let r = premier; r < nbRangs; r++) {
+      const er = e[r]!
+      // Un trou du modèle ne cache rien et ne montre rien : il ne compte pas.
+      if (Number.isNaN(er)) continue
+      if (er >= haut) {
+        if (bord !== null && caches >= profondeurMin) ici.push(bord)
+        haut = er
+        bord = { rang: r, e: er }
+        caches = 0
+      } else {
+        caches++
+      }
+    }
+    bords.push(ici)
+  }
+
+  const lignes = raccords()
+  const cle = (a: number, rang: number): number => a * nbRangs + rang
+  for (let a = 0; a < nbAz; a++) {
+    const b = (a + 1) % nbAz
+    // T-0438 — les bords d'un azimut sont rangés du plus proche au plus lointain, qui est aussi
+    // le plus haut : un raccord qui inverserait cet ordre croiserait deux silhouettes, ce
+    // qu'aucun relief ne montre. Chaque bord ne cherche donc qu'au-delà du dernier pris.
+    const suivants = bords[b]!
+    let dernierPris = -1
+    for (const p of bords[a]!) {
+      // Parmi les bords à distance compatible, celui dont la hauteur continue le trait : au
+      // plus proche en distance, un trait sautait d'une arête à sa voisine là où plusieurs
+      // se resserrent, et dessinait un X.
+      let meilleur = -1
+      for (let j = dernierPris + 1; j < suivants.length; j++) {
+        const q = suivants[j]!
+        if (Math.abs(q.rang - p.rang) > ecart * p.rang) continue
+        if (meilleur < 0 || Math.abs(q.e - p.e) < Math.abs(suivants[meilleur]!.e - p.e)) meilleur = j
+      }
+      if (meilleur < 0) continue
+      dernierPris = meilleur
+      const q = suivants[meilleur]!
+      lignes.relie(cle(a, p.rang), a / parDeg, p.e, cle(b, q.rang), b / parDeg, q.e)
+    }
+  }
+  return lignes.polylignes(
+    R('TOLERANCE_COURBES_DEG'),
+    R('CORDE_MAX_COURBES_DEG'),
+    Math.ceil(R('ETENDUE_MIN_SILHOUETTE_DEG') * parDeg) + 1,
+  )
+}
+
 /** Le point où une courbe traverse une arête de la grille, en mètres vers l'est et le nord. */
 interface Coupe {
   readonly cle: number
@@ -212,7 +374,7 @@ interface Coupe {
  */
 function raccords(): {
   relie(p: number, azP: number, eP: number, q: number, azQ: number, eQ: number): void
-  polylignes(toleranceDeg: number, cordeMaxDeg: number): Float32Array
+  polylignes(toleranceDeg: number, cordeMaxDeg: number, minPoints?: number): Float32Array
 } {
   const points = new Map<number, readonly [number, number]>()
   const voisins = new Map<number, number[]>()
@@ -247,9 +409,10 @@ function raccords(): {
       voisinsDe(p).push(q)
       voisinsDe(q).push(p)
     },
-    polylignes(toleranceDeg, cordeMaxDeg) {
+    polylignes(toleranceDeg, cordeMaxDeg, minPoints = 2) {
       const sortie: number[] = []
       const emet = (cles: readonly number[]): void => {
+        if (cles.length < minPoints) return
         const ligne = cles.map((c) => points.get(c)!)
         const gardes = simplifieLigne(
           ligne.map(([az, e]) => versVecteur(az, e)),
@@ -367,9 +530,18 @@ function horizonDevant(
       if (h !== null) haut = Math.max(haut, elevationApparenteDeg(h - oeilM, r * pas))
     }
   }
+  // T-0438 — interpolé entre les deux azimuts voisins, et non lu au plus proche : sur une arête
+  // vue de biais, l'horizon devant change d'un demi-degré en un demi-degré d'azimut, et la
+  // courbe qui passe derrière l'arête se voyait encore sur son premier segment — un trait
+  // court qui pendait de la crête.
   return (azDeg, distanceM) => {
-    const a = Math.round(azDeg * parDeg) % nbAz
     const r = Math.min(nbRangs - 1, Math.floor(distanceM / pas) - 1)
-    return r < 0 ? -Infinity : (table[a * nbRangs + r] ?? -Infinity)
+    if (r < 0) return -Infinity
+    const x = ramene(azDeg, TOUR_DEG) * parDeg
+    const a = Math.floor(x)
+    const avant = table[(a % nbAz) * nbRangs + r] ?? -Infinity
+    const apres = table[((a + 1) % nbAz) * nbRangs + r] ?? -Infinity
+    if (avant === -Infinity || apres === -Infinity) return Math.max(avant, apres)
+    return avant + (apres - avant) * (x - a)
   }
 }

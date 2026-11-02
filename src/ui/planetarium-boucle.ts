@@ -416,7 +416,14 @@ export function useBoucleRendu(entree: {
       const masque =
         horizon === courant.masque.altitudesDeg
           ? courant.masque
-          : { ...courant.masque, altitudesDeg: horizon, courbesDeg: COURBES_VIDES }
+          : {
+              ...courant.masque,
+              altitudesDeg: horizon,
+              courbesDeg: COURBES_VIDES,
+              silhouettesDeg: COURBES_VIDES,
+              // Une crête fine vide rend la main à l'horizon interpolé de la transition.
+              creteDeg: COURBES_VIDES,
+            }
       // T-0399 — en Panorama, la Lune file sur toute la prise de vue, comme les étoiles.
       const dureeMs = params === null ? 0 : params.dureeS * MS_PAR_S
       const trajet =

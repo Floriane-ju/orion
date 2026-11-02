@@ -10,7 +10,7 @@
  * moteur consomme, et il pèse trois kilo-octets là où ses tuiles en pèsent mille cinq cents.
  */
 
-import { courbesNiveau, profilRelief, type Altimetre } from '../core/relief.ts'
+import { courbesNiveau, creteFine, profilRelief, silhouettes, type Altimetre } from '../core/relief.ts'
 import { masqueDepuisRelief } from '../core/site.ts'
 import { DEG } from '../core/mat3.ts'
 import {
@@ -30,6 +30,10 @@ export interface ReliefConnu {
   readonly solM: number
   /** T-0395 — les courbes de niveau visibles (voir `courbesNiveau`) ; absentes d'un ancien cache. */
   readonly courbesDeg?: Float32Array
+  /** T-0438 — les lignes de silhouette (voir `silhouettes`), tracées avec les courbes. */
+  readonly silhouettesDeg?: Float32Array
+  /** T-0438 — la crête au pas fin (voir `creteFine`), pour le dessin du sol. */
+  readonly creteDeg?: Float32Array
   /** Ce qui les a tracées — algorithme et équidistance : une autre signature les fait refaire. */
   readonly signatureCourbes?: string
 }
@@ -188,11 +192,20 @@ async function depuisReseau(
     return { etat: 'INDISPONIBLE', cause: CAUSE_INVALIDE }
   }
   const courbes = courbesNiveau(altitude, latDeg, lonDeg)
+  const bords = silhouettes(altitude, latDeg, lonDeg)
+  const crete = creteFine(altitude, latDeg, lonDeg)
   return {
     etat: 'RELIEF',
     altitudesDeg: profil,
     solM,
-    ...(courbes === null ? {} : { courbesDeg: courbes, signatureCourbes: signatureCourbes() }),
+    ...(courbes === null || bords === null || crete === null
+      ? {}
+      : {
+          courbesDeg: courbes,
+          silhouettesDeg: bords,
+          creteDeg: crete,
+          signatureCourbes: signatureCourbes(),
+        }),
   }
 }
 
@@ -213,7 +226,7 @@ function dansLeDomaine(profil: readonly number[]): boolean {
  * T-0395 — version du calcul des courbes, à monter quand `courbesNiveau` change. Elle ne touche
  * pas la clé du cache : hors réseau, un site déjà visité garde son masque.
  */
-const VERSION_COURBES = 3
+const VERSION_COURBES = 10
 
 export function signatureCourbes(): string {
   return [
@@ -222,6 +235,10 @@ export function signatureCourbes(): string {
     R('PAS_AZIMUT_COURBES_DEG'),
     R('TOLERANCE_COURBES_DEG'),
     R('CORDE_MAX_COURBES_DEG'),
+    R('PROFONDEUR_MIN_SILHOUETTE_M'),
+    R('ECART_RACCORD_SILHOUETTE'),
+    R('ETENDUE_MIN_SILHOUETTE_DEG'),
+    R('PAS_AZIMUT_CRETE_DEG'),
   ].join(':')
 }
 

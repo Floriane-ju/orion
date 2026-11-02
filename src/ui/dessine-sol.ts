@@ -14,13 +14,10 @@ import { versVecteur, type Mat3, type Vec3 } from '../core/mat3.ts'
 import { pointEcran, type Projecteur } from '../core/projection.ts'
 import type { MasqueHorizon } from '../core/site.ts'
 import { sousLeSol } from '../core/sol.ts'
-import {
-  frontiereEcran,
-  remplitRegion,
-  type FrontiereEcran,
-} from './balayage-ecran.ts'
+import { frontiereEcran, remplitRegion, type FrontiereEcran } from './balayage-ecran.ts'
 import { champVisible, horsDuChamp, type ChampVisible } from './champ-visible.ts'
 import { calotte } from './traces-ciel.ts'
+import { TOUR_DEG } from '../core/unites.ts'
 
 /**
  * La clé d'une frontière : la visée et rien d'autre. Le sol est fixe dans le repère du site —
@@ -152,28 +149,67 @@ function traceCourbes(
   ctx.stroke()
 }
 
+const cretesMemo = new WeakMap<object, Float32Array>()
+
+/** Une polyligne de crête couvre au plus ce secteur : hors du champ, elle s'écarte d'un bloc. */
+const SECTEUR_CRETE_DEG = 10
+
 /**
- * Peint le sol, puis ses courbes de niveau.
+ * T-0438 — la crête en polylignes, au pas du profil qu'elle suit : la crête fine quand le
+ * relief la porte, le masque au degré sinon. Le sol interpole ce même profil linéairement
+ * (`obstructionDessinDeg`) : le trait suit exactement son bord. Les segments du balayage
+ * d'écran, eux, ne font que quelques pixels chacun : tracés un à un, leurs jonctions
+ * s'antialiasent en perles, et la crête paraissait pointillée.
  *
- * T-0395 — la crête n'est plus soulignée d'un trait : les courbes de niveau dessinent déjà le
- * relief, et un liseré plus clair au sommet les coiffait d'une ligne qui ne suit aucune
- * altitude. Les courbes se tracent seules, sans balayage d'écran : ce qu'un relief plus proche
- * cache est déjà retiré dans le repère du site (`courbesNiveau`).
+ * Coupée en secteurs, pour que le tour d'horizon ne se projette pas en entier à chaque image.
+ */
+function crete(masque: MasqueHorizon): Float32Array {
+  const fine = masque.creteDeg
+  const profil: ArrayLike<number> =
+    fine !== undefined && fine.length > 0 ? fine : masque.altitudesDeg
+  const connue = cretesMemo.get(profil)
+  if (connue !== undefined) return connue
+  const n = profil.length
+  const parSecteur = Math.max(1, Math.round((n * SECTEUR_CRETE_DEG) / TOUR_DEG))
+  const points: number[] = []
+  for (let k = 0; k <= n; k++) {
+    // Un point de coupe appartient aux deux secteurs : il les raccorde sans trou.
+    if (k > 0 && k % parSecteur === 0 && k < n) {
+      points.push((k * TOUR_DEG) / n, profil[k % n]!, Number.NaN, Number.NaN)
+    }
+    points.push((k * TOUR_DEG) / n, profil[k % n]!)
+  }
+  const polylignes = Float32Array.from(points)
+  cretesMemo.set(profil, polylignes)
+  return polylignes
+}
+
+/**
+ * Peint le sol, puis ses courbes de niveau, ses silhouettes et sa crête.
+ *
+ * T-0395 avait retiré le trait de crête : les courbes devaient suffire à dessiner le relief.
+ * T-0438 le rétablit, avec les silhouettes : sur un site alpin, les courbes pâles se fondent
+ * d'un versant à celui qu'il cache, et le sol ne se détache plus du ciel. Les courbes se tracent
+ * sans balayage d'écran : ce qu'un relief plus proche cache est déjà retiré dans le repère du
+ * site (`courbesNiveau`, `silhouettes`).
  */
 export function dessineSol(
   ctx: CanvasRenderingContext2D,
   projecteur: Projecteur,
   matriceCiel: Mat3,
   masque: MasqueHorizon,
-  couleurs: { readonly sol: string; readonly courbes: string },
+  couleurs: { readonly sol: string; readonly courbes: string; readonly bords: string },
 ): void {
   const cle = cleVue(projecteur)
   if (dernier === null || dernier.cle !== cle || dernier.masque !== masque) {
     dernier = { cle, masque, frontiere: frontiereEcran(projecteur, sousLeSol(masque, matriceCiel)) }
   }
-  const { frontiere } = dernier
-  remplitRegion(ctx, frontiere, couleurs.sol)
+  remplitRegion(ctx, dernier.frontiere, couleurs.sol)
   if (masque.courbesDeg !== undefined && masque.courbesDeg.length > 0) {
     traceCourbes(ctx, projecteur, matriceCiel, masque.courbesDeg, couleurs.courbes)
   }
+  if (masque.silhouettesDeg !== undefined && masque.silhouettesDeg.length > 0) {
+    traceCourbes(ctx, projecteur, matriceCiel, masque.silhouettesDeg, couleurs.bords)
+  }
+  traceCourbes(ctx, projecteur, matriceCiel, crete(masque), couleurs.bords)
 }

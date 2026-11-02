@@ -18,7 +18,7 @@
  */
 
 import { DEG, type Mat3, type Vec3 } from './mat3.ts'
-import { obstructionDeg, type MasqueHorizon } from './site.ts'
+import { obstructionDessinDeg, type MasqueHorizon } from './site.ts'
 import { pointEcran, type PointEcran, type Projecteur } from './projection.ts'
 
 /** Prédicat d'une image : la direction J2000 est-elle sous le sol du site ? */
@@ -41,7 +41,7 @@ export function sousLeSol(masque: MasqueHorizon, matriceCiel: Mat3): TestSol {
     const haut = m31 * x + m32 * y + m33 * z
     const nord = m11 * x + m12 * y + m13 * z
     const est = m21 * x + m22 * y + m23 * z
-    const obstruction = obstructionDeg(masque, Math.atan2(est, nord) / DEG)
+    const obstruction = obstructionDessinDeg(masque, Math.atan2(est, nord) / DEG)
     if (obstruction === 0) return haut < 0
     // Comparaison des sinus plutôt que des angles : elle évite l'arc sinus, et vaut pour une
     // direction de norme quelconque — la matrice de ciel est une rotation, la norme se lit

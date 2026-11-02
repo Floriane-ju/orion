@@ -301,7 +301,7 @@ export function cleRelief(latDeg: number, lonDeg: number): string {
 export async function litRelief(cle: string): Promise<ReliefConnu | null> {
   const brut: unknown = await (await db()).get('reglages', cle)
   if (typeof brut !== 'object' || brut === null) return null
-  const { profil, solM, courbes, signatureCourbes } = brut as Record<string, unknown>
+  const { profil, solM, courbes, silhouettes, crete, signatureCourbes } = brut as Record<string, unknown>
   if (!estProfil(profil)) return null
   if (typeof solM !== 'number' || !Number.isFinite(solM)) return null
   // T-0395 — des courbes illisibles ne coûtent que les courbes : le masque, lui, est valide.
@@ -309,7 +309,14 @@ export async function litRelief(cle: string): Promise<ReliefConnu | null> {
     courbes instanceof Float32Array &&
     courbes.length % 2 === 0 &&
     typeof signatureCourbes === 'string'
-      ? { courbesDeg: courbes, signatureCourbes }
+      ? {
+          courbesDeg: courbes,
+          signatureCourbes,
+          ...(silhouettes instanceof Float32Array && silhouettes.length % 2 === 0
+            ? { silhouettesDeg: silhouettes }
+            : {}),
+          ...(crete instanceof Float32Array && crete.length > 0 ? { creteDeg: crete } : {}),
+        }
       : {}
   return { etat: 'RELIEF', altitudesDeg: profil, solM, ...courbesLues }
 }
@@ -330,7 +337,12 @@ export async function ecritRelief(cle: string, relief: ReliefConnu): Promise<voi
       solM: relief.solM,
       ...(relief.courbesDeg === undefined
         ? {}
-        : { courbes: relief.courbesDeg, signatureCourbes: relief.signatureCourbes }),
+        : {
+            courbes: relief.courbesDeg,
+            signatureCourbes: relief.signatureCourbes,
+            ...(relief.silhouettesDeg === undefined ? {} : { silhouettes: relief.silhouettesDeg }),
+            ...(relief.creteDeg === undefined ? {} : { crete: relief.creteDeg }),
+          }),
     },
     cle,
   )

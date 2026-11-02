@@ -70,7 +70,12 @@ export function masqueDuRelief(relief: ReliefSite | null): MasqueHorizon {
   )
   return relief.courbesDeg === undefined
     ? masque
-    : Object.freeze({ ...masque, courbesDeg: relief.courbesDeg })
+    : Object.freeze({
+        ...masque,
+        courbesDeg: relief.courbesDeg,
+        ...(relief.silhouettesDeg === undefined ? {} : { silhouettesDeg: relief.silhouettesDeg }),
+        ...(relief.creteDeg === undefined ? {} : { creteDeg: relief.creteDeg }),
+      })
 }
 
 /**

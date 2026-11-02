@@ -157,6 +157,53 @@ const RELIEF = Object.freeze({
     tolerance: 'sans objet — aucun calcul de visibilité n’en dépend',
   }),
 
+  /**
+   * T-0438 — une ligne de silhouette — le bord d'un relief proche devant un terrain qu'il
+   * cache — ne se trace que si ce qu'elle cache est assez profond. Sous un kilomètre, c'est
+   * une ondulation du versant, ou le bruit du modèle : chaque pli en ferait un trait.
+   */
+  PROFONDEUR_MIN_SILHOUETTE_M: valeur({
+    valeur: 1000,
+    unite: 'm',
+    source: 'convention de dessin — dix pas radiaux, au-delà du bruit d’un pixel de tuile',
+    tolerance: 'sans objet — aucun calcul de visibilité n’en dépend',
+  }),
+
+  /**
+   * T-0438 — deux points de silhouette d'azimuts voisins appartiennent à la même arête quand
+   * leurs distances diffèrent de moins de cette fraction. Au-delà, ce sont deux reliefs
+   * étagés : les relier tirerait un trait d'une crête à l'autre en travers du vide.
+   */
+  ECART_RACCORD_SILHOUETTE: valeur({
+    valeur: 0.1,
+    unite: '—',
+    source: 'convention de dessin — 1 km d’écart toléré à 10 km',
+    tolerance: 'sans objet — aucun calcul de visibilité n’en dépend',
+  }),
+
+  /**
+   * T-0438 — pas d'azimut de la crête DESSINÉE. Au degré du masque, un sommet à 20 km sous
+   * 23° de champ tenait en un triangle de 90 px de base ; au dixième, ses arêtes tombent sous
+   * la dizaine de pixels. Le masque de calcul reste au degré (§4.1).
+   */
+  PAS_AZIMUT_CRETE_DEG: valeur({
+    valeur: 0.1,
+    unite: '°',
+    source: 'convention de dessin — 35 m à 20 km, sous le pas radial des tuiles',
+    tolerance: 'sans objet — aucun calcul de visibilité n’en dépend',
+  }),
+
+  /**
+   * T-0438 — l'étendue en azimut sous laquelle une silhouette ne se trace pas. Plus courte,
+   * c'est un bout d'arête que le modèle n'a raccordé à rien : un tiret isolé sur le versant.
+   */
+  ETENDUE_MIN_SILHOUETTE_DEG: valeur({
+    valeur: 2,
+    unite: '°',
+    source: 'convention de dessin — quatre pas de PAS_AZIMUT_COURBES_DEG',
+    tolerance: 'sans objet — aucun calcul de visibilité n’en dépend',
+  }),
+
   /** L'œil — ou l'objectif sur trépied — au-dessus du sol que le modèle de terrain décrit. */
   HAUTEUR_OEIL_M: valeur({
     valeur: 1.6,

@@ -22,10 +22,15 @@ const VUE: Vue = {
   rotationDeg: 0,
 }
 
-/** Les ordres du dernier chemin tracé — celui des courbes : le sol, lui, se remplit. */
-function contexte(): { ctx: CanvasRenderingContext2D; trace: () => { moveTo: number; lineTo: number } } {
+/** Les ordres du dernier chemin tracé à cette teinte : le sol, lui, se remplit. */
+function contexte(teinte = 'courbes'): {
+  ctx: CanvasRenderingContext2D
+  trace: () => { moveTo: number; lineTo: number }
+  traces: () => readonly { moveTo: number; lineTo: number }[]
+} {
   let courant = { moveTo: 0, lineTo: 0 }
   let trace = { moveTo: 0, lineTo: 0 }
+  const traces: { moveTo: number; lineTo: number }[] = []
   const rien = (): void => undefined
   const ctx = {
     fillStyle: '',
@@ -43,10 +48,12 @@ function contexte(): { ctx: CanvasRenderingContext2D; trace: () => { moveTo: num
     closePath: rien,
     fill: rien,
     stroke: () => {
+      if (ctx.strokeStyle !== teinte) return
       trace = courant
+      traces.push(courant)
     },
   } as unknown as CanvasRenderingContext2D
-  return { ctx, trace: () => trace }
+  return { ctx, trace: () => trace, traces: () => traces }
 }
 
 /** Une polyligne au ras du sol, d'un azimut à l'autre, au degré. */
@@ -55,6 +62,8 @@ function ligne(deDeg: number, aDeg: number): number[] {
   for (let az = deDeg; az <= aDeg; az++) points.push((az + 360) % 360, -1)
   return points
 }
+
+const TEINTES = { sol: 'sol', courbes: 'courbes', bords: 'bords' }
 
 function trace(...lignes: number[][]): { moveTo: number; lineTo: number; projections: number } {
   const courbesDeg = Float32Array.from(
@@ -66,15 +75,16 @@ function trace(...lignes: number[][]): { moveTo: number; lineTo: number; project
   const compte = {
     ...brut,
     projetteEn: (...args: Parameters<typeof brut.projetteEn>) => {
-      projections++
+      // La crête se projette aussi : seules comptent les projections des courbes.
+      if (ctx.strokeStyle === 'courbes') projections++
       return brut.projetteEn(...args)
     },
   }
   // Le sol se peint d'abord, avec ses propres projections : seules celles des courbes comptent.
   const masque = { ...masquePlat(), courbesDeg }
-  dessineSol(ctx, compte, IDENTITE, masque, { sol: 'sol', courbes: 'courbes' })
+  dessineSol(ctx, compte, IDENTITE, masque, TEINTES)
   projections = 0
-  dessineSol(ctx, compte, IDENTITE, masque, { sol: 'sol', courbes: 'courbes' })
+  dessineSol(ctx, compte, IDENTITE, masque, TEINTES)
   return { ...trace(), projections }
 }
 
@@ -94,5 +104,26 @@ describe('courbes de niveau tracées sur le sol (T-0397)', () => {
       lineTo: 20,
       projections: 21,
     })
+  })
+})
+
+describe('crête et silhouettes tracées sur le sol (T-0438)', () => {
+  it('souligne le bord du sol de traits continus, sans le hacher en segments d’écran', () => {
+    const { ctx, trace } = contexte('bords')
+    dessineSol(ctx, projecteur(VUE, IDENTITE), IDENTITE, masquePlat(), TEINTES)
+    // Un sous-chemin par secteur de crête dans le champ, et au moins un segment par degré.
+    expect(trace().moveTo).toBeLessThanOrEqual(Math.ceil(VUE.fovDeg / 10) + 2)
+    expect(trace().lineTo).toBeGreaterThanOrEqual(VUE.fovDeg)
+  })
+
+  it('trace les silhouettes à la teinte des bords', () => {
+    const haute = { ...VUE, hauteurDeg: 60 }
+    const silhouettesDeg = Float32Array.from(
+      ligne(170, 190).map((v, i) => (i % 2 === 1 ? haute.hauteurDeg : v)),
+    )
+    const { ctx, traces } = contexte('bords')
+    dessineSol(ctx, projecteur(haute, IDENTITE), IDENTITE, { ...masquePlat(), silhouettesDeg }, TEINTES)
+    // Les silhouettes d'abord, la crête ensuite.
+    expect(traces()[0]).toEqual({ moveTo: 1, lineTo: 20 })
   })
 })

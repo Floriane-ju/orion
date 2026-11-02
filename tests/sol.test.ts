@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { cielInstantane } from '../src/core/horloges.ts'
-import { applique, transpose, versSpherique, versVecteur, type Vec3 } from '../src/core/mat3.ts'
+import { applique, IDENTITE, transpose, versSpherique, versVecteur, type Vec3 } from '../src/core/mat3.ts'
 import { pointEcran, projecteur, type Vue } from '../src/core/projection.ts'
 import { masqueDepuisPoints, masquePlat, obstructionDeg } from '../src/core/site.ts'
 import { projecteurSansSol, sousLeSol } from '../src/core/sol.ts'
@@ -116,5 +116,21 @@ describe('projecteur aveugle au sol — §3.3', () => {
     const basX = VUE.largeurPx / 2
     const basY = VUE.hauteurPx - 1
     expect(filtre.inverse(basX, basY)).toEqual(base.inverse(basX, basY))
+  })
+})
+
+describe('sol dessiné sur la crête fine (T-0438)', () => {
+  it('cache sous un pic que la crête fine voit et que le masque au degré manque', () => {
+    const masque = { ...masquePlat(), estHypothese: false }
+    const parDeg = 10
+    const pic = 5
+    // Un pic à mi-chemin entre deux degrés entiers : le masque, nul, ne le connaît pas.
+    const creteDeg = new Float32Array(360 * parDeg)
+    creteDeg[180.5 * parDeg] = pic
+    const fin = sousLeSol({ ...masque, creteDeg }, IDENTITE)
+    const grossier = sousLeSol(masque, IDENTITE)
+    const v = versVecteur(180.5, pic / 2)
+    expect(grossier(v.x, v.y, v.z)).toBe(false)
+    expect(fin(v.x, v.y, v.z)).toBe(true)
   })
 })

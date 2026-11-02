@@ -338,6 +338,7 @@ function passeFond(passe: Passe): void {
     dessineSol(ctx, brut, entree.matriceCiel, entree.masque, {
       sol: soleilLeve ? teintes.solJour : teintes.sol,
       courbes: teintes.courbes,
+      bords: teintes.horizon,
     })
   }
   // §9.5 — la passe de filé passe APRÈS le sol, mais avec le projecteur qui l'ignore : le sol

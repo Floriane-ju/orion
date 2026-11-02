@@ -59,6 +59,14 @@ export interface MasqueHorizon {
    * aucun calcul : le masque reste `altitudesDeg`.
    */
   readonly courbesDeg?: Float32Array
+  /** T-0438 — les lignes de silhouette du relief, au même format ; dessin seul, comme les courbes. */
+  readonly silhouettesDeg?: Float32Array
+  /**
+   * T-0438 — la crête au pas fin (`PAS_AZIMUT_CRETE_DEG`), pour le dessin seul : au degré, un
+   * relief lointain se dessinait en triangles, et ses courbes de niveau débordaient du sol.
+   * Les créneaux, eux, restent sur `altitudesDeg`.
+   */
+  readonly creteDeg?: Float32Array
 }
 
 /**
@@ -157,6 +165,18 @@ export function obstructionDeg(masque: MasqueHorizon, azimutDeg: number): number
   const i = Math.floor(a)
   const avant = masque.altitudesDeg[i % NB_AZIMUTS] ?? 0
   const apres = masque.altitudesDeg[(i + 1) % NB_AZIMUTS] ?? 0
+  return avant + (apres - avant) * (a - i)
+}
+
+/** T-0438 — l'obstruction DESSINÉE : la crête fine quand le relief la porte, le masque sinon. */
+export function obstructionDessinDeg(masque: MasqueHorizon, azimutDeg: number): number {
+  const crete = masque.creteDeg
+  if (crete === undefined || crete.length === 0) return obstructionDeg(masque, azimutDeg)
+  const n = crete.length
+  const a = ramene(azimutDeg, TOUR_DEG) * (n / TOUR_DEG)
+  const i = Math.floor(a)
+  const avant = crete[i % n]!
+  const apres = crete[(i + 1) % n]!
   return avant + (apres - avant) * (a - i)
 }
 
