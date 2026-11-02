@@ -301,7 +301,7 @@ export function PanneauCibles(props: PanneauCiblesProps) {
             <label>
               <span className="libelle">
                 Magnitude max
-                <span className="cibles-mag-valeur">
+                <span className="curseur-valeur">
                   {magMax >= DOMAINE_MAG.max ? 'toutes' : nombre(magMax, 1)}
                 </span>
               </span>

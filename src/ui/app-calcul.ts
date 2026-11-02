@@ -56,6 +56,7 @@ import { modeObjectif } from '../core/optics.ts'
 import type { SaisieLieu, SaisieMateriel } from './app-saisie.ts'
 import { nombreSaisi, nombreSiRenseigne } from './saisie-bornee.ts'
 import { objectifActif, reglageOptique } from './objectif-saisie.ts'
+import { estZoom, ouverturePlancher, plancherAuPas } from '../core/objectif.ts'
 import { zoomSur, type Zoom } from './zoom-calcul.ts'
 import type { MaterielFile } from './planetarium-materiel.ts'
 import { altitudeDuRelief, masqueDuRelief, useReliefSite } from './relief-site.ts'
@@ -346,6 +347,40 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
     ],
   )
 
+  /**
+   * T-0433 — sous un zoom, chaque cible s'évalue à SA focale (T-0407) : la bague réglée n'entre
+   * ni dans la liste ni dans le plan, et la tourner ne doit rien y relancer. Leur contexte de
+   * base se chiffre donc à une focale de référence fixe — le télé, où `focaleOptimale` mène une
+   * cible dont la taille tend vers zéro — et c'est là que tombent les cibles sans dimensions.
+   * L'ouverture y est le plancher, comme le réglage sous un objectif (T-0404).
+   */
+  const objectif = objectifActif(materiel.objectifs, materiel.objectifId)
+  const focaleListe = estZoom(objectif) ? objectif.focaleMaxMm : materielBorne.focaleMm
+  const ouvertureListe = estZoom(objectif)
+    ? plancherAuPas(ouverturePlancher(objectif, objectif.focaleMaxMm))
+    : materielBorne.ouvertureN
+  const reglageSuffit = !estZoom(objectif)
+  const calculListe = useMemo(
+    () =>
+      reglageSuffit
+        ? calcul
+        : evalueMateriel(materiel, { ...materielBorne, focaleMm: focaleListe, ouvertureN: ouvertureListe }),
+    // Hors zoom, `calcul` porte déjà toutes les clés ; sous un zoom, il est écarté : il suit la bague.
+    [
+      reglageSuffit ? calcul : null,
+      materiel.boitierId,
+      materiel.boitier,
+      materiel.capteurMode,
+      materiel.typeObjectif,
+      materiel.suiviActif,
+      materiel.qualiteMes,
+      materiel.typeMonture,
+      focaleListe,
+      ouvertureListe,
+      materielBorne.isoSaisi,
+    ],
+  )
+
   const fenetreUtile = useMemo(
     () => (ciel.ok ? calculeFenetreUtile(site, ciel.nuit) : null),
     [ciel, site],
@@ -407,27 +442,27 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
    * autre pose pour la même cible — le désaccord que T-0089 a corrigé une fois.
    */
   const contexteSession = useMemo<ContexteSession | null>(() => {
-    if (!calcul.ok || !ciel.ok || fenetreUtile === null) return null
+    if (!calculListe.ok || !ciel.ok || fenetreUtile === null) return null
     return {
         site,
         nuit: ciel.nuit,
         fenetreUtile,
         masque,
-        ...champsDeFocale(calcul),
-        capteurHMm: calcul.capteur.capteurHMm,
-        pitchUm: calcul.capteur.pitchUm,
-        zpSys: calcul.zeroSysteme.valeur,
-        zpEstime: calcul.zeroSysteme.estime,
-        readNoiseE: calcul.iso.readNoiseE,
-        tailleRawMo: calcul.boitier.tailleRawMo,
-        isoSession: calcul.iso.iso,
+        ...champsDeFocale(calculListe),
+        capteurHMm: calculListe.capteur.capteurHMm,
+        pitchUm: calculListe.capteur.pitchUm,
+        zpSys: calculListe.zeroSysteme.valeur,
+        zpEstime: calculListe.zeroSysteme.estime,
+        readNoiseE: calculListe.iso.readNoiseE,
+        tailleRawMo: calculListe.boitier.tailleRawMo,
+        isoSession: calculListe.iso.iso,
         sbCielNoir: ciel.ciel.sbCiel.value,
         mLimOeil: ciel.ciel.mLimOeil.value,
         snrCible: PRESET_SNR_PLAN,
         typeMonture: materiel.typeMonture,
         poids,
     }
-  }, [calcul, ciel, masque, materiel.typeMonture, site, fenetreUtile, poids])
+  }, [calculListe, ciel, masque, materiel.typeMonture, site, fenetreUtile, poids])
 
   /**
    * T-0291 — LA FRONTIÈRE DU CALCUL LOURD. Ce qui est en aval suit la frappe, il ne la porte
@@ -448,14 +483,13 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
    * jamais celui de la saisie en cours — deux régions qui liraient l'un et l'autre
    * s'afficheraient contradictoires le temps d'un rendu.
    */
-  const objectif = objectifActif(materiel.objectifs, materiel.objectifId)
   const zoom = useMemo(() => {
     if (contexteSession === null || !ciel.ok) return null
     return zoomSur({
       objectif,
       base: contexteSession,
-      focaleMm: materielBorne.focaleMm,
-      ouvertureN: materielBorne.ouvertureN,
+      focaleMm: focaleListe,
+      ouvertureN: ouvertureListe,
       evalue: (focaleMm, ouvertureN) => {
         const c = evalueMateriel(materiel, { ...materielBorne, focaleMm, ouvertureN })
         return c.ok
@@ -478,8 +512,8 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
     materiel.suiviActif,
     materiel.qualiteMes,
     materiel.typeMonture,
-    materielBorne.focaleMm,
-    materielBorne.ouvertureN,
+    focaleListe,
+    ouvertureListe,
     materielBorne.isoSaisi,
     lieu.bortle,
   ])

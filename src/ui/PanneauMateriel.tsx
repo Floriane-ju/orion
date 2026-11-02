@@ -23,7 +23,9 @@
  */
 
 import type { TypeObjectif } from '../core/optics.ts'
-import { saisieLue } from '../registry/ecriture.ts'
+import { nombre, saisieLue } from '../registry/ecriture.ts'
+import { Curseur } from './Curseur.tsx'
+import { PAS_FOCALE_MM } from './FicheZoom.tsx'
 import type { ProfilSuivi, QualiteMiseEnStation, TypeMonture } from '../core/suivi.ts'
 import type {
   CapteurMode,
@@ -231,12 +233,14 @@ export function PanneauMateriel(props: PanneauMaterielProps) {
   const lectures = props.lectures
   const objectif = objectifActif(props.objectifs, props.objectifId)
   const reglage = reglageOptique(objectif, props.focale, props.ouverture)
-  const plages = reglage.plages
   // Le résumé dit le réglage retenu, celui qu'on calcule et qu'on enregistre, pas la frappe.
   const retenu = (texte: string, b: typeof reglage.focale) =>
     b.refus !== null && Number.isFinite(b.valeur) ? String(b.valeur) : texte
   // Une focale fixe n'a rien à régler : sa ligne du parc la dit déjà.
   const focaleReglable = objectif === null || objectif.focaleMinMm !== objectif.focaleMaxMm
+  // Un réglage relu vide n'a pas de position sur le rail : le pouce part du grand-angle.
+  const focaleMm = Number.isFinite(reglage.focale.valeur) ? reglage.focale.valeur : (objectif?.focaleMinMm ?? Number.NaN)
+  const texteFocale = Number.isFinite(reglage.focale.valeur) ? `${nombre(focaleMm, 0)} mm` : '?'
   return (
     <div className="cartes-materiel">
       <Carte cle="BOITIER" titre="Boîtier" resume={resumeBoitier(props.boitierId, props)}>
@@ -271,16 +275,25 @@ export function PanneauMateriel(props: PanneauMaterielProps) {
         )}
         {/* T-0404 — le parc dit tout de l'objectif ; reste la focale d'un zoom, seule chose qu'on
             règle en séance. L'ouverture est la pleine ouverture de l'objectif à cette focale. */}
+        {/* T-0433 — la plage d'un zoom est bornée des deux côtés : un rail la montre entière et
+            ne laisse rien taper hors d'elle. */}
         {objectif !== null && focaleReglable && (
           <div className="champs">
-            <ChampDomaine
-              domaine="focale_mm"
-              cle="focale"
-              valeur={props.focale}
-              surValeur={props.surFocale}
-              plage={plages?.focale}
-              requis
-            />
+            <label>
+              <span className="libelle">
+                Focale
+                <span className="curseur-valeur">{texteFocale}</span>
+              </span>
+              <Curseur
+                libelle={`Focale du ${objectif.nom}`}
+                valeur={focaleMm}
+                min={objectif.focaleMinMm}
+                max={objectif.focaleMaxMm}
+                pas={PAS_FOCALE_MM}
+                texte={texteFocale}
+                sur={(mm) => props.surFocale(String(mm))}
+              />
+            </label>
           </div>
         )}
         {/* Parc vide — un réglage relu illisible : la saisie sans objectif, pour le corriger. */}

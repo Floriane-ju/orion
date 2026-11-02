@@ -185,9 +185,10 @@ describe('T-0404 — la carte Optique', () => {
     expect(seul).not.toContain('Retirer ')
   })
 
-  it('sous un zoom, la focale annonce la plage de l’objectif', () => {
+  it('T-0433 — sous un zoom, la focale se règle sur un rail borné à la plage de l’objectif', () => {
     const html = rendu({ objectifId: ZOOM.id, focale: '35', ouverture: '8' })
-    expect(html).toContain('placeholder="18 à 55"')
+    expect(html).toMatch(new RegExp(`role="slider"[^>]*aria-valuemin="${ZOOM.focaleMinMm}" aria-valuemax="${ZOOM.focaleMaxMm}" aria-valuenow="35"`))
+    expect(html).not.toContain('placeholder="18 à 55"')
   })
 
   it('sous une focale fixe, la focale ne se saisit plus', () => {

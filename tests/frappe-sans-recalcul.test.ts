@@ -33,6 +33,7 @@ import { decodeObjets, type ObjetCielProfond } from '../src/data/deepsky.ts'
 import { BASE_BOITIERS } from '../src/data/boitiers.ts'
 import { INDEX_VIDE } from '../src/core/index-ciel.ts'
 import { useChaineCalcul } from '../src/ui/app-calcul.ts'
+import { ouverturePlancher, plancherAuPas, type Objectif } from '../src/core/objectif.ts'
 import { DEFAUT, type SaisieLieu, type SaisieMateriel } from '../src/ui/app-saisie.ts'
 
 /**
@@ -297,5 +298,48 @@ describe('T-0291 — un caractère sans effet ne relance aucun moteur', () => {
     for (const moteur of MOTEURS) moteur.mockClear()
     rendu([lieu({ latitude: voisine }), materiel()])
     for (const moteur of MOTEURS) expect(moteur).toHaveBeenCalledTimes(1)
+  })
+})
+
+/**
+ * T-0433 — sous un zoom, chaque cible s'évalue à sa focale optimale (T-0407) : tourner la bague
+ * ne change aucun chiffre de la liste ni du plan, donc ne relance ni l'un ni l'autre.
+ */
+describe('T-0433 — sous un zoom, régler la focale ne relance ni la liste ni le plan', () => {
+  const ZOOM: Objectif = {
+    id: 'zoom',
+    nom: '70–200 mm f/4–5,6',
+    focaleMinMm: 70,
+    focaleMaxMm: 200,
+    ouvertureGrandAngleN: 4,
+    ouvertureTeleN: 5.6,
+    typeObjectif: 'RECTILINEAIRE',
+  }
+  // L'ouverture suit la bague comme dans l'application (`surFocale`) : le plancher à la focale.
+  const reglage = (focaleMm: number): Saisie => [
+    lieu(),
+    materiel({
+      objectifs: [ZOOM],
+      objectifId: ZOOM.id,
+      focale: String(focaleMm),
+      ouverture: String(plancherAuPas(ouverturePlancher(ZOOM, focaleMm))),
+    }),
+  ]
+
+  it('du grand-angle au télé, ni `planSession` ni `etatsCibles` ne repartent', () => {
+    rendu(reglage(ZOOM.focaleMinMm))
+    vi.mocked(planSession).mockClear()
+    vi.mocked(etatsCibles).mockClear()
+    rendu(reglage(ZOOM.focaleMaxMm))
+    expect(planSession).not.toHaveBeenCalled()
+    expect(etatsCibles).not.toHaveBeenCalled()
+  })
+
+  it('hors zoom, la même frappe relance bien la liste — sans quoi rien n’est mesuré', () => {
+    const libre = (f: number): Saisie => [lieu(), materiel({ focale: String(f) })]
+    rendu(libre(ZOOM.focaleMinMm))
+    vi.mocked(etatsCibles).mockClear()
+    rendu(libre(ZOOM.focaleMaxMm))
+    expect(etatsCibles).toHaveBeenCalledTimes(1)
   })
 })

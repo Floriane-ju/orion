@@ -22,7 +22,7 @@ import type { Zoom } from './zoom-calcul.ts'
 import { essaieFocale, essaiZoomSeance, useTrancheSeance } from './seance-etat.ts'
 
 /** Une bague de zoom se règle au millimètre, comme `focaleOptimale` l'arrondit. */
-const PAS_FOCALE_MM = 1
+export const PAS_FOCALE_MM = 1
 
 interface ReglageZoomProps {
   readonly zoom: Zoom
