@@ -52,8 +52,8 @@
   --surface-survol: color-mix(in srgb, var(--base-neutre) 18%, var(--fond));
   --texte: var(--base-neutre);
   --attenue: color-mix(in srgb, var(--base-neutre) 69%, var(--fond));
-  /* L'accent ne peint plus que deux choses : la marque (`h1`) et le cadre du matériel — sur le
-     canevas comme dans l'encart de l'image. Tout le reste de l'interface est neutre : commandes,
+  /* L'accent ne peint plus que le cadre du matériel — sur le canevas comme dans l'encart de
+     l'image ; la marque posée sur le ciel est au texte. Tout le reste de l'interface est neutre : commandes,
      survols, focus, réglages. Une teinte réservée à ce qu'on vise se repère d'un coup d'œil. */
   --accent: var(--base-accent);
   --avertissement: #f4c76a;
@@ -114,7 +114,11 @@
    puis revenait. Posés sur elle, ses jetons ne suivent plus aucun fondu.
 
    Le disque de la Lune du bloc du temps est du même ciel : sur le voile clair du jour, ses
-   jetons inversés peignaient la part éclairée en sombre. */
+   jetons inversés peignaient la part éclairée en sombre.
+
+   La marque aussi se pose sur le ciel : elle y garde le blanc du texte, de jour clair comme
+   sombre, et ne passe au rouge qu'en mode nuit. */
+:root:not([data-mode-nuit='true']) .coque-topbar > h1,
 :root:not([data-mode-nuit='true']) .nuit-lecture-disque,
 :root:not([data-mode-nuit='true']) .nuit-frise {
   color-scheme: dark;
@@ -791,7 +795,9 @@ body {
   padding: var(--jour-carte);
   z-index: var(--plan-barre);
   display: flex;
-  align-items: center;
+  /* La marque prend le bord haut de la visée et du panneau, un jour de carte sous l'écran,
+     au lieu de flotter au milieu du bandeau. */
+  align-items: flex-start;
   overflow: visible;
   pointer-events: none;
 }
@@ -809,6 +815,7 @@ body {
   flex: none;
   /* Interligne resserré : la marque tient dans la hauteur de la barre, sans air au-dessus. */
   line-height: var(--interligne-serre);
+  color: var(--texte);
 }
 
 /* T-0413 — LE TEMPS, EN BAS AU CENTRE DE LA SCÈNE : centré dans le ciel libre, entre le rail
@@ -1695,6 +1702,7 @@ body {
 
   .coque-topbar {
     display: flex;
+    align-items: center;
     min-height: var(--cible-clic);
     padding: var(--pas-2) var(--pas-3);
   }
