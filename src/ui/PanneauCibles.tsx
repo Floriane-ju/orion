@@ -66,7 +66,7 @@ import { VignetteCible } from './ImageCible.tsx'
 import { prechargeVignettes } from './image-cible-memoire.ts'
 import { LIBELLE_TYPE_OBJET, nomCommun } from './libelles-objet.ts'
 import { LIBELLE_CAUSE_ECART } from '../registry/libelles.ts'
-import { ouvreCible, poseMode } from './seance-etat.ts'
+import { ouvreCible, poseMode, survoleCible } from './seance-etat.ts'
 import { ouvreCarte } from './coque-etat.ts'
 import { majCatalogue, useCatalogue } from './catalogue-etat.ts'
 import { minuteAffichee, useTrancheScene } from './scene-etat.ts'
@@ -440,7 +440,14 @@ function LigneListe({ ligne, etat, contexte, profil, gaiaCharge, parc }: LigneLi
   )
 
   return (
-    <li className="cible-item">
+    // Le survol pose dans la scène le cadre que la cible obtiendrait ; le focus clavier aussi.
+    <li
+      className="cible-item"
+      onPointerEnter={() => survoleCible(objet)}
+      onPointerLeave={() => survoleCible(null)}
+      onFocus={() => survoleCible(objet)}
+      onBlur={() => survoleCible(null)}
+    >
       <button type="button" className="cible-ligne" onClick={() => ouvreCible(objet)}>
         <span className="cible-entete">
           {/* §6.4 — depuis le cache seulement : le défilement de la liste n'émet aucune requête.

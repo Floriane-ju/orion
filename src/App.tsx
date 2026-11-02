@@ -192,6 +192,7 @@ function AppPrete({
       ciblesPlan={ciblesPlan}
       constellations={catalogues.constellations}
       profils={chaine.profilsCadre}
+      zoom={chaine.zoom}
       sbCiel={ciel.ciel.sbCiel.value}
       gaiaCharge={gaia}
       modeNuit={modeNuit.actif}

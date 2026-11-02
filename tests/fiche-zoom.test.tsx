@@ -2,8 +2,9 @@
  * T-0408 — sous un zoom, la fiche s'ouvre à la focale optimale de la cible, la dit, et lit
  * son cadrage à cette focale. Hors zoom, rien ne change.
  *
- * La focale est un état LOCAL de la fiche : aucune saisie du matériel n'est reçue, il n'y a
- * donc rien qu'elle puisse modifier — c'est la construction qui le garantit, pas un clic.
+ * La focale est un ESSAI de la fiche : aucune saisie du matériel n'est reçue, il n'y a donc
+ * rien qu'elle puisse modifier — c'est la construction qui le garantit, pas un clic. Seul le
+ * cadre de la cible, dans la scène, la suit.
  */
 
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -25,7 +26,8 @@ import { ficheCadrage } from '../src/core/cadrage.ts'
 import { pourcentage } from '../src/registry/ecriture.ts'
 import type { ContexteFiche } from '../src/ui/fiche-cible-calcul.ts'
 import { FicheSousZoom } from '../src/ui/FicheZoom.tsx'
-import { zoomSur } from '../src/ui/zoom-calcul.ts'
+import { profilCible, profilsScene, zoomSur } from '../src/ui/zoom-calcul.ts'
+import type { ProfilCadre } from '../src/core/cadre.ts'
 import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
 const CAPTEUR = capteurEffectif(BOITIER_REFERENCE, 'FULL_FRAME')
@@ -158,5 +160,44 @@ describe('T-0408 — la bague de zoom de la fiche', () => {
   it('n’existe pas hors zoom', () => {
     expect(rendu(null)).not.toContain('Zoom</h2>')
     expect(rendu({ ...ZOOM, focaleMaxMm: ZOOM.focaleMinMm })).not.toContain('Zoom</h2>')
+  })
+})
+
+describe('sous un zoom, les cadres de la scène', () => {
+  const zoom = zoomSur({
+    objectif: ZOOM,
+    base: BASE.contexte,
+    focaleMm: ZOOM.focaleMinMm,
+    ouvertureN: N,
+    evalue: aFocale,
+  })!
+  const MODELE: ProfilCadre = {
+    libelle: 'réglage',
+    fovLDeg: BASE.fiche.optique.fovLDeg.value,
+    fovHDeg: BASE.fiche.optique.fovHDeg.value,
+    modeObjectif: 'MODE_CADRE',
+    echApx: BASE.fiche.optique.echApx.value,
+    capteurHMm: CAPTEUR.capteurHMm,
+    tPoseS: BASE.fiche.tMaxS,
+  }
+  const champA = (f: number) => zoom.aFocale(f)!.fiche.optique.fovHDeg.value
+
+  it('sont le réglage, puis les deux bouts de la bague, grand-angle d’abord', () => {
+    expect(profilsScene(zoom, [MODELE]).map((p) => p.fovHDeg)).toEqual([
+      MODELE.fovHDeg,
+      champA(ZOOM.focaleMinMm),
+      champA(ZOOM.focaleMaxMm),
+    ])
+    expect(profilsScene(null, [MODELE])).toEqual([MODELE])
+  })
+
+  it('posent celui de la cible à sa focale optimale, ou à celle essayée sur SA fiche', () => {
+    const optimale = zoom.focaleDe(CIBLE)!
+    expect(profilCible(zoom, CIBLE, null, [MODELE])?.fovHDeg).toBe(champA(optimale))
+    const essai = { designation: CIBLE.designation, focaleMm: ZOOM.focaleMaxMm }
+    expect(profilCible(zoom, CIBLE, essai, [MODELE])?.fovHDeg).toBe(champA(ZOOM.focaleMaxMm))
+    const ailleurs = { designation: 'AUTRE', focaleMm: ZOOM.focaleMaxMm }
+    expect(profilCible(zoom, CIBLE, ailleurs, [MODELE])?.fovHDeg).toBe(champA(optimale))
+    expect(profilCible(null, CIBLE, null, [MODELE])).toBeNull()
   })
 })

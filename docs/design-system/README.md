@@ -112,7 +112,7 @@ filet qui passe au `--texte`, jamais à une teinte.
 **Le canevas reprend les jetons de l'interface, là où il peint de l'interface.** Le fond est
 `--fond`, le cadre du matériel `--accent`, le parcours de pointage et la part éclairée de la
 Lune `--texte`, les autres corps du
-système solaire `--avertissement` de jour, les textes de la scène `--police-mono` :
+système solaire et le cadre de la cible sous un zoom `--avertissement` de jour, les textes de la scène `--police-mono` :
 `couleurs.ts` les recopie (le canevas ne lit pas la feuille) et `mode-nuit.test.tsx` échoue si
 l'un dérive.
 

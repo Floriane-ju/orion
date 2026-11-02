@@ -15,6 +15,8 @@ import { estZoom, focaleOptimale, ouvertureA, type Objectif } from '../core/obje
 import type { ContexteDe, ContexteSession } from '../core/session-types.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { ContexteFiche } from './fiche-cible-calcul.ts'
+import type { ProfilCadre } from '../core/cadre.ts'
+import { nombreLibre } from '../registry/ecriture.ts'
 
 /** Ce que la chaîne sait d'une focale de la plage : le contexte de nuit et celui de la fiche. */
 export interface ZoomAFocale {
@@ -86,4 +88,61 @@ export function champsExtremes(
     teleDeg: fov(zoom.objectif.focaleMaxMm),
     grandAngleDeg: fov(zoom.objectif.focaleMinMm),
   }
+}
+
+/**
+ * Le cadre de la scène à une focale de la plage. `modele` est le profil du réglage courant :
+ * il porte ce que la focale ne change pas — la projection de l'objectif, le libellé du mode.
+ * `null` quand le matériel n'est pas chiffrable à cette focale.
+ */
+export function profilA(zoom: Zoom, focaleMm: number, modele: ProfilCadre): ProfilCadre | null {
+  const fiche = zoom.aFocale(focaleMm)?.fiche
+  if (fiche === undefined) return null
+  return {
+    ...modele,
+    libelle: `${nombreLibre(focaleMm)} mm f/${nombreLibre(fiche.ouvertureN)}`,
+    fovLDeg: fiche.optique.fovLDeg.value,
+    fovHDeg: fiche.optique.fovHDeg.value,
+    echApx: fiche.optique.echApx.value,
+    capteurHMm: fiche.capteurHMm,
+    tPoseS: fiche.tMaxS,
+  }
+}
+
+/**
+ * Sous un zoom, la scène montre le cadre du réglage, PUIS ce que la bague peut donner : le cadre
+ * du grand-angle et celui du télé. Le réglage reste premier — c'est lui qui porte la carte de
+ * pose et le trait plein ; les deux bouts se peignent estompés. Hors zoom, le réglage seul.
+ */
+export function profilsScene(zoom: Zoom | null, profils: readonly ProfilCadre[]): readonly ProfilCadre[] {
+  const modele = profils[0]
+  if (zoom === null || modele === undefined) return profils
+  return [modele, ...[zoom.objectif.focaleMinMm, zoom.objectif.focaleMaxMm].flatMap((f) => {
+    const profil = profilA(zoom, f, modele)
+    return profil === null ? [] : [profil]
+  })]
+}
+
+/** La focale essayée sur la bague d'une fiche, retenue pour sa seule cible. */
+export interface EssaiZoom {
+  readonly designation: string
+  readonly focaleMm: number
+}
+
+/**
+ * Le cadre que la cible obtiendrait : à la focale essayée sur sa fiche, sinon à sa focale
+ * optimale. `null` hors zoom — le cadre du réglage EST alors celui de la cible — ou sans
+ * dimensions au catalogue.
+ */
+export function profilCible(
+  zoom: Zoom | null,
+  objet: ObjetCielProfond,
+  essai: EssaiZoom | null,
+  profils: readonly ProfilCadre[],
+): ProfilCadre | null {
+  const modele = profils[0]
+  if (zoom === null || modele === undefined) return null
+  const focaleMm =
+    essai?.designation === objet.designation ? essai.focaleMm : zoom.focaleDe(objet)
+  return focaleMm === null ? null : profilA(zoom, focaleMm, modele)
 }

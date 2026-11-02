@@ -135,6 +135,12 @@ export interface PaletteCiel {
   /** La part éclairée de la Lune : le texte de l'interface, comme le disque de la frise de nuit. */
   readonly lune: string
   readonly cadre: string
+  /**
+   * Le cadre que la cible ouverte ou survolée obtiendrait à sa focale de zoom. Il double un
+   * cadre du matériel : la teinte seule l'en distingue — l'ambre de l'interface, celui des
+   * corps, qui sont des points et non des contours. La nuit, le rouge des corps.
+   */
+  readonly cadreCible: string
   readonly horizon: string
   /**
    * T-0395 — les courbes de niveau du sol : sous l'horizon, qui reste la ligne qui compte, et
@@ -173,6 +179,7 @@ const PALETTE_NUIT: PaletteCiel = Object.freeze({
   corps: 'rgb(190 0 0)',
   lune: 'rgb(250 0 0)',
   cadre: 'rgb(246 0 0)',
+  cadreCible: 'rgb(190 0 0)',
   horizon: 'rgb(50 0 0)',
   courbes: 'rgb(36 0 0)',
   sol: 'rgb(18 0 0)',
@@ -220,6 +227,7 @@ const PALETTE_JOUR: PaletteCiel = Object.freeze({
   corps: 'rgb(244 199 106)',
   lune: 'rgb(233 233 233)',
   cadre: 'rgb(139 255 239)',
+  cadreCible: 'rgb(244 199 106)',
   horizon: avecOpacite(BLANC, 0.33),
   courbes: avecOpacite(BLANC, 0.16),
   sol: 'rgb(5 5 5)',
@@ -543,6 +551,7 @@ export function paletteRealiste(sbCiel: number): PaletteCiel {
     corps: compense(PALETTE_JOUR.corps),
     lune: compense(PALETTE_JOUR.lune),
     cadre: compense(PALETTE_JOUR.cadre),
+    cadreCible: compense(PALETTE_JOUR.cadreCible),
     horizon: compense(PALETTE_JOUR.horizon),
     voieLactee: compense(PALETTE_JOUR.voieLactee),
     parcours: compense(PALETTE_JOUR.parcours),

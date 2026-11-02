@@ -48,6 +48,7 @@ import { clientFile, creePortFile, type ClientFile } from './file-hors-fil.ts'
 import { etoilesReelles, indexFile } from './file-index.ts'
 import { dessineCiel, type CibleEcran, type SurvolEcran } from './dessine-ciel.ts'
 import type { OptiquePose } from './dessine-pose-cadre.ts'
+import { viseeVersVue } from './scene-lecture.ts'
 import type { LuneEcran, SoleilEcran } from './dessine-fond-ciel.ts'
 import { B } from '../registry/budgets.ts'
 import { MS_PAR_S } from '../core/unites.ts'
@@ -136,6 +137,8 @@ export interface EtatBoucle {
   readonly parcours: ParcoursScene | null
   /** §6.4 / T-0283 — la cible de la fiche ouverte, ou celles du plan sur « Mon plan ». */
   readonly ciblesOuvertes: readonly ObjetCielProfond[]
+  /** Sous un zoom, le cadre que la cible ouverte ou survolée obtiendrait ; `null` sinon. */
+  readonly cadreCible: { readonly objet: ObjetCielProfond; readonly profil: ProfilCadre } | null
   readonly vue: VueScene
   readonly modeTemps: string
   readonly facteur: number
@@ -390,6 +393,16 @@ export function useBoucleRendu(entree: {
             }),
           )
         : []
+      // Centré sur la cible et non sur la visée : il montre ce qu'elle remplirait, où qu'on pointe.
+      const cible = courant.couches.cadre ? courant.cadreCible : null
+      const cadreCible: Cadre | undefined =
+        cible === null
+          ? undefined
+          : {
+              profil: cible.profil,
+              ...viseeVersVue(cible.objet.adDeg, cible.objet.decDeg, ciel.matrice),
+              rotationDeg: vue.rotationCadreDeg,
+            }
       // §9.3 / T-0116 — le filé couvre tout le planétarium, pas le seul cadre : il se calcule
       // ici, avec la vue de CETTE image, et se peint sous les repères et les noms. Le contour
       // du cadre reste tracé par-dessus, en fin de passe : c'est lui, et lui seul, qui dit ce
@@ -438,6 +451,7 @@ export function useBoucleRendu(entree: {
         corps,
         nomsCorps: NOMS_CORPS,
         cadres,
+        cadreCible,
         ...(courant.poseCadre === null ? {} : { poseCadre: courant.poseCadre }),
         ...(courant.enAvant === null ? {} : { enAvant: courant.enAvant }),
         ...(courant.parcours === null ? {} : { parcours: courant.parcours }),

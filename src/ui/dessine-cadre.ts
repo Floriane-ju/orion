@@ -20,6 +20,13 @@ import { cheminCadre } from './traces-ciel.ts'
 
 /** Épaisseur du contour : le cadre se lit d'un coup d'œil, les tracés de repérage non. */
 const EPAISSEUR_CADRE_PX = 2
+/**
+ * Les cadres qui suivent le premier — les deux bouts d'une bague de zoom — disent ce que la
+ * bague PEUT donner, pas ce qu'elle donne : estompés, ils ne disputent pas le réglage.
+ */
+const OPACITE_CADRES_SECONDAIRES = 0.6
+/** Pointillé et non tiret : le tiret long est celui du parcours de pointage (T-0324). */
+const POINTILLE_CADRES_SECONDAIRES_PX: readonly number[] = Object.freeze([2, 4])
 
 export interface EntreeCadre {
   readonly ctx: CanvasRenderingContext2D
@@ -31,6 +38,8 @@ export interface EntreeCadre {
   readonly brut: Projecteur
   readonly matriceCiel: Mat3
   readonly cadres: readonly Cadre[]
+  /** Le cadre que la cible ouverte ou survolée obtiendrait, centré sur elle ; absent hors zoom. */
+  readonly cadreCible?: Cadre | undefined
   readonly teintes: PaletteCiel
   /** `couches.cadre` : sans elle, ni le contour ni la carte ne se peignent. */
   readonly actif: boolean
@@ -44,8 +53,22 @@ export function dessineContourCadre(entree: EntreeCadre): void {
   const { ctx, brut, matriceCiel, teintes } = entree
   ctx.strokeStyle = teintes.cadre
   ctx.lineWidth = EPAISSEUR_CADRE_PX
-  for (const cadre of entree.cadres) {
+  entree.cadres.forEach((cadre, i) => {
+    // Le style ne bascule qu'une fois, au premier cadre secondaire : sans eux, aucun motif posé.
+    if (i === 1) {
+      ctx.globalAlpha = OPACITE_CADRES_SECONDAIRES
+      ctx.setLineDash(POINTILLE_CADRES_SECONDAIRES_PX)
+    }
     cheminCadre(ctx, brut, cadre, matriceCiel)
+    ctx.stroke()
+  })
+  if (entree.cadres.length > 1) {
+    ctx.globalAlpha = 1
+    ctx.setLineDash([])
+  }
+  if (entree.cadreCible !== undefined) {
+    ctx.strokeStyle = teintes.cadreCible
+    cheminCadre(ctx, brut, entree.cadreCible, matriceCiel)
     ctx.stroke()
   }
   ctx.lineWidth = 1
@@ -55,11 +78,14 @@ export function dessineContourCadre(entree: EntreeCadre): void {
  * §9.1, T-0142 — la carte de pose, EN DERNIER : elle masque le cadre, traces, repères et noms
  * compris. Peinte avec les repères, elle laisserait passer par-dessus elle les labels retenus
  * juste au-dessus.
+ *
+ * Dans le PREMIER cadre seulement, celui du réglage : sous un zoom, les cadres de la bague
+ * l'entourent ou s'y logent, et plusieurs cartes s'y recouvriraient.
  */
 export function dessineCarteDansCadre(entree: EntreeCadre): void {
   const { ctx, brut, matriceCiel, teintes, poseCadre } = entree
   if (poseCadre === undefined || !entree.actif) return
-  for (const cadre of entree.cadres) {
+  for (const cadre of entree.cadres.slice(0, 1)) {
     const garni = dessineCartePose({
       ctx,
       projecteur: brut,

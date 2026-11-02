@@ -147,6 +147,7 @@ export interface EntreeDessin {
   readonly corps: readonly PositionCorps[]
   readonly nomsCorps: Readonly<Record<string, string>>
   readonly cadres: readonly Cadre[]
+  readonly cadreCible?: Cadre | undefined
   readonly couches: CouchesActives
   readonly magLimite: number
   /**
@@ -865,6 +866,7 @@ export function dessineCiel(entreeBrute: EntreeDessin): SortieDessin {
     brut,
     matriceCiel: entree.matriceCiel,
     cadres: entree.cadres,
+    cadreCible: entree.cadreCible,
     teintes,
     actif: couches.cadre,
     poseCadre: entree.poseCadre,

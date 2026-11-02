@@ -18,6 +18,7 @@ import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { majTemps } from './scene-etat.ts'
 import { S_PAR_MIN } from '../core/unites.ts'
 import { creeAbonnes } from './abonnes.ts'
+import type { EssaiZoom } from './zoom-calcul.ts'
 import { planPanorama, type PlanPanorama } from '../core/sequence-file.ts'
 import { PRESET_SNR_DEFAUT, PRESETS_SNR } from '../registry/verdicts.ts'
 import {
@@ -98,6 +99,16 @@ export interface EtatSeance {
    * `null` tant que le panneau ne l'a pas chiffrée. Recomptée, jamais persistée.
    */
   readonly poseMaxCadreS: number | null
+  /**
+   * La carte de la liste sous le pointeur : la scène y pose le cadre que la cible obtiendrait.
+   * Un geste, pas une intention — jamais persisté.
+   */
+  readonly survolee: ObjetCielProfond | null
+  /**
+   * T-0408 — la focale essayée sur la bague de la fiche. Tenue ici et non dans la fiche : la
+   * scène peint le cadre qu'elle donne. Un essai, pas un réglage — jamais persisté.
+   */
+  readonly essaiZoom: EssaiZoom | null
 }
 
 const ETAT_INITIAL: EtatSeance = {
@@ -115,6 +126,8 @@ const ETAT_INITIAL: EtatSeance = {
   },
   renduFile: null,
   poseMaxCadreS: null,
+  survolee: null,
+  essaiZoom: null,
 }
 
 const CLE_STOCKAGE = 'orion.seance'
@@ -198,7 +211,14 @@ function pose(suivant: EtatSeance): void {
 export function ouvreCible(cible: ObjetCielProfond): void {
   designationARelire = null
   const autre = etat.cible?.designation !== cible.designation
-  pose({ ...etat, cible, vueCibles: 'FICHE', ...(autre && { fiche: ETAT_INITIAL.fiche }) })
+  // La liste se démonte sous le pointeur sans émettre de sortie : le survol s'oublie ici.
+  pose({
+    ...etat,
+    cible,
+    vueCibles: 'FICHE',
+    survolee: null,
+    ...(autre && { fiche: ETAT_INITIAL.fiche }),
+  })
 }
 
 /**
@@ -212,6 +232,16 @@ export function relieCible(catalogue: readonly ObjetCielProfond[]): void {
   designationARelire = null
   const cible = catalogue.find((o) => o.designation === designation)
   if (cible !== undefined) pose({ ...etat, cible })
+}
+
+/** Survoler une carte de la liste ; `null` quand le pointeur la quitte. */
+export function survoleCible(objet: ObjetCielProfond | null): void {
+  if (etat.survolee === objet) return
+  pose({ ...etat, survolee: objet })
+}
+
+export function essaieFocale(essai: EssaiZoom): void {
+  pose({ ...etat, essaiZoom: essai })
 }
 
 export function majFiche(retouche: Partial<ReglagesFiche>): void {
@@ -276,7 +306,7 @@ export function publicateurRenduFile(
  * transport de la barre basse (§3.2), pas un effet de bord du mode.
  */
 export function poseMode(mode: ModeInterface): void {
-  pose({ ...etat, mode })
+  pose({ ...etat, mode, survolee: null })
   if (mode === 'PANORAMA') majTemps({ modeTemps: 'FIGE' })
 }
 
@@ -318,6 +348,10 @@ export function vueCiblesSeance(etat: EtatSeance): VueCibles {
 
 export function fileSeance(etat: EtatSeance): ReglagesFile {
   return etat.file
+}
+
+export function essaiZoomSeance(etat: EtatSeance): EssaiZoom | null {
+  return etat.essaiZoom
 }
 
 export function ficheSeance(etat: EtatSeance): ReglagesFiche {

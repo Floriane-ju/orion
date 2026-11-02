@@ -54,6 +54,7 @@ import { positionCorps, type Site } from '../core/ephem.ts'
 import type { MasqueHorizon } from '../core/site.ts'
 import type { SurvolEcran } from './dessine-ciel.ts'
 import { useBoucleRendu, type EtatBoucle } from './planetarium-boucle.ts'
+import { profilCible, profilsScene, type Zoom } from './zoom-calcul.ts'
 import { useParametresFile } from './planetarium-panorama.ts'
 import {
   RACCOURCIS_CLAVIER,
@@ -113,6 +114,11 @@ export interface PlanetariumProps {
   readonly constellations: PaquetConstellations
   /** Profils de cadre à superposer (§3.5). Vide : l'app demande le profil, sans en inventer. */
   readonly profils: readonly ProfilCadre[]
+  /**
+   * Sous un zoom, la scène peint les cadres des deux bouts de la bague, et celui que la cible
+   * ouverte ou survolée obtiendrait. `null` hors zoom : le cadre du réglage suffit.
+   */
+  readonly zoom: Zoom | null
   readonly gaiaCharge: boolean
   /**
    * §3.7 — fond de ciel du site (§2.2). C'est lui qui décide du contraste de la bande de la
@@ -318,6 +324,19 @@ export function Planetarium(props: PlanetariumProps) {
 
   useResolutionSuitLaBoite(canevas)
 
+  // En Panorama, le filé et sa carte de pose se chiffrent au réglage de la bague : son cadre seul.
+  const profilsAffiches = useMemo(
+    () => (mode === 'PANORAMA' ? props.profils : profilsScene(props.zoom, props.profils)),
+    [mode, props.zoom, props.profils],
+  )
+  const cadreCible = useMemo(() => {
+    if (mode === 'PANORAMA') return null
+    const fiche = mode === 'CIEL_PROFOND' && seance.vueCibles === 'FICHE' ? seance.cible : null
+    const objet = seance.survolee ?? fiche
+    const profil = objet === null ? null : profilCible(props.zoom, objet, seance.essaiZoom, props.profils)
+    return objet === null || profil === null ? null : { objet, profil }
+  }, [mode, seance.vueCibles, seance.cible, seance.survolee, seance.essaiZoom, props.zoom, props.profils])
+
   // État mutable lu par la boucle de rendu, réécrit à chaque rendu React.
   const etatBoucle = useRef<EtatBoucle>(null!)
   etatBoucle.current = {
@@ -327,7 +346,7 @@ export function Planetarium(props: PlanetariumProps) {
     etoiles: props.etoiles,
     objets: props.objets,
     constellations: props.constellations,
-    profils: props.profils,
+    profils: profilsAffiches,
     modeNuit: props.modeNuit,
     index: props.index,
     figures,
@@ -339,6 +358,7 @@ export function Planetarium(props: PlanetariumProps) {
     enAvant: enAvantScene(mode, props.enAvant, props.ciblesPlan),
     parcours: rendu.parcours,
     ciblesOuvertes: ciblesMarquees(mode, seance.vueCibles, seance.cible, props.ciblesPlan),
+    cadreCible,
     magLimite: jour ? Number.NEGATIVE_INFINITY : profondeur.magLimite.value,
     apparition:
       rendu.vueRealiste && soleil !== null ? apparitionReperes(soleil.altitudeDeg) : 1,

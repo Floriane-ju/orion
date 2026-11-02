@@ -301,7 +301,10 @@ describe('la scène reprend les jetons de l’interface', () => {
     ['lune', 'texte'],
   ]
   /** T-0330 — de jour seulement : la nuit, la scène abaisse les corps sous l'interface. */
-  const liensDeJour: readonly (readonly [keyof PaletteCiel, string])[] = [['corps', 'avertissement']]
+  const liensDeJour: readonly (readonly [keyof PaletteCiel, string])[] = [
+    ['corps', 'avertissement'],
+    ['cadreCible', 'avertissement'],
+  ]
   /**
    * T-0330 — graduations propres à la scène, déclarées comme telles dans `couleurs.ts` et le
    * README. Une teinte absente des trois listes fait échouer le test : elle doit choisir.
