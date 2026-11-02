@@ -10,9 +10,8 @@
  * tiennent dans la carte « Boîtier » ; ne reste ici que l'objectif, avec ses deux nombres
  * côte à côte — focale et ouverture se règlent ensemble et se relisent ensemble (`f/`).
  *
- * T-0238 — ces deux cartes sont des `Carte` posées sur la scène, plus des rubriques d'une
- * colonne. Elles se rangent dans `.cartes-materiel`. T-0247 — l'une sous l'autre en haut à
- * droite, contre le panneau : un conteneur en colonne les empêche de se couvrir en se dépliant.
+ * T-0238 — ces deux cartes sont devenues deux menus du rail (`TiroirRail`), sous celui du
+ * Site.
  *
  * Le type d'objectif était perdu dans la vue grand champ. C'est pourtant une propriété du
  * matériel, et §5.1 lui donne une conséquence physique : rectilinéaire ou fisheye choisit la
@@ -33,7 +32,7 @@ import type {
   PointZeroSysteme,
   SaisieBoitier,
 } from '../data/equipment.ts'
-import { Carte } from './Carte.tsx'
+import { TiroirRail } from './TiroirRail.tsx'
 import { PanneauBoitier } from './PanneauBoitier.tsx'
 import { ligneBoitier } from '../data/boitiers.ts'
 import { ChampChoix } from './ChampChoix.tsx'
@@ -242,8 +241,8 @@ export function PanneauMateriel(props: PanneauMaterielProps) {
   const focaleMm = Number.isFinite(reglage.focale.valeur) ? reglage.focale.valeur : (objectif?.focaleMinMm ?? Number.NaN)
   const texteFocale = Number.isFinite(reglage.focale.valeur) ? `${nombre(focaleMm, 0)} mm` : '?'
   return (
-    <div className="cartes-materiel">
-      <Carte cle="BOITIER" titre="Boîtier" resume={resumeBoitier(props.boitierId, props)}>
+    <>
+      <TiroirRail cle="boitier" titre="Boîtier" icone="photo_camera" resume={resumeBoitier(props.boitierId, props)}>
         <PanneauBoitier
           boitierId={props.boitierId}
           surBoitierId={props.surBoitierId}
@@ -257,11 +256,12 @@ export function PanneauMateriel(props: PanneauMaterielProps) {
           lectureIso={lectures?.iso}
           suivi={<ChampsSuivi {...props} />}
         />
-      </Carte>
+      </TiroirRail>
 
-      <Carte
-        cle="OPTIQUE"
+      <TiroirRail
+        cle="optique"
         titre="Optique"
+        icone="center_focus_strong"
         resume={resumeOptique(retenu(props.focale, reglage.focale), retenu(props.ouverture, reglage.ouverture))}
       >
         {/* T-0404 — le parc en tête : une ligne par objectif, celui qu'on utilise coché. */}
@@ -313,7 +313,7 @@ export function PanneauMateriel(props: PanneauMaterielProps) {
         )}
         {/* T-0238 — le refus se dit sous les champs qui l'ont produit, pas flottant sur le ciel. */}
         {props.erreur !== undefined && <Mention ton="erreur">{props.erreur}</Mention>}
-      </Carte>
-    </div>
+      </TiroirRail>
+    </>
   )
 }

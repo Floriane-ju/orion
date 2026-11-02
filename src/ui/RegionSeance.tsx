@@ -15,14 +15,14 @@
  * `PanneauMateriel`, que l'application monte à côté de celles-ci.
  */
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, type ReactNode } from 'react'
 import { degres, saisieLue } from '../registry/ecriture.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { photographiable, type EtatCible } from '../core/cibles-liste.ts'
 import type { Etoile } from '../data/catalog.ts'
 import type { PaquetConstellations } from '../data/constellations.ts'
 import { libelleZpSource } from '../data/equipment.ts'
-import { Carte } from './Carte.tsx'
+import { TiroirRail } from './TiroirRail.tsx'
 import { ChampsSite } from './ChampsSite.tsx'
 import { RailVue } from './RailVue.tsx'
 import { PanneauLateral } from './PanneauLateral.tsx'
@@ -88,42 +88,42 @@ export function resumeSite(latitude: string, longitude: string): string {
  * geste de visée. C'est ce qui rend le repli utile et pas seulement discret.
  *
  * T-0213 — le rail de la vue est monté ici plutôt qu'en carte : il reste toujours visible,
- * et ne lit du magasin de scène que les trois tranches dont ses bascules ont besoin.
+ * et ne lit du magasin de scène que les trois tranches dont ses bascules ont besoin. Site,
+ * Boîtier et Optique y sont trois menus, sous les calques (`TiroirRail`).
  */
-export function CartesSeance(props: RegionSeanceProps) {
+export function CartesSeance(props: RegionSeanceProps & { readonly cartesMateriel: ReactNode }) {
   const { chaine, lieu, materiel } = props
 
   return (
-    <>
-      {/* T-0213 — le rail remplace la carte « Vue ». Ses réglages se prennent EN regardant le
-          ciel : une carte à déplier puis replier coûtait deux gestes par bascule. Il est monté
-          avant la carte Site pour que la tabulation le rencontre d'abord — il borde la scène,
-          elle flotte dessus. */}
-      <RailVue
-        modeObjectif={modeObjectif(materiel.typeObjectif)}
-        gaiaCharge={props.gaiaCharge}
-        epoqueAnnee={props.epoqueAnnee}
-        masque={chaine.masque}
-      />
-
-      {/* Le lieu se LIT sur l'en-tête replié et se RÈGLE déplié. Au dixième de degré : un
-          résumé dit où l'on est, pas la saisie au chiffre près — celle-ci est dans les champs. */}
-      <Carte cle="SITE" titre="Site" resume={resumeSite(lieu.latitude, lieu.longitude)}>
-        <ChampsSite
-          latitude={lieu.latitude}
-          surLatitude={lieu.surLatitude}
-          longitude={lieu.longitude}
-          surLongitude={lieu.surLongitude}
-          altitude={lieu.altitude}
-          bortle={lieu.bortle}
-          surBortle={lieu.surBortle}
-          sqm={lieu.sqm}
-          surSqm={lieu.surSqm}
-          masque={chaine.masque}
-          cielRefus={chaine.cielRefus}
-        />
-      </Carte>
-    </>
+    <RailVue
+      modeObjectif={modeObjectif(materiel.typeObjectif)}
+      gaiaCharge={props.gaiaCharge}
+      epoqueAnnee={props.epoqueAnnee}
+      masque={chaine.masque}
+      reglages={
+        <>
+          {/* Le lieu se LIT sur l'en-tête replié et se RÈGLE déplié. Au dixième de degré : un
+              résumé dit où l'on est, pas la saisie au chiffre près — celle-ci est dans les
+              champs. */}
+          <TiroirRail cle="site" titre="Site" icone="location_on" resume={resumeSite(lieu.latitude, lieu.longitude)}>
+            <ChampsSite
+              latitude={lieu.latitude}
+              surLatitude={lieu.surLatitude}
+              longitude={lieu.longitude}
+              surLongitude={lieu.surLongitude}
+              altitude={lieu.altitude}
+              bortle={lieu.bortle}
+              surBortle={lieu.surBortle}
+              sqm={lieu.sqm}
+              surSqm={lieu.surSqm}
+              masque={chaine.masque}
+              cielRefus={chaine.cielRefus}
+            />
+          </TiroirRail>
+          {props.cartesMateriel}
+        </>
+      }
+    />
   )
 }
 

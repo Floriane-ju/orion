@@ -8,10 +8,8 @@
  *
  *   - la barre HAUTE nomme l'application ; le temps (horloge et frise liées, T-0411) l'a
  *     quittée pour le bas de la scène (T-0413) ;
- *   - la carte SITE se pose en haut à gauche, à droite du rail : le lieu, résumé replié ;
- *   - le RAIL borde la scène à gauche et porte les bascules de la vue (T-0213) ;
- *   - les cartes du MATÉRIEL, Boîtier et Optique, se posent en haut à droite (T-0245) : c'est la
- *     saisie qu'on relit le plus, dépliée au démarrage, mais repliable quand elle est réglée ;
+ *   - le RAIL borde la scène à gauche et porte les bascules de la vue (T-0213), puis les
+ *     menus Site, Boîtier et Optique (T-0437) ;
  *   - les CARTES portent le plan de nuit, repliable ;
  *   - la COLONNE DE DROITE porte le panneau de séance : ce qui se lit en longueur — le
  *     catalogue, le filé ;
@@ -21,7 +19,7 @@
  * La coque ne connaît aucun contenu : elle reçoit six régions et les place. C'est ce qui
  * permet de remplir, vider et redécouper les panneaux sans toucher à la mise en page.
  *
- * L'ordre du DOM est l'ordre de tabulation : barre haute, scène, matériel, cartes, panneau,
+ * L'ordre du DOM est l'ordre de tabulation : barre haute, scène, cartes, panneau,
  * visée, temps. Il suit la lecture, pas la position à l'écran — un panneau ouvert au
  * clavier depuis la barre haute est le nœud suivant, pas le dernier de la page.
  *
@@ -41,8 +39,6 @@ export interface CoqueProps {
   readonly temps: ReactNode
   /** La scène. Elle occupe toute la coque, les autres régions se posent dessus. */
   readonly scene: ReactNode
-  /** Les cartes du matériel, posées sur la scène contre la colonne de droite. */
-  readonly materiel: ReactNode
   /** Ce qui se pose sur la scène : le rail de la vue, puis la carte du plan de nuit. */
   readonly cartes: ReactNode
   /** Panneau de séance, dans la colonne de droite. */
@@ -62,7 +58,6 @@ export function Coque(props: CoqueProps) {
     <div className="coque">
       <header className="coque-topbar">{props.topbar}</header>
       <main className="coque-scene">{props.scene}</main>
-      {props.materiel}
       <div className="coque-cartes">{props.cartes}</div>
       <div className="coque-droite">{props.lateral}</div>
       {props.visee}

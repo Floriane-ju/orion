@@ -98,13 +98,4 @@ describe('T-0362 — interface persistée', () => {
     expect(PRESETS_SNR.map((p) => p.valeur)).toContain(etatSeance().fiche.snrCible)
     expect(etatSeance().mode).toBe('CIEL_PROFOND')
   })
-
-  it('les cartes dépliées le restent', async () => {
-    const avant = await import('../src/ui/coque-etat.ts')
-    avant.basculeCarte('OPTIQUE')
-    recharge()
-    const { etatCoque } = await import('../src/ui/coque-etat.ts')
-    expect(etatCoque().cartes.OPTIQUE.ouverte).toBe(true)
-    expect(etatCoque().cartes.SITE.ouverte).toBe(false)
-  })
 })

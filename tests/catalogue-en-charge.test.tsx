@@ -15,13 +15,11 @@ import { ETOILES_EN_CHARGE } from '../src/ui/Planetarium.tsx'
 import { reinitialiseCatalogue } from '../src/ui/catalogue-etat.ts'
 import { etatScene, reinitialiseScene } from '../src/ui/scene-etat.ts'
 import { reinitialiseSeance } from '../src/ui/seance-etat.ts'
-import { reinitialiseCoque } from '../src/ui/coque-etat.ts'
 
 afterEach(() => {
   reinitialiseCatalogue()
   reinitialiseScene()
   reinitialiseSeance()
-  reinitialiseCoque()
 })
 
 describe('T-0297 — catalogue en cours', () => {

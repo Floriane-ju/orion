@@ -18,7 +18,6 @@ import { App } from '../src/App.tsx'
 import { bornesZoom, etatProfondeur } from '../src/core/projection.ts'
 import { AIDE_MATERIEL_INCOMPLET } from '../src/ui/Inconnu.tsx'
 import { majCatalogue, reinitialiseCatalogue } from '../src/ui/catalogue-etat.ts'
-import { reinitialiseCoque } from '../src/ui/coque-etat.ts'
 import { reinitialiseScene } from '../src/ui/scene-etat.ts'
 import { poseMode, reinitialiseSeance } from '../src/ui/seance-etat.ts'
 
@@ -85,7 +84,6 @@ afterEach(() => {
   reinitialiseCatalogue()
   reinitialiseScene()
   reinitialiseSeance()
-  reinitialiseCoque()
 })
 
 describe('T-0278 — les surfaces rendues ne promettent rien de faux', () => {

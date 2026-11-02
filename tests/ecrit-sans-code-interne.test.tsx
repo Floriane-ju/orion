@@ -29,7 +29,6 @@ import type { ObjetCielProfond } from '../src/data/deepsky.ts'
 import { reinitialiseScene } from '../src/ui/scene-etat.ts'
 import { ouvreCible, poseMode, reinitialiseSeance } from '../src/ui/seance-etat.ts'
 import { reinitialiseCatalogue } from '../src/ui/catalogue-etat.ts'
-import { reinitialiseCoque } from '../src/ui/coque-etat.ts'
 import {
   LIBELLE_CAUSE_ECART,
   LIBELLE_DISPONIBILITE_HORS_LIGNE,
@@ -196,7 +195,6 @@ function codesRendus(html: string): readonly string[] {
 afterEach(() => {
   reinitialiseSeance()
   reinitialiseScene()
-  reinitialiseCoque()
   reinitialiseCatalogue()
 })
 

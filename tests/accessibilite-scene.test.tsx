@@ -16,7 +16,6 @@ import { App } from '../src/App.tsx'
 import { K } from '../src/registry/constants.ts'
 import { etatScene, majVue, reinitialiseScene } from '../src/ui/scene-etat.ts'
 import { reinitialiseSeance } from '../src/ui/seance-etat.ts'
-import { reinitialiseCoque } from '../src/ui/coque-etat.ts'
 
 const DOSSIER_UI = join(import.meta.dirname, '..', 'src', 'ui')
 
@@ -34,7 +33,6 @@ function baliseCanevas(html: string): string {
 afterEach(() => {
   reinitialiseSeance()
   reinitialiseScene()
-  reinitialiseCoque()
 })
 
 describe('T-0068 — le canevas porte un rôle et un nom', () => {

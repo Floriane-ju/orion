@@ -38,7 +38,6 @@ import {
   viseeVersVue,
 } from '../src/ui/scene-lecture.ts'
 import { reinitialiseSeance } from '../src/ui/seance-etat.ts'
-import { reinitialiseCoque } from '../src/ui/coque-etat.ts'
 
 /** Annexe A : Bordeaux, 45° N. */
 const SITE: Site = { latitudeDeg: 44.84, longitudeDeg: -0.58, altitudeM: 20 }
@@ -61,7 +60,6 @@ function compteur(html: string, libelle: string): string {
 afterEach(() => {
   reinitialiseSeance()
   reinitialiseScene()
-  reinitialiseCoque()
 })
 
 describe('T-0327 — le compteur se tape aussi', () => {

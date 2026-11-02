@@ -192,7 +192,6 @@ describe('T-0194 — le retour d’état des contrôles', () => {
     '.bouton-fichier',
     '.onglet',
     '.tiroir > summary',
-    '.carte-entete',
     '.cible-ligne',
     '.compteur',
     'input',

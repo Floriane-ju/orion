@@ -16,7 +16,6 @@ import { PanneauMateriel, resumeOptique } from '../src/ui/PanneauMateriel.tsx'
 import { phraseFocale } from '../src/ui/CibleImpossible.tsx'
 import { DEFAUT, type SaisieMateriel } from '../src/ui/app-saisie.ts'
 import { evalueMateriel, grandeursMateriel } from '../src/ui/app-calcul.ts'
-import { ouvreCarte } from '../src/ui/coque-etat.ts'
 import { lectureAjout, ModaleObjectif } from '../src/ui/ModaleObjectif.tsx'
 
 const rien = () => undefined
@@ -129,7 +128,6 @@ function materiel(champs: Partial<SaisieMateriel>): SaisieMateriel {
 }
 
 function rendu(champs: Partial<SaisieMateriel>): string {
-  ouvreCarte('OPTIQUE')
   const saisie = materiel(champs)
   const calcul = evalueMateriel(saisie, grandeursMateriel(saisie))
   return renderToStaticMarkup(<PanneauMateriel {...saisie} {...(calcul.ok ? { lectures: calcul } : {})} />)

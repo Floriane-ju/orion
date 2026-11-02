@@ -232,10 +232,9 @@ function AppPrete({
           />
         }
         scene={scene}
-        materiel={panneauMateriel}
         cartes={
           <>
-            <CartesSeance {...regions} />
+            <CartesSeance {...regions} cartesMateriel={panneauMateriel} />
             <div className="coque-nuit">
               <BoutonPartage plan={{ ...lieu, materiel, poids: poids.poids }} />
               <BoutonModeNuit etat={modeNuit} surChangement={setModeNuit} />

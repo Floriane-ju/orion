@@ -15,6 +15,9 @@
  * aurait refermés en pleine saisie — est tombée avec lui : le lieu est une carte à demeure,
  * et le seul tiroir restant (mode nuit) ne porte qu'une case et un curseur.
  *
+ * Ouvrir un tiroir est un geste hors de celui qui était ouvert : il n'y en a jamais deux à
+ * la fois, sans règle de plus.
+ *
  * Le tiroir visé est celui qui CONTIENT le focus : Échap ne referme pas un tiroir resté
  * ouvert à l'autre bout de l'écran, dont le `<summary>` volerait le focus au passage.
  */

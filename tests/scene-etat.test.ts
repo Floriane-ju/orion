@@ -154,6 +154,7 @@ describe('§5.1 — le type d’objectif pilote la projection de la scène', () 
         gaiaCharge: false,
         epoqueAnnee: 2026.6,
         masque: masquePlat(),
+        reglages: null,
       }),
     )
     expect(html).toContain('Vue comme l’appareil — équidistante')

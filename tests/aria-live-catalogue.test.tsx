@@ -15,7 +15,6 @@ import { majCatalogue, reinitialiseCatalogue } from '../src/ui/catalogue-etat.ts
 import { RIEN_SOUS_CE_NOM } from '../src/ui/PanneauCibles.tsx'
 import { reinitialiseScene } from '../src/ui/scene-etat.ts'
 import { reinitialiseSeance } from '../src/ui/seance-etat.ts'
-import { reinitialiseCoque } from '../src/ui/coque-etat.ts'
 
 // T-0297 — ce fichier teste la liste d'un catalogue ARRIVÉ (vide sous le rendu serveur) : sans
 // ce drapeau, la liste dirait seulement que le catalogue est en route.
@@ -32,7 +31,6 @@ afterEach(() => {
   reinitialiseCatalogue()
   reinitialiseScene()
   reinitialiseSeance()
-  reinitialiseCoque()
 })
 
 describe('T-0187 — Le catalogue annonce ses changements sans geste', () => {

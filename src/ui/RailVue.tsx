@@ -28,6 +28,7 @@ import type { MasqueHorizon } from '../core/site.ts'
 import { BoutonGlyphe } from './BoutonGlyphe.tsx'
 import { Bulle } from './Bulle.tsx'
 import { Icone } from './Icone.tsx'
+import type { ReactNode } from 'react'
 import { Tiroir } from './Tiroir.tsx'
 import type { CouchesActives } from './dessine-ciel.ts'
 import { RACCOURCIS_CLAVIER } from './planetarium-gestes.ts'
@@ -49,6 +50,8 @@ export interface RailVueProps {
   readonly epoqueAnnee: number
   /** §4.1 — relief du site : la couche Sol masque ce relief, et le déclare quand il est supposé. */
   readonly masque: MasqueHorizon
+  /** Les cartes Site, Boîtier et Optique, posées en boutons sous les calques. */
+  readonly reglages: ReactNode
 }
 
 /** Sélecteurs définis au niveau du module — `useTrancheScene` exige une identité stable. */
@@ -270,6 +273,13 @@ export function RailVue(props: RailVueProps) {
               </div>
             </Tiroir>
           </Bulle>
+        </div>
+
+        {/* Le lieu et le matériel se règlent une fois par séance : trois cartes posées sur le
+            ciel le couvraient en permanence pour une saisie qu'on ne relit qu'à l'occasion.
+            Chacune devient un bouton du rail, sous les calques, qui ouvre sa fenêtre à droite. */}
+        <div className="rail-groupe" role="group" aria-label="Site et matériel">
+          {props.reglages}
         </div>
 
         {/* T-0069 — « un raccourci qui n'est écrit que dans le code n'existe pas ». La carte

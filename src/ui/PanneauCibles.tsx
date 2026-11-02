@@ -67,7 +67,7 @@ import { prechargeVignettes } from './image-cible-memoire.ts'
 import { LIBELLE_TYPE_OBJET, nomCommun } from './libelles-objet.ts'
 import { LIBELLE_CAUSE_ECART } from '../registry/libelles.ts'
 import { ouvreCible, poseMode, survoleCible } from './seance-etat.ts'
-import { ouvreCarte } from './coque-etat.ts'
+import { ouvreReglage } from './TiroirRail.tsx'
 import { majCatalogue, useCatalogue } from './catalogue-etat.ts'
 import { minuteAffichee, useTrancheScene } from './scene-etat.ts'
 import { compte } from './horaire.ts'
@@ -354,8 +354,8 @@ export function PanneauCibles(props: PanneauCiblesProps) {
           change, et les réannoncer à chaque frappe de la recherche ne dirait rien de neuf. */}
       {listees.length === 0 && !attendCatalogue && domaineCpFerme !== null && (
         <div className="cibles-issues">
-          {/* La carte Boîtier s'ouvre SUR ce champ : T-0280 l'a mis en tête de son corps. */}
-          <button type="button" onClick={() => ouvreCarte('BOITIER')}>
+          {/* Le menu Boîtier s'ouvre SUR ce champ : T-0280 l'a mis en tête de son corps. */}
+          <button type="button" onClick={() => ouvreReglage('boitier')}>
             Choisir une monture
           </button>
           <button type="button" onClick={() => poseMode('PANORAMA')}>

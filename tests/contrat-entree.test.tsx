@@ -13,14 +13,8 @@ import { App } from '../src/App.tsx'
 import { GLOSSAIRE } from '../src/registry/glossaire.ts'
 import { TABLE_FORMATS_CAPTEUR } from '../src/registry/capteur-formats.ts'
 import { LIBELLE_ZP_SOURCE } from '../src/registry/libelles.ts'
-import { ouvreCarte } from '../src/ui/coque-etat.ts'
 
-// Les cartes du site et du matériel démarrent repliées : le contrat d'entrée porte sur ce qu'elles
-// affichent, pas sur leur repli — on les déplie avant de lire l'écran.
-ouvreCarte('SITE')
-ouvreCarte('BOITIER')
-ouvreCarte('OPTIQUE')
-
+// T-0437 — les menus du site et du matériel montent leur contenu fermés : l'écran le porte.
 const ecran = renderToStaticMarkup(<App />)
 
 // T-0404 — le champ et la pose maximale sans suivi ont quitté la carte Optique à la demande de

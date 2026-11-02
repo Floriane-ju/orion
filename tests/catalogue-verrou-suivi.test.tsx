@@ -16,7 +16,6 @@ import { App } from '../src/App.tsx'
 import { majCatalogue, reinitialiseCatalogue } from '../src/ui/catalogue-etat.ts'
 import { reinitialiseScene } from '../src/ui/scene-etat.ts'
 import { reinitialiseSeance } from '../src/ui/seance-etat.ts'
-import { ouvreCarte, reinitialiseCoque } from '../src/ui/coque-etat.ts'
 import { GLOSSAIRE } from '../src/registry/glossaire.ts'
 
 // T-0297 — ce fichier teste la liste d'un catalogue ARRIVÉ (vide sous le rendu serveur) : sans
@@ -33,11 +32,10 @@ function panneauCibles(): string {
   return html.slice(debut, html.indexOf('</section>', debut))
 }
 
-/** Le corps de la carte Boîtier dépliée, dans l'ordre où il se lit. */
+/** Le menu Boîtier, dans l'ordre où il se lit. */
 function corpsBoitier(): string {
-  ouvreCarte('BOITIER')
   const html = renderToStaticMarkup(<App />)
-  const debut = html.indexOf('class="carte-corps"')
+  const debut = html.indexOf('tiroir-boitier')
   expect(debut).toBeGreaterThan(-1)
   return html.slice(debut)
 }
@@ -46,7 +44,6 @@ afterEach(() => {
   reinitialiseCatalogue()
   reinitialiseScene()
   reinitialiseSeance()
-  reinitialiseCoque()
 })
 
 describe('T-0195 — la liste par défaut dit pourquoi elle est vide', () => {

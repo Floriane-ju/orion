@@ -1085,89 +1085,6 @@ body {
   display: contents;
 }
 
-.carte {
-  position: absolute;
-  z-index: var(--plan-cartes);
-  width: var(--carte-large);
-  max-width: calc(100% - 2 * var(--jour-carte));
-  border: var(--trait) solid var(--bordure);
-  background: var(--surface);
-}
-
-/* Repliée, la carte n'est plus qu'un titre : elle ne réserve pas la largeur d'un panneau. */
-.carte[data-ouverte='false'] {
-  width: max-content;
-}
-
-/* Le site s'ancre en haut à gauche, à droite du rail : le lieu se relit à côté des bascules
-   de la vue, sans couvrir ni le matériel ni le plan. */
-.carte-site {
-  left: calc(var(--rail) + 2 * var(--jour-carte));
-  top: var(--sous-barre);
-  display: flex;
-  flex-direction: column;
-  /* Elle partage le flanc gauche avec la visée : elle s'arrête un jour de carte au-dessus, et
-     son corps défile chez lui. `--visee-haut` est publiée par la visée. */
-  /* T-0414 — elle s'arrête au-dessus du bloc du temps ; la visée a quitté son flanc. */
-  max-height: calc(100dvh - var(--sous-barre) - var(--bandeau-bas));
-}
-
-.carte-site > .carte-corps {
-  min-height: 0;
-  max-height: none;
-  padding-top: var(--pas-2);
-}
-
-/* LES CARTES DU MATÉRIEL : Boîtier au-dessus d'Optique, en haut à droite, contre la colonne
-   de droite (T-0247).
-
-   Deux cartes de hauteur variable ne s'ancrent pas l'une sous l'autre en absolu — la
-   première grandit dès qu'on la déplie ou qu'on passe au mode avancé, et viendrait couvrir la
-   seconde. Le conteneur les met en colonne et tient la hauteur laissée par les deux barres ;
-   quand elles n'y tiennent plus ensemble, chacune rétrécit et son corps défile chez lui.
-   Le conteneur prend la largeur de la plus large et les cartes s'y étirent : repliées, Boîtier
-   et Optique font la même boîte au lieu de deux résumés de longueurs différentes. La colonne
-   de droite est décollée du bord d'un jour de carte (T-0243), d'où les deux jours.
-
-   Le conteneur laisse passer le pointeur : l'air entre les cartes et sous elles reste du ciel
-   qu'on fait glisser. */
-.cartes-materiel {
-  position: absolute;
-  z-index: var(--plan-cartes);
-  right: calc(var(--lateral) + 2 * var(--jour-carte));
-  /* T-0414 — sous la visée, qui publie sa hauteur (`--visee-haut`). */
-  top: calc(2 * var(--jour-carte) + var(--visee-haut));
-  /* T-0413 — la colonne s'arrête au-dessus du bloc du temps. */
-  bottom: var(--bandeau-bas);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: var(--jour-carte);
-  pointer-events: none;
-}
-
-.cartes-materiel > .carte {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  max-width: none;
-  pointer-events: auto;
-}
-
-/* Repliée, la carte cède son `max-content` à l'étirement du conteneur : sans quoi chacune
-   garde la largeur de son résumé. */
-.cartes-materiel > .carte[data-ouverte='false'] {
-  width: auto;
-}
-
-/* Dès qu'une carte est dépliée, la repliée ne s'aligne plus sur elle : elle reprend son
-   résumé, collée à droite, et laisse le ciel à côté. */
-.cartes-materiel:has(> .carte[data-ouverte='true']) > .carte[data-ouverte='false'] {
-  width: max-content;
-  align-self: flex-end;
-}
-
 /* LE TEMPS (T-0411) : l'horloge, la frise de la nuit et le retour au présent. Ils ne font
    qu'un réglage : le curseur de la frise EST l'instant de l'horloge.
 
@@ -1389,6 +1306,46 @@ body {
   display: none;
 }
 
+/* T-0437 — LES MENUS SITE, BOÎTIER ET OPTIQUE : sous les calques, ils s'ouvrent comme eux à
+   droite du rail. Ouverts, le tiroir et l'ancre de sa bulle cessent d'être positionnés : la
+   fenêtre se cale alors sur le RAIL, en haut de la scène, quel que soit le bouton — ouverte au
+   niveau d'Optique, elle aurait moins de place que celle du Site. La bulle est masquée tant que
+   le tiroir est ouvert, elle ne perd donc rien à cet ancrage. */
+.coque-rail :is(.tiroir-site, .tiroir-boitier, .tiroir-optique) > summary {
+  pointer-events: auto;
+}
+
+.coque-rail .bulle-ancre:has(> :is(.tiroir-site, .tiroir-boitier, .tiroir-optique)[open]),
+.coque-rail :is(.tiroir-site, .tiroir-boitier, .tiroir-optique)[open] {
+  position: static;
+}
+
+.coque .coque-rail :is(.tiroir-site, .tiroir-boitier, .tiroir-optique)[open] > .tiroir-contenu {
+  position: absolute;
+  top: 0;
+  right: auto;
+  left: calc(100% + var(--pas-2));
+  width: var(--carte-large);
+  max-width: calc(100vw - var(--rail) - 4 * var(--jour-carte));
+  /* T-0414 — elle s'arrête au-dessus du bloc du temps. */
+  max-height: calc(100dvh - var(--sous-barre) - var(--bandeau-bas));
+  padding: var(--pas-1) var(--pas-2) var(--pas-3);
+  pointer-events: auto;
+}
+
+/* Le titre de la fenêtre en est la BARRE, comme celui d'une rubrique : collé au filet sur trois
+   côtés, le rembourrage de la fenêtre est celui du contenu. */
+.tiroir-contenu > h2.tiroir-rail-titre:first-child {
+  display: flex;
+  align-items: center;
+  height: calc(var(--barre-titre) + var(--trait));
+  margin: calc(-1 * var(--pas-1)) calc(-1 * var(--pas-2)) var(--pas-2);
+  padding: 0 var(--pas-2);
+  border-bottom: var(--trait) solid var(--texte);
+  background: var(--barre-fond);
+  color: var(--barre-encre);
+}
+
 /* LE BOUTON-GLYPHE (`BoutonGlyphe.tsx`). Il porte un glyphe, pas un mot : il perd le
    rembourrage d'un bouton de formulaire, mais garde la cible de clic gantée de §11.2. Trois
    variantes, nommées par le fond sur lequel il se pose. */
@@ -1488,77 +1445,6 @@ body {
   background: var(--surface-haute);
 }
 
-/* L'en-tête est l'interrupteur de la carte : `aria-expanded` l'annonce. T-0238 — il n'est
-   plus une poignée, la carte reste à sa place. */
-/* L'en-tête est une FENÊTRE en réduction : une barre de titre fine, peinte, puis la ligne du
-   résumé sur le fond de la carte. La barre est un aplat de fond limité à sa première rangée —
-   le bouton garde sa cible gantée entière (§11.2), c'est seulement la peinture qui s'arrête à
-   la hauteur d'une barre de fenêtre. Dépliée, la carte n'a plus de résumé : la seconde rangée
-   devient l'air entre la barre et le corps. */
-.carte-entete {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: var(--barre-titre) auto;
-  align-content: start;
-  align-items: center;
-  column-gap: var(--pas-2);
-  width: 100%;
-  min-height: var(--cible-clic);
-  padding: 0;
-  border: 0;
-  background: linear-gradient(var(--barre-fond) 0 0) top / 100% var(--barre-titre) no-repeat,
-    linear-gradient(var(--texte) 0 0) 0 var(--barre-titre) / 100% var(--trait) no-repeat;
-  color: var(--barre-encre);
-  text-align: start;
-}
-
-/* Dépliée, l'en-tête n'est plus que sa barre : la cible tactile laissait sous le trait un vide
-   que le corps ajoutait à son propre écart, et la carte du lieu flottait plus bas que large. */
-.carte-site[data-ouverte='true'] > .carte-entete {
-  min-height: 0;
-}
-
-/* L'en-tête n'a pas l'allure d'un bouton — c'est une barre de titre —, donc c'est le contrôle
-   qu'il faut le plus désigner avant le clic. La barre passe à l'aplat de survol, comme le filet des
-   autres commandes : c'est la seule teinte que l'interface réserve à ce qui se commande. */
-/* `:not(:disabled)` n'est pas là pour le désactivé : il porte la spécificité au-dessus de
-   `button:not(:disabled):hover`, qui repeindrait sinon toute la barre du fond sombre des
-   boutons — titre couleur de fond sur fond sombre, la barre disparaissait au survol. */
-.carte-entete:not(:disabled):hover {
-  border-color: transparent;
-  background: linear-gradient(var(--barre-survol) 0 0) top / 100% var(--barre-titre) no-repeat,
-    linear-gradient(var(--texte) 0 0) 0 var(--barre-titre) / 100% var(--trait) no-repeat;
-  color: var(--barre-survol-encre);
-}
-
-/* Une barre de titre se lit comme celle d'une fenêtre : la famille du texte, en casse de
-   phrase, au plus petit rang lisible. Le titre n'a pas à crier — l'aplat le désigne déjà. */
-.carte-titre {
-  grid-row: 1;
-  grid-column: 1;
-  padding-inline: var(--pas-2);
-}
-
-/* T-0238 — le résumé d'une carte repliée est une VALEUR, pas une étiquette : il quitte la
-   casse et le suivi que le bouton impose, sans quoi « mm » se lirait « MM ». Il occupe le corps
-   de la fenêtre réduite, sous la barre — c'est ce qu'on y lit, le titre ne fait que le nommer. */
-.carte-resume {
-  grid-row: 2;
-  grid-column: 1 / -1;
-  padding: var(--pas-2);
-  color: var(--texte);
-  font-size: var(--texte-legende);
-  letter-spacing: normal;
-  text-transform: none;
-  white-space: nowrap;
-}
-
-.carte-marque {
-  grid-row: 1;
-  grid-column: 2;
-  padding-inline: var(--pas-2);
-}
-
 /* La note de facilité a quitté l'en-tête de la carte Cible pour celui du panneau, où elle
    n'est plus dans un bouton : elle y est ANNONCÉE, plus masquée. La glose aligne son
    contenu ; `Bulle` insère son ancre entre l'en-tête et elle, d'où deux niveaux. */
@@ -1574,21 +1460,6 @@ body {
   display: inline-flex;
   align-items: center;
   gap: var(--pas-1);
-}
-
-/* Une carte ne pousse jamais la coque : son corps défile chez lui. La borne est la place
-   laissée par les deux barres — une carte seule sur son flanc peut la prendre entière. */
-.carte-corps {
-  max-height: calc(100dvh - var(--sous-barre) - 2 * var(--jour-carte));
-  overflow-y: auto;
-  padding: var(--pas-1) var(--pas-2) var(--pas-3);
-}
-
-/* Le premier titre d'une carte suit son en-tête : il n'a pas à s'en détacher d'une marge
-   de section. */
-.carte-corps > *:first-child h2:first-child,
-.carte-corps > h2:first-child {
-  margin-top: var(--pas-2);
 }
 
 /* LA COLONNE DE DROITE (T-0314) : le panneau de séance. Le temps l'a quittée pour la barre
@@ -1696,7 +1567,6 @@ body {
   .coque-topbar,
   .coque-scene,
   .coque-temps,
-  .carte,
   .coque-rail,
   .coque-nuit,
   .coque-lateral,
@@ -1712,8 +1582,7 @@ body {
 
   /* La colonne de droite et les cartes du matériel rejoignent le flux comme le reste : elles
      n'ont plus ni largeur ni hauteur à tenir. */
-  .coque-droite,
-  .cartes-materiel {
+  .coque-droite {
     display: contents;
   }
 
@@ -1746,7 +1615,6 @@ body {
     padding: var(--pas-2) var(--pas-3);
   }
 
-  .carte,
   .coque-lateral {
     border: 0;
     border-top: var(--trait) solid var(--bordure);
@@ -1765,15 +1633,24 @@ body {
     flex-direction: row;
   }
 
-  .carte[data-ouverte='false'] {
-    width: auto;
+  /* Sous le repli, la fenêtre d'un menu du rail rejoint le flux : elle prend une ligne
+     entière du rail, sous les boutons. */
+  .coque-rail > .rail-groupe:has(:is(.tiroir-site, .tiroir-boitier, .tiroir-optique)[open]) {
+    flex-basis: 100%;
+    flex-wrap: wrap;
   }
 
-  .carte-site {
+  .coque-rail .bulle-ancre:has(> :is(.tiroir-site, .tiroir-boitier, .tiroir-optique)[open]) {
+    flex-basis: 100%;
+  }
+
+  .coque .coque-rail :is(.tiroir-site, .tiroir-boitier, .tiroir-optique)[open] > .tiroir-contenu {
+    position: static;
+    width: auto;
+    max-width: none;
     max-height: none;
   }
 
-  .carte-corps,
   .lateral-corps {
     max-height: none;
     overflow-y: visible;
@@ -1959,7 +1836,8 @@ body {
 /* L'alerte de persistance garde son rembourrage : elle porte du texte, pas un glyphe seul. */
 .coque-nuit .bouton-info:not([data-alerte='true']),
 .tiroir-nuit > summary,
-.tiroir-calques > summary {
+.tiroir-calques > summary,
+.coque-rail :is(.tiroir-site, .tiroir-boitier, .tiroir-optique) > summary {
   justify-content: center;
   min-width: var(--cible-clic);
   padding: 0;
@@ -1977,7 +1855,8 @@ body {
 .bouton-glyphe-flottant:not(:disabled):hover,
 .coque-nuit .bouton-info:not([data-alerte='true']):hover,
 .tiroir-nuit > summary:hover,
-.tiroir-calques > summary:hover {
+.tiroir-calques > summary:hover,
+.coque-rail :is(.tiroir-site, .tiroir-boitier, .tiroir-optique) > summary:hover {
   background: var(--surface-survol);
   border-color: var(--texte);
   color: var(--texte);
@@ -2429,7 +2308,7 @@ h3 {
  * Porté par le sélecteur d'élément, comme le style de `button` : la carte n'est pas une chose
  * qu'on applique à une rubrique, c'est ce QU'EST une rubrique. Les sections nommées —
  * `.scene`, `.cibles`, `.menu-reglages` — posent leur propre disposition et restent hors
- * sujet ; `.carte` pose la sienne mais reprend la barre de titre (`.carte-entete`). */
+ * sujet. */
 section:not([class]) {
   position: relative;
   margin-block-start: var(--pas-4);
@@ -2467,7 +2346,7 @@ section:not([class]) > h2:first-child {
    pour les cinq titres de barre ; celui de l'accordéon, sans aplat, garde la même voix. */
 section:not([class]) > h2:first-child,
 .lateral-entete h2,
-.carte-titre,
+.tiroir-rail-titre,
 .page-info-entete > h2,
 .modale-entete > h2,
 .accordeon > summary > h2 {
@@ -2507,10 +2386,10 @@ section:not([class]) > h2:first-child,
  *
  * `:not([class])` désigne la section ordinaire, celle qui empile des blocs. Les quatre
  * sections nommées posent leur propre disposition et sont hors sujet : `.scene`, `.cibles`,
- * `.carte`, `.menu-reglages`. Le corps d'une carte empile de la même façon (T-0238) : Boîtier et Optique y posent leurs
- * champs sans rubrique intermédiaire. */
+ * `.menu-reglages`. La fenêtre d'un menu du rail empile de la même façon (T-0238, T-0437) : Site,
+ * Boîtier et Optique y posent leurs champs sans rubrique intermédiaire. */
 section:not([class]) > * + *,
-.carte-corps > * + * {
+.tiroir-contenu:has(> .tiroir-rail-titre) > * + * {
   margin-block-start: var(--pas-2);
 }
 
@@ -3277,9 +3156,7 @@ button:disabled {
 
   .coque-topbar,
   .coque-scene,
-  .cartes-materiel,
-  .panneau-temps,
-  .carte {
+  .panneau-temps {
     display: none;
   }
 
@@ -4309,7 +4186,6 @@ button,
 .onglet,
 .bouton-info,
 .tiroir > summary,
-.carte-entete,
 .cible-ligne,
 .compteur,
 input,

@@ -649,8 +649,8 @@ describe('contraste des bordures de controle - WCAG 2.2 1.4.11', () => {
     const regleTiroir = regle('.tiroir > summary')
     expect(regleTiroir).toMatch(/border.*var\(--bordure-controle\)/)
 
-    // Verifier que --bordure subsiste sur les cartes
-    const regleCarte = regle('.carte')
+    // Verifier que --bordure subsiste sur les rubriques
+    const regleCarte = regle('section:not([class])')
     expect(regleCarte).toMatch(/border.*var\(--bordure\)/)
   })
 })
