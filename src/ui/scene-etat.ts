@@ -555,14 +555,6 @@ export function minuteAffichee(etat: EtatScene): number {
   return Math.floor(etat.msAffiche / MS_PAR_MINUTE)
 }
 
-/**
- * La seconde affichée. La barre basse date l'instant à la seconde ; s'abonner à `msAffiche`
- * ferait rendre l'horloge à chaque publication de la boucle, pour la même seconde.
- */
-export function secondeAffichee(etat: EtatScene): number {
-  return Math.floor(etat.msAffiche / 1000)
-}
-
 export function useTrancheScene<T>(selecteur: (etat: EtatScene) => T): T {
   const lit = useCallback(() => selecteur(etatScene()), [selecteur])
   return useSyncExternalStore(abonne, lit, lit)

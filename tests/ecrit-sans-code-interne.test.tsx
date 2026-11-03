@@ -39,9 +39,7 @@ import {
   LIBELLE_LOT_CALIBRATION,
   LIBELLE_MODE_POINTAGE,
   LIBELLE_MODE_RESEAU,
-  LIBELLE_REGIME_POSE,
   LIBELLE_SOURCE_SB,
-  LIBELLE_TOLERANCE_LUNE,
   LIBELLE_VERDICT_CADRAGE,
   LIBELLE_VERDICT_DETECTABILITE,
   LIBELLE_ZP_SOURCE,
@@ -82,8 +80,6 @@ const M31: ObjetCielProfond = {
 const TABLES_DE_LIBELLES: readonly object[] = [
   LIBELLE_VERDICT_CADRAGE,
   LIBELLE_VERDICT_DETECTABILITE,
-  LIBELLE_TOLERANCE_LUNE,
-  LIBELLE_REGIME_POSE,
   LIBELLE_ETAT_NUIT,
   LIBELLE_SOURCE_SB,
   LIBELLE_FLAG,
@@ -299,10 +295,5 @@ describe('T-0275 — les libellés nomment la bonne grandeur, pas seulement une 
   it('dit d’où vient le point zéro, ce que §7.1 exige avec toute pose affichée', () => {
     expect(LIBELLE_ZP_SOURCE.BASE_MATERIEL).toBe('base matériel')
     expect(LIBELLE_ZP_SOURCE.GENERIQUE).toBe('valeur générique')
-  })
-
-  it('nomme ce qui borne la pose, et ce que le type d’objet supporte de Lune', () => {
-    expect(LIBELLE_REGIME_POSE.LIMITE_SUIVI).toBe('limité par le suivi')
-    expect(LIBELLE_TOLERANCE_LUNE.FAIBLE).toBe('faible')
   })
 })

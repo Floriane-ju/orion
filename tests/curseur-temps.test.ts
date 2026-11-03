@@ -9,7 +9,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   etatLisibilite,
-  facteurDefilement,
   facteurMax,
   pxParDegre,
   reglageVitesse,
@@ -84,14 +83,9 @@ describe('couplage du curseur au zoom §3.2', () => {
 })
 
 describe('T-0137 — deux vitesses nommées §3.2', () => {
-  it('tire ses deux crans du registre, jamais d’un nombre écrit dans l’interface', () => {
-    expect(facteurDefilement(false)).toBe(K('FACTEUR_DEFILEMENT_NORMAL'))
-    expect(facteurDefilement(true)).toBe(K('FACTEUR_DEFILEMENT_RAPIDE'))
-  })
-
   it('place les deux vitesses dans la plage lisible au champ de référence', () => {
     for (const rapide of [false, true]) {
-      const reglage = reglageVitesse(facteurDefilement(rapide), VIEWPORT, 60)
+      const reglage = reglageVitesse(K(rapide ? 'FACTEUR_DEFILEMENT_RAPIDE' : 'FACTEUR_DEFILEMENT_NORMAL'), VIEWPORT, 60)
       expect(reglage.etat, `rapide=${rapide}`).toBe('LISIBLE')
       expect(reglage.ajuste, `rapide=${rapide}`).toBe(false)
     }
@@ -99,14 +93,14 @@ describe('T-0137 — deux vitesses nommées §3.2', () => {
 
   it('écrête la vitesse rapide en champ serré, et le dit', () => {
     // Le plafond ne dépend pas de la commande : c'est le zoom qui l'abaisse (§3.2).
-    const serre = reglageVitesse(facteurDefilement(true), VIEWPORT, 5)
+    const serre = reglageVitesse(K('FACTEUR_DEFILEMENT_RAPIDE'), VIEWPORT, 5)
     expect(serre.ajuste).toBe(true)
     expect(serre.facteur).toBeCloseTo(serre.facteurMax.value, 6)
     expect(serre.message).toMatch(/ramené/)
   })
 
   it('laisse passer la vitesse normale là où la rapide est écrêtée', () => {
-    const normale = reglageVitesse(facteurDefilement(false), VIEWPORT, 5)
+    const normale = reglageVitesse(K('FACTEUR_DEFILEMENT_NORMAL'), VIEWPORT, 5)
     expect(normale.ajuste).toBe(false)
     expect(normale.facteur).toBe(K('FACTEUR_DEFILEMENT_NORMAL'))
   })

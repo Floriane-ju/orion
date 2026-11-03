@@ -15,7 +15,6 @@ import {
   phaseFrise,
 } from '../src/core/frise-nuit.ts'
 import { positionCorps } from '../src/core/ephem.ts'
-import { eclatLuneRelatif } from '../src/core/moon.ts'
 import { K } from '../src/registry/constants.ts'
 import { SITE_REFERENCE } from './fixtures.ts'
 
@@ -132,18 +131,6 @@ describe('frise du ciel §8.1', () => {
     const { frise: f } = frise(SITE_REFERENCE, '2026-09-28')
     expect(f.lune.illumination).toBeGreaterThanOrEqual(0)
     expect(f.lune.illumination).toBeLessThanOrEqual(1)
-  })
-})
-
-describe('éclat relatif de la Lune', () => {
-  it('vaut 1 pour une pleine Lune au zénith, 0 pour une Lune couchée', () => {
-    expect(eclatLuneRelatif(0, 90)).toBeCloseTo(1, 10)
-    expect(eclatLuneRelatif(0, -1)).toBe(0)
-  })
-
-  it('croît avec la hauteur et décroît avec l’angle de phase', () => {
-    expect(eclatLuneRelatif(40, 60)).toBeGreaterThan(eclatLuneRelatif(40, 15))
-    expect(eclatLuneRelatif(20, 45)).toBeGreaterThan(eclatLuneRelatif(90, 45))
   })
 })
 

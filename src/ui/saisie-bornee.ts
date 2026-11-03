@@ -50,14 +50,3 @@ export function nombreSiRenseigne(
   if (texte.trim() === '') return { valeur: undefined, refus: null }
   return nombreSaisi(champ, texte)
 }
-
-/**
- * Les causes d'un groupe de champs, en une phrase. Deux champs hors plage disent deux fois
- * la même chose quand ils partagent un domaine : le doublon est retiré, pas la seconde cause.
- */
-export function refusDe(
-  ...bornages: readonly { readonly refus: string | null }[]
-): string | null {
-  const causes = [...new Set(bornages.map((b) => b.refus).filter((r) => r !== null))]
-  return causes.length === 0 ? null : causes.join(' ')
-}

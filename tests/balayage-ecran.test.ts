@@ -12,7 +12,7 @@ import { cielInstantane } from '../src/core/horloges.ts'
 import { projecteur, type Vue } from '../src/core/projection.ts'
 import { masqueDepuisRelief, masquePlat, NB_AZIMUTS } from '../src/core/site.ts'
 import { sousLeSol, type TestSol } from '../src/core/sol.ts'
-import { frontiereEcran, polygonesRegion } from '../src/ui/balayage-ecran.ts'
+import { frontiereEcran } from '../src/ui/balayage-ecran.ts'
 import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
 const ciel = cielInstantane(SITE, new Date('2026-09-30T14:15:00Z'))
@@ -69,7 +69,7 @@ function peint(polygones: ReturnType<typeof avecBoites>, x: number, y: number): 
  */
 function ecart(v: Vue, dedans: TestSol): number {
   const proj = projecteur(v, ciel.matrice)
-  const polygones = avecBoites(polygonesRegion(frontiereEcran(proj, dedans)))
+  const polygones = avecBoites(frontiereEcran(proj, dedans).polygones)
   const vrai = (x: number, y: number): boolean => {
     const d = proj.inverse(x, y)
     return dedans(d.x, d.y, d.z)

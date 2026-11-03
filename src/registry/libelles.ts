@@ -19,8 +19,7 @@
  */
 
 import type { LotCalibration } from '../core/calibration.ts'
-import type { VerdictDetectabilite, ToleranceLune } from '../core/detectability.ts'
-import type { RegimePose } from '../core/exposure.ts'
+import type { VerdictDetectabilite } from '../core/detectability.ts'
 import type { DegradationLune } from '../core/session-score.ts'
 import type { EtatNuit } from '../core/nuit.ts'
 import type { ModePointage } from '../core/pointage.ts'
@@ -51,25 +50,12 @@ export const LIBELLE_VERDICT_DETECTABILITE: Readonly<Record<VerdictDetectabilite
     PHOTO_SEULE: 'en photo seulement',
   })
 
-/** §6.3 — ce que le type d'objet supporte de Lune. */
-export const LIBELLE_TOLERANCE_LUNE: Readonly<Record<ToleranceLune, string>> = Object.freeze({
-  FORTE: 'forte',
-  MOYENNE: 'moyenne',
-  FAIBLE: 'faible',
-})
-
 /** Ce que la Lune ôte à la photographie de la cible. */
 export const LIBELLE_DEGRADATION_LUNE: Readonly<Record<DegradationLune, string>> = Object.freeze({
   AUCUNE: 'aucune',
   FAIBLE: 'faible',
   MOYENNE: 'moyenne',
   FORTE: 'forte',
-})
-
-/** §7.2 — ce qui borne la pose unitaire. */
-export const LIBELLE_REGIME_POSE: Readonly<Record<RegimePose, string>> = Object.freeze({
-  NOMINAL: 'nominal',
-  LIMITE_SUIVI: 'limité par le suivi',
 })
 
 /** §3.2 — ce que la nuit offre à cette date et cette latitude. */

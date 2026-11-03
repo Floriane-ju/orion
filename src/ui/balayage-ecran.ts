@@ -227,11 +227,6 @@ export function frontiereEcran(
   return { polygones, segments }
 }
 
-/** La région en polygones — ils se touchent par leurs bords : peints d'un seul `fill`, ils ne laissent aucune couture. */
-export function polygonesRegion(f: FrontiereEcran): readonly (readonly Point[])[] {
-  return f.polygones
-}
-
 /** Peint la région, opaque. */
 export function remplitRegion(
   ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,

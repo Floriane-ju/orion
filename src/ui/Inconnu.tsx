@@ -9,9 +9,7 @@
  * Le « ? » est focalisable : la bulle s'ouvre au `:focus-visible`, donc au clavier aussi.
  */
 
-import type { TermeGlossaire } from '../registry/glossaire.ts'
 import { Bulle } from './Bulle.tsx'
-import { Etiquette } from './Terme.tsx'
 
 /** §5.1 — les trois grandeurs sans lesquelles ni champ, ni échantillonnage, ni pose n'existent. */
 export const AIDE_MATERIEL_INCOMPLET =
@@ -25,30 +23,5 @@ export function Inconnu() {
         ?
       </span>
     </Bulle>
-  )
-}
-
-/**
- * La ligne d'une lecture qui ne se calcule pas encore. Elle emprunte la mise en page de
- * `TracedValue` sans en être une : il n'y a ni formule ni entrée à déplier, seulement une
- * saisie à compléter.
- */
-export function LectureInconnue({
-  terme,
-  suffixe,
-}: {
-  readonly terme: TermeGlossaire
-  readonly suffixe?: string
-}) {
-  return (
-    <p className="tracee tracee-vide">
-      <span>
-        <Etiquette cle={terme} />
-        {suffixe !== undefined && <span className="tracee-suffixe"> — {suffixe}</span>}
-      </span>
-      <span className="tracee-valeur">
-        <Inconnu />
-      </span>
-    </p>
   )
 }

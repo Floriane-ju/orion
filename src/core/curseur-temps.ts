@@ -18,15 +18,6 @@ import { S_PAR_H } from './unites.ts'
 
 export type ModeTemps = 'MAINTENANT' | 'FIGE' | 'DEFILEMENT'
 
-/**
- * Les deux vitesses du transport, au signe près. Le curseur continu de §3.2 était un réglage
- * à trouver ; deux crans nommés sont une commande. Le plafond, lui, ne bouge pas : ces
- * facteurs s'y écrêtent comme n'importe quel autre.
- */
-export function facteurDefilement(rapide: boolean): number {
-  return rapide ? K('FACTEUR_DEFILEMENT_RAPIDE') : K('FACTEUR_DEFILEMENT_NORMAL')
-}
-
 export type EtatLisibilite = 'IMPERCEPTIBLE' | 'LISIBLE' | 'RAPIDE' | 'REPLIEMENT'
 
 export function pxParDegre(largeurPx: number, fovDeg: number): number {
