@@ -1,0 +1,11 @@
+# Ignored advisories: build-time only, via vite-plugin-pwa>workbox-build, no fix reachable.
+# Inputs are the repo's own PWA config, never user data; nothing ships to the client.
+# Remove an entry once workbox-build (or the package) publishes a patched release (T-0446).
+auditConfig:
+  ignoreGhsas:
+    # deepmerge prototype poisoning; no patched version published (latest 4.3.1).
+    - GHSA-gcqx-w48m-w2h4
+    # minimatch globparts ReDoS; via ejs>jake>filelist, jake CLI never runs in build.
+    - GHSA-g3hv-75wg-m249
+    # glob AbortSignal bypass; workbox-build@7.4.1 pins glob ^11, passes no signal.
+    - GHSA-3g3m-2fjr-6pw4
