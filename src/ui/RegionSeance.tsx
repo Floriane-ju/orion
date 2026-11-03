@@ -1,18 +1,9 @@
 /**
- * §11.3 — ce que la coque pose sur la scène, et ce qu'elle ouvre à côté.
- *
- * T-0113 — le panneau droit à quatre onglets est démonté. Les quatre intentions n'avaient pas
- * la même nature : deux se règlent EN regardant le ciel — la vue et la cible — et deux se
- * lisent de haut en bas — le plan de nuit et le filé. Les premières sont devenues des cartes
- * posées sur la scène, repliables ; les secondes, un panneau latéral.
- *
- * Le partage n'est pas esthétique : une carte qu'on replie libère la scène sans perdre son
- * état, là où un onglet forçait à en abandonner un pour en lire un autre.
- *
- * T-0181 — le panneau ne s'ouvre plus : il est à demeure, et le mode décide de son contenu.
- *
- * T-0238 — le matériel, passé en colonne par T-0197, est revenu en cartes : il vit dans
- * `PanneauMateriel`, que l'application monte à côté de celles-ci.
+ * §11.3 — what coque puts on scène + what it opens beside it.
+ * T-0113 — 4-tab panel removed: vue + cible tuned WHILE watching sky → foldable scène cards;
+ * plan de nuit + filé read top-down → side panel. Fold frees scène, keeps state.
+ * T-0181 — panel always present, mode picks content.
+ * T-0238 — matériel back to cards (column since T-0197): `PanneauMateriel`, mounted by app.
  */
 
 import { useRef, useEffect, type ReactNode } from 'react'
@@ -57,21 +48,18 @@ export interface RegionSeanceProps {
   readonly lieu: SaisieLieu
   readonly materiel: SaisieMateriel
   readonly catalogue: readonly ObjetCielProfond[]
-  /** T-0297 — le catalogue n'est pas encore décodé : une liste vide n'est pas un résultat. */
+  /** T-0297 — catalogue not decoded yet: empty list ≠ result. */
   readonly catalogueEnCharge: boolean
   readonly etoiles: readonly Etoile[]
-  /** §3.4 — figures, frontières et étoiles nommées ; §8.4 y prend le nom de ses ancrages. */
+  /** §3.4 — figures, frontières, named stars; §8.4 takes its anchor names from it. */
   readonly constellations: PaquetConstellations
-  /** §3.4 — la cible ouverte depuis le planétarium, `null` tant qu'aucune ne l'a été. */
+  /** §3.4 — cible opened from planétarium, `null` until one is. */
   readonly cibleDuCiel: ObjetCielProfond | null
   readonly gaiaCharge: boolean
   readonly epoqueAnnee: number
 }
 
-/**
- * Latitude et longitude à une décimale pour l'en-tête replié. Une saisie en cours de frappe
- * (vide, « - ») n'est pas un nombre : elle se marque « ? » plutôt que « NaN ».
- */
+/** Lat/lon at 1 decimal for folded header. Mid-typing input (empty, "-") → "?", not "NaN". */
 export function resumeSite(latitude: string, longitude: string): string {
   const arrondi = (v: string) => {
     const n = nombreDeTexte(v)
@@ -81,15 +69,9 @@ export function resumeSite(latitude: string, longitude: string): string {
 }
 
 /**
- * Les cartes de la scène.
- *
- * Le corps d'une carte repliée n'est PAS monté : replier une carte ne la cache pas, elle cesse
- * d'exister — donc de s'abonner aux magasins et d'y recalculer quoi que ce soit à chaque
- * geste de visée. C'est ce qui rend le repli utile et pas seulement discret.
- *
- * T-0213 — le rail de la vue est monté ici plutôt qu'en carte : il reste toujours visible,
- * et ne lit du magasin de scène que les trois tranches dont ses bascules ont besoin. Site,
- * Boîtier et Optique y sont trois menus, sous les calques (`TiroirRail`).
+ * Scène cards. Folded body NOT mounted: no store subscriptions, no recompute per visée gesture.
+ * T-0213 — vue rail mounted here, not a card: always visible, reads only the 3 scène slices its
+ * toggles need. Site/Boîtier/Optique = 3 menus under calques (`TiroirRail`).
  */
 export function CartesSeance(props: RegionSeanceProps & { readonly cartesMateriel: ReactNode }) {
   const { chaine, lieu, materiel } = props
@@ -102,9 +84,8 @@ export function CartesSeance(props: RegionSeanceProps & { readonly cartesMaterie
       masque={chaine.masque}
       reglages={
         <>
-          {/* Le lieu se LIT sur l'en-tête replié et se RÈGLE déplié. Au dixième de degré : un
-              résumé dit où l'on est, pas la saisie au chiffre près — celle-ci est dans les
-              champs. */}
+          {/* Lieu READ on folded header, SET unfolded. 1 decimal: summary says where, exact
+              value lives in fields. */}
           <TiroirRail cle="site" titre="Site" icone="location_on" resume={resumeSite(lieu.latitude, lieu.longitude)}>
             <ChampsSite
               latitude={lieu.latitude}
@@ -128,17 +109,15 @@ export function CartesSeance(props: RegionSeanceProps & { readonly cartesMaterie
 }
 
 /**
- * L'onglet « Mon plan » : la fenêtre nocturne, puis le plan de session.
- *
- * Il reste monté hors de son onglet, masqué : le plan est la SEULE région imprimable (§11.2),
- * et démonté il sortirait une page blanche dès qu'on imprime depuis un autre onglet. Un second
- * exemplaire monté pour l'impression ferait deux `<textarea>` d'export dans l'arbre.
+ * "Mon plan" tab: fenêtre nocturne, then plan de session. Stays mounted hidden: plan = ONLY
+ * printable region (§11.2); unmounted → blank print from another tab. 2nd copy → 2 export
+ * `<textarea>` in tree.
  */
 function PlanNuit(props: RegionSeanceProps) {
   const { chaine, lieu, materiel } = props
   const { calcul, ciel } = chaine
 
-  /* §11.2 — la seule région qui survit à l'impression : elle est nommée pour ça. */
+  /* §11.2 — only region surviving print; named for that. */
   const planImprimable =
     calcul.ok && ciel.ok && chaine.plan !== null && chaine.fenetreUtile !== null ? (
       <PlanSessionVue
@@ -171,9 +150,8 @@ function PlanNuit(props: RegionSeanceProps) {
           planIndisponible={chaine.plan === null && props.catalogue.length === 0}
         />
       )}
-      {/* T-0291 — le plan est calculé hors du rendu de la frappe : tant qu'il est en vol,
-          ce bloc montre celui de la saisie précédente, et le dit. Un horaire de créneau qui
-          ne correspond plus à la focale tapée est faux s'il ne s'annonce pas. */}
+      {/* T-0291 — plan computed off typing render; in flight, block shows previous input's plan
+          and says so (créneau time vs typed focale would be wrong unannounced). */}
       {chaine.recalculEnCours && <Mention ton="etat">{RECALCUL_EN_COURS}</Mention>}
       <div className="plan-session" aria-busy={chaine.recalculEnCours}>
         {planImprimable}
@@ -183,15 +161,10 @@ function PlanNuit(props: RegionSeanceProps) {
 }
 
 /**
- * §6.4 — le rappel de facilité : les pastilles seules, la glose au survol.
- *
- * Le mot « Facilité » affiché poussait les commandes sur une seconde ligne de l'en-tête, pour
- * un terme de toute façon ambigu — facilité de quoi, à trouver, à cadrer, à traiter ? C'est la
- * bulle qui le nomme et le précise en une phrase, et la cause d'écart s'y ajoute sur une
- * note 0 : un zéro qui ne dit pas ce qui bloque n'indique aucun levier à tirer.
- *
- * `Bulle` plutôt qu'un `title` : T-0147 — l'infobulle native est la seule surface que la
- * palette de §11.1 ne peut pas atteindre, donc une lampe blanche en pleine interface de nuit.
+ * §6.4 — facilité reminder: pastilles only, glose on hover.
+ * Word "Facilité" pushed controls to 2nd header line + ambiguous. `Bulle` names it in one
+ * sentence + cause d'écart on note 0 (bare 0 gives no lever). `Bulle` ≠ `title` — T-0147:
+ * native tooltip unreachable by §11.1 palette → white lamp in night UI.
  */
 function RappelFacilite({ etat }: { readonly etat: EtatCible }) {
   const glose =
@@ -208,31 +181,22 @@ function RappelFacilite({ etat }: { readonly etat: EtatCible }) {
 }
 
 /**
- * Le panneau latéral et son plan imprimable.
- *
- * T-0181 — il n'y a plus de panneau à choisir : le mode le dit. En Ciel profond on choisit une
- * cible dans le catalogue, en Panorama on règle le panorama, sur « Mon plan » on relit la
- * nuit et le plan. Seul le plan reste monté hors de son onglet, masqué, pour l'impression.
- *
- * T-0188 — gestion du focus quand le contenu du panneau change.
+ * Side panel + printable plan.
+ * T-0181 — mode decides: Ciel profond = catalogue cible, Panorama = panorama settings,
+ * "Mon plan" = nuit + plan reread. Only plan stays mounted hidden (print).
+ * T-0188 — focus management on panel content change.
  */
 export function LateralSeance(props: RegionSeanceProps) {
   const { chaine, catalogue } = props
   const mode = useTrancheSeance(modeSeance)
   const vueCibles = useTrancheSeance(vueCiblesSeance)
 
-  /* §3.4 — la fiche n'existe que sur une cible désignée : `ouvreCible` pose les deux d'un
-     coup, et rien d'autre ne mène ici. */
+  /* §3.4 — fiche only on designated cible: `ouvreCible` sets both, nothing else leads here. */
   const fiche = mode === 'CIEL_PROFOND' && vueCibles === 'FICHE' && props.cibleDuCiel !== null
 
   /**
-   * §6.4 — la note se LIT dans la map de la chaîne, elle ne se recalcule pas ici : c'est la
-   * même entrée que la ligne de la liste du catalogue montre pour cette cible. Deux appels au
-   * moteur, même identiques, étaient deux couvertures à garder d'accord — et elles ne
-   * l'étaient pas.
-   *
-   * Elle ne vit QUE dans l'en-tête : la fiche détaille déjà cadrage, pose et intégration, et
-   * une note qui agrège ces trois-là n'y ajoutait qu'une ligne à faire défiler.
+   * §6.4 — note READ from chain map, not recomputed (= catalogue row entry): 2 engine calls =
+   * 2 couvertures to sync (they weren't). ONLY in header: fiche details cadrage/pose/intégration.
    */
   const facilite =
     props.cibleDuCiel === null
@@ -240,12 +204,10 @@ export function LateralSeance(props: RegionSeanceProps) {
       : chaine.etatsCibles.get(props.cibleDuCiel.designation) ?? null
 
   /**
-   * §8.3 — `CONFLIT_CRENEAU` ne naît qu'à l'allocation de la nuit : la fiche ne peut pas le
-   * recalculer seule, contrairement au cadrage, à la détectabilité ou au créneau. C'est le
-   * plan lui-même — `chaine.plan.ciblesEcartees` — qui le porte.
-   *
-   * T-0322 — c'est désormais le SEUL écart d'allocation. Le budget ne retire plus de cible :
-   * une nuit trop courte se lit sur l'étape, qui reste au plan avec son nombre de nuits.
+   * §8.3 — `CONFLIT_CRENEAU` born at nuit allocation only; fiche can't recompute it (unlike
+   * cadrage/détectabilité/créneau). Via `chaine.plan.ciblesEcartees`.
+   * T-0322 — now the ONLY allocation écart: budget no longer drops cible, short nuit shown on
+   * étape, cible kept in plan with its nuit count.
    */
   const cible = props.cibleDuCiel
   const ecarteePlan =
@@ -260,8 +222,8 @@ export function LateralSeance(props: RegionSeanceProps) {
       ? null
       : (chaine.plan.etapes.find((e) => e.objet.designation === cible.designation) ?? null)
 
-  // T-0188 — le focus suit le contenu du panneau. La liste et la fiche ne coexistent jamais :
-  // au moment où l'effet s'exécute, celle qui portait le focus est déjà démontée.
+  // T-0188 — focus follows panel content. List/fiche never coexist: the one holding focus is
+  // already unmounted when effect runs.
   const titreRef = useRef<HTMLHeadingElement | null>(null)
   const rechercheRef = useRef<HTMLInputElement | null>(null)
   const vuePrecedente = useRef<VueCibles>(vueCibles)
@@ -270,8 +232,7 @@ export function LateralSeance(props: RegionSeanceProps) {
     const precedente = vuePrecedente.current
     vuePrecedente.current = vueCibles
 
-    // La ligne de la cible consultée : elle vient d'être remontée, ou les filtres l'ont
-    // écartée pendant la consultation — c'est ce que le repli couvre.
+    // Consulted cible's row: just lifted, or filters dropped it meanwhile — fallback covers it.
     const ligne =
       props.cibleDuCiel === null
         ? null
@@ -297,13 +258,13 @@ export function LateralSeance(props: RegionSeanceProps) {
       fiche={
         fiche && props.cibleDuCiel !== null
           ? {
-              // T-0282 — « M31 » ne dit rien à qui cherche Andromède : le nom commun suit.
+              // T-0282 — "M31" means nothing to Andromède seekers: common name follows.
               titre: titreFiche(props.cibleDuCiel),
               retour: montreListeCibles,
               rappel: (
                 <span className="lateral-actions">
                   {facilite !== null && <RappelFacilite etat={facilite} />}
-                  {/* T-0221, T-0283 — viser et cadrer depuis la fiche, d'un seul geste. */}
+                  {/* T-0221, T-0283 — viser + cadrer from fiche, one gesture. */}
                   <CadrerCible
                     objet={props.cibleDuCiel}
                     site={chaine.site}
@@ -315,8 +276,8 @@ export function LateralSeance(props: RegionSeanceProps) {
                     site={chaine.site}
                     profil={chaine.profilsCadre[0]}
                   />
-                  {/* §8.3 — le geste qui compose le plan. Le même prédicat que la liste :
-                      ce que la nuit ne permet pas ne s'ajoute pas. */}
+                  {/* §8.3 — gesture composing the plan. Same predicate as list: what nuit
+                      forbids isn't added. */}
                   {photographiable(facilite ?? undefined) && (
                     <BoutonChoixCible designation={props.cibleDuCiel.designation} />
                   )}
@@ -329,7 +290,7 @@ export function LateralSeance(props: RegionSeanceProps) {
     >
       <>
         {mode === 'PLAN' ? null : fiche && props.cibleDuCiel !== null ? (
-          /* T-0149 — sans optique chiffrable, la fiche dit ce qui manque plutôt que de meubler. */
+          /* T-0149 — no chiffrable optique: fiche says what's missing instead of padding. */
           chaine.contexteFiche === null ? (
             <p className="etat">{AIDE_MATERIEL_INCOMPLET}</p>
           ) : (
@@ -350,10 +311,9 @@ export function LateralSeance(props: RegionSeanceProps) {
           ) : (
             <PanneauFile {...chaine.panneauFile} />
           )
-        ) : /* T-0149 — la liste chiffre un cadrage : sans optique, elle dit ce qui manque.
-               T-0291 — c'est le contexte de séance qui la monte, et non `calcul.ok && ciel.ok` :
-               les deux conditions sont équivalentes, mais la première est celle dont la liste
-               tire ses lectures, et c'est elle qui porte la cadence différée. */
+        ) : /* T-0149 — list chiffre a cadrage: no optique → says what's missing.
+               T-0291 — mounted by contexte de séance, not `calcul.ok && ciel.ok`: equivalent,
+               but list reads from the former and it carries the deferred cadence. */
         chaine.contexteSession !== null ? (
           <PanneauCibles
             catalogue={catalogue}
@@ -380,15 +340,14 @@ export function LateralSeance(props: RegionSeanceProps) {
 }
 
 /**
- * T-0346 — la nuit ; T-0411 — dans la barre haute, liée à l’horloge. Elle ne dépend que du lieu et de la date :
- * elle se montre quel que soit le mode et même quand le matériel manque. Hors du panneau de
- * séance, elle ne défile plus avec la liste et ne la repousse plus.
+ * T-0346 — nuit; T-0411 — top bar, tied to clock. Needs only lieu + date: any mode, no matériel.
+ * Out of séance panel: no scroll with list, no push.
  */
 export function NuitSeance({ chaine }: RegionSeanceProps) {
   return chaine.ciel.ok ? <CarteNuit site={chaine.site} nuit={chaine.ciel.nuit} /> : null
 }
 
-/** T-0412 — la phase et la Lune de l’instant, sous l’horloge ; absentes sans ciel, comme la frise. */
+/** T-0412 — phase + Lune at instant, under clock; absent without ciel, like frise. */
 export function LectureSeance({ chaine }: RegionSeanceProps) {
   return chaine.ciel.ok ? <LectureNuit site={chaine.site} /> : null
 }

@@ -1,11 +1,8 @@
 /**
- * §4.1 et §5.1 — effacer un champ pour le retaper est un état transitoire normal.
- *
- * Deux exigences distinctes, et T-0149 les sépare :
- *   - le message du moteur remonte, pas l'exception — un `throw` en rendu démonte l'arbre
- *     et l'écran devient noir ;
- *   - un champ MATÉRIEL effacé ne refuse que le matériel. Le ciel du lieu reste calculable,
- *     donc la scène reste dessinable.
+ * §4.1 + §5.1 — clearing a field to retype it = normal transient state.
+ * T-0149, two requirements:
+ *   - engine message propagates, not the exception: a render `throw` unmounts tree → black screen;
+ *   - cleared MATERIAL field refuses only matériel. Lieu sky stays computable → scene drawable.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -96,7 +93,7 @@ describe('saisie transitoirement vide', () => {
   })
 })
 
-/** T-0149 — ce qui doit rester vrai pour que la scène survive à un matériel incomplet. */
+/** T-0149 — what must hold for scene to survive incomplete matériel. */
 describe('champ matériel effacé', () => {
   const CHAMPS = ['focale', 'ouverture'] as const
 
@@ -114,7 +111,7 @@ describe('champ matériel effacé', () => {
   })
 
   it.each(CHAMPS)('%s effacée : le ciel du lieu reste dessinable', (champ) => {
-    // La scène ne demande que ces deux grandeurs-là : elles ne viennent pas du matériel.
+    // Scene needs only these two quantities: not from matériel.
     const ciel = evalueCiel(SITE, grandeursLieu(LIEU))
     const saisie = { ...MATERIEL, [champ]: '' }
     expect(evalueMateriel(saisie, grandeursMateriel(saisie)).ok).toBe(false)
@@ -127,9 +124,8 @@ describe('champ matériel effacé', () => {
 })
 
 /**
- * Le Bortle effacé le temps d'en taper un autre refusait le ciel ENTIER, et le planétarium
- * disparaissait à chaque frappe. Le dernier ciel calculé tient l'écran ; le refus se dit
- * sous les champs.
+ * Bortle cleared while typing another refused the ENTIRE sky: planetarium vanished at each
+ * keystroke. Last computed sky holds the screen; refusal stated under the fields.
  */
 describe('champ du lieu effacé : la scène garde le dernier ciel', () => {
   const VALIDE = evalueCiel(SITE, grandeursLieu(LIEU))

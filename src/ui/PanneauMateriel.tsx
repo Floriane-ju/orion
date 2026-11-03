@@ -1,24 +1,15 @@
 /**
- * §5.1 + §5.2 — le panneau matériel : ce qu'on a, et ce que ça donne.
- *
- * Ces cartes ne portent que des propriétés de l'équipement — boîtier, focale, ouverture,
- * recadrage de capteur, type d'objectif, suivi — et, sous elles, la lecture directe de ce que
- * cet équipement produit. Le lieu et la date n'y sont pas : ils décrivent la séance, pas le
- * matériel, et vivent dans la barre basse.
- *
- * T-0234 — deux cartes, plus trois. L'appareil et sa monture décrivent le même poste et
- * tiennent dans la carte « Boîtier » ; ne reste ici que l'objectif, avec ses deux nombres
- * côte à côte — focale et ouverture se règlent ensemble et se relisent ensemble (`f/`).
- *
- * T-0238 — ces deux cartes sont devenues deux menus du rail (`TiroirRail`), sous celui du
- * Site.
- *
- * Le type d'objectif était perdu dans la vue grand champ. C'est pourtant une propriété du
- * matériel, et §5.1 lui donne une conséquence physique : rectilinéaire ou fisheye choisit la
- * projection de la scène, il n'ajuste pas un rendu.
- *
- * Chaque nombre reste dépliable jusqu'à sa formule (§1.5.2) : les lectures sont des
- * `TracedValue`, jamais des chiffres nus.
+ * §5.1 + §5.2 — matériel panel: what one has, and what it gives.
+ * Cards carry only equipment properties (boîtier, focale, ouverture, sensor crop, objectif
+ * type, suivi), below them the direct reading of what it produces. Lieu and date not here:
+ * they describe the séance, live in the bottom bar.
+ * T-0234 — two cards, not three. Camera + mount describe one station → "Boîtier" card; only
+ * the objectif remains, its two numbers side by side (focale and ouverture set and re-read
+ * together, `f/`).
+ * T-0238 — the two cards became two rail menus (`TiroirRail`), under Site's.
+ * Objectif type was lost in the grand champ view. It is a matériel property with a physical
+ * consequence (§5.1): rectilinéaire vs fisheye selects the scène projection, not a render tweak.
+ * Each number unfolds to its formula (§1.5.2): readings are `TracedValue`, never bare figures.
  */
 
 import type { TypeObjectif } from '../core/optics.ts'
@@ -43,7 +34,7 @@ import { PanneauParc } from './PanneauParc.tsx'
 import type { Objectif } from '../core/objectif.ts'
 import { objectifActif, reglageOptique } from './objectif-saisie.ts'
 
-/** §5.2 — ce que la saisie décrit d'une monture : ce qu'elle suit, et comment elle est posée. */
+/** §5.2 — what input describes of a mount: what it tracks, how it is set up. */
 export type ChoixMonture =
   | 'AUCUN'
   | 'TRACKER_SOIGNE'
@@ -58,11 +49,10 @@ interface ProfilMonture {
 }
 
 /**
- * T-0236 — sans suivi, le type de monture n'a plus de conséquence : celui retenu est celui qui
- * n'impose rien, pas de retournement au méridien (§8.2), et la mise en station reste non
- * renseignée. `APPROX` et `INCONNUE` ne sont plus deux réponses : `modeSuivi` (core/suivi.ts)
- * les traite déjà comme une seule mise en station approximative, et `INCONNUE` ne survit que
- * dans les profils déjà enregistrés.
+ * T-0236 — without suivi the mount type has no consequence: retained one imposes nothing, no
+ * meridian flip (§8.2), mise en station unset. `APPROX` and `INCONNUE` merged: `modeSuivi`
+ * (core/suivi.ts) already treats both as one approximate mise en station; `INCONNUE` survives
+ * only in already-stored profiles.
  */
 export const PROFILS_MONTURE: Readonly<Record<ChoixMonture, ProfilMonture>> = Object.freeze({
   AUCUN: { suiviActif: false, qualiteMes: 'INCONNUE', typeMonture: 'TRACKER' },
@@ -73,9 +63,9 @@ export const PROFILS_MONTURE: Readonly<Record<ChoixMonture, ProfilMonture>> = Ob
 })
 
 /**
- * Le choix qui décrit un profil. L'altazimutale retombe sur la rotule, comme au rechargement
- * d'un profil qui la porte encore (T-0207) : le sélecteur ne la propose pas, et la reprendre
- * telle quelle laisserait le champ sur une valeur sans option.
+ * The choice describing a profile. Altazimutale falls back to rotule, as on reloading a profile
+ * still carrying it (T-0207): selector does not offer it, keeping it would leave the field on a
+ * value with no option.
  */
 export function choixMonture(profil: ProfilMonture): ChoixMonture {
   if (!profil.suiviActif) return 'AUCUN'
@@ -84,10 +74,10 @@ export function choixMonture(profil: ProfilMonture): ChoixMonture {
   return soignee ? 'TRACKER_SOIGNE' : 'TRACKER_APPROX'
 }
 
-/** Ce que le matériel saisi produit. Absent tant que la saisie est refusée. */
+/** What the typed matériel produces. Absent while input is refused. */
 /**
- * T-0264 — quatre intitulés courts, qui DISTINGUENT : le type de monture, puis comment elle
- * est mise en station. Une table, lue par le sélecteur et par la carte repliée (T-0282).
+ * T-0264 — four short labels that DISTINGUISH: mount type, then how it is set up. One table
+ * read by selector and folded card (T-0282).
  */
 export const LIBELLE_MONTURE: Readonly<Record<ChoixMonture, string>> = Object.freeze({
   AUCUN: 'Pas de suivi',
@@ -98,12 +88,10 @@ export const LIBELLE_MONTURE: Readonly<Record<ChoixMonture, string>> = Object.fr
 })
 
 /**
- * T-0282 — la carte Boîtier repliée dit ce qui DÉCIDE de la pose : quel capteur, et s'il est
- * suivi. Le mode de recadrage seul laissait, cartes repliées pour dégager la scène, aucun
- * moyen de vérifier que le tracker était pris en compte.
- *
- * Seul le fait d'être suivi y figure, pas le détail de la monture : celui-ci se relit dans le
- * sélecteur, et l'intitulé complet allongeait le résumé au point de le tronquer.
+ * T-0282 — folded Boîtier card says what DECIDES the pose: which sensor, tracked or not.
+ * Crop mode alone left, with cards folded to free the scène, no way to check the tracker was
+ * counted. Only the fact of tracking shows, not mount detail (re-readable in the selector; full
+ * label lengthened the summary to truncation).
  */
 export function resumeBoitier(
   boitierId: string,
@@ -115,25 +103,25 @@ export function resumeBoitier(
 
 export interface LecturesMateriel {
   readonly suivi: ProfilSuivi
-  /** §7.1 — `zp_source` du boîtier retenu, affiché avec toute pose. */
+  /** §7.1 — `zp_source` of the retained boîtier, shown with every pose. */
   readonly zeroSysteme: PointZeroSysteme
-  /** §7.2 — l'ISO retenu et la raison qui le justifie. */
+  /** §7.2 — retained ISO + justification. */
   readonly iso: IsoRetenu
-  /** §5.1 — le recadrage resserre le cadre sans toucher à l'échantillonnage. */
+  /** §5.1 — crop tightens the cadre without touching échantillonnage. */
   readonly noteRecadrage?: string
 }
 
 export interface PanneauMaterielProps {
-  /** T-0204 — ligne de la base `boitiers.md`, ou `''` pour décrire le capteur à la main. */
+  /** T-0204 — `boitiers.md` DB row, or `''` = describe the sensor by hand. */
   readonly boitierId: string
   readonly surBoitierId: (v: string) => void
-  /** §5.1 — le boîtier retenu, et ses grandeurs capteur quand il est saisi à la main. */
+  /** §5.1 — retained boîtier, + sensor quantities when typed by hand. */
   readonly boitier: SaisieBoitier
   readonly surBoitier: (v: SaisieBoitier) => void
-  /** §7.2 — ISO de capture ; vide = celui que le seuil de double gain recommande. */
+  /** §7.2 — capture ISO; empty = the one double-gain threshold recommends. */
   readonly iso: string
   readonly surIso: (v: string) => void
-  /** T-0404 — le parc d'objectifs, et celui qui est monté (`''` : objectif libre). */
+  /** T-0404 — objectif parc + mounted one (`''` = free objectif). */
   readonly objectifs: readonly Objectif[]
   readonly surObjectifs: (v: readonly Objectif[]) => void
   readonly objectifId: string
@@ -152,21 +140,18 @@ export interface PanneauMaterielProps {
   readonly surQualiteMes: (v: QualiteMiseEnStation) => void
   readonly typeMonture: TypeMonture
   readonly surTypeMonture: (v: TypeMonture) => void
-  /** Lectures du matériel courant, ou la cause du refus de saisie. */
+  /** Readings of current matériel, or the cause of input refusal. */
   readonly lectures?: LecturesMateriel
   readonly erreur?: string
 }
 
 /**
- * §5.2 — le suivi : ce que la monture permet, et ce qu'elle interdit.
- *
- * T-0234 — il ferme la carte « Boîtier » au lieu d'en tenir une. Pas de titre : le champ nomme
- * déjà le sujet, et un `h3` sous un `h2` de carte n'aurait annoncé que lui.
- *
- * T-0236 — un champ, pas trois. L'interrupteur et les deux sélecteurs posaient trois questions
- * dont deux sans objet tant que la première n'était pas cochée, pour cinq réponses réellement
- * distinctes. Le moteur et le profil enregistré gardent leurs trois champs — c'est le contrat
- * §5.2 et le format d'export §12.3 — mais la saisie n'en montre qu'un.
+ * §5.2 — suivi: what the mount allows and forbids.
+ * T-0234 — closes the "Boîtier" card instead of holding one. No title: field already names the
+ * subject, an `h3` under a card `h2` would announce only itself.
+ * T-0236 — one field, not three: switch + two selectors asked three questions, two moot until
+ * the first was ticked, for five really distinct answers. Engine and stored profile keep three
+ * fields (§5.2 contract, §12.3 export format); input shows one.
  */
 function ChampsSuivi(props: PanneauMaterielProps) {
   const lectures = props.lectures
@@ -181,9 +166,9 @@ function ChampsSuivi(props: PanneauMaterielProps) {
   return (
     <>
       <div className="champs">
-        {/* T-0207/T-0237 — l'altazimutale n'est pas un choix tant que la rotation de champ n'est
-            pas modélisée (§5.2) : la proposer ne menait qu'à un refus. La bulle porte ce
-            périmètre au lieu d'un paragraphe fixe — elle ne concerne que le suivi choisi. */}
+        {/* T-0207/T-0237 — altazimutale is no choice while field rotation is not modelled
+            (§5.2): offering it only led to a refusal. Bubble carries this scope instead of a
+            fixed paragraph — concerns only the chosen suivi. */}
         <ChampChoix
           cle="type_monture"
           precision={
@@ -199,12 +184,11 @@ function ChampsSuivi(props: PanneauMaterielProps) {
           ))}
         </ChampChoix>
       </div>
-      {/* §5.2 — fermer le ciel profond et le justifier sont un seul geste (core/suivi.ts) :
-          cette cause doit rester visible sans naviguer, qu'on suive ou non. Sans suivi, ce
-          n'est pas un défaut de saisie mais le régime naturel du grand champ : `etat`, pas
-          de signe d'alerte. La phrase longue (grand champ, NPF) reste dans `profilSuivi` —
-          `domaineCpFerme` (PanneauCibles) en a besoin pour justifier l'exclusion du ciel
-          profond ; ce panneau n'affiche que le repère court. */}
+      {/* §5.2 — closing ciel profond and justifying it is one gesture (core/suivi.ts): cause
+          stays visible without navigating, tracked or not. Without suivi it is no input defect
+          but grand champ's natural regime: `etat`, no alert sign. Long sentence (grand champ,
+          NPF) stays in `profilSuivi` — `domaineCpFerme` (PanneauCibles) needs it to justify
+          excluding ciel profond; this panel shows only the short marker. */}
       {lectures?.suivi.mode === 'AUCUN' && (
         <Mention ton="etat">Sans suivi, les poses restent courtes.</Mention>
       )}
@@ -219,9 +203,9 @@ function ChampsSuivi(props: PanneauMaterielProps) {
 }
 
 /**
- * T-0238 — l'objectif en une ligne, pour la carte repliée : la notation du photographe, celle
- * de l'en-tête du plan imprimé. Un champ vidé pour être retapé se marque « ? » plutôt que de
- * laisser « mm f/ » orphelin — sans la bulle d'`Inconnu`, qui ne se pose pas dans un bouton.
+ * T-0238 — objectif on one line for the folded card: photographer's notation, as in the printed
+ * plan header. Emptied field shows "?" rather than orphan "mm f/" — without `Inconnu`'s bubble
+ * (cannot sit inside a button).
  */
 export function resumeOptique(focale: string, ouverture: string): string {
   const marque = (v: string) => (v.trim() === '' ? '?' : saisieLue(v))
@@ -232,12 +216,12 @@ export function PanneauMateriel(props: PanneauMaterielProps) {
   const lectures = props.lectures
   const objectif = objectifActif(props.objectifs, props.objectifId)
   const reglage = reglageOptique(objectif, props.focale, props.ouverture)
-  // Le résumé dit le réglage retenu, celui qu'on calcule et qu'on enregistre, pas la frappe.
+  // Summary states the retained setting (computed, saved), not the keystroke.
   const retenu = (texte: string, b: typeof reglage.focale) =>
     b.refus !== null && Number.isFinite(b.valeur) ? String(b.valeur) : texte
-  // Une focale fixe n'a rien à régler : sa ligne du parc la dit déjà.
+  // Fixed focale has nothing to set: its parc row says it.
   const focaleReglable = objectif === null || objectif.focaleMinMm !== objectif.focaleMaxMm
-  // Un réglage relu vide n'a pas de position sur le rail : le pouce part du grand-angle.
+  // Re-read empty setting has no rail position: thumb starts at wide-angle.
   const focaleMm = Number.isFinite(reglage.focale.valeur) ? reglage.focale.valeur : (objectif?.focaleMinMm ?? Number.NaN)
   const texteFocale = Number.isFinite(reglage.focale.valeur) ? `${nombre(focaleMm, 0)} mm` : '?'
   return (
@@ -264,7 +248,7 @@ export function PanneauMateriel(props: PanneauMaterielProps) {
         icone="center_focus_strong"
         resume={resumeOptique(retenu(props.focale, reglage.focale), retenu(props.ouverture, reglage.ouverture))}
       >
-        {/* T-0404 — le parc en tête : une ligne par objectif, celui qu'on utilise coché. */}
+        {/* T-0404 — parc first: one row per objectif, the used one ticked. */}
         {props.objectifs.length > 0 && (
           <PanneauParc
             objectifs={props.objectifs}
@@ -273,10 +257,9 @@ export function PanneauMateriel(props: PanneauMaterielProps) {
             surObjectifId={props.surObjectifId}
           />
         )}
-        {/* T-0404 — le parc dit tout de l'objectif ; reste la focale d'un zoom, seule chose qu'on
-            règle en séance. L'ouverture est la pleine ouverture de l'objectif à cette focale. */}
-        {/* T-0433 — la plage d'un zoom est bornée des deux côtés : un rail la montre entière et
-            ne laisse rien taper hors d'elle. */}
+        {/* T-0404 — parc says everything of the objectif; remaining: a zoom's focale, the only
+            thing set in séance. Ouverture = objectif's full ouverture at that focale. */}
+        {/* T-0433 — zoom range bounded both sides: a rail shows it whole, nothing typed outside */}
         {objectif !== null && focaleReglable && (
           <div className="champs">
             <label>
@@ -296,7 +279,7 @@ export function PanneauMateriel(props: PanneauMaterielProps) {
             </label>
           </div>
         )}
-        {/* Parc vide — un réglage relu illisible : la saisie sans objectif, pour le corriger. */}
+        {/* Empty parc — unreadable re-read setting: input without objectif, to fix it. */}
         {objectif === null && (
           <>
             <div className="champs paire">
@@ -311,7 +294,7 @@ export function PanneauMateriel(props: PanneauMaterielProps) {
             </Interrupteur>
           </>
         )}
-        {/* T-0238 — le refus se dit sous les champs qui l'ont produit, pas flottant sur le ciel. */}
+        {/* T-0238 — refusal said under the fields that produced it, not floating over the sky. */}
         {props.erreur !== undefined && <Mention ton="erreur">{props.erreur}</Mention>}
       </TiroirRail>
     </>

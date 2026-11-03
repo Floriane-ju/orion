@@ -1,19 +1,11 @@
 /**
- * §3.4 — Le nom d'un élément de la scène, et l'endroit où ce nom se pose.
- *
- * T-0109 — un seul module possède le nommage et la mise en place. La scène peignait
- * « Dabih » là où le survol révélait « Dabih — β Cap », et les deux textes ne tombaient
- * même pas au même point : deux règles écrites à deux endroits donnaient deux vocabulaires,
- * et un nom qui sautait de dix pixels au premier cran de zoom.
- *
- * Un astre porte UN nom sur la scène, le même à tout champ : celui sous lequel on le
- * cherche. Un observateur repère « Dabih », pas « β Cap » — la désignation Bayer sert à
- * lever une ambiguïté, ce qu'un label n'a pas à faire. §3.4 nomme les étoiles de mag ≤ 3,5
- * comme celles qui PORTENT une désignation Bayer : c'est le critère d'éligibilité, appliqué
- * par `etoileLabellisable`, pas le texte à peindre.
- *
- * La désignation reste dans la fiche, qui garde sa forme longue : c'est un panneau, pas un
- * label. L'ancre, elle, dépend du marqueur que le label longe.
+ * §3.4 — name of a scène element and where it sits.
+ * T-0109 — one module owns naming + placement (scene painted "Dabih", hover showed
+ * "Dabih — β Cap" at another point: two rules, two vocabularies, a name jumping 10 px).
+ * A body has ONE name on the scène, same at any champ: the one it is searched by. Bayer
+ * disambiguates, a label need not. §3.4 names stars mag ≤ 3,5 that CARRY a Bayer designation:
+ * that is the eligibility criterion (`etoileLabellisable`), not the text.
+ * Designation stays in the fiche (long form). Anchor depends on the marker the label hugs.
  */
 
 import { Body } from 'astronomy-engine'
@@ -26,27 +18,24 @@ import { POLICE_SCENE } from './couleurs.ts'
 import { K } from '../registry/constants.ts'
 
 export const HAUTEUR_LABEL_PX = K('HAUTEUR_NOM_SCENE_PX')
-/** La police des noms peints sur la scène : une écriture, pour que tous les labels se mesurent pareil. */
+/** Font of names painted on the scène: single spec, all labels measure alike. */
 export const POLICE_LABEL = `${HAUTEUR_LABEL_PX}px ${POLICE_SCENE}`
 export const LARGEUR_CARACTERE_PX = HAUTEUR_LABEL_PX * K('CHASSE_POLICE_SCENE_EM')
 export const MARQUEUR_OBJET_PX = 4
-/** T-0376 — au-dessus du plafond des étoiles : Sirius ne prend pas la taille de Jupiter. */
+/** T-0376 — above star cap: Sirius must not match Jupiter's size. */
 export const RAYON_CORPS_PX = 6
-/** La Lune porte sa phase : à la taille d'une planète, son croissant ne se lisait pas. */
+/** Moon shows its phase; planet size made the crescent unreadable. */
 export const RAYON_LUNE_PX = 10
 
 /**
- * T-0107 — cinq étoiles brillantes du ciel réel n'ont ni Bayer, ni Flamsteed, ni nom propre
- * dans les paquets versionnés. Elles n'ont pas de label ; elles n'ont que ce titre.
+ * T-0107 — five bright real-sky stars have no Bayer, Flamsteed or proper name in the versioned
+ * packs: no label, only this title.
  */
 const TITRE_ETOILE_SANS_DESIGNATION = `Étoile ${SANS_NOM}`
 
 /**
- * Le texte à peindre pour cet élément, `null` s'il n'en porte aucun.
- *
- * Le même à tout champ : c'est ce qui fait qu'un nom révélé au survol et le même nom peint
- * un cran de zoom plus loin sont indiscernables. Une étoile brillante que le paquet nommé ne
- * porte pas n'a pas de label du tout — elle n'a que sa fiche.
+ * Text to paint for this element, `null` if none. Same at any champ (hover name = name painted
+ * a zoom step later). Bright star missing from the named pack: no label, fiche only.
  */
 export function libelleCible(cible: CibleEcran): string | null {
   if (cible.type === 'OBJET') return cible.objet?.designation ?? null
@@ -56,7 +45,7 @@ export function libelleCible(cible: CibleEcran): string | null {
   return nommee.nomPropre === '' ? nommee.designation : nommee.nomPropre
 }
 
-/** Le titre de la fiche : la forme longue, la même quel que soit le champ. */
+/** Fiche title: long form, same at any champ. */
 export function titreCible(cible: CibleEcran): string {
   if (cible.type === 'OBJET' && cible.objet !== undefined) {
     const o = cible.objet
@@ -68,11 +57,11 @@ export function titreCible(cible: CibleEcran): string {
   return nommee === undefined ? TITRE_ETOILE_SANS_DESIGNATION : nomComplet(nommee)
 }
 
-/** L'ancre du label : il longe le marqueur que la scène a peint pour cet élément. */
+/** Label anchor: hugs the marker the scène painted. */
 export function ancreLabel(cible: CibleEcran): { readonly xPx: number; readonly yPx: number } {
   const marge = HAUTEUR_LABEL_PX / 2
-  // T-0144 — l'objet porte l'encombrement de son marqueur : un nom posé à quatre pixels fixes
-  // tomberait DANS une galaxie qui s'étale sur un quart du canevas.
+  // T-0144 — object carries its marker's extent: a fixed 4 px offset would land INSIDE a galaxy
+  // spanning a quarter of the canvas.
   if (cible.type === 'OBJET') {
     return { xPx: cible.xPx + (cible.rayonPx ?? MARQUEUR_OBJET_PX) + marge, yPx: cible.yPx }
   }
@@ -80,12 +69,12 @@ export function ancreLabel(cible: CibleEcran): { readonly xPx: number; readonly 
     const rayon = cible.rayonPx ?? (cible.corps?.corps === Body.Moon ? RAYON_LUNE_PX : RAYON_CORPS_PX)
     return { xPx: cible.xPx + rayon + marge, yPx: cible.yPx }
   }
-  // L'étoile n'a pas de marqueur de taille fixe à contourner — son disque suit sa magnitude.
-  // Le nom se pose en diagonale, seul décalage qui ne recouvre jamais l'astre qu'il nomme.
+  // Star has no fixed-size marker (disc follows magnitude). Diagonal offset: the only one that
+  // never covers the star.
   return { xPx: cible.xPx + marge, yPx: cible.yPx - marge }
 }
 
-/** Le texte, sa place et son encombrement : ce que l'anti-chevauchement de §3.4 demande. */
+/** Text, place, extent: what §3.4 anti-overlap needs. */
 export function boiteLabel(cible: CibleEcran, texte: string): BoiteLabel {
   return {
     texte,

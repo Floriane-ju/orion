@@ -1,21 +1,15 @@
 /**
- * §1.5 — les renvois au PRD sont de la traçabilité, pas du texte d'interface.
- *
- * Le registre cite sa section (`§8.3 — …`) parce que c'est ce qui rend une valeur
- * vérifiable : la référence reste dans la donnée. Elle est retirée au rendu, où elle
- * n'apprend rien au lecteur du ciel et alourdit chaque libellé.
- *
- * Les motifs suivent les trois formes que le registre emploie — renvoi en tête suivi d'un
- * tiret, renvoi entre parenthèses, renvoi introduit par « voir » — de sorte que la phrase
- * reste grammaticale une fois la référence enlevée.
+ * §1.5 — PRD refs = traceability, not UI text. Registry cites its section (`§8.3 — …`) so
+ * values are verifiable; stripped at render. Patterns follow the 3 registry forms (leading
+ * ref + dash, parenthesised, "voir"-introduced) so the sentence stays grammatical.
  */
 
 const RENVOIS: readonly (readonly [RegExp, string])[] = Object.freeze([
-  // « (§2.4) » et « (§9.2 et §9.3) » : la parenthèse entière disparaît avec son renvoi.
+  // "(§2.4)" and "(§9.2 et §9.3)": whole parenthesis goes with its ref.
   [/\s*\(§[\d.]+(?:\s*(?:,|et|à)\s*§?[\d.]+)*\)/g, ''],
-  // « (§2.1, dernier critère) » : seul le renvoi part, la précision reste.
+  // "(§2.1, dernier critère)": only ref goes, precision stays.
   [/\(§[\d.]+\s*,\s*/g, '('],
-  // « §8.3 — … » et « §8.3 et §8.4 — … » en tête de source.
+  // "§8.3 — …" and "§8.3 et §8.4 — …" leading a source.
   [/^§[\d.]+(?:\s*(?:et|,)\s*§[\d.]+)*\s*[—–-]\s*/, ''],
   [/,?\s*voir\s+§[\d.]+/g, ''],
   [/\s*[—–]\s*§[\d.]+(?:\s*(?:et|,)\s*§[\d.]+)*/g, ''],

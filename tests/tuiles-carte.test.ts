@@ -1,9 +1,6 @@
 /**
- * §12.5, §13.1 — les tuiles de la carte du site : jamais hors réseau, jamais indéfiniment,
- * jamais sans borne en mémoire (T-0363).
- *
- * Le réseau est remplacé par un chargeur factice : ce qui est vérifié, c'est la conduite face
- * à chaque issue, pas la disponibilité d'OSM.
+ * §12.5, §13.1 — site map tiles: never offline, never indefinitely, never unbounded in memory
+ * (T-0363). Fake loader: checks behaviour per outcome, not OSM availability.
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest'

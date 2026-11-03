@@ -1,27 +1,22 @@
 /**
- * §2.2 — Table Bortle et brillance de fond de ciel.
- *
- * Le modèle linéaire du socle initial est remplacé par une table. Extrapolé vers Bortle 1
- * il donnait 23,4 mag/arcsec², valeur physiquement impossible : la lueur atmosphérique, la
- * lumière zodiacale et la lumière stellaire intégrée fixent un plancher autour de
- * 21,7 à 22,0 mag/arcsec². Aucun site terrestre ne descend en dessous.
- *
- * INTERPOLATION LINÉAIRE AUTORISÉE entre deux lignes.
- * EXTRAPOLATION INTERDITE au-delà de 1 et de 9.
- * Le SQM mesuré, s'il est saisi, PRÉVAUT toujours sur le Bortle estimé.
+ * §2.2 — Bortle table and sky-background brightness.
+ * Linear model replaced by a table: extrapolated to Bortle 1 it gave 23,4 mag/arcsec², physically
+ * impossible (airglow, zodiacal light, integrated starlight floor ≈ 21,7–22,0 mag/arcsec²).
+ * LINEAR INTERPOLATION ALLOWED between two rows. EXTRAPOLATION FORBIDDEN beyond 1 and 9.
+ * Measured SQM, when entered, ALWAYS overrides estimated Bortle.
  */
 
 export interface LigneBortle {
   readonly bortle: number
-  /** Brillance du fond de ciel, mag/arcsec². */
+  /** Sky-background brightness, mag/arcsec². */
   readonly sb: number
-  /** Magnitude limite à l'œil nu. */
+  /** Naked-eye limiting magnitude. */
   readonly mLimOeil: number
 }
 
 /**
- * Lignes 4 et 8 : ancrages du socle. Colonne de magnitude limite : échelle de Bortle telle
- * que publiée (Sky & Telescope, 2001) — [À VÉRIFIER] contre la publication.
+ * Rows 4, 8: base anchors. Limiting-magnitude column: Bortle scale as published (Sky &
+ * Telescope, 2001) — [À VÉRIFIER] against source.
  */
 export const TABLE_BORTLE: readonly LigneBortle[] = Object.freeze([
   { bortle: 1, sb: 21.9, mLimOeil: 7.8 },
@@ -42,7 +37,7 @@ export const SOURCE_TABLE_BORTLE =
 const BORTLE_MIN = TABLE_BORTLE[0]!.bortle
 const BORTLE_MAX = TABLE_BORTLE[TABLE_BORTLE.length - 1]!.bortle
 
-/** Fond de ciel naturel le plus sombre atteignable, borne haute de la table. */
+/** Darkest natural sky background reachable: table upper bound. */
 export const SB_PLANCHER_NATUREL = TABLE_BORTLE[0]!.sb
 
 function encadre(bortle: number): readonly [LigneBortle, LigneBortle, number] {
@@ -66,7 +61,7 @@ export class BortleHorsTableError extends Error {
   }
 }
 
-/** Interpole la table pour un Bortle fractionnaire. Refuse toute valeur hors [1 ; 9]. */
+/** Interpolates table for fractional Bortle; refuses values outside [1 ; 9]. */
 export function interpoleBortle(bortle: number): LigneBortle {
   if (!Number.isFinite(bortle) || bortle < BORTLE_MIN || bortle > BORTLE_MAX) {
     throw new BortleHorsTableError(bortle)
@@ -80,8 +75,8 @@ export function interpoleBortle(bortle: number): LigneBortle {
 }
 
 /**
- * Inversion de la colonne SB : d'une brillance mesurée vers la magnitude limite à l'œil nu.
- * Retourne `null` hors du domaine de la table plutôt que d'extrapoler.
+ * Inverts SB column: measured brightness → naked-eye limiting magnitude.
+ * `null` outside table domain, no extrapolation.
  */
 export function mLimOeilDepuisSb(sb: number): number | null {
   const sbMax = TABLE_BORTLE[0]!.sb
@@ -89,7 +84,7 @@ export function mLimOeilDepuisSb(sb: number): number | null {
   if (!Number.isFinite(sb) || sb > sbMax || sb < sbMin) return null
 
   for (let i = 0; i < TABLE_BORTLE.length - 1; i++) {
-    const haute = TABLE_BORTLE[i]! // SB décroissante avec le Bortle
+    const haute = TABLE_BORTLE[i]! // SB decreases with Bortle
     const basse = TABLE_BORTLE[i + 1]!
     if (sb <= haute.sb && sb >= basse.sb) {
       const etendue = haute.sb - basse.sb
@@ -101,10 +96,10 @@ export function mLimOeilDepuisSb(sb: number): number | null {
   return null
 }
 
-/** Magnitude limite à l'œil nu aux deux bords de la table. */
+/** Naked-eye limiting magnitude at both table edges. */
 export const M_LIM_OEIL_PLAFOND = TABLE_BORTLE[0]!.mLimOeil
 export const M_LIM_OEIL_PLANCHER = TABLE_BORTLE[TABLE_BORTLE.length - 1]!.mLimOeil
-/** Fond de ciel le plus clair de la table, borne basse de son domaine. */
+/** Brightest sky background of table: domain lower bound. */
 export const SB_PLAFOND_TABLE = TABLE_BORTLE[TABLE_BORTLE.length - 1]!.sb
 
 export type BorneTableBortle = 'AUCUNE' | 'CIEL_PLUS_SOMBRE' | 'CIEL_PLUS_CLAIR'
@@ -115,13 +110,11 @@ export interface MLimOeilBorne {
 }
 
 /**
- * T-0100 — magnitude limite à l'œil nu, BORNÉE au bord de table hors domaine.
- *
- * `mLimOeilDepuisSb` rend `null` hors de la table, et c'est la bonne réponse tant qu'il s'agit
- * de publier une valeur : rien n'est extrapolé. Mais un appelant qui doit PLAFONNER quelque
- * chose ne peut rien faire d'un `null` — il finit par ne plus plafonner du tout, et un ciel de
- * pleine Lune montre alors plus d'étoiles qu'un ciel de banlieue. On borne donc au bord de
- * table en le déclarant, comme `contrast.ts` plafonne le seuil de Blackwell au dernier palier.
+ * T-0100 — naked-eye limiting magnitude, CLAMPED to table edge outside domain.
+ * `mLimOeilDepuisSb` returns `null` outside table: right for publishing a value (no
+ * extrapolation), but a caller that must CAP something can't use `null` → no cap, and a
+ * full-Moon sky shows more stars than a suburb. So clamp to table edge, declared, like
+ * `contrast.ts` caps Blackwell threshold at last tier.
  */
 export function mLimOeilBorne(sb: number): MLimOeilBorne {
   if (!Number.isFinite(sb)) return { value: M_LIM_OEIL_PLANCHER, borne: 'CIEL_PLUS_CLAIR' }

@@ -1,9 +1,7 @@
 /**
- * §8.3 et §2.4 — les poids C-15 se règlent, la somme reste à 1, et rien ne s'apprend.
- *
- * Ce qui est vérifié ici n'est pas une valeur de poids — le registre la porte — mais deux
- * propriétés : la normalisation tient quelle que soit l'échelle des curseurs, et le plan
- * produit change bien quand les poids changent, à ciel et matériel identiques.
+ * §8.3 + §2.4 — C-15 poids tunable, sum stays 1, nothing learned.
+ * Two properties, not a weight value (registry holds it): normalisation holds at any slider
+ * scale; plan changes when poids change, same sky and matériel.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -24,14 +22,14 @@ import { objetNebuleuse as objet, SITE_REFERENCE } from './fixtures.ts'
 
 const NUIT = fenetreNocturne(SITE_REFERENCE, new Date('2026-08-14T12:00:00Z'))
 
-/** Trois cibles cadrables par ce setup, comme dans `plan-session.test.ts`. */
+/** Three targets framable by this setup, as `plan-session.test.ts`. */
 const CATALOGUE: readonly ObjetCielProfond[] = [
   objet({ designation: 'NGC7000', adDeg: 314.75, decDeg: 44.52, majAxArcmin: 120, minAxArcmin: 100, vMag: 4 }),
   objet({ designation: 'M31', adDeg: 10.68, decDeg: 41.27, type: 'GALAXIE', majAxArcmin: 190, minAxArcmin: 60, vMag: 3.4 }),
   objet({ designation: 'M45', adDeg: 56.75, decDeg: 24.12, type: 'AMAS_OUVERT', majAxArcmin: 110, minAxArcmin: 110, vMag: 1.6 }),
 ]
 
-/** Setup ciel profond de l'Annexe A, comme `plan-session.test.ts`. */
+/** Annexe A deep-sky setup, as `plan-session.test.ts`. */
 function contexte(poids?: PoidsScoring): ContexteSession {
   return {
     site: SITE_REFERENCE,
@@ -133,7 +131,7 @@ describe('le plan se recalcule au changement de poids §8.3', () => {
     expect(hauteurSeule.etapes.length).toBeGreaterThan(0)
     const scores = (plan: typeof parDefaut) => plan.etapes.map((e) => e.score.value)
     expect(scores(hauteurSeule)).not.toStrictEqual(scores(parDefaut))
-    // Un seul critère pesant : le score de chaque étape est exactement sa composante hauteur.
+    // Single weighted criterion: each step score = exactly its height component.
     for (const etape of hauteurSeule.etapes) {
       expect(etape.score.value).toBeCloseTo(etape.detailScore.hauteur, 12)
     }

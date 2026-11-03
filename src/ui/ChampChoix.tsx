@@ -1,22 +1,13 @@
 /**
- * T-0215 — un champ à choix fermé : son libellé vient du glossaire, ses options du site
- * d'appel.
- *
- * Ce que le composant factorise n'est pas le balisage — trois lignes — mais le CAST. Chaque
- * site écrivait `e.target.value as CapteurMode` : une assertion non vérifiée, répétée cinq
- * fois, dans un dépôt qui compile en `strict`. Une assertion écrite une fois est une
- * assertion qu'on peut relire ; cinq sont cinq endroits où le type et les `<option>` peuvent
- * diverger en silence.
- *
- * LES OPTIONS RESTENT EN `children`, et ne passent pas par une prop `options`. Deux des
- * sites groupent leurs choix en `<optgroup>` : une prop en tableau plat les aurait laissés
- * dehors, et une prop capable de les décrire aurait fait un second schéma de données pour
- * remplacer du balisage qui se lit déjà. Le site d'appel garde ses `<option>`.
- *
- * UN CHAMP DU PRODUIT NE PASSE PAS PAR ICI, délibérément : le choix de RSB de `Verdicts`
- * porte une valeur NUMÉRIQUE, là où un `<select>` ne rend que des chaînes — sa conversion est
- * sa particularité, pas un défaut à rattraper. Il reste écrit en clair, et l'inventaire le dit.
- * (Le filtre « Type » de `PanneauCibles` n'est plus un `<select>` : c'est un choix multiple.)
+ * T-0215 — closed-choice field: label from glossaire, options from call site.
+ * Factors the CAST, not the markup: each site wrote `e.target.value as CapteurMode`, an unchecked
+ * assertion ×5 in a `strict` repo; written once it's reviewable, ×5 type and `<option>` drift
+ * silently.
+ * OPTIONS STAY `children`, no `options` prop: two sites group in `<optgroup>`; a flat array would
+ * exclude them and a prop able to describe them = second data schema duplicating markup.
+ * ONE FIELD BYPASSES ON PURPOSE: `Verdicts` RSB choice carries a NUMERIC value (`<select>` yields
+ * strings); its conversion is its particularity. Stays explicit; inventory says so.
+ * (`PanneauCibles` "Type" filter is multi-choice, no longer a `<select>`.)
  */
 
 import type { ReactNode } from 'react'
@@ -24,13 +15,13 @@ import type { TermeGlossaire } from '../registry/glossaire.ts'
 import { Etiquette } from './Terme.tsx'
 
 export interface ChampChoixProps<T extends string> {
-  /** Le terme du glossaire qui nomme le champ — jamais une chaîne écrite à la main. */
+  /** Glossaire term naming the field; never a hand-written string. */
   readonly cle: TermeGlossaire
-  /** Précision calculée au contact, ajoutée à la bulle du terme. */
+  /** Precision computed at point of use, added to the term's bulle. */
   readonly precision?: string | undefined
   readonly valeur: T
   readonly surChangement: (valeur: T) => void
-  /** Les `<option>` et `<optgroup>`, écrits au site d'appel. */
+  /** `<option>`/`<optgroup>` written at the call site. */
   readonly children: ReactNode
 }
 

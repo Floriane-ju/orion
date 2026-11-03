@@ -1,9 +1,6 @@
 /**
- * §10.2 — explication de verdict.
- *
- * Le point vérifié ici n'est pas la prose : c'est que l'explication est DÉRIVÉE du calcul.
- * Le facteur dominant sort d'une dérivée logarithmique, pas d'une phrase écrite à la main,
- * donc il ne peut pas diverger du moteur qu'il explique.
+ * §10.2 — verdict explanation DERIVED from calc, not prose: dominant factor comes from a
+ * logarithmic derivative, not a hand-written phrase, so it can't diverge from its engine.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -66,10 +63,10 @@ describe('facteur dominant §10.2', () => {
 
   it('retrouve les exposants analytiques du modèle', () => {
     const sens = sensibilites(SORTIE, POINT)
-    // T ∝ SNR² : la sensibilité au rapport signal sur bruit visé vaut exactement 2.
+    // T ∝ SNR²: sensitivity to target SNR is exactly 2.
     expect(sens.snr_cible!).toBeCloseTo(2, 3)
-    // Chaîne analytique : ∂lnT/∂lnSB_obj = (2 − E_obj/somme) × 0,4 × ln10 × SB_obj, le
-    // flux de l'objet figurant au dénominateur au carré et une fois au numérateur.
+    // Analytic chain: ∂lnT/∂lnSB_obj = (2 − E_obj/somme) × 0,4 × ln10 × SB_obj; object flux
+    // squared in denominator, once in numerator.
     const somme = E_OBJ.value + E_CIEL.value + POINT.read_noise_e ** 2 / POINT.t_pose_s
     const attendu = (2 - E_OBJ.value / somme) * 0.4 * Math.LN10 * POINT.sb_obj
     expect(sens.sb_obj!).toBeCloseTo(attendu, 1)
@@ -92,7 +89,7 @@ describe('leviers §10.2', () => {
   it('n’ouvre le filtre bi-bande que sur les objets en émission', () => {
     const emission = leviers({ verdict: 'PHOTO_SEULE', typeObjet: 'EMISSION', cibleImposee: true })
     expect(emission.map((l) => l.code)).toContain('FILTRE_DUAL_BAND')
-    // Et jamais avant les leviers gratuits.
+    // And never before the free levers.
     expect(emission.findIndex((l) => l.code === 'FILTRE_DUAL_BAND')).toBeGreaterThan(0)
   })
 

@@ -1,9 +1,8 @@
 /**
- * T-0298 — le mode nuit s'applique avant le premier pixel de contenu.
- *
- * `main.tsx` ne s'importe pas sous `node` (il monte React sur le DOM) : on lit son texte,
- * comme `csp.test.ts` lit `vite.config.ts`. Ce qui compte est l'ordre — la palette posée
- * avant `createRoot`, donc avant l'écran « Lecture des données enregistrées… ».
+ * T-0298 — mode nuit applies before first pixel of content.
+ * `main.tsx` not importable under `node` (mounts React on DOM) → text read, like `csp.test.ts`
+ * reads `vite.config.ts`. Order: palette set before `createRoot`, so before the "Lecture des
+ * données enregistrées…" screen.
  */
 
 import { readFileSync } from 'node:fs'

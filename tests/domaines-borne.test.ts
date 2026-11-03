@@ -1,9 +1,7 @@
 /**
- * T-0208 — §4.1 et §5.1 : la frontière de SAISIE borne, là où la frontière de DONNÉES refuse.
- *
- * La table est DÉRIVÉE de `DOMAINES` : aucune borne n'est recopiée ici. Un domaine ajouté
- * demain est couvert sans qu'on y pense, et un domaine dont les bornes changent ne laisse pas
- * derrière lui un test qui affirme l'ancienne plage.
+ * T-0208 — §4.1 and §5.1: INPUT boundary clamps where DATA boundary refuses. Table DERIVED
+ * from `DOMAINES`: no copied bound; new domain covered automatically, changed bounds leave
+ * no test asserting old range.
  */
 
 import { describe, expect, it } from 'vitest'

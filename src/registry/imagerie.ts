@@ -1,31 +1,18 @@
 /**
- * §6.4, §6.2 — Origine, cadrage et poids de l'image d'objet.
- *
- * Ce module existe pour deux raisons distinctes, et la seconde est la vraie.
- *
- * La première est la règle du projet : une largeur, une marge, un plafond de taille sont des
- * valeurs, elles ne s'écrivent pas dans un moteur.
- *
- * La seconde est §13.1. La promesse de confidentialité ne se lit plus dans l'architecture —
- * l'application émet désormais du trafic — elle se lit dans `ORIGINES_IMAGERIE`. Cette liste
- * est la source unique : la politique de sécurité du contenu de `vite.config.ts` en est
- * dérivée, et un test refuse toute divergence. Ajouter une origine ici est un amendement du
- * PRD, pas un détail d'implémentation.
- *
- * Une seule directive s'ouvre, et c'est `connect-src` : les octets sont téléchargés puis
- * rangés en IndexedDB, et affichés depuis un `blob:`. Aucun hôte tiers n'a donc à figurer
- * dans `img-src` — une surface à surveiller au lieu de deux.
- *
- * La liste ne compte plus qu'une origine, et ce n'est pas un allègement cosmétique : l'image
- * d'objet est désormais toujours une découpe de relevé, parce qu'elle porte le cadre de §6.2
- * et qu'un cadre ne se pose qu'à une échelle connue. Une image d'encyclopédie est cadrée par
- * son auteur, son champ n'est écrit nulle part. §6.4 décrit encore deux sources : l'écart est
- * assumé et arbitré à part, il ne s'amende pas depuis ce fichier.
+ * §6.4, §6.2 — origin, framing and weight of the object image.
+ * Two reasons, 2nd is the real one. 1: widths/margins/size caps are values, not engine code.
+ * 2: §13.1 — privacy promise is read in `ORIGINES_IMAGERIE`. Single source: CSP of
+ * `vite.config.ts` derives from it, a test rejects divergence. New origin = PRD amendment.
+ * Only `connect-src` opens: bytes downloaded, stored in IndexedDB, shown from `blob:`; no
+ * third-party host in `img-src` (one surface to watch, not two).
+ * One origin: object image = always a survey cut-out, since it carries the §6.2 cadre and a cadre
+ * needs known scale (encyclopedia images are author-framed, field unwritten).
+ * §6.4 still describes two sources: gap accepted, arbitrated apart, not amended here.
  */
 
 export interface OrigineImagerie {
   readonly origine: string
-  /** Ce qui est transmis à ce tiers, en clair. C'est ce que §13.1 énumère. */
+  /** Sent in clear to this third party; §13.1 enumerates it. */
   readonly transmis: string
 }
 
@@ -39,17 +26,14 @@ export const ORIGINES_IMAGERIE: readonly OrigineImagerie[] = Object.freeze(
 )
 
 /**
- * L'hôte du service de découpe du CDS : l'alias canonique de la documentation.
- *
- * `alaskybis` et `alasky.u-strasbg.fr` répondent à l'identique — ce sont des alias du même
- * service. Un seul est câblé, et c'est le seul que la politique de sécurité autorise : trois
- * origines ouvertes pour un service seraient trois surfaces à surveiller pour rien.
+ * CDS cut-out host: canonical alias of the docs. `alaskybis` and `alasky.u-strasbg.fr` are
+ * identical aliases; only this one wired + CSP-allowed (3 origins for 1 service = 3 surfaces).
  */
 export const HOTE_DECOUPE = 'https://alasky.cds.unistra.fr'
 
 export const CHEMIN_DECOUPE = '/hips-image-services/hips2fits'
 
-/** Le relevé interrogé. Le même que celui que §6.2 nomme pour la prévisualisation du cadre. */
+/** Survey queried; same as §6.2 cadre preview. */
 export const RELEVE_DECOUPE = 'CDS/P/DSS2/color'
 
 export interface ValeurImagerie {
@@ -64,11 +48,7 @@ function valeur(v: ValeurImagerie): ValeurImagerie {
 }
 
 const IMAGERIE = Object.freeze({
-  /**
-   * La largeur demandée à la découpe. Une vignette d'illustration, pas une planche :
-   * à cette largeur une découpe DSS2 pèse une dizaine de kilo-octets, ce qui rend le cache
-   * par objet tenable.
-   */
+  /** Cut-out width requested. Thumbnail, not plate: DSS2 ~10 kB keeps per-object cache viable. */
   LARGEUR_VIGNETTE_PX: valeur({
     valeur: 320,
     unite: 'px',
@@ -77,10 +57,8 @@ const IMAGERIE = Object.freeze({
   }),
 
   /**
-   * Le champ de la découpe vaut la taille de l'objet multipliée par cette marge. Elle n'est
-   * pas choisie à l'œil : 2,5 place l'objet à 40 % du champ, au milieu de la bande
-   * CADRAGE_OPTIMAL de §6.2 (0,33 – 0,5). L'illustration cadre donc comme le PRD dit qu'on
-   * cadre bien.
+   * Cut-out field = object size × margin. Not by eye: 2,5 → object at 40 % of field, mid
+   * CADRAGE_OPTIMAL band of §6.2 (0,33 – 0,5).
    */
   MARGE_CADRAGE_DECOUPE: valeur({
     valeur: 2.5,
@@ -89,7 +67,7 @@ const IMAGERIE = Object.freeze({
     tolerance: 'sans objet — cadrage d’illustration',
   }),
 
-  /** Repli quand le catalogue ne donne aucune dimension : le cas est fréquent (§6.2). */
+  /** Fallback when catalogue has no dimension (frequent, §6.2). */
   CHAMP_DECOUPE_DEFAUT_DEG: valeur({
     valeur: 1,
     unite: '°',
@@ -97,7 +75,7 @@ const IMAGERIE = Object.freeze({
     tolerance: 'sans objet — cadrage d’illustration',
   }),
 
-  /** Bornes du champ demandé au service : en deçà il n'y a plus de relevé, au-delà plus d'objet. */
+  /** Field bounds asked of service: below, no survey left; above, no object left. */
   CHAMP_DECOUPE_MIN_DEG: valeur({
     valeur: 0.05,
     unite: '°',
@@ -113,12 +91,9 @@ const IMAGERIE = Object.freeze({
   }),
 
   /**
-   * §6.2 — la largeur de l'encart de cadre, en part de la largeur de l'image.
-   *
-   * L'encart porte le cadre du capteur, avec la cible à sa taille réelle dedans. C'est la
-   * seule façon dont le cadre se lit — au repos du moins, puisque le survol l'agrandit. Au
-   * tiers, il reste assez grand pour qu'une cible de la moitié du cadre s'y distingue, sans
-   * masquer la vue qu'il commente.
+   * §6.2 — cadre inset width, share of image width. Inset carries sensor cadre with target at
+   * real size; only way the cadre reads at rest (hover enlarges). 1/3: sees a half-frame target
+   * without masking the view.
    */
   PART_ENCART_CADRE: valeur({
     valeur: 0.33,
@@ -127,12 +102,7 @@ const IMAGERIE = Object.freeze({
     tolerance: 'sans objet — cadrage d’illustration',
   }),
 
-  /**
-   * Plafond d'un fichier accepté. Une découpe reste sous les dizaines de kilo-octets ; ce
-   * plafond n'existe donc pas pour elle, mais pour la réponse qui ne serait pas celle qu'on
-   * croit — ranger dans IndexedDB ce que le service a rendu sans le peser mettrait §12.3 en
-   * défaut pour une vignette.
-   */
+  /** Max file accepted. Cut-outs are tens of kB; cap guards unexpected responses (§12.3). */
   POIDS_VIGNETTE_MAX_KO: valeur({
     valeur: 512,
     unite: 'ko',
@@ -141,14 +111,9 @@ const IMAGERIE = Object.freeze({
   }),
 
   /**
-   * §6.4 — combien de vignettes une liste de résultats demande au réseau, en une fois.
-   *
-   * La vignette de liste ne se contentait que du cache : une recherche neuve rendait donc une
-   * liste sans images, et il fallait ouvrir chaque fiche pour en obtenir une. Le motif du
-   * plafond n'est pas le volume — soixante découpes pèsent une demi-douzaine de centaines de
-   * kilo-octets au poids mesuré ci-dessus — c'est le nombre de requêtes envoyées à un service
-   * public. Il est délibérément plus bas que `CIBLES_LISTEES_MAX` : ce qui est demandé est le
-   * HAUT de la liste, pas la liste.
+   * §6.4 — thumbnails a results list fetches at once. List thumbnail used cache only: fresh
+   * search gave imageless list. Cap motive = request count to a public service, not volume
+   * (60 cut-outs ≈ hundreds of kB). Below `CIBLES_LISTEES_MAX`: requested = TOP of list.
    */
   VIGNETTES_PRECHARGEES_MAX: valeur({
     valeur: 60,
@@ -157,7 +122,7 @@ const IMAGERIE = Object.freeze({
     tolerance: 'sans objet — aucun verdict ne dépend de ce plafond',
   }),
 
-  /** Requêtes de préchargement menées de front. Le motif du plafond est le 429 du service. */
+  /** Concurrent prefetch requests; cap motive: service 429. */
   PRECHARGE_SIMULTANEE_MAX: valeur({
     valeur: 2,
     unite: '—',
@@ -165,10 +130,7 @@ const IMAGERIE = Object.freeze({
     tolerance: 'sans objet — plafond de débit',
   }),
 
-  /**
-   * Le repos qu'attend le préchargement avant de partir. La liste se refiltre à chaque frappe :
-   * sans ce délai, « pleiades » émettrait huit salves pour la seule dernière.
-   */
+  /** Rest before prefetch. List refilters per keystroke; else "pleiades" fires 8 bursts. */
   DELAI_PRECHARGE_MS: valeur({
     valeur: 400,
     unite: 'ms',
@@ -179,12 +141,12 @@ const IMAGERIE = Object.freeze({
 
 export type IdImagerie = keyof typeof IMAGERIE
 
-/** Lecture d'une valeur, sur le modèle de `K()` du registre §2.1. */
+/** Value read, like `K()` of registre §2.1. */
 export function I(id: IdImagerie): number {
   return IMAGERIE[id].valeur
 }
 
-/** Crédit d'une découpe de relevé : elle n'a pas d'auteur individuel à nommer. */
+/** Credit of a survey cut-out: no individual author to name. */
 export const CREDIT_RELEVE = Object.freeze({
   auteur: 'DSS2 couleur — relevé numérisé du ciel',
   licence: 'domaine public, distribué par le CDS (Strasbourg)',

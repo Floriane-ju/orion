@@ -1,10 +1,8 @@
 /**
- * §8.3 et §9.4 — le rappel qui remplace le budget batterie chiffré (C-16, T-0150/T-0151).
- *
- * L'application ne modélise plus aucune autonomie : l'autonomie CIPA se mesure en rafale au
- * flash, la température prévue se saisit à la main, et le produit des deux donnait à un ordre
- * de grandeur l'allure d'une prédiction. Ce qui reste vrai, et qu'elle calcule elle-même,
- * c'est la durée de prise de vue. Au-delà du seuil, elle rappelle le risque et s'arrête là.
+ * §8.3, §9.4 — reminder replacing the quantified battery budget (C-16, T-0150/T-0151).
+ * No autonomy modelled: CIPA autonomy measured in flash bursts, forecast temperature hand-entered,
+ * product gave an order of magnitude the look of a prediction. Self-computed and true: shooting
+ * duration. Above threshold, remind the risk, nothing more.
  */
 
 import { K } from '../registry/constants.ts'
@@ -12,7 +10,7 @@ import { dureeLisible } from '../registry/ecriture.ts'
 import { S_PAR_MIN } from './unites.ts'
 
 
-/** `null` sous le seuil : un rappel affiché sur toute séance ne serait plus un rappel. */
+/** `null` under threshold: a reminder on every séance is no reminder. */
 export function rappelBatterie(dureeMin: number): string | null {
   const seuil = K('DUREE_RAPPEL_BATTERIE_MIN')
   if (!Number.isFinite(dureeMin) || dureeMin <= seuil) return null

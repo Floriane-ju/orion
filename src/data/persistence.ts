@@ -1,10 +1,8 @@
 /**
- * §12.3 — Stockage local et résistance à l'éviction.
- *
- * Le stockage reste en « meilleur effort » : `persist()` n'est plus demandé. Sous Firefox, la
- * demande ouvrait une invite à chaque nouvel utilisateur, pour un risque jugé mineur — une
- * éviction n'a lieu que sous pression disque, les catalogues se retéléchargent, le plan de
- * la nuit voyage dans l'URL et le reste dans l'export JSON.
+ * §12.3 — Local storage and eviction resistance.
+ * Storage stays « best effort »: `persist()` no longer requested. On Firefox it prompted every
+ * new user for a minor risk: eviction only under disk pressure, catalogues re-download, night
+ * plan travels in URL, rest in JSON export.
  */
 
 import { db } from './db.ts'
@@ -19,7 +17,7 @@ export interface EtatStockage {
   readonly supporte: boolean
   readonly quotaMo: number | null
   readonly usageMo: number | null
-  /** Renseigné quand le navigateur n'offre pas de stockage local. */
+  /** Set when browser has no local storage. */
   readonly avertissement?: string
 }
 
@@ -48,7 +46,7 @@ export async function etatStockage(): Promise<EtatStockage> {
 }
 
 const FORMAT_EXPORT = 'orion-export'
-/** Format écrit quand le produit s'appelait Astrofort : relu, jamais réécrit. */
+/** Pre-Orion (Astrofort) format: reread, never rewritten. */
 const FORMAT_EXPORT_ANCIEN = 'astrofort-export'
 
 export interface ExportUtilisateur {
@@ -59,9 +57,8 @@ export interface ExportUtilisateur {
   readonly profils: readonly ProfilMateriel[]
   readonly plans: readonly PlanEnregistre[]
   /**
-   * §8.3 — les poids de scoring réglés pour la séance, normalisés comme le plan les a
-   * utilisés. Absents des exports antérieurs à leur réglage : un fichier sans eux reste
-   * valide et repart des valeurs C-15.
+   * §8.3 — scoring weights tuned for the séance, normalised as plan used them. Absent in
+   * pre-tuning exports: file stays valid, restarts from C-15 values.
    */
   readonly poids?: PoidsScoring
 }
@@ -69,9 +66,8 @@ export interface ExportUtilisateur {
 export const VERSION_EXPORT = 1
 
 /**
- * Export JSON manuel — obligatoire au MVP. Une éviction ne doit jamais détruire une donnée
- * que l'utilisateur a produite. Les paquets de catalogues en sont exclus : ils se
- * retéléchargent.
+ * Manual JSON export — mandatory at MVP: eviction must never destroy user-produced data.
+ * Catalogue packages excluded (re-downloadable).
  */
 export async function exporteDonneesUtilisateur(
   poids?: PoidsScoring,
@@ -89,8 +85,7 @@ export async function exporteDonneesUtilisateur(
     sites,
     profils,
     plans,
-    // Normalisés à l'écriture : c'est la forme que §8.3 déclare, et celle qui se relit sans
-    // dépendre de l'échelle brute des curseurs.
+    // Normalised at write: form §8.3 declares, rereadable without raw slider scale.
     ...(poids === undefined ? {} : { poids: normalisePoids(poids) }),
   }
 }
@@ -103,12 +98,10 @@ export class ExportInvalideError extends Error {
 }
 
 /**
- * Un fichier d'export est une donnée étrangère, au même titre qu'une saisie : il a pu être
- * retouché à la main entre deux machines. Sans contrôle champ par champ, un
- * `latitudeDeg: "abc"` entre en base et ressort en `NaN` à chaque démarrage — persisté,
- * donc rejoué. Les plages sont celles du registre §2.1, jamais réécrites ici.
- *
- * Un vérificateur rend `null` quand le champ passe, sinon la raison du refus.
+ * Export file = foreign data, like an input: may be hand-edited between machines. Without
+ * per-field check, `latitudeDeg: "abc"` enters base and returns `NaN` at every startup
+ * (persisted → replayed). Ranges are §2.1 registry's, never rewritten here.
+ * A checker returns `null` if field passes, else the refusal reason.
  */
 type Verificateur = (valeur: unknown) => string | null
 
@@ -117,7 +110,7 @@ const texte: Verificateur = (v) =>
 
 const booleen: Verificateur = (v) => (typeof v === 'boolean' ? null : 'doit être un booléen')
 
-/** `contenu` d'un plan : structure libre, produite et relue par l'application elle-même. */
+/** Plan `contenu`: free structure, app-produced and app-reread. */
 const quelconque: Verificateur = (v) => (v === undefined ? 'est absent' : null)
 
 function nombre(domaine?: DomaineId): Verificateur {
@@ -144,7 +137,7 @@ function optionnel(verifie: Verificateur): Verificateur {
   return (v) => (v === undefined ? null : verifie(v))
 }
 
-/** Le masque d'horizon est un tableau de 360 hauteurs, une par degré d'azimut (§4.1). */
+/** Horizon mask = 360 heights, one per azimuth degree (§4.1). */
 const masqueHorizon: Verificateur = (v) => {
   if (!Array.isArray(v) || v.length !== 360) return 'doit être un tableau de 360 hauteurs'
   const hauteur = nombre('masque_horizon_deg')
@@ -181,13 +174,12 @@ const FORME_OBJECTIF: Forme = {
 }
 
 /**
- * T-0404 — le parc d'objectifs : chaque champ dans son domaine, puis la cohérence de l'objectif
- * entier — une plage inversée importée ferait un plancher d'ouverture qui décroît en zoomant.
+ * T-0404 — lens park: each field in its domain, then whole-lens coherence (an imported inverted
+ * range would make aperture floor decrease while zooming).
  */
 const parcObjectifs: Verificateur = (v) => {
   if (!Array.isArray(v)) return 'doit être une liste d’objectifs'
-  // Deux objectifs de même identifiant : l'un masquerait l'autre au montage, et retirer l'un
-  // retirerait les deux.
+  // Two lenses with same id: one would hide the other at mount, removing one removes both.
   const ids = v.map((o: unknown) => (typeof o === 'object' && o !== null ? (o as { id?: unknown }).id : undefined))
   if (new Set(ids).size !== ids.length) return 'porte deux objectifs de même identifiant'
   for (const [index, element] of v.entries()) {
@@ -213,11 +205,11 @@ const FORME_PROFIL: Forme = {
   ouvertureN: nombre('ouverture_N'),
   typeObjectif: parmi('RECTILINEAIRE', 'FISHEYE'),
   objectifs: optionnel(parcObjectifs),
-  // Comme `boitierId` : un identifiant absent du parc retombe sur l'objectif libre.
+  // Like `boitierId`: id absent from park → free lens.
   objectifId: optionnel(texte),
-  // T-0204 — `texte` et non `parmi(...)` : un identifiant absent de la base n'est pas un
-  // fichier corrompu. La saisie retombe sur le mode personnalisé, et les champs ci-dessous,
-  // eux, ont bien été exportés. Refuser l'import ferait perdre tout le profil pour une ligne.
+  // T-0204 — `texte`, not `parmi(...)`: id absent from base isn't a corrupt file; input falls
+  // back to custom mode and fields below were exported. Refusing import would lose the whole
+  // profil for one row.
   boitierId: optionnel(texte),
   formatCapteur: parmi(...TABLE_FORMATS_CAPTEUR.map((f) => f.format)),
   resolutionMpx: optionnel(nombre('resolution_mpx')),
@@ -242,7 +234,7 @@ const FORME_PLAN: Forme = {
   contenu: quelconque,
 }
 
-/** Le refus nomme l'enregistrement fautif — par identifiant s'il en a un — et le champ. */
+/** Refusal names the faulty record (by id if any) and the field. */
 function valideEnregistrements(section: string, forme: Forme, elements: readonly unknown[]): void {
   for (const [index, element] of elements.entries()) {
     if (typeof element !== 'object' || element === null || Array.isArray(element)) {
@@ -263,8 +255,8 @@ function valideEnregistrements(section: string, forme: Forme, elements: readonly
 }
 
 /**
- * Les cinq poids C-15, quand le fichier les porte. Un poids hors domaine ferait un score
- * négatif ou NaN, donc un plan silencieusement arbitraire : il est refusé comme une saisie.
+ * The five C-15 weights, when file carries them. Out-of-domain weight → negative/NaN score,
+ * silently arbitrary plan: refused like an input.
  */
 const poidsScoring: Verificateur = (v) => {
   if (typeof v !== 'object' || v === null || Array.isArray(v)) return 'doit être un objet'
@@ -299,15 +291,15 @@ function valide(donnees: unknown): asserts donnees is ExportUtilisateur {
   if (raisonPoids !== null) {
     throw new ExportInvalideError(`les poids de scoring : ${raisonPoids}`)
   }
-  // Tout est vérifié AVANT la transaction : un fichier abîmé n'écrit rien, pas même à moitié.
+  // All verified BEFORE the transaction: damaged file writes nothing, not even half.
   valideEnregistrements('le site', FORME_SITE, candidat.sites as readonly unknown[])
   valideEnregistrements('le profil', FORME_PROFIL, candidat.profils as readonly unknown[])
   valideEnregistrements('le plan', FORME_PLAN, candidat.plans as readonly unknown[])
 }
 
 /**
- * Point d'entrée du réimport depuis un fichier. Tout échec — JSON illisible compris — sort
- * en `ExportInvalideError`, dont le texte est rédigé pour être affiché tel quel.
+ * Reimport entry point from a file. Any failure (unreadable JSON included) exits as
+ * `ExportInvalideError`, text written to be shown as is.
  */
 export async function importeFichierUtilisateur(
   texte: string,
@@ -316,34 +308,32 @@ export async function importeFichierUtilisateur(
   try {
     donnees = JSON.parse(texte)
   } catch {
-    // Le détail de `JSON.parse` est la phrase anglaise du navigateur : le texte de
-    // `ExportInvalideError` s'affiche tel quel, il ne la porte donc pas.
+    // `JSON.parse` detail = browser's English sentence; `ExportInvalideError` text is shown as
+    // is, so omitted.
     throw new ExportInvalideError('le fichier n’est pas du JSON lisible.')
   }
   return importeDonneesUtilisateur(donnees)
 }
 
 /**
- * Réimport sans perte. Les entrées de même identifiant sont remplacées.
- *
- * Les poids de scoring vont en base avec le reste, et sont aussi rendus à l'appelant, qui les
- * remet à l'écran (§8.3).
+ * Lossless reimport; same id → replaced. Scoring weights go to base with the rest and are also
+ * returned to caller, who restores them on screen (§8.3).
  */
 export async function importeDonneesUtilisateur(donnees: unknown): Promise<PoidsScoring | null> {
   valide(donnees)
   const base = await db()
   const tx = base.transaction(['sites', 'profils', 'plans', 'reglages'], 'readwrite')
   await Promise.all([
-    // Les relevés manuels du masque d'horizon ont quitté l'interface : un ancien export qui en
-    // porte encore les laisse à la porte plutôt que de les remettre en base.
+    // Manual horizon-mask readings left the UI: old exports carrying them are dropped, not
+    // restored to base.
     ...donnees.sites.map((site) => {
       const { masquePoints: _retire, ...propre } = site as SiteEnregistre & { masquePoints?: unknown }
       return tx.objectStore('sites').put(propre)
     }),
     ...donnees.profils.map((profil) => tx.objectStore('profils').put(profil)),
     ...donnees.plans.map((plan) => tx.objectStore('plans').put(plan)),
-    // T-0362 — l'import suspend les écritures jusqu'au rechargement : sans cette écriture, le
-    // rechargement relirait les poids d'avant l'import.
+    // T-0362 — import suspends writes until reload: without this write, reload rereads pre-import
+    // weights.
     ...(donnees.poids === undefined
       ? []
       : [tx.objectStore('reglages').put(donnees.poids, CLE_POIDS)]),
@@ -353,14 +343,13 @@ export async function importeDonneesUtilisateur(donnees: unknown): Promise<Poids
 }
 
 /**
- * §8.3 — les poids de scoring réglés, rangés dans `reglages` comme les cibles choisies : un
- * réglage de séance que l'utilisateur produit, donc IndexedDB et l'export — pas le stockage
- * local de l'interface. Les ranger n'est pas les apprendre (§2.4) : ce qui revient est ce qui a
- * été réglé, rien d'autre.
+ * §8.3 — tuned scoring weights, in `reglages` like chosen targets: user-produced séance
+ * setting → IndexedDB + export, not UI local storage. Storing ≠ learning (§2.4): returns what
+ * was set, nothing else.
  */
 const CLE_POIDS = 'poids-scoring'
 
-/** Relus avec le contrôle de l'import : une valeur non conforme rend les valeurs C-15. */
+/** Reread with import check: non-conforming value → C-15 values. */
 export async function litPoidsScoring(): Promise<PoidsScoring | null> {
   const brut = await (await db()).get('reglages', CLE_POIDS)
   return brut !== undefined && poidsScoring(brut) === null ? (brut as PoidsScoring) : null
@@ -370,34 +359,30 @@ export async function enregistrePoidsScoring(poids: PoidsScoring): Promise<void>
   await (await db()).put('reglages', { ...poids }, CLE_POIDS)
 }
 
-/**
- * §4.1 — un seul site au MVP : son enregistrement porte toujours le même identifiant.
- */
+/** §4.1 — single site at MVP: fixed record id. */
 export const ID_SITE_ACTIF = 'site-actif'
 
-/** §5.1 — un seul profil matériel actif, pour la même raison qu'un seul site. */
+/** §5.1 — single active équipement profil, like site. */
 const ID_PROFIL_ACTIF = 'profil-actif'
 
 export interface SiteAExporter {
   readonly latitudeDeg: number
   readonly longitudeDeg: number
   readonly altitudeM: number
-  /** §4.1 — le ciel déclaré, Bortle ou SQM. Absent quand la saisie ne le donne pas. */
+  /** §4.1 — declared sky, Bortle or SQM; absent if input lacks it. */
   readonly bortleDeclare?: number
   readonly sqmMesure?: number
   readonly masque: MasqueHorizon
 }
 
-/** Le profil matériel de la séance sans son identité : elle est fixée à l'écriture. */
+/** Séance equipment profil without identity (fixed at write). */
 export type ProfilAEnregistrer = Omit<ProfilMateriel, 'id' | 'nom'>
 
 /**
- * Écrit le site de la séance dès qu'il change : sans cela, le masque relevé à la main vivrait
- * en mémoire et disparaîtrait avec l'onglet, alors que c'est exactement le genre de donnée
- * que §12.3 doit protéger — elle ne se retélécharge pas.
- *
- * Les coordonnées non chiffrables sont refusées : un `NaN` persisté ressort à chaque
- * démarrage, et un export qui ne se réimporte pas ne protège rien.
+ * Writes séance site on each change: else the hand-surveyed mask lives in memory, vanishes with
+ * the tab — exactly what §12.3 must protect (not re-downloadable).
+ * Non-finite coords refused: persisted `NaN` returns at every startup; an export that doesn't
+ * reimport protects nothing.
  */
 export async function enregistreSiteActif(site: SiteAExporter): Promise<void> {
   const coordonnees = [site.latitudeDeg, site.longitudeDeg, site.altitudeM]
@@ -418,9 +403,8 @@ export async function enregistreSiteActif(site: SiteAExporter): Promise<void> {
 }
 
 /**
- * Écrit le profil matériel de la séance. Même motif que le site : les grandeurs d'un boîtier
- * saisi à la main ne se retéléchargent pas, et sans elles un profil réimporté décrirait le
- * capteur d'un autre appareil (§12.3).
+ * Writes séance equipment profil. Same reason as site: hand-entered body quantities aren't
+ * re-downloadable; without them a reimported profil describes another device's sensor (§12.3).
  */
 export async function enregistreProfilActif(profil: ProfilAEnregistrer): Promise<void> {
   await (await db()).put('profils', {
@@ -430,17 +414,16 @@ export async function enregistreProfilActif(profil: ProfilAEnregistrer): Promise
   })
 }
 
-/** Le site actif tel qu'il a été enregistré, ou `null` au premier démarrage. */
+/** Stored active site, or `null` at first startup. */
 export async function litSiteActif(): Promise<SiteEnregistre | null> {
   return (await (await db()).get('sites', ID_SITE_ACTIF)) ?? null
 }
 
-/** Le profil actif tel qu'il a été enregistré, ou `null` au premier démarrage. */
 /**
- * T-0343 — la base est une frontière : un format de capteur qu'aucune ligne de la table ne
- * porte devenait en silence un plein format, donc un autre champ et un autre pitch. Il est
- * refusé avec sa cause, que la relecture affiche. Le reste du profil n'est pas re-borné ici :
- * un domaine resserré depuis l'écriture ne doit pas condamner un profil au démarrage.
+ * Stored active profil, or `null` at first startup.
+ * T-0343 — base is a boundary: a sensor format no table row carries silently became plein format
+ * (other field + pitch). Refused with its cause, shown by reread. Rest of profil not re-bounded:
+ * a domain tightened since write must not condemn a profil at startup.
  */
 export async function litProfilActif(): Promise<ProfilMateriel | null> {
   const profil = (await (await db()).get('profils', ID_PROFIL_ACTIF)) ?? null

@@ -1,24 +1,13 @@
 /**
- * T-0228 — d'où viennent les données que l'application affiche.
- *
- * Ces phrases vivaient au contact des valeurs qu'elles couvrent : sous les dimensions de la
- * fiche, sous le champ Bortle, sous le verdict de détectabilité, sous le conseil filtre. Elles
- * ne servent aucune décision d'observation et ne changent jamais d'une cible à l'autre — les
- * relire à chaque ouverture de fiche coûtait la place d'une lecture utile. Elles se lisent
- * désormais en un seul endroit, quand on les cherche.
- *
- * Le module est dans le registre et non dans l'UI pour la raison qui vaut pour `constants.ts` :
- * une provenance est une DONNÉE SOURCÉE. Trois entrées ne font d'ailleurs que renvoyer aux
- * constantes de source déjà tenues par leur table — les recopier ici en ferait deux vérités
- * qui divergeraient à la première mise à jour d'amont.
- *
- * Les versions et les noms de fichier viennent de `scripts/build-catalogs.ts`, où chaque amont
- * est épinglé à un SHA de commit. Ce que cette table nomme est donc exactement ce que
- * `pnpm data:build` a produit, pas ce que l'amont sert aujourd'hui.
- *
- * Ce qui n'est PAS ici, et ne doit pas y venir : l'attribution sous l'image de la fiche, que
- * §6.4 impose visible sans interaction, et la source d'une constante dépliée, qui est le
- * niveau 3 de traçabilité de §10.2. Les deux sont au contact parce que le PRD les y exige.
+ * T-0228 — where displayed data comes from.
+ * Moved out of the values it covers (fiche dimensions, Bortle, detectability, filter advice):
+ * serves no observation decision, never varies per cible; read in one place, on demand.
+ * In registre, not UI: provenance = SOURCED DATA. Three entries only point to source constants
+ * already held by their table (copy here = two diverging truths).
+ * Versions/file names from `scripts/build-catalogs.ts` (upstreams pinned to commit SHA): names
+ * what `pnpm data:build` produced, not what upstream serves today.
+ * NOT here: attribution under fiche image (§6.4, visible without interaction) and unfolded
+ * constant source (§10.2 level 3); PRD requires both at point of use.
  */
 
 import { SOURCE_TABLE_BORTLE } from './bortle.ts'
@@ -29,19 +18,15 @@ import { CREDIT_RELIEF } from './relief.ts'
 import { CREDIT_CARTE } from './lieu-carte.ts'
 
 export interface Source {
-  /** Ce que cette source alimente, dit du point de vue de l'écran, pas du fichier. */
+  /** What this source feeds, screen's view not file's. */
   readonly donnee: string
-  /** L'amont, avec sa version quand il en porte une : c'est elle qui date la lecture. */
+  /** Upstream + version when it has one (dates the reading). */
   readonly provenance: string
-  /** Absent quand l'amont n'a pas d'adresse publique stable à citer. */
+  /** Absent: upstream has no stable public address. */
   readonly lien?: string
 }
 
-/**
- * L'ordre suit celui d'une séance : ce qu'on vise, puis quand, puis ce que ça demande, puis ce
- * qu'on voit. Un classement par nature de fichier — binaire, calcul, réseau — n'aurait de sens
- * que pour qui connaît déjà l'architecture.
- */
+/** Order follows a séance: aimed at, when, demands, seen. */
 export const SOURCES: readonly Source[] = Object.freeze(
   [
     {

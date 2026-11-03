@@ -1,7 +1,6 @@
 /**
- * T-0400 — la Lune voile le filé : profondeur d'une trace sous une séquence empilée, et gêne
- * lunaire étoile par étoile. Les attendus se construisent avec les fonctions du modèle, jamais
- * avec une valeur recopiée.
+ * T-0400 — Moon veils filé: trace depth under stacked sequence, lunar gêne star by star.
+ * Expected values from model functions, never copied.
  */
 import { describe, expect, it } from 'vitest'
 import {
@@ -56,8 +55,8 @@ describe('§9.3 — profondeur d’une séquence empilée', () => {
   const table = tableProfondeurParPixel({ profondeur: PROFONDEUR, tacheArcsec: TACHE_ARCSEC, suiviActif: false })
 
   it('près du pôle, une trace ne reçoit pas plus qu’une pose unitaire', () => {
-    // Un empilement en éclaircir garde le maximum des poses, il n'additionne pas le signal :
-    // une étoile qui ne quitte pas son pixel y reçoit une pose unitaire, pas la séance.
+    // Lighten stack keeps max of poses, no sum: a star staying in its pixel gets 1 pose
+    // unitaire, not the séance.
     const grossier = tableProfondeurParPixel({
       profondeur: PROFONDEUR,
       tacheArcsec: TACHE_ARCSEC * 1e3,
@@ -84,7 +83,7 @@ describe('§9.3 — profondeur d’une séquence empilée', () => {
   })
 })
 
-/** Une Lune posée à la main, dans un repère où J2000 et horizontal coïncident. */
+/** Hand-placed Moon, frame where J2000 = horizontal. */
 function luneA(altLuneDeg: number, anglePhaseDeg: number): LuneFile {
   return {
     direction: versVecteur(180, altLuneDeg),
@@ -213,9 +212,8 @@ describe('T-0400 — opacité selon le contraste au fond lunaire', () => {
 })
 
 /**
- * Une étoile s'étale sur sa tache, pas sur un pixel : tant qu'elle n'en sort pas — la NPF le dit —
- * elle reçoit toute la pose. Compter la traversée d'un pixel assombrissait une pose de 25 s par
- * rapport à une de 6 s, alors que les deux donnent des étoiles ponctuelles.
+ * Star spreads over its spot, not a pixel: while it stays in it (NPF) it gets the full pose.
+ * Counting 1-pixel crossing darkened a 25 s pose vs 6 s though both give point stars.
  */
 describe('§9.3 — une étoile ponctuelle ne pâlit pas en allongeant la pose', () => {
   const OPTIQUE = { focaleMm: 10, ouvertureN: 2.8, pitchUm: 5.12 }

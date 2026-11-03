@@ -50,7 +50,8 @@ non-négociables.
 
 - Métier en français (`creneaux`, `cadre`, `pose`), technique en anglais (`mat3`, `projection`).
 - `readonly` + `Object.freeze` sur toute structure partagée. Pas de mutation en place.
-- Commentaire = pourquoi la décision, jamais quoi fait le code.
+- Commentaire = pourquoi la décision, jamais quoi fait le code. Anglais télégraphique pour
+  agent ; termes métier du PRD en français verbatim ; garder `§x.y`, `T-xxxx`, sources.
 
 ## Vérification
 

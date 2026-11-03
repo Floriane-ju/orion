@@ -1,6 +1,6 @@
 /**
- * §12.4, §12.5 — le calcul astronomique ne touche jamais le réseau, et `mode_reseau`
- * reflète l'état réel plutôt que le relevé du démarrage.
+ * §12.4, §12.5 — astronomical calc never touches the network; `mode_reseau` reflects real
+ * state, not startup reading.
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -21,7 +21,7 @@ afterEach(() => {
 })
 
 describe('calcul sans réseau §12.4', () => {
-  /** Toute sortie réseau devient une erreur : un appel caché ne peut plus passer inaperçu. */
+  /** Any network egress → error: no hidden call. */
   function interditLeReseau(): () => void {
     const echoue = () => {
       throw new Error('appel réseau interdit pendant un calcul astronomique (§12.4)')
@@ -89,7 +89,7 @@ describe('mode réseau §12.5', () => {
 describe('matrice de dégradation §12.5', () => {
   it('distingue le noyau hors-ligne de ce qui tombe', () => {
     expect(horsReseau('COMPLET').length).toBeGreaterThan(horsReseau('TOMBE').length)
-    // Le physique est calculable donc hors-ligne ; le probabiliste dépend d'un service.
+    // Physical computable offline; probabilistic depends on a service.
     const meteo = MATRICE_DEGRADATION.find((l) => l.fonction.startsWith('Météo'))
     expect(meteo?.horsReseau).toBe('TOMBE')
     expect(meteo?.degradation).not.toBe('')

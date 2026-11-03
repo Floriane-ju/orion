@@ -1,17 +1,12 @@
 /**
- * T-0325 — une rubrique de la modale info qui se replie, fermée à l'ouverture.
- *
- * Cinq rubriques longues — état du socle, matrice, registre, poids, sources — ne se
- * parcourent pas d'un coup d'œil : repliées, leurs titres forment le sommaire de la modale.
- * `<details>` porte tout, ouverture, clavier et annonce, sans une ligne de JavaScript ; ce
- * n'est pas un `Tiroir` — Échap ne le vise pas, il ferme la modale qui le contient.
- *
- * Un seul ouvert à la fois : l'attribut `name` fait des accordéons d'un même nom un groupe
- * exclusif, et c'est le navigateur qui referme le précédent. Ouverts ensemble, la modale
- * redevenait une longue page où l'on cherchait le titre qu'on venait de cliquer.
+ * T-0325 — collapsible section of info modal, closed on open.
+ * 5 long sections (état du socle, matrice, registre, poids, sources): collapsed titles = modal
+ * summary. `<details>` gives open/keyboard/announce without JS; not a `Tiroir` — Échap closes the
+ * containing modal. One open at a time: same `name` = exclusive group, browser closes the previous
+ * (all open = long page, lost the clicked title).
  */
 
-/** Le groupe exclusif des rubriques de la modale info. */
+/** Exclusive group of info modal sections. */
 const GROUPE = 'page-info'
 
 import type { ReactNode } from 'react'
@@ -21,8 +16,8 @@ export interface AccordeonProps {
   readonly titre: string
   readonly children: ReactNode
   /**
-   * T-0041 — une rubrique qui porte une alerte s'ouvre d'elle-même : le bouton de la barre
-   * l'a annoncée, la modale ne doit pas la cacher derrière un clic de plus.
+   * T-0041 — a section carrying an alert opens itself: bar button announced it, modal mustn't hide
+   * it behind one more click.
    */
   readonly ouvert?: boolean | undefined
 }
@@ -34,8 +29,8 @@ export function Accordeon({ titre, children, ouvert }: AccordeonProps) {
         <h2>{titre}</h2>
         <Icone nom="expand_more" />
       </summary>
-      {/* Deux boîtes : le corps se replie à zéro (animation), le contenu porte le jour et le
-          filet — un rembourrage sur la boîte qui se replie l'empêcherait d'atteindre zéro. */}
+      {/* Two boxes: body collapses to zero (animation), content carries gap and rule; padding on a
+          collapsing box would stop it reaching zero. */}
       <div className="accordeon-corps">
         <div className="accordeon-contenu">{children}</div>
       </div>

@@ -1,17 +1,12 @@
 /**
- * T-0208 — une saisie hors plage n'efface plus l'écran.
- *
- * Le bug : taper `456` en latitude rendait la page noire. `app-calcul.ts` convertissait le
- * lieu par un `Number()` nu, la valeur atteignait `new Observer(456, …)`, et
- * `astronomy-engine` levait une CHAÎNE de caractères — pas une `Error`. Les `instanceof` de
- * `refus()` étaient tous faux, la levée repartait depuis un `useMemo` de rendu, et React
- * démontait l'arbre entier.
- *
- * Deux exigences, vérifiées séparément :
- *   - la chaîne de calcul ABOUTIT sur une valeur hors plage, en retenant la borne ;
- *   - le champ qui l'a produite le DIT, au pied du champ et pas ailleurs.
- *
- * Aucune borne n'est écrite ici : elles viennent de `DOMAINES`, comme les valeurs d'essai.
+ * T-0208 — out-of-range input no longer blanks the screen.
+ * Bug: latitude `456` → black page. `app-calcul.ts` converted lieu via bare `Number()`, value hit
+ * `new Observer(456, …)`, `astronomy-engine` threw a STRING, not `Error`; all `refus()`
+ * `instanceof` checks false, throw escaped a render `useMemo`, React unmounted the tree.
+ * Two requirements, checked separately:
+ *   - compute chain COMPLETES on out-of-range value, keeping the bound;
+ *   - the producing field SAYS so, under the field and nowhere else.
+ * No bound written here: from `DOMAINES`, like test values.
  */
 
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -32,7 +27,7 @@ import { nombreSaisi } from '../src/ui/saisie-bornee.ts'
 
 const rien = () => undefined
 
-/** Une valeur franchement hors du domaine, écrite comme l'utilisateur la taperait. */
+/** Value clearly out of domain, as the user would type it. */
 function horsPlage(domaine: DomaineId): string {
   return String(DOMAINES[domaine].max + 1)
 }
@@ -92,7 +87,7 @@ function materiel(champs: Partial<Record<'focale' | 'ouverture' | 'iso', string>
   }
 }
 
-/** Le site tel que la chaîne le construit : chaque grandeur ramenée dans son domaine. */
+/** Site as the chain builds it: each quantity clamped into its domain. */
 function siteBorne(saisie: SaisieLieu) {
   return {
     latitudeDeg: nombreSaisi('latitude_deg', saisie.latitude).valeur,
@@ -114,7 +109,7 @@ describe('le lieu hors domaine ne fait plus tomber la chaîne', () => {
     const saisie = lieu({ [champ]: horsPlage(domaine) })
     const site = siteBorne(saisie)
     expect(siteChiffrable(site)).toBe(true)
-    // C'est L'ABSENCE de levée qui est vérifiée ici : c'est elle qui vidait l'écran.
+    // Checks ABSENCE of a throw: what blanked the screen.
     expect(() => evalueCiel(site, grandeursLieu(saisie))).not.toThrow()
     expect(evalueCiel(site, grandeursLieu(saisie)).ok).toBe(true)
   })
@@ -125,19 +120,19 @@ describe('le lieu hors domaine ne fait plus tomber la chaîne', () => {
   })
 
   it('une levée que rien ne reconnaît se dit en français au lieu de démonter l’arbre', () => {
-    // Le site NON borné, tel que la chaîne le construisait avant T-0208 : `astronomy-engine`
-    // lève ici une chaîne de caractères. `refus()` la relançait depuis un rendu React.
+    // UNbounded site, as the chain built it before T-0208: `astronomy-engine` throws a string here;
+    // `refus()` rethrew it from a React render.
     const brut = { latitudeDeg: 456, longitudeDeg: 5, altitudeM: 200 }
     const calcul = evalueCiel(brut, grandeursLieu(lieu({})))
     expect(calcul.ok).toBe(false)
-    // T-0279 — la phrase anglaise de la bibliothèque part à la console, pas à l'écran.
+    // T-0279 — library's English sentence goes to console, not screen.
     expect(calcul.ok === false && calcul.erreur).toContain('Calcul impossible')
     expect(calcul.ok === false && calcul.erreur).not.toMatch(/Latitude|range/)
   })
 
   it('un champ du lieu vidé n’est pas borné : le lieu cesse d’être chiffrable', () => {
-    // §4.1 — une latitude vide n'est pas −90°, c'est une frappe en cours (T-0149). Le refus
-    // remonte, et la scène garde le dernier ciel valable plutôt que d'inventer un lieu.
+    // §4.1 — empty latitude ≠ −90°, it's typing in progress (T-0149). Refusal propagates, scene
+    // keeps last valid sky rather than inventing a lieu.
     const saisie = lieu({ latitude: '' })
     expect(siteChiffrable(siteBorne(saisie))).toBe(false)
     expect(evalueCiel(siteBorne(saisie), grandeursLieu(saisie)).ok).toBe(false)

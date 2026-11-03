@@ -1,20 +1,13 @@
 /**
- * §3.4 — Paquet des tracés de repérage : figures, frontières, astérismes, étoiles nommées.
- *
- * TROIS COUCHES DISTINCTES, souvent confondues à tort :
- *   FIGURES     segments reliant les étoiles principales. Aucune existence officielle :
- *               convention culturelle.
- *   FRONTIÈRES  découpage officiel des 88 constellations IAU. Ce sont des RÉGIONS du ciel,
- *               pas des dessins. Définies le long de méridiens et de parallèles B1875 : le
- *               paquet les conserve dans cette époque, et le rendu les précesse.
- *   ASTÉRISMES  motifs non officiels franchissant les frontières. Ce sont EUX que le
- *               débutant reconnaît. Couche obligatoire, pas un raffinement.
- *
- * ENCODAGE — le paquet est du JSON encodé en UTF-8 dans un `.bin`, contrairement aux
- * catalogues de §12.2. Le volume le justifie : quelques milliers de sommets, là où les
- * étoiles se comptent en dizaines de milliers. Un codec binaire économiserait une centaine
- * de kilo-octets sur un paquet qui en pèse deux cents, au prix d'un format de plus à
- * vérifier. Le chemin de contrôle d'intégrité, lui, reste le même que les autres paquets.
+ * §3.4 — Reference-layer package: figures, boundaries, asterisms, named stars.
+ * THREE DISTINCT LAYERS, often confused:
+ *   FIGURES     segments joining main stars; cultural convention, no official existence.
+ *   FRONTIÈRES  official split of 88 IAU constellations: REGIONS, not drawings. Defined on B1875
+ *               meridians/parallels: package keeps that epoch, render precesses.
+ *   ASTÉRISMES  unofficial patterns crossing boundaries; what beginners recognise: mandatory layer.
+ * ENCODING — JSON as UTF-8 in a `.bin`, unlike §12.2 catalogues: few thousand vertices vs tens
+ * of thousands of stars. Binary codec would save ~100 KB of 200 KB for one more format to verify.
+ * Same integrity path as other packages.
  */
 
 export interface Segment {
@@ -25,11 +18,11 @@ export interface Segment {
 }
 
 export interface Figure {
-  /** Code IAU à trois lettres : « AND », « ORI ». */
+  /** 3-letter IAU code: « AND », « ORI ». */
   readonly code: string
-  /** Nom latin IAU — le nom officiel, sans traduction hasardeuse. */
+  /** IAU Latin name (official, untranslated). */
   readonly nom: string
-  /** Segments en coordonnées J2000, résolus depuis les identifiants HIP de la source. */
+  /** J2000 segments, resolved from source HIP ids. */
   readonly segments: readonly Segment[]
 }
 
@@ -39,17 +32,17 @@ export interface Asterisme {
   readonly segments: readonly Segment[]
 }
 
-/** Une arête de frontière suit soit un méridien, soit un parallèle de B1875. */
+/** Boundary edge: B1875 meridian or parallel. */
 export type TypeArete = 'MERIDIEN' | 'PARALLELE'
 
 export interface AreteFrontiere {
   readonly type: TypeArete
-  /** Coordonnées B1875, telles que Delporte les a définies. Jamais pré-précessées. */
+  /** B1875 coords (Delporte), never pre-precessed. */
   readonly ad1Deg: number
   readonly dec1Deg: number
   readonly ad2Deg: number
   readonly dec2Deg: number
-  /** Les deux constellations que l'arête sépare. */
+  /** Constellations either side. */
   readonly codes: readonly [string, string]
 }
 
@@ -57,26 +50,23 @@ export interface EtoileNommee {
   readonly adDeg: number
   readonly decDeg: number
   readonly magV: number
-  /** Désignation Bayer, « α And ». Chaîne vide si l'étoile n'en porte pas. */
+  /** Bayer designation « α And »; empty if none. */
   readonly designation: string
-  /** Nom propre, « Alpheratz ». Chaîne vide si l'étoile n'en porte pas. */
+  /** Proper name « Alpheratz »; empty if none. */
   readonly nomPropre: string
-  /** Type spectral publié par le catalogue. Chaîne vide s'il est absent. */
+  /** Spectral type as published; empty if absent. */
   readonly spectre: string
-  /** Distance en parsecs. `null` quand la parallaxe est absente ou non fiable. */
+  /** Distance in parsecs; `null` if parallax absent/unreliable. */
   readonly distancePc: number | null
-  /** Code IAU à trois lettres de la constellation, tel qu'attribué par le catalogue. */
+  /** 3-letter IAU constellation code from catalogue. */
   readonly constellation: string
 }
 
 /**
- * Les deux formes d'une étoile nommée réunies — et la seule des deux qui existe quand
- * l'autre manque, sans tiret orphelin. Le paquet garantit qu'au moins une est non vide
- * (`scripts/build-catalogs.ts`).
- *
- * T-0287 — le nom vit ici, avec le type qui le porte : la fiche du planétarium et la carte
- * de pointage de §8.4 nomment la même étoile, et une seconde règle écrite ailleurs donnerait
- * deux vocabulaires pour un seul astre — c'est la leçon de T-0109.
+ * Both forms of a named star joined, or whichever exists (no orphan dash). Package guarantees ≥ 1
+ * non-empty (`scripts/build-catalogs.ts`).
+ * T-0287 — name lives here with its type: planétarium fiche and §8.4 pointing map name the same
+ * star; a second rule elsewhere = two vocabularies for one object (lesson of T-0109).
  */
 export function nomComplet(nommee: EtoileNommee): string {
   if (nommee.nomPropre === '') return nommee.designation
@@ -90,9 +80,8 @@ export interface PaquetConstellations {
   readonly frontieres: readonly AreteFrontiere[]
   readonly etoilesNommees: readonly EtoileNommee[]
   /**
-   * Segments écartés faute d'étoile résolue dans le catalogue chargé — des sommets Gaia
-   * que HYG ne référence pas. Déclaré plutôt que passé sous silence : une figure amputée
-   * doit être visible dans le manifeste, pas découverte à l'écran.
+   * Segments dropped, no star resolved in loaded catalogue (Gaia vertices HYG lacks). Declared,
+   * not silent: a truncated figure must show in manifest, not on screen.
    */
   readonly segmentsIgnores: number
   readonly source: string
@@ -107,8 +96,8 @@ export function encodeConstellations(paquet: PaquetConstellations): ArrayBuffer 
 }
 
 /**
- * T-0343 — un paquet illisible ou de mauvaise forme rend le paquet vide plutôt qu'une
- * exception : les couches de repérage manquent, le ciel reste juste (§3.4, §12.5).
+ * T-0343 — unreadable/malformed package → empty package, not exception: reference layers
+ * missing, sky stays correct (§3.4, §12.5).
  */
 export function decodeConstellations(buffer: ArrayBuffer): PaquetConstellations {
   let brut: unknown

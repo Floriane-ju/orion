@@ -1,11 +1,9 @@
 /**
- * §5.1 — Table des formats de capteur usuels, pour le mode boîtier `custom`.
- *
- * Un débutant lit le type de capteur et la résolution sur la fiche produit, jamais le pitch en
- * micromètres ni les dimensions exactes du capteur en millimètres. Cette table fournit les
- * dimensions par format — documentation constructeur, aucune marque de boîtier ni prix
- * commercial — et `pitchDepuisFormat` déduit le pitch de la résolution déclarée : voir
- * `resoutBoitier` dans `equipment.ts`.
+ * §5.1 — Common sensor-format table for `custom` body mode.
+ * Beginners read sensor type + resolution on the product sheet, never pitch in µm or exact mm.
+ * Table gives dimensions per format (manufacturer docs, no body brand/price);
+ * `pitchDepuisFormat` derives pitch from declared resolution: see `resoutBoitier` in
+ * `equipment.ts`.
  */
 
 export type FormatCapteur = 'PLEIN_FORMAT' | 'APSC_NIKON' | 'APSC_CANON' | 'MICRO_4_3' | 'MOYEN_FORMAT'
@@ -29,9 +27,8 @@ export const TABLE_FORMATS_CAPTEUR: readonly LigneFormatCapteur[] = Object.freez
     },
     {
       format: 'APSC_NIKON',
-      // T-0264 — les quatre marques ont quitté l'intitulé : il demandait 450 px là où un
-      // `<select>` fermé en offre 276, et rien n'y signalait la coupure. Elles sont dans la
-      // glose de `format_capteur`, où la question « lequel est le mien ? » se pose vraiment.
+      // T-0264 — 4 brands left the label: it asked 450 px, closed `<select>` offers 276, cut
+      // unsigned. They're in `format_capteur` gloss, where « which is mine? » is asked.
       libelle: 'APS-C — 23,5 × 15,6 mm',
       capteurLMm: 23.5,
       capteurHMm: 15.6,
@@ -61,14 +58,14 @@ export const TABLE_FORMATS_CAPTEUR: readonly LigneFormatCapteur[] = Object.freez
   ].map(Object.freeze) as LigneFormatCapteur[],
 )
 
-/** T-0343 — la garde des frontières : une chaîne venue d'un fichier ou d'un `<select>`. */
+/** T-0343 — boundary guard: string from a file or a `<select>`. */
 export function estFormatCapteur(valeur: string): valeur is FormatCapteur {
   return TABLE_FORMATS_CAPTEUR.some((l) => l.format === valeur)
 }
 
 /**
- * La ligne d'un format. Plus de repli silencieux sur le plein format : un format inconnu est
- * refusé aux frontières (`estFormatCapteur`), et le typage garantit qu'il n'arrive pas ici.
+ * A format's row. No silent fallback to plein format: unknown format refused at boundaries
+ * (`estFormatCapteur`), typing guarantees it never arrives here.
  */
 export function ligneFormatCapteur(format: FormatCapteur): LigneFormatCapteur {
   const ligne = TABLE_FORMATS_CAPTEUR.find((l) => l.format === format)
@@ -77,9 +74,8 @@ export function ligneFormatCapteur(format: FormatCapteur): LigneFormatCapteur {
 }
 
 /**
- * Le pitch se déduit géométriquement : la résolution totale et le ratio du format donnent la
- * largeur en pixels, et la largeur du capteur en mm rapportée à cette largeur donne le pitch.
- * Aucune constante de ratio séparée n'est nécessaire, le format la porte déjà.
+ * Pitch derived geometrically: total resolution + format ratio → width in px; sensor mm width
+ * over it → pitch. No separate ratio constant: format carries it.
  */
 export function pitchDepuisFormat(ligne: LigneFormatCapteur, resolutionMpx: number): number {
   const ratio = ligne.capteurLMm / ligne.capteurHMm

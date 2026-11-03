@@ -1,6 +1,4 @@
-/**
- * §4.1, T-0369 — l'horizon dessiné glisse d'un relief à l'autre.
- */
+/** §4.1, T-0369 — drawn horizon glides from one relief to another. */
 
 import { describe, expect, it } from 'vitest'
 import { NB_AZIMUTS } from '../src/core/site.ts'
@@ -8,7 +6,7 @@ import { R } from '../src/registry/relief.ts'
 import { HORIZON_PLAT, horizonA, versHorizon } from '../src/ui/horizon-transition.ts'
 
 const DUREE = R('DUREE_TRANSITION_RELIEF_MS')
-/** Un relief quelconque : ce qui compte est qu'il diffère du plat à chaque azimut. */
+/** Any relief, differing from flat at every azimuth. */
 const RELIEF = Object.freeze(Array.from({ length: NB_AZIMUTS }, (_, i) => 1 + (i % 7)))
 
 describe('transition de l’horizon', () => {

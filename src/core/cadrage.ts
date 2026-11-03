@@ -1,12 +1,9 @@
 /**
- * §6.1 — focale idéale d'une cible écartée, et §6.2 — verdict de cadrage par cible.
- *
- * Deux règles de produit portées ici plutôt que rappelées ailleurs :
- *
- *   1. une cible écartée l'est toujours AVEC SA CAUSE et avec la focale qui la rendrait
- *      cadrable — un refus muet n'apprend rien ;
- *   2. aucune compensation par recadrage logiciel n'est jamais proposée. Recadrer ne crée
- *      pas de pixels : un objet de 44 px de diamètre reste un objet de 44 px.
+ * §6.1 — ideal focale of a discarded cible, §6.2 — cadrage verdict per cible. Two rules:
+ *   1. discarded cible comes WITH ITS CAUSE and the focale that would frame it — silent refusal
+ *      teaches nothing;
+ *   2. software-crop compensation never offered: cropping creates no pixels (44 px object stays
+ *      44 px).
  */
 
 import { K } from '../registry/constants.ts'
@@ -24,16 +21,13 @@ import { ARCMIN_PAR_DEG, ARCSEC_PAR_ARCMIN } from './unites.ts'
 
 export type { VerdictCadrage }
 
-/**
- * Jamais proposé, et énoncé une seule fois : c'est la phrase qui remplace le réflexe
- * « je recadrerai au traitement ».
- */
+/** Never offered, stated once: replaces the "je recadrerai au traitement" reflex. */
 export const REFUS_RECADRAGE_LOGICIEL =
   'Recadrer ensuite n’ajoute pas de détail : seule une focale plus longue aide.'
 
 /**
- * Focale qui cadrerait proprement une cible donnée. La valeur vise le milieu de la fenêtre
- * C-05 ; la plage couvre la fenêtre entière, du tiers à la moitié du champ.
+ * Focale framing a cible cleanly: aims at middle of window C-05; range covers the whole window,
+ * ⅓ to ½ of champ.
  */
 export function focaleIdeale(tailleObjetDeg: number, capteurHMm: number): Traced<number> {
   const focalePour = (remplissage: number): number => {
@@ -51,7 +45,7 @@ export function focaleIdeale(tailleObjetDeg: number, capteurHMm: number): Traced
 }
 
 // ---------------------------------------------------------------------------
-// §6.2 — verdict de cadrage par cible
+// §6.2 — cadrage verdict per cible
 // ---------------------------------------------------------------------------
 
 export interface EntreeCadrage {
@@ -60,32 +54,24 @@ export interface EntreeCadrage {
   readonly capteurHMm: number
   readonly tailleMajArcmin: number
   readonly tailleMinArcmin?: number | null
-  /** Angle de position du grand axe. Souvent absent du catalogue. */
+  /** Position angle of the major axis. Often missing from catalogue. */
   readonly posAngDeg?: number | null
   /**
-   * §3.5 — champ de la grande dimension du capteur. Fourni avec `angleGrandAxeDeg`, il
-   * oriente le remplissage : sans lui, la petite dimension reste seule à décider.
+   * §3.5 — champ of sensor long side. With `angleGrandAxeDeg` it orients the fill; without,
+   * short side alone decides.
    */
   readonly fovLDeg?: number
-  /**
-   * Angle du grand axe de la cible dans les axes du capteur, roulis du boîtier compris.
-   * `null` quand le catalogue ne permet pas de le calculer.
-   */
+  /** Cible major-axis angle in sensor axes (boîtier roulis incl.); `null` = not in catalogue. */
   readonly angleGrandAxeDeg?: number | null
 }
 
 /**
- * §6.2 avec l'orientation du boîtier de §3.5 : la fraction du cadre réellement occupée est
- * celle de la BOÎTE ENGLOBANTE de la cible dans les axes du capteur.
- *
- * La corde du rectangle le long du grand axe donnerait, à 45°, plus de marge qu'un grand axe
- * aligné sur la grande dimension du capteur — physiquement faux, et sans marge pour la
- * rotation de champ ni les gradients de bord. La boîte englobante, elle, se réduit exactement
- * à « grand axe contre petite dimension » quand φ = 90° : c'est la forme sur laquelle la table
- * de §6.2 est calibrée, et tourner le boîtier de 90° change donc le verdict sans le décaler.
- *
- * Sans orientation exploitable, on retombe sur la petite dimension seule : c'est le cas
- * conservateur, et il ne prétend pas connaître un angle que le catalogue ne donne pas.
+ * §6.2 with §3.5 boîtier orientation: occupied fraction of cadre = that of cible's BOUNDING BOX
+ * in sensor axes. Rectangle chord along major axis would give more margin at 45° than a major
+ * axis aligned with long side — physically wrong (no margin for field rotation/edge gradients).
+ * Bounding box reduces exactly to "major axis vs short side" at φ = 90°, the shape the §6.2
+ * table is calibrated on: rotating boîtier 90° changes verdict without shifting it.
+ * No usable orientation → short side alone: conservative, claims no angle the catalogue lacks.
  */
 function remplissageCadre(entree: EntreeCadrage): Traced<number> {
   const majDeg = entree.tailleMajArcmin / ARCMIN_PAR_DEG
@@ -97,15 +83,14 @@ function remplissageCadre(entree: EntreeCadrage): Traced<number> {
       inputs: { taille_objet_deg: majDeg, fov_h_deg: entree.fovHDeg },
     })
   }
-  // Faute de petit axe au catalogue, la cible est tenue pour ronde — même hypothèse que
-  // `orientation()`, qui ne suggère alors aucun angle.
+  // No minor axis in catalogue: cible taken round — same hypothesis as `orientation()`, which
+  // then suggests no angle.
   const minDeg =
     (entree.tailleMinArcmin === null || entree.tailleMinArcmin === undefined
       ? entree.tailleMajArcmin
       : entree.tailleMinArcmin) / ARCMIN_PAR_DEG
-  // Boîte englobante d'une ELLIPSE, pas d'un rectangle : la cible est déjà modélisée en
-  // ellipse par §6.3 (AIRE_ELLIPSE). La forme rectangulaire ferait grandir une cible ronde
-  // d'un facteur √2 à 45°, ce qui est faux — un disque n'a pas d'orientation.
+  // Bounding box of an ELLIPSE, not a rectangle: §6.3 models cible as ellipse (AIRE_ELLIPSE).
+  // Rectangle would grow a round cible ×√2 at 45° — false, a disc has no orientation.
   const cos2 = Math.cos(phi * DEG) ** 2
   const sin2 = Math.sin(phi * DEG) ** 2
   const u = Math.sqrt(majDeg ** 2 * cos2 + minDeg ** 2 * sin2)
@@ -126,18 +111,18 @@ function remplissageCadre(entree: EntreeCadrage): Traced<number> {
 export interface FicheCadrage {
   readonly remplissage: Traced<number>
   readonly verdict: VerdictCadrage
-  /** Faux dès que le verdict « faisable » doit être refusé, cause à l'appui. */
+  /** False as soon as "faisable" verdict must be refused, cause attached. */
   readonly faisable: boolean
   readonly message: string
   readonly diamPx: Traced<number>
-  /** Renseigné en mosaïque : le nombre de tuiles est aussi le facteur sur le temps total. */
+  /** Set in mosaïque: tile count is also the factor on total time. */
   readonly nTuiles?: Traced<number>
-  /** `null` quand le catalogue ne donne pas l'angle de position. */
+  /** `null` when catalogue gives no position angle. */
   readonly angleBoitierDeg: number | null
   readonly noteOrientation: string
-  /** Cause du refus, quand il y en a un : elle nomme toujours ce qui bloque. */
+  /** Refusal cause, if any: names what blocks. */
   readonly cause?: string
-  /** Focale qui rendrait la cible cadrable, quand elle ne l'est pas. */
+  /** Focale that would make the cible frameable, when it isn't. */
   readonly focaleIdealeMm?: Traced<number>
 }
 
@@ -174,10 +159,8 @@ function orientation(
 }
 
 /**
- * Taux de remplissage, orientation, mosaïque et « trop petit » pour une cible donnée.
- *
- * Le diamètre en pixels tranche indépendamment du remplissage : une cible peut occuper une
- * fraction acceptable du champ et rester un amas de pixels sans détail exploitable.
+ * Fill rate, orientation, mosaïque and "trop petit" for a cible. Pixel diameter decides
+ * independently of fill: cible may fill an OK fraction of champ yet be a pixel blob.
  */
 export function ficheCadrage(entree: EntreeCadrage): FicheCadrage {
   const { echApx, capteurHMm, tailleMajArcmin } = entree

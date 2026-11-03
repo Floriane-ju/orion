@@ -1,11 +1,8 @@
 /**
- * §3.3, §4.1 — les primitives de tracé du planétarium : polylignes célestes, cadre, horizon.
- *
- * T-0193 — sorties de `dessine-ciel.ts`, qui compose l'image ; ici on ne décide de rien, on
- * TRACE. La séparation tient à ce que ces fonctions ont en commun et que la composition n'a
- * pas : elles écartent d'abord ce qui ne touche pas le champ (T-0110), puis rompent le chemin
- * dès qu'un point n'est pas projetable — une polyligne céleste qui passe derrière l'observateur
- * ne se referme jamais en travers de l'écran.
+ * §3.3, §4.1 — planétarium trace primitives: celestial polylines, cadre, horizon.
+ * T-0193 — split from `dessine-ciel.ts` (composes image); here nothing decided, only TRACED.
+ * Shared trait: reject what misses champ first (T-0110), then break path at any unprojectable
+ * point — polyline behind observer never closes across screen.
  */
 
 import { angleDeCosDeg, applique, transpose, versVecteur, type Mat3, type Vec3 } from '../core/mat3.ts'
@@ -19,11 +16,8 @@ import { RAYON_MIN_ETOILE_PX, rayonEtoileCielPx } from './apparence-objets.ts'
 
 
 /**
- * T-0110 — la calotte englobante d'un jeu de points : direction moyenne, et écart angulaire
- * maximal à cette direction.
- *
- * `null` quand la direction moyenne ne veut rien dire — un grand cercle, dont les points
- * s'annulent deux à deux. Aucune calotte ne borne alors le jeu : il ne se rejette jamais.
+ * T-0110 — bounding cap of a point set: mean direction + max angular gap to it. `null` when
+ * mean direction meaningless (grand cercle, points cancel pairwise): no cap → never rejected.
  */
 export function calotte(points: readonly Vec3[]): ChampVisible | null {
   let sx = 0
@@ -49,13 +43,10 @@ export function calotte(points: readonly Vec3[]): ChampVisible | null {
 }
 
 /**
- * T-0110 — les calottes des couches de repérage, calculées une fois.
- *
- * Frontières, figures et astérismes sont une géométrie J2000 FIXE : elle ne bouge ni au zoom
- * ni au défilement, et sa calotte non plus. Sans cet écart préalable, une vue à 15° de champ
- * projetait quand même les 1 400 sommets des 88 frontières pour n'en garder qu'une poignée —
- * le même défaut que la bande de §3.7, sur la couche d'à côté. La clé est le tableau lui-même :
- * les couches sont construites une fois au chargement du paquet et ne se réallouent pas.
+ * T-0110 — repérage layers' caps, computed once. Frontières, figures, astérismes = FIXED J2000
+ * geometry: no move with zoom/scroll, nor its cap. Without this pre-reject, a 15° champ still
+ * projected the 1 400 vertices of 88 frontières to keep a handful (same defect as §3.7 band).
+ * Key = the array itself: layers built once at paquet load, never reallocated.
  */
 const calottesMemo = new WeakMap<object, readonly (ChampVisible | null)[]>()
 
@@ -70,7 +61,7 @@ function calottesDe<T>(
   return calculees
 }
 
-/** Compose le chemin sans le peindre : au tracé du ciel de le remplir, au cadre de le découper. */
+/** Composes path without painting: sky trace fills it, cadre clips with it. */
 function cheminLignes(
   ctx: CanvasRenderingContext2D,
   projecteur: Projecteur,
@@ -78,8 +69,8 @@ function cheminLignes(
   champ?: ChampVisible | null,
 ): void {
   const p = pointEcran()
-  // La calotte n'est calculée que si l'appelant demande l'écart : le contour du cadre est
-  // rebâti à chaque image, mémoriser sa calotte remplirait la table sans rien gagner.
+  // Cap only if caller asks for gap: cadre outline rebuilt per frame, memoized cap would fill
+  // table for nothing.
   const calottes = champ == null ? null : calottesDe(polylignes, (ligne) => ligne)
   ctx.beginPath()
   for (let i = 0; i < polylignes.length; i++) {
@@ -112,11 +103,9 @@ export function traceLignes(
 }
 
 /**
- * §3.5 — chemin fermé du contour du cadre matériel, composé mais NON peint.
- *
- * Exporté pour la passe de filé (§9.3) : elle découpe le canevas sur ce chemin avant
- * d'y déposer son rendu. Le contour est calculé une seule fois, ici, avec le projecteur de la
- * scène — §3.3 interdit qu'un second code de projection existe quelque part.
+ * §3.5 — closed path of cadre matériel outline, composed NOT painted. Exported for filé pass
+ * (§9.3): clips canvas on it before depositing render. Outline computed once here, with scène
+ * projector — §3.3 forbids a 2nd projection code anywhere.
  */
 export function cheminCadre(
   ctx: CanvasRenderingContext2D,
@@ -129,11 +118,10 @@ export function cheminCadre(
 }
 
 /**
- * T-0373 — un segment de figure n'a que deux sommets, et la portée en laisse projeter qui sont
- * loin derrière l'observateur. Quand l'arc qui les joint passe derrière la visée, son image est
- * le GRAND arc d'un cercle qui fait le tour de l'écran ; la corde droite, elle, traverse le
- * ciel. Le milieu de l'arc tranche : sur le petit arc, il tombe dans le disque dont la corde
- * est le diamètre ; sur le grand, hors de ce disque — ou nulle part, s'il frôle l'antipode.
+ * T-0373 — figure segment = 2 vertices, and portée projects some far behind observer. When the
+ * joining arc passes behind visée, its image is the GREAT arc of a circle around screen;
+ * straight chord crosses sky. Arc midpoint decides: small arc → inside disc whose diameter is
+ * the chord; great arc → outside, or nowhere near antipode.
  */
 function arcDevant(
   projecteur: Projecteur,
@@ -155,16 +143,15 @@ function arcDevant(
   return dx * dx + dy * dy <= demiCordeCarree
 }
 
-/** T-0376 — retrait d'un trait avant l'étoile qu'il relie, proportionnel à son disque. */
+/** T-0376 — trait setback before the star it links, proportional to its disc. */
 export function margeFigurePx(magV: number | null): number {
   const rayon = magV === null ? RAYON_MIN_ETOILE_PX : rayonEtoileCielPx(magV)
   return rayon * K('MARGE_FIGURE_RAYONS')
 }
 
 /**
- * Le segment `a → b` raccourci de `margeA` côté `a` et `margeB` côté `b`, en
- * `[xa, ya, xb, yb]` ; `null` quand les deux étoiles sont trop proches pour qu'il en reste
- * un trait.
+ * Segment `a → b` shortened by `margeA` at `a`, `margeB` at `b`, as `[xa, ya, xb, yb]`; `null`
+ * when both stars too close to leave a trait.
  */
 export function retraitAuxEtoiles(
   a: PointEcranMut,
@@ -190,8 +177,8 @@ export function traceSegments(
   const a = pointEcran()
   const b = pointEcran()
   const m = pointEcran()
-  // L'écart se fait par CONSTELLATION, pas par segment : une figure est compacte, et sa
-  // calotte rejette ses vingt segments d'un seul produit scalaire.
+  // Reject per CONSTELLATION, not segment: figure compact, its cap rejects its ~20 segments in
+  // one dot product.
   const calottes =
     champ === null
       ? null
@@ -219,14 +206,10 @@ export function traceSegments(
 }
 
 /**
- * Points cardinaux de l'horizon, dans le repère du site.
- *
- * Le projecteur arrive en paramètre, et c'est le projecteur BRUT : c'est un repère de lecture,
- * pas un objet posé sur le sol. Filtrés comme le reste, ils disparaîtraient derrière chaque
- * colline du relief (§4.1).
- *
- * T-0395 — le cercle à 0° ne se trace plus : il barrait le sol sous le relief, là où les
- * courbes de niveau dessinent déjà les versants. Les lettres suffisent à s'orienter.
+ * Horizon cardinal points, site frame. Projector passed in = RAW projector: reading landmark,
+ * not object on ground; filtered like the rest they'd vanish behind every relief hill (§4.1).
+ * T-0395 — 0° circle no longer traced: it barred sol under relief, where courbes de niveau
+ * already draw slopes. Letters suffice.
  */
 export function traceHorizon(entree: EntreeDessin, couleur: string, projecteur: Projecteur): void {
   const { ctx } = entree

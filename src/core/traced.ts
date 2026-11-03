@@ -1,10 +1,7 @@
 /**
- * Résultat tracé — §1.5 critère 2, §10.2.
- *
- * Un moteur ne retourne jamais un nombre nu : il retourne la valeur, la formule qui l'a
- * produite, ses entrées et les constantes du registre qu'elle a consommées. C'est ce qui
- * rend tout nombre affiché dépliable jusqu'à sa source sans dupliquer la logique de
- * calcul dans une couche d'explication séparée.
+ * Traced result — §1.5 critère 2, §10.2.
+ * Engine never returns a bare number: value + formula + inputs + consumed registry constants,
+ * so each displayed number expands to its source without a separate explanation layer.
  */
 
 import type { ConstantId, ConstantRef } from '../registry/constants.ts'
@@ -13,29 +10,23 @@ import type { FormulaEntry, FormulaId } from '../registry/formulas.ts'
 import { formule } from '../registry/formulas.ts'
 
 /**
- * `ESTIME` — valeur issue d'un repli générique (ex. ZP_sys C-14, §2.3).
- * `HYP` — hypothèse par défaut faute de donnée (ex. masque d'horizon plat, §4.1).
- * `DONNEE_MANQUANTE` — la donnée source est absente ; aucune estimation n'est produite (§6.3).
- * `HORS_DOMAINE` — la demande sort du domaine de validité déclaré (§3.1, §12.4).
+ * `ESTIME` — generic fallback value (e.g. ZP_sys C-14, §2.3).
+ * `HYP` — default hypothesis, data lacking (e.g. flat horizon mask, §4.1).
+ * `DONNEE_MANQUANTE` — source data absent, no estimate (§6.3).
+ * `HORS_DOMAINE` — outside validity domain (§3.1, §12.4).
  */
 export type Flag = 'ESTIME' | 'HYP' | 'DONNEE_MANQUANTE' | 'HORS_DOMAINE'
 
 export interface Traced<T> {
   readonly value: T
   readonly formula: FormulaEntry & { readonly id: FormulaId }
-  /**
-   * `null` dit « grandeur absente », comme `Traced<number | null>` le dit pour la sortie :
-   * un appelant qui n'a pas l'entrée n'a pas à inventer un nombre pour la déclarer.
-   */
+  /** `null` = « grandeur absente » (like `Traced<number | null>` output): no invented number. */
   readonly inputs: Readonly<Record<string, number | null>>
   readonly constants: readonly ConstantRef[]
-  /**
-   * Plage utile, remplie dès qu'une constante consommée est un ordre de grandeur : la
-   * sortie s'affiche alors comme une plage, jamais comme une valeur exacte (§2.1).
-   */
+  /** Range when a consumed constant is an order of magnitude: shown as range, not exact (§2.1). */
   readonly range?: readonly [number, number]
   readonly flags?: readonly Flag[]
-  /** Une phrase adressée à l'utilisateur, quand la valeur seule induirait en erreur. */
+  /** User-facing sentence when value alone misleads. */
   readonly note?: string
 }
 
@@ -72,15 +63,14 @@ export function trace<T>(options: TraceOptions<T>): Traced<T> {
 }
 
 /**
- * Encadrement d'une sortie qui dépend d'un ordre de grandeur (§2.1). Le facteur 2 est celui
- * du PRD : C-12 retient 120 s en annonçant « 1 à 4 min ».
+ * Bracket for order-of-magnitude outputs (§2.1). Factor 2 per PRD: C-12 120 s → « 1 à 4 min ».
  */
 export function plageOrdreDeGrandeur(valeur: number): readonly [number, number] {
   const FACTEUR = 2
   return [valeur / FACTEUR, valeur * FACTEUR]
 }
 
-/** Vrai si au moins une constante consommée est marquée « ordre de grandeur » (§2.1). */
+/** True if any consumed constant is « ordre de grandeur » (§2.1). */
 export function dependDUnOrdreDeGrandeur(t: Traced<unknown>): boolean {
   return t.constants.some((c) => c.ordreDeGrandeur)
 }

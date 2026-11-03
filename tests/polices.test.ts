@@ -1,11 +1,9 @@
 /**
- * T-0191 — §12.2 : un jeton de police ne nomme pas une famille que le dépôt ne livre pas.
- *
- * La CSP (§13.1, `default-src 'self'`) interdit toute origine tierce : une famille nommée
- * sans fichier ne se charge jamais, et le repli système devient le rendu nominal — sans
- * qu'aucun test ne s'en aperçoive, puisque le texte reste lisible. Le garde-fou est donc
- * ici : la première famille de chaque pile est celle du dessin, elle doit avoir sa
- * `@font-face`, et chaque `@font-face` doit pointer un fichier qui existe.
+ * T-0191 — §12.2: a font token never names a family the repo doesn't ship.
+ * CSP (§13.1, `default-src 'self'`) forbids third-party origins: family without file never loads,
+ * system fallback becomes nominal, no test notices (text readable).
+ * Guard: first family of each stack = design's; needs its `@font-face`; each `@font-face` points
+ * to an existing file.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -18,7 +16,7 @@ import { litWoff2 } from './woff2.ts'
 const DOSSIER_UI = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'ui')
 const FEUILLE = readFileSync(join(DOSSIER_UI, 'styles.css'), 'utf8')
 
-/** La première famille citée par chaque jeton `--police-*` : celle que la charte veut voir. */
+/** First family of each `--police-*` token = the charte's. */
 function famillesDeLaCharte(): readonly { readonly jeton: string; readonly famille: string }[] {
   return [...FEUILLE.matchAll(/--(police-[\w-]+):\s*'([^']+)'/g)].map((m) => ({
     jeton: `--${m[1]!}`,
@@ -26,7 +24,7 @@ function famillesDeLaCharte(): readonly { readonly jeton: string; readonly famil
   }))
 }
 
-/** Les `@font-face` de la feuille : famille déclarée et chemin de fichier, relatif à `src/ui`. */
+/** Stylesheet `@font-face`s: family + file path relative to `src/ui`. */
 function facesDeclarees(): readonly { readonly famille: string; readonly url: string }[] {
   return [...FEUILLE.matchAll(/@font-face\s*\{([^}]*)\}/g)].flatMap(([, corps]) => {
     const famille = /font-family:\s*'([^']+)'/.exec(corps!)?.[1]
@@ -39,7 +37,7 @@ describe('polices livrées (§12.2)', () => {
   it('chaque jeton nomme d’abord une famille qui a sa @font-face', () => {
     const declarees = new Set(facesDeclarees().map((f) => f.famille))
     const jetons = famillesDeLaCharte()
-    // Le test ne vaut que s'il voit les jetons : une regex qui ne trouve rien passerait.
+    // A regex finding nothing would pass: require tokens seen.
     expect(jetons.length).toBeGreaterThanOrEqual(3)
     for (const { jeton, famille } of jetons) {
       expect({ jeton, famille, declaree: declarees.has(famille) }).toEqual({
@@ -71,8 +69,8 @@ describe('polices livrées (§12.2)', () => {
   })
 
   it('les éléments à police de navigateur héritent de la charte (T-0329)', () => {
-    // `code`, `kbd`, `samp` et `pre` reçoivent `font-family: monospace` de la feuille du
-    // navigateur : sans remise, une formule s'écrit en Menlo au lieu de --police-mono.
+    // `code`, `kbd`, `samp`, `pre` get `font-family: monospace` from UA sheet: without reset a
+    // formula renders in Menlo, not --police-mono.
     const regle = [...FEUILLE.matchAll(/([^{}]+)\{([^}]*)\}/g)].find(
       ([, , corps]) => /font:\s*inherit/.test(corps!),
     )
@@ -85,14 +83,13 @@ describe('polices livrées (§12.2)', () => {
   })
 })
 
-/** Tous les caractères non ASCII écrits hors commentaire dans `src/` : ce que l'écran peut afficher. */
+/** Non-ASCII chars written outside comments in `src/`: what the screen can display. */
 function caracteresDesSources(dossier: string): ReadonlyMap<string, string> {
   const trouves = new Map<string, string>()
   for (const entree of readdirSync(dossier, { withFileTypes: true, recursive: true })) {
     if (!entree.isFile() || !/\.(tsx?|css)$/.test(entree.name)) continue
     const chemin = join(entree.parentPath, entree.name)
-    // ponytail: `//` coupe aussi une URL dans une chaîne — on y perd des caractères à
-    // vérifier, jamais on n'en invente.
+    // ponytail: `//` also cuts a URL inside a string → loses chars to verify, never invents any.
     const code = readFileSync(chemin, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
     for (const c of code) if (c.codePointAt(0)! > 0x7f && !trouves.has(c)) trouves.set(c, chemin)
   }
@@ -106,7 +103,7 @@ describe('couverture de la mono (T-0389)', () => {
 
   it('chaque caractère écrit dans les sources a son glyphe dans une fonte livrée', () => {
     const sources = caracteresDesSources(join(DOSSIER_UI, '..'))
-    // Le grec et le moins typographique y sont : sans eux le test ne verrait rien.
+    // Greek + typographic minus included, else test sees nothing.
     expect(sources.has('δ') && sources.has('−')).toBe(true)
     const manquants = [...sources]
       .filter(([c]) => !couverts.has(c.codePointAt(0)!))
@@ -115,8 +112,7 @@ describe('couverture de la mono (T-0389)', () => {
   })
 
   it('le séparateur de milliers et les lettres de Bayer sont couverts', () => {
-    // Ni l'un ni les autres ne s'écrivent dans les sources : `Intl` produit l'un, les
-    // catalogues binaires portent les autres.
+    // Neither written in sources: `Intl` produces one, binary catalogues carry the others.
     const separateur = nombre(13132).replace(/\d/g, '')
     const bayer = String.fromCodePoint(...Array.from({ length: 25 }, (_, i) => 0x3b1 + i))
     for (const c of separateur + bayer) expect([c, couverts.has(c.codePointAt(0)!)]).toEqual([c, true])

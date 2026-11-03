@@ -1,15 +1,10 @@
 /**
- * §5.1 — Profil optique et capteur.
- *
- * Deux pièges du PRD sont câblés ici plutôt que rappelés en commentaire ailleurs :
- *
- *   1. le champ d'un rectilinéaire est l'arctangente PARTOUT, sans condition de bascule —
- *      l'approximation linéaire 57,3 × d / f donne 205,7° à 10 mm sur plein format, valeur
- *      impossible. Un fisheye, lui, est équidistant (R = f·θ) : son champ EST linéaire en
- *      d / f, borné au cercle image (T-0218) ;
- *   2. le recadrage APS-C change les dimensions du capteur, jamais le pitch : ni
- *      l'échantillonnage, ni la NPF, ni la pose max n'en dépendent. Le recadrage ne
- *      grossit rien, et l'application le dit (voir `capteurEffectif`, base matériel).
+ * §5.1 — optical profile and sensor. Two PRD traps wired in code:
+ *   1. rectilinear field = arctangent EVERYWHERE, no switch condition — linear approx 57.3 × d / f
+ *      gives 205.7° at 10 mm full frame, impossible. Fisheye = equidistant (R = f·θ): field IS
+ *      linear in d / f, bounded by image circle (T-0218);
+ *   2. APS-C recadrage changes sensor dimensions, never pitch: échantillonnage, NPF, pose max
+ *      independent of it. Recadrage magnifies nothing, app says so (see `capteurEffectif`).
  */
 
 import { K } from '../registry/constants.ts'
@@ -21,27 +16,27 @@ import type { ModeProjection } from './projection.ts'
 import { UM_PAR_MM } from './unites.ts'
 
 
-/** §5.1 — quatre régimes, pour un seeing courant de 2 à 3" (C-04). */
+/** §5.1 — four regimes, for common seeing 2-3" (C-04). */
 export type DiagnosticEchantillonnage =
   | 'SUR_ECHANTILLONNE'
   | 'NOMINAL'
   | 'SOUS_ECHANTILLONNE_MODERE'
   | 'GRAND_CHAMP_ASSUME'
 
-/** §5.1 — pilote la loi du champ et la projection de §3.3, §9.2, §9.3. */
+/** §5.1 — drives field law and projection of §3.3, §9.2, §9.3. */
 export type TypeObjectif = 'RECTILINEAIRE' | 'FISHEYE'
 
-/** §5.1 — la projection que cet objectif impose à la scène : il la choisit, il n'ajuste pas un rendu. */
+/** §5.1 — projection this lens imposes on the scene: it chooses, doesn't tweak a render. */
 export function modeObjectif(type: TypeObjectif): ModeProjection {
   return type === 'FISHEYE' ? 'MODE_FISHEYE' : 'MODE_CADRE'
 }
 
 export interface EntreeOptique {
   readonly focaleMm: number
-  /** Absent : rectilinéaire, la valeur par défaut de la saisie (§5.1). */
+  /** Absent: rectilinear (input default, §5.1). */
   readonly typeObjectif?: TypeObjectif
   readonly ouvertureN: number
-  /** Dimensions effectives, recadrage déjà appliqué (voir `capteurEffectif`). */
+  /** Effective dimensions, recadrage already applied (see `capteurEffectif`). */
   readonly capteurLMm: number
   readonly capteurHMm: number
   readonly pitchUm: number
@@ -56,20 +51,20 @@ export interface ProfilOptique {
   readonly diagEch: DiagnosticEchantillonnage
   readonly messageDiag: string
   /**
-   * Vrai seulement si l'échantillonnage mérite un signalement. Le sous-échantillonnage est
-   * le régime NORMAL du grand champ : à 8,80 "/px l'application n'affiche aucune alerte.
+   * True only if échantillonnage deserves flagging. Undersampling NORMAL for grand champ: no alert
+   * at 8.80 "/px.
    */
   readonly alerte: boolean
 }
 
-/** Focale d'un champ rectilinéaire sur une dimension de capteur : l'inverse de `fovDeg`. */
+/** Focal of a rectilinear field over a sensor dimension: inverse of `fovDeg`. */
 export function focalePourChamp(dimensionMm: number, champDeg: number): number {
   return dimensionMm / (2 * Math.tan((champDeg * DEG) / 2))
 }
 
 /**
- * Champ angulaire d'une dimension de capteur. Arctangente pour un rectilinéaire, sans
- * exception (§5.1) ; d / f pour un fisheye équidistant, plafonné à son cercle image.
+ * Angular field of a sensor dimension. Rectilinear: arctangent, no exception (§5.1); equidistant
+ * fisheye: d / f, capped at image circle.
  */
 export function fovDeg(
   dimensionMm: number,
@@ -137,8 +132,8 @@ function diagnostique(echApx: number): Diagnostic {
 }
 
 /**
- * Grandeurs dérivées du train optique. Lève `SaisieRefuseeError` en nommant le champ fautif
- * plutôt que de produire une valeur infinie ou NaN (§5.1).
+ * Optical-train derived quantities. Throws `SaisieRefuseeError` naming field; never infinite/NaN
+ * (§5.1).
  */
 export function profilOptique(entree: EntreeOptique): ProfilOptique {
   const focaleMm = valide('focale_mm', entree.focaleMm)

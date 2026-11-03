@@ -1,10 +1,7 @@
 /**
- * T-0236 — §5.2 : la monture se saisit en un champ, et ce champ doit rester capable de dire
- * tout ce dont le moteur dépend.
- *
- * Le rendu est statique : rien n'est à cliquer pour qu'un profil se relise sur une option. Ce
- * qui se vérifie ici est que le pliage des trois champs en un seul n'a rien perdu — ni le
- * retournement au méridien (§8.2), ni les profils enregistrés avant ce ticket.
+ * T-0236 — §5.2: monture in one field, still expressing all the engine needs.
+ * Static render (nothing to click for a profile re-read onto an option). Checks folding 3
+ * fields into 1 lost nothing: neither méridien flip (§8.2) nor pre-ticket profiles.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -71,9 +68,9 @@ function rendu(champs: Partial<SaisieMateriel> = {}): string {
 }
 
 /**
- * L'option retenue par le champ Monture : React marque celle de `value` au rendu statique.
- * Le panneau porte d'autres `<select>` — le format de capteur, le recadrage — dont une option
- * est aussi marquée : la lecture se borne au bloc du champ, sinon elle lirait le premier venu.
+ * Option selected by Monture field (React marks the `value` one in static render). Panel has
+ * other `<select>`s (capteur format, crop) with a marked option: read limited to the field's
+ * block, else first found wins.
  */
 function optionRetenue(html: string): string | undefined {
   const debut = html.indexOf('<option value="AUCUN"')
@@ -91,8 +88,7 @@ describe('T-0236 — la monture se choisit en un champ', () => {
     const html = rendu()
     expect(html).not.toContain('Ma monture suit les étoiles')
     expect(html).not.toContain('Je ne sais pas')
-    // Les valeurs des deux anciens champs : leur absence dit que le pliage est bien fait, et
-    // pas seulement que les libellés ont changé.
+    // Old fields' values: absence shows folding done, not just labels changed.
     for (const ancienne of ['SOIGNEE', 'APPROX', 'INCONNUE', 'TRACKER', 'GEM']) {
       expect(html, ancienne).not.toContain(`value="${ancienne}"`)
     }
@@ -105,8 +101,8 @@ describe('T-0236 — la monture se choisit en un champ', () => {
   })
 
   it('garde le retournement au méridien quand la mise en station est approximative', () => {
-    // §8.2 — le retournement tient au type de monture, pas à la qualité de la mise en station :
-    // une équatoriale mal mise en station passe le méridien comme une autre.
+    // §8.2 — flip depends on monture type, not polar alignment: a poorly aligned equatorial
+    // crosses the méridien like any other.
     const profil = PROFILS_MONTURE.GEM_APPROX
     expect(profil.typeMonture).toBe('GEM')
     expect(profilSuivi({ ...profil, focaleMm: 200 }).retournementMeridien).toBe(true)
@@ -120,9 +116,9 @@ describe('T-0236 — la monture se choisit en un champ', () => {
   })
 
   /**
-   * §12.3 — un profil écrit avant ce ticket porte encore `INCONNUE`, et un profil plus ancien
-   * encore une altazimutale (T-0207). Aucun des deux ne doit laisser le champ sur une valeur
-   * qu'il ne propose pas : le `<select>` retomberait silencieusement sur sa première option.
+   * §12.3 — pre-ticket profile still carries `INCONNUE`, older one an altazimuth (T-0207).
+   * Neither may leave the field on a value it doesn't offer: `<select>` would silently fall
+   * back to its first option.
    */
   it('relit les profils enregistrés avant lui sur une option existante', () => {
     const anciens: readonly (readonly [QualiteMiseEnStation, TypeMonture, ChoixMonture])[] = [

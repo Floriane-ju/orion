@@ -1,18 +1,13 @@
 /**
- * Ce qu'on peut dire d'un objet du ciel profond sans rien savoir du ciel : sa désignation,
- * son nom commun, son type, sa magnitude.
- *
- * Un seul endroit où traduire un type — la liste du catalogue, son filtre et le champ
- * « Type d'objet » de la fiche y puisent tous.
+ * What can be said of a ciel profond object without knowing the sky: designation, nom commun,
+ * type, magnitude. Single place translating a type (catalogue list, its filter, fiche
+ * "Type d'objet" field).
  */
 
 import type { ObjetCielProfond, TypeObjet } from '../data/deepsky.ts'
 import { nombre } from '../registry/ecriture.ts'
 
-/**
- * T-0049 — les types de §6.3 en français. Le `Record` complet fait refuser par le
- * compilateur un type ajouté sans libellé.
- */
+/** T-0049 — §6.3 types in French. Full `Record`: a type without label fails to compile. */
 export const LIBELLE_TYPE_OBJET: Readonly<Record<TypeObjet, string>> = Object.freeze({
   INCONNU: 'type inconnu',
   GALAXIE: 'galaxie',
@@ -27,10 +22,8 @@ export const LIBELLE_TYPE_OBJET: Readonly<Record<TypeObjet, string>> = Object.fr
 })
 
 /**
- * Le glyphe d'un type, en ligature Material Symbols. La police n'a aucun dessin astronomique :
- * chacun est le plus proche par la FORME (une spirale, des points épars, un nuage), pour que la
- * carte de liste se reconnaisse avant d'être lue. Même `Record` complet que les libellés : un
- * type ajouté sans glyphe ne compile pas.
+ * Type glyph (Material Symbols ligature). No astronomy drawings in the font: closest by SHAPE
+ * (spiral, scattered dots, cloud) so list cards are recognised before read. Full `Record`.
  */
 export const ICONE_TYPE_OBJET: Readonly<Record<TypeObjet, string>> = Object.freeze({
   INCONNU: 'help',
@@ -46,18 +39,15 @@ export const ICONE_TYPE_OBJET: Readonly<Record<TypeObjet, string>> = Object.free
 })
 
 /**
- * Le premier nom commun, ou la chaîne vide : beaucoup d'entrées n'en portent aucun.
- *
- * Deux séparateurs, parce que la source en emploie deux : `|` sépare les noms qu'Orion
- * assemble à la construction du paquet, la virgule ceux qu'OpenNGC empile déjà dans son
- * champ « Common names ». Sans la seconde coupe, une ligne de liste annonce
- * « Large Magellanic Cloud,Nubecula Major » pour un seul objet.
+ * First nom commun, or empty string (many entries have none).
+ * Two separators: `|` joins names Orion assembles at pack build, `,` those OpenNGC stacks in
+ * "Common names". Without the `,` split a row reads "Large Magellanic Cloud,Nubecula Major".
  */
 export function nomCommun(objet: ObjetCielProfond): string {
   return objet.nomsCommuns === '' ? '' : (objet.nomsCommuns.split(/[|,]/)[0]?.trim() ?? '')
 }
 
-/** T-0282 — l'en-tête de la fiche : la désignation, puis le nom qu'on cherche. */
+/** T-0282 — fiche header: designation, then the name one searches. */
 export function titreFiche(objet: ObjetCielProfond): string {
   const nom = nomCommun(objet)
   return nom === '' ? objet.designation : `${objet.designation} — ${nom}`

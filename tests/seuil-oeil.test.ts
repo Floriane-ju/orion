@@ -1,9 +1,7 @@
 /**
- * T-0357 — le seuil de Schaefer prolonge la table Bortle vers les ciels clairs.
- *
- * Trois promesses : aucun saut au bord de la table, moins d'étoiles à mesure que le fond
- * s'éclaircit, et aucune étoile dans un ciel de plein crépuscule civil. Aucune magnitude
- * recopiée : les bornes viennent de la table elle-même et du moteur de crépuscule.
+ * T-0357 — Schaefer threshold extends Bortle table toward bright skies.
+ * Three promises: no jump at table edge; fewer stars as background brightens; no star in full
+ * civil twilight sky. No magnitude copied: bounds from the table + crépuscule engine.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -32,7 +30,7 @@ describe('T-0357 — magnitude limite sous un ciel plus clair que Bortle 9', () 
   })
 
   it('ne laisse passer aucune étoile de première grandeur sous un fond de jour', () => {
-    // Le Soleil dix degrés au-dessus de l'horizon : le ciel du jour.
+    // Sun 10° above horizon: daytime sky.
     expect(mLimOeilCielClair(sbZenithAvecCrepuscule(SB_B1, -10))).toBeLessThan(1)
   })
 })

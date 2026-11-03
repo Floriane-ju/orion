@@ -1,24 +1,14 @@
 /**
- * T-0122 — un glyphe de Material Symbols Sharp, désigné par sa ligature.
- *
- * Le composant n'existe pas pour factoriser trois lignes de JSX : il existe pour qu'il n'y
- * ait qu'un seul endroit à toucher le jour où le style des icônes change — l'épaisseur du
- * trait, la taille, ou le passage à une autre famille. La forme vit dans `.icone`
- * (`styles.css`), le contrat d'accessibilité vit ici.
- *
- * `aria-hidden` PAR DÉFAUT. Une ligature est du texte : sans cela, un lecteur d'écran
- * annonce « close » au milieu d'un libellé français. Le sens d'une icône appartient au
- * contrôle qui la porte — son `aria-label`, pas le glyphe. Le cas où l'icône est seule et
- * porteuse de sens passe `libelle` : elle redevient alors une image nommée.
+ * T-0122 — one Material Symbols Sharp glyph, named by ligature.
+ * Icon style (stroke, size, family) changes in one place: `.icone` (`styles.css`); a11y here.
+ * `aria-hidden` by default: ligature = text, a reader would say "close" in a French label.
+ * Meaning = carrying control's `aria-label`. Icon alone + meaningful: `libelle` → named image.
  */
 
 interface IconeProps {
-  /** Nom de la ligature Material Symbols, en anglais — c'est l'identifiant de la police. */
+  /** Material Symbols ligature name, English (font identifier). */
   readonly nom: string
-  /**
-   * À ne renseigner que si l'icône porte seule l'information. Dans un bouton déjà décrit
-   * par un `aria-label`, le laisser absent : deux libellés valent une double annonce.
-   */
+  /** Only if the icon alone carries the info; omit with a control `aria-label` (read twice). */
   readonly libelle?: string | undefined
   readonly classe?: string | undefined
 }
@@ -36,18 +26,16 @@ export function Icone({ nom, libelle, classe }: IconeProps) {
   )
 }
 
-/** Ce qu'il faut du `document` : le chargeur de polices et la classe de la racine. */
+/** `document` slice needed: font loader, root class. */
 interface DocumentPolices {
   readonly documentElement: { readonly classList: { add(classe: string): unknown } }
   readonly fonts: { load(police: string): Promise<unknown> }
 }
 
 /**
- * T-0300 — `.icone` reste masquée (`styles.css`) jusqu'à ce que la racine porte
- * `icones-pretes`. `font-display: block` ne cache le texte que ~3 s ; la police d'icônes
- * arrive bien après sur un premier lancement lent, et la ligature s'affichait en clair.
- * Un échec de chargement laisse les glyphes masqués : les contrôles gardent leur
- * `aria-label`, un vide vaut mieux qu'un nom de code anglais.
+ * T-0300 — `.icone` hidden (`styles.css`) until root has `icones-pretes`.
+ * `font-display: block` hides text only ~3 s; slow first launch showed the raw ligature.
+ * Load failure keeps glyphs hidden: controls keep `aria-label`, blank beats an English name.
  */
 export async function attendsPoliceIcones(doc: DocumentPolices, famille: string): Promise<void> {
   await doc.fonts.load(`1em ${famille}`)

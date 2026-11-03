@@ -1,12 +1,7 @@
 /**
- * §12.2 — Génération des paquets de données binaires.
- *
- * Télécharge les catalogues publics, les filtre, les encode et écrit `public/data/`.
- * Lancé explicitement par `pnpm data:build`, jamais au `postinstall` : pnpm bloque les
- * scripts de cycle de vie par défaut et c'est une protection à conserver.
- *
- * Les binaires produits sont versionnés dans le dépôt avec leur manifeste, de sorte qu'un
- * clone n'ait pas besoin du réseau pour démarrer.
+ * §12.2 — binary data packs generation: downloads public catalogues, filters, encodes, writes
+ * `public/data/`. Run explicitly: `pnpm data:build`, never `postinstall` (pnpm blocks lifecycle
+ * scripts; keep). Binaries versioned with manifest → clone starts offline.
  */
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
@@ -35,36 +30,28 @@ const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..')
 const DOSSIER_SORTIE = join(RACINE, 'public', 'data')
 
 /**
- * Sources amont — toutes épinglées à un SHA de commit, jamais à une branche.
+ * Upstream sources — all pinned to a commit SHA, never a branch.
+ * Branch (`main`) or alias (`CURRENT`) moves: content can change silently (accident or repo
+ * compromise) and regenerated manifest would certify it. SHA = immutable; hash below attests
+ * received bytes = reviewed ones.
  *
- * Une branche (`main`, `master`) ou un alias (`CURRENT`) désigne ce que l’amont y met
- * aujourd’hui : le contenu peut changer sous nos pieds — accident, ou compromission du
- * dépôt — sans que rien ne le signale, et le manifeste régénéré certifierait le résultat
- * de bonne foi. Un SHA de commit rend l’adresse immuable ; l’empreinte ci-dessous atteste
- * que les octets reçus sont bien ceux qui ont été relus.
- *
- * Mettre à jour une source, dans cet ordre :
- *   1. Repérer le commit voulu chez l’amont, p. ex.
+ * Updating a source, in order:
+ *   1. Find commit upstream, e.g.
  *      `gh api "repos/<dépôt>/commits?path=<chemin>&per_page=1" --jq '.[0].sha'`
- *   2. Lire le diff amont depuis le SHA actuellement épinglé. Un changement de données
- *      s’explique (nouvelle version du catalogue, correction publiée) ou ne s’explique pas.
- *   3. Télécharger le fichier à ce SHA et calculer `shasum -a 256 <fichier>`.
- *   4. Relever `url` **et** `sha256` ensemble, dans le même commit : l’un sans l’autre
- *      arrête la construction, ce qui est le comportement voulu.
- *   5. `pnpm data:build`, puis relire le diff des `.bin` et du manifeste.
+ *   2. Read upstream diff from current pinned SHA: data change explained (new version, fix) or not.
+ *   3. Download file at that SHA, `shasum -a 256 <fichier>`.
+ *   4. Record `url` **and** `sha256` together, same commit: one without the other halts build.
+ *   5. `pnpm data:build`, review `.bin` and manifest diff.
  */
 interface SourceEpinglee {
-  /** Nommée par le message d’interruption : c’est ce que l’on ira vérifier chez l’amont. */
+  /** Named by abort message: what to check upstream. */
   readonly nom: string
   readonly url: string
-  /** Empreinte des octets **téléchargés** — le manifeste, lui, couvre le paquet produit. */
+  /** Hash of the **downloaded** bytes; manifest covers the produced pack. */
   readonly sha256: string
 }
 
-/**
- * Le PRD nomme « HYG v3 ». Le projet amont a depuis publié la v4.1 sous `hyg/CURRENT`, et
- * ne sert plus la v3 à son ancienne adresse. Même base de données, version postérieure.
- */
+/** PRD names "HYG v3"; upstream now publishes v4.1 under `hyg/CURRENT`, v3 gone. Same database. */
 const SOURCE_HYG: SourceEpinglee = {
   nom: 'HYG v4.1 (hygdata_v41.csv)',
   url:
@@ -80,10 +67,9 @@ const SOURCE_OPENNGC: SourceEpinglee = {
   sha256: 'be150bdaa1997dacbcb39f303074403edec7a953b589b36d5f1c4522c0cc6fae',
 }
 /**
- * OpenNGC range hors de `NGC.csv` les objets qui ne portent ni numéro NGC ni numéro IC —
- * dont M45, les Pléiades, cataloguées « Mel022 ». Sans ce second fichier, quatre Messier
- * (M24, M40, M45, M102) manquent au catalogue et restent introuvables. Même en-tête, même
- * séparateur : les deux se lisent avec le même analyseur.
+ * OpenNGC keeps outside `NGC.csv` objects with no NGC/IC number, incl. M45 Pléiades ("Mel022").
+ * Without this 2nd file 4 Messier (M24, M40, M45, M102) are unfindable. Same header/separator:
+ * one parser reads both.
  */
 const SOURCE_OPENNGC_ADDENDUM: SourceEpinglee = {
   nom: 'OpenNGC (addendum.csv)',
@@ -93,9 +79,8 @@ const SOURCE_OPENNGC_ADDENDUM: SourceEpinglee = {
   sha256: '1d8f0914e643ada325a5a94d88d8fefad6a4937a2f77cc34f21483af22b11983',
 }
 /**
- * §3.4 — un seul fichier porte les trois couches : figures (culture occidentale), astérismes
- * et frontières IAU de Delporte en coordonnées B1875. C'est le jeu de référence que le PRD
- * nomme, sous licence libre.
+ * §3.4 — one file = 3 layers: figures (Western culture), astérismes, IAU Delporte frontières
+ * (B1875 coordinates). PRD reference set, free licence.
  */
 const SOURCE_STELLARIUM: SourceEpinglee = {
   nom: 'Stellarium (culture « modern »)',
@@ -106,12 +91,9 @@ const SOURCE_STELLARIUM: SourceEpinglee = {
 }
 
 /**
- * §6.1 — Sharpless et Barnard, obligatoires au MVP. OpenNGC ne décrit pas les complexes
- * nébuleux de plusieurs degrés, qui sont précisément le domaine d'un setup grand champ :
- * la Boucle de Barnard est Sh2-276, absente de NGC comme d'IC.
- *
- * Le catalogue DSO de Stellarium porte les deux dans un seul fichier, avec les renvois
- * croisés NGC/IC qui servent à écarter les doublons.
+ * §6.1 — Sharpless and Barnard, mandatory at MVP. OpenNGC omits multi-degree nebular complexes
+ * (grand champ domain): Barnard's Loop = Sh2-276, absent from NGC/IC. Stellarium DSO catalogue
+ * carries both, with NGC/IC cross-refs used to drop duplicates.
  */
 const SOURCE_STELLARIUM_DSO: SourceEpinglee = {
   nom: 'Stellarium (catalogue DSO v3.23)',
@@ -121,8 +103,8 @@ const SOURCE_STELLARIUM_DSO: SourceEpinglee = {
   sha256: '38a7c8c19b07bb3b2a659769acf4e5611a261732727d8e541c52ce691ab607aa',
 }
 /**
- * Les noms d'usage vivent hors du catalogue, dans un second fichier de la même version.
- * Sans lui, Sh2-276 n'est qu'un numéro : « Barnard's Loop » ne se cherche plus (T-0052).
+ * Common names live in a 2nd file of the same version. Without it Sh2-276 is a bare number:
+ * "Barnard's Loop" unsearchable (T-0052).
  */
 const SOURCE_STELLARIUM_DSO_NOMS: SourceEpinglee = {
   nom: 'Stellarium (noms DSO v3.23)',
@@ -132,8 +114,8 @@ const SOURCE_STELLARIUM_DSO_NOMS: SourceEpinglee = {
   sha256: 'f66313ecbeb2bb3c0c98f1d24852fa586217a3ca87ae456394f123752091de8e',
 }
 
-/** §3.3 : HYG est complet jusqu'à magnitude ≈ 9. Au-delà, le catalogue n'est plus fiable. */
-/** Natural Earth au 1:50 M — le fond embarqué de la carte du site (T-0364). */
+/** §3.3: HYG complete to magnitude ≈ 9. Beyond, catalogue unreliable. */
+/** Natural Earth 1:50 M — embedded site-map background (T-0364). */
 const COMMIT_NATURAL_EARTH = 'ca96624a56bd078437bca8184e78163e5039ad19'
 const urlNaturalEarth = (fichier: string): string =>
   `https://raw.githubusercontent.com/nvkelso/natural-earth-vector/${COMMIT_NATURAL_EARTH}/geojson/${fichier}.geojson`
@@ -195,7 +177,7 @@ async function telecharge(source: SourceEpinglee): Promise<string> {
   return new TextDecoder().decode(octets)
 }
 
-/** Découpe une ligne CSV en respectant les champs entre guillemets. */
+/** Split a CSV line, respecting quoted fields. */
 function champsCsv(ligne: string, separateur: string): string[] {
   const champs: string[] = []
   let courant = ''
@@ -247,7 +229,7 @@ function construitEtoiles(csv: string): Etoile[] {
     const dec = nombreOuNull(ligne.get('dec'))
     if (mag === null || adH === null || dec === null) continue
     if (mag > MAG_LIMITE_HYG) continue
-    // L'entrée « Sol » du catalogue est le Soleil vu depuis lui-même : distance nulle.
+    // OpenNGC "Sol" entry is the Sun seen from itself: distance 0.
     if (nombreOuNull(ligne.get('dist')) === 0) continue
     etoiles.push({
       adDeg: adH * DEG_PAR_HEURE,
@@ -259,7 +241,7 @@ function construitEtoiles(csv: string): Etoile[] {
   return etoiles
 }
 
-/** Correspondance des codes OpenNGC vers les types de §6.3. */
+/** OpenNGC codes → §6.3 types. */
 const TYPES_OPENNGC: Readonly<Record<string, TypeObjet>> = {
   G: 'GALAXIE',
   GPair: 'GALAXIE',
@@ -278,7 +260,7 @@ const TYPES_OPENNGC: Readonly<Record<string, TypeObjet>> = {
   Nova: 'AUTRE',
 }
 
-/** Entrées sans objet réel : doublons, non-existants, étoiles simples ou doubles. */
+/** Entries without a real object: duplicates, non-existent, single/double stars. */
 const TYPES_IGNORES = new Set(['Dup', 'NonEx', '*', '**', '*Ass'])
 
 function sexagesimalVersDeg(brut: string | undefined, uniteParHeure: number): number | null {
@@ -308,13 +290,12 @@ function construitObjets(csv: string): ObjetCielProfond[] {
     const nom = (ligne.get('Name') ?? '').trim()
     const type = TYPES_OPENNGC[codeType] ?? 'INCONNU'
     const diffuse = TYPES_DIFFUS.has(type) || codeType === CODE_NEBULEUSE_GENERIQUE
-    // T-0317 — `positifOuNull` et non `nombreOuNull` : OpenNGC écrit 0 pour une dimension
-    // qu'il ne connaît pas, et un grand axe nul donne une aire nulle, donc une brillance de
-    // surface infiniment brillante. Le complément lisait déjà ses tailles ainsi.
+    // T-0317 — `positifOuNull`, not `nombreOuNull`: OpenNGC writes 0 for unknown dimension; zero
+    // major axis → zero area → infinitely bright surface brillance. Complément reads sizes alike.
     const majAxArcmin = positifOuNull(ligne.get('MajAx'))
     const minAxArcmin = positifOuNull(ligne.get('MinAx'))
     objets.push({
-      // OpenNGC écrit le numéro Messier sur trois chiffres : « 031 » devient « M31 ».
+      // OpenNGC writes Messier number on 3 digits: "031" → "M31".
       designation: messier === '' ? nom : `M${Number(messier)}`,
       nomsCommuns: [(ligne.get('Common names') ?? '').trim(), messier === '' ? '' : nom]
         .filter((n) => n !== '')
@@ -334,10 +315,10 @@ function construitObjets(csv: string): ObjetCielProfond[] {
 }
 
 // ---------------------------------------------------------------------------
-// §6.1 — Sharpless et Barnard, extraits du catalogue DSO de Stellarium
+// §6.1 — Sharpless and Barnard, extracted from Stellarium DSO catalogue
 // ---------------------------------------------------------------------------
 
-/** Colonnes du catalogue DSO, numérotées comme son en-tête (1 → indice 0). */
+/** DSO catalogue columns, numbered as its header (1 → index 0). */
 const COL_AD = 1
 const COL_DEC = 2
 const COL_B_MAG = 3
@@ -352,22 +333,18 @@ const COL_BARNARD = 20
 const COL_SHARPLESS = 21
 
 /**
- * Stellarium écrit 99 pour « magnitude inconnue ». Encodée telle quelle, elle donnerait
- * une nébuleuse obscure « de magnitude 99 » plutôt qu'une magnitude absente (§6.3), et un
- * verdict de détectabilité serait rendu sur une valeur qui n'en est pas une.
+ * Stellarium writes 99 for "unknown magnitude". Encoded as-is, a dark nebula gets "magnitude 99"
+ * instead of absent (§6.3) and a détectabilité verdict rests on a non-value.
  *
- * T-0266 — pour les nébuleuses obscures, le 99 n'est que sur la colonne B : la colonne V
- * porte un ENTIER de 1 à 6 sur les 343 entrées Barnard du catalogue, soit la classe
- * d'opacité de Barnard, pas une magnitude. Une nébuleuse obscure n'émet pas, elle absorbe :
- * elle n'a aucune magnitude intégrée, dans aucune bande. Lue comme telle, la classe 1 de
- * B144 devenait « magnitude 1 », donc SB = m + 2,5 log(aire) sur une grandeur qui n'est pas
- * un flux, donc verdict ŒIL_NU et facilité 5/5 en tête du plan de nuit — exactement le
- * piège que §6.3 existe pour éviter. B33, qui vient d'OpenNGC, n'a jamais porté de
- * magnitude : les deux moitiés du catalogue disent enfin la même chose.
+ * T-0266 — dark nebulae: 99 only in column B; column V holds an INTEGER 1-6 on the 343 Barnard
+ * entries = opacity class, not a magnitude (a dark nebula absorbs, has no integrated magnitude).
+ * Read as one, B144 class 1 → "magnitude 1" → SB = m + 2,5 log(aire) on a non-flux → verdict
+ * ŒIL_NU, facilité 5/5 atop plan de nuit — the §6.3 trap. B33 (OpenNGC) never had a magnitude:
+ * both catalogue halves now agree.
  */
 const MAG_INCONNUE_DSO = 99
 
-/** Correspondance des codes de type du catalogue DSO vers les types de §6.3. */
+/** DSO catalogue type codes → §6.3 types. */
 const TYPES_DSO: Readonly<Record<string, TypeObjet>> = {
   DN: 'NEB_OBSCURE',
   MoC: 'NEB_OBSCURE',
@@ -385,22 +362,18 @@ const TYPES_DSO: Readonly<Record<string, TypeObjet>> = {
 }
 
 /**
- * Le catalogue d'origine porte le type quand Stellarium ne le donne pas.
- *
- * Sept entrées Sharpless sont typées « étoile » : Stellarium y désigne l'étoile excitatrice
- * plutôt que la nébulosité. Les écarter perdrait Sh2-308 (Dolphin Head) et Sh2-9, deux
- * cibles grand champ de vingt minutes d'arc. Un numéro Sh2 désigne une région HII, un
- * numéro B une nébuleuse obscure : c'est le catalogue qui tranche, pas l'étiquette.
+ * Origin catalogue carries the type when Stellarium doesn't.
+ * 7 Sharpless entries typed "star" = exciting star, not nebulosity; dropping them loses Sh2-308
+ * (Dolphin Head) and Sh2-9, two 20-arcmin grand champ cibles. Sh2 = HII region, B = dark nebula:
+ * catalogue decides, not the label.
  */
 function typeDso(codeType: string, sharpless: number): TypeObjet {
   return TYPES_DSO[codeType] ?? (sharpless > 0 ? 'EMISSION' : 'NEB_OBSCURE')
 }
 
 /**
- * Les désignations NGC et IC déjà portées par OpenNGC.
- *
- * OpenNGC range le numéro NGC dans les noms communs quand l'objet est un Messier : la
- * désignation seule laisserait passer M42 en doublon de son entrée Sharpless.
+ * NGC/IC designations already carried by OpenNGC. OpenNGC puts the NGC number in common names
+ * for a Messier: designation alone would let M42 through as duplicate of its Sharpless entry.
  */
 function extraitDesignationsNgcIc(objets: readonly ObjetCielProfond[]): Set<string> {
   const presentes = new Set<string>()
@@ -414,10 +387,8 @@ function extraitDesignationsNgcIc(objets: readonly ObjetCielProfond[]): Set<stri
 }
 
 /**
- * Noms d'usage du catalogue DSO, indexés par « SH2 276 » ou « B 33 ».
- *
- * Format d'une ligne : préfixe, numéro, puis le nom entre `_("…")`. Un même objet peut en
- * porter plusieurs — « Barnard's Loop » et « Barnard's Arc » —, tous conservés.
+ * DSO catalogue common names, indexed "SH2 276" or "B 33". Line format: prefix, number, name in
+ * `_("…")`. One object may carry several ("Barnard's Loop", "Barnard's Arc"), all kept.
  */
 function analyseNomsDso(contenu: string): Map<string, string[]> {
   const noms = new Map<string, string[]>()
@@ -433,7 +404,7 @@ function analyseNomsDso(contenu: string): Map<string, string[]> {
   return noms
 }
 
-/** Une taille ou un angle à zéro est l'absence de mesure, pas une mesure nulle. */
+/** Size/angle of 0 = no measurement, not a null one. */
 function positifOuNull(brut: string | undefined): number | null {
   const valeur = nombreOuNull(brut)
   return valeur === null || valeur <= 0 ? null : valeur
@@ -445,22 +416,17 @@ function magnitudeDso(brut: string | undefined): number | null {
 }
 
 /**
- * T-0317 — les nébuleuses diffuses dont la colonne de magnitude porte celle d'une étoile.
+ * T-0317 — diffuse nebulae whose magnitude column holds a star's magnitude. Same trap as
+ * Barnard opacity class (T-0266): plausible in column, absurd vs surface. Sh2-9 V = 2,89 is
+ * σ Sco (its exciting star); over 17′ × 3′ → SB = 15,79 mag/arcsec², verdict ŒIL_NU on a
+ * nebula nobody saw by eye.
  *
- * Même piège que la classe d'opacité de Barnard (T-0266), et repéré de la même façon : la
- * valeur est plausible en colonne, absurde une fois rapportée à la surface de l'objet. Sh2-9
- * porte V = 2,89, qui est la magnitude de σ Sco, son étoile excitatrice ; étalée sur 17′ × 3′
- * elle donne SB = 15,79 mag/arcsec², et le verdict ŒIL_NU sur une nébuleuse que personne n'a
- * jamais vue à l'œil.
+ * Criterion not eyeballed: a MEAN brillance cannot exceed the PEAK of the brightest diffuse
+ * nebula, measured on M42. Brighter → magnitude isn't the extended object's.
  *
- * Le critère ne se règle pas à l'estime : une brillance MOYENNE ne peut pas dépasser le PIC de
- * la nébuleuse diffuse la plus brillante du ciel, mesuré sur M42. Plus brillant que ce pic, la
- * magnitude n'est pas celle de l'objet étendu.
- *
- * Borné aux trois types diffus, et c'est le point délicat : une nébuleuse PLANÉTAIRE est
- * compacte et dépasse légitimement ce pic (NGC7027 calcule 13,6), un amas est un paquet de
- * sources ponctuelles dont la « surface » ne veut rien dire. Les étendre au garde-fou
- * effacerait de la vraie photométrie.
+ * Bounded to the 3 diffuse types (delicate): PLANÉTAIRE nebula is compact, legitimately
+ * exceeds the peak (NGC7027 computes 13,6); amas = bag of point sources, "surface" meaningless.
+ * Extending the guard would erase real photometry.
  */
 const TYPES_DIFFUS: ReadonlySet<TypeObjet> = new Set<TypeObjet>([
   'EMISSION',
@@ -469,11 +435,9 @@ const TYPES_DIFFUS: ReadonlySet<TypeObjet> = new Set<TypeObjet>([
 ])
 
 /**
- * OpenNGC range sous `Neb` les nébuleuses diffuses qu'il ne qualifie pas plus finement — M8,
- * M16, M17, M20 en sont. Elles arrivent sur le type fourre-tout AUTRE, qui porte aussi `Nova`,
- * un objet ponctuel : le garde-fou se déclenche donc sur le CODE SOURCE, pas sur le type, pour
- * ne pas prétendre qu'une nova est étendue. NGC6164 et NGC6165 portaient ainsi V = 6,71, la
- * magnitude de HD 148937, et décrochaient un verdict JUMELLES.
+ * OpenNGC files under `Neb` diffuse nebulae it doesn't qualify (M8, M16, M17, M20). They land
+ * on catch-all AUTRE, which also holds `Nova` (point): guard keys on the SOURCE CODE, not the
+ * type, so a nova isn't claimed extended. NGC6164/NGC6165 had V = 6,71 (HD 148937) → JUMELLES.
  */
 const CODE_NEBULEUSE_GENERIQUE = 'Neb'
 
@@ -484,20 +448,17 @@ function magnitudeDeNebuleuse(
   minAxArcmin: number | null,
 ): number | null {
   if (magnitude === null || majAxArcmin === null || !diffuse) return magnitude
-  // La même aire que §6.3, par la même fonction : un garde-fou qui calculerait autrement que
-  // le moteur laisserait passer ce que le moteur, lui, jugerait absurde.
+  // Same area as §6.3, same function: a different computation would pass what the engine
+  // judges absurd.
   const petitAxe = minAxArcmin ?? majAxArcmin
   const sb = magnitude + K('POGSON') * Math.log10(aireEllipseArcsec2(majAxArcmin, petitAxe))
   return sb < K('SB_PIC_M42_MAG') ? null : magnitude
 }
 
 /**
- * §6.1 — les entrées Sharpless et Barnard du catalogue DSO qu'OpenNGC ne porte pas déjà.
- *
- * Le filtre est un filtre de doublons, pas un filtre de qualité : une entrée Sharpless qui
- * renvoie vers un NGC présent décrit le même objet du ciel, et la liste des cibles §6.4 le
- * montrerait deux fois sous deux fiches. Caldwell est écarté en bloc pour la même raison —
- * ses 109 entrées sont *toutes* des redésignations NGC/IC, sans une seule cible nouvelle.
+ * §6.1 — Sharpless/Barnard entries of the DSO catalogue not already in OpenNGC. Duplicate
+ * filter, not quality: a Sharpless entry on a present NGC = same sky object; §6.4 list would
+ * show it twice. Caldwell dropped wholesale: 109 entries all NGC/IC redesignations.
  */
 function construitCataloguesComplementaires(
   catalogue: string,
@@ -529,8 +490,8 @@ function construitCataloguesComplementaires(
     const decDeg = nombreOuNull(champs[COL_DEC])
     if (adDeg === null || decDeg === null) continue
 
-    // Sharpless prime : un objet des deux catalogues est une région d'émission décrite par
-    // Sharpless, que Barnard n'a relevée que par sa partie obscure.
+    // Sharpless wins: object in both = emission region described by Sharpless; Barnard saw only
+    // its dark part.
     const cle = sharpless > 0 ? `SH2 ${sharpless}` : `B ${barnard}`
     const designation = sharpless > 0 ? `Sh2-${sharpless}` : `B${barnard}`
     const type = typeDso((champs[COL_TYPE] ?? '').trim(), sharpless)
@@ -563,7 +524,7 @@ function construitCataloguesComplementaires(
             majAxArcmin,
             minAxArcmin,
           ),
-      // Le catalogue DSO ne publie pas de brillance de surface.
+      // DSO catalogue publishes no surface brillance.
       surfBr: null,
     })
   }
@@ -571,7 +532,7 @@ function construitCataloguesComplementaires(
 }
 
 // ---------------------------------------------------------------------------
-// §3.4 — figures, astérismes, frontières et étoiles nommées
+// §3.4 — figures, astérismes, frontières and named stars
 // ---------------------------------------------------------------------------
 
 interface EtoileHyg {
@@ -586,7 +547,7 @@ interface EtoileHyg {
   readonly distancePc: number | null
 }
 
-/** Abréviations Bayer du catalogue vers la lettre grecque affichée. */
+/** Catalogue Bayer abbreviations → displayed Greek letter. */
 const LETTRES_GRECQUES: Readonly<Record<string, string>> = {
   Alp: 'α', Bet: 'β', Gam: 'γ', Del: 'δ', Eps: 'ε', Zet: 'ζ',
   Eta: 'η', The: 'θ', Iot: 'ι', Kap: 'κ', Lam: 'λ', Mu: 'μ',
@@ -595,9 +556,8 @@ const LETTRES_GRECQUES: Readonly<Record<string, string>> = {
 }
 
 /**
- * Les astérismes portent leur nom d'usage français quand il en existe un. Pour les motifs
- * sans usage francophone établi, le nom anglais de la source est conservé tel quel :
- * traduire « Davis' Dog » n'aiderait personne à le reconnaître dans le ciel.
+ * Astérismes carry their French common name when one exists. Patterns without established
+ * French usage keep the English name: translating "Davis' Dog" helps nobody.
  */
 const NOMS_FR_ASTERISMES: Readonly<Record<string, string>> = {
   'Big Dipper (Plough)': 'Grande Casserole',
@@ -640,7 +600,7 @@ function indexeHyg(csv: string): Map<number, EtoileHyg> {
       constellation: (ligne.get('con') ?? '').trim(),
       nomPropre: (ligne.get('proper') ?? '').trim(),
       spectre: (ligne.get('spect') ?? '').trim(),
-      // HYG range les étoiles sans parallaxe fiable à 100 000 pc : ce n'est pas une distance.
+      // HYG puts stars without reliable parallax at 100 000 pc: not a distance.
       distancePc: distance === null || distance <= 0 || distance >= 100000 ? null : distance,
     })
   }
@@ -662,7 +622,7 @@ interface ResolutionLignes {
   readonly ignores: number
 }
 
-/** Une polyligne de la source est une suite d'identifiants HIP à relier deux à deux. */
+/** Source polyline = HIP ids linked pairwise. */
 function resoutLignes(
   lignes: readonly (readonly (number | string)[])[],
   index: Map<number, EtoileHyg>,
@@ -674,7 +634,7 @@ function resoutLignes(
       const a = typeof ligne[i] === 'number' ? index.get(ligne[i] as number) : undefined
       const b = typeof ligne[i + 1] === 'number' ? index.get(ligne[i + 1] as number) : undefined
       if (a === undefined || b === undefined) {
-        // Sommet Gaia absent du catalogue HYG : le segment est écarté, jamais inventé.
+        // Gaia vertex absent from HYG: segment dropped, never invented.
         ignores++
         continue
       }
@@ -714,7 +674,7 @@ interface SkycultureStellarium {
   readonly edges_epoch: string
 }
 
-/** « CON modern Aql » → « Aql ». Le code IAU est le dernier mot de l'identifiant source. */
+/** "CON modern Aql" → "Aql". IAU code is the last word of the source identifier. */
 function codeIau(id: string): string {
   const morceaux = id.trim().split(/\s+/)
   return (morceaux[morceaux.length - 1] ?? id).toUpperCase()
@@ -744,8 +704,7 @@ function construitConstellations(brut: string, index: Map<number, EtoileHyg>) {
 
   const asterismes: Asterisme[] = []
   for (const a of source.asterisms) {
-    // Les « ray helpers » ne sont pas des astérismes : ce sont des guides de repérage
-    // internes au moteur de rendu amont.
+    // "ray helpers" aren't astérismes: internal locating guides of the upstream renderer.
     if (a.is_ray_helper === true) continue
     const nomAnglais = a.common_name?.english
     if (nomAnglais === undefined) continue
@@ -773,7 +732,7 @@ function construitConstellations(brut: string, index: Map<number, EtoileHyg>) {
     }
   })
 
-  // §3.4 — les labels ne nomment que les étoiles de magnitude ≤ 3,5 ; le clic les identifie.
+  // §3.4 — labels name only stars of magnitude ≤ 3,5; click identifies the rest.
   const MAG_ETOILES_NOMMEES = 3.5
   const etoilesNommees: EtoileNommee[] = []
   for (const etoile of index.values()) {
@@ -810,7 +769,7 @@ interface GeometrieGeo {
   readonly coordinates: unknown
 }
 
-/** Les anneaux ou lignes d'une géométrie GeoJSON, à plat : le fond ne distingue pas les trous. */
+/** Rings or lines of a GeoJSON geometry, flattened: fond doesn't distinguish holes. */
 function tracesGeo(g: GeometrieGeo): PointGeo[][] {
   switch (g.type) {
     case 'LineString':
@@ -887,8 +846,8 @@ async function litManifesteExistant(): Promise<ManifestePaquet[]> {
 }
 
 /**
- * Fusionne les entrées produites avec celles déjà présentes. Régénérer un seul paquet ne
- * doit pas effacer le manifeste des autres, ni les forcer à retélécharger leur source.
+ * Merge produced entries with existing ones: regenerating one pack mustn't erase the others'
+ * manifest nor force re-downloading their source.
  */
 function fusionne(
   existant: readonly ManifestePaquet[],
@@ -899,10 +858,7 @@ function fusionne(
   return [...parNom.values()]
 }
 
-/**
- * Groupes constructibles :
- * `pnpm data:build [hyg] [openngc] [deepsky] [constellations] [fond-carte]`.
- */
+/** Buildable groups: `pnpm data:build [hyg] [openngc] [deepsky] [constellations] [fond-carte]`. */
 const GROUPES = ['hyg', 'openngc', 'deepsky', 'constellations', 'fond-carte'] as const
 type Groupe = (typeof GROUPES)[number]
 
@@ -921,7 +877,7 @@ async function principal(): Promise<void> {
   )
 
   const produits: ManifestePaquet[] = []
-  // Le CSV HYG sert deux paquets : il n'est téléchargé qu'une fois.
+  // HYG CSV serves two packs: downloaded once.
   let csvHyg: string | null = null
   const hyg = async (): Promise<string> => (csvHyg ??= await telecharge(SOURCE_HYG))
 
@@ -939,7 +895,7 @@ async function principal(): Promise<void> {
     )
   }
 
-  // OpenNGC sert deux groupes : `deepsky` s'en sert pour écarter les doublons NGC/IC.
+  // OpenNGC serves two groups: `deepsky` uses it to drop NGC/IC duplicates.
   let objetsNgc: ObjetCielProfond[] | null = null
   const openngc = async (): Promise<ObjetCielProfond[]> =>
     (objetsNgc ??= [
@@ -1026,8 +982,7 @@ async function principal(): Promise<void> {
         encodeFondCarte(fond),
         fond.terres.length + fond.frontieres.length + fond.villes.length,
         fond.source,
-        // Sans lui, la carte reste — vide — et la saisie chiffrée aussi : il n'arrête pas le
-        // démarrage (§12.5).
+        // Without it map stays empty, so does numeric input; doesn't halt startup (§12.5).
         false,
       ),
     )

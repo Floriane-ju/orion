@@ -1,8 +1,7 @@
 /**
- * §13.1 — les tiers que l'application contacte, et ce qui leur est transmis.
- *
- * Source unique : la politique de sécurité du contenu (`vite.config.ts`) en est dérivée, et
- * `tests/csp.test.ts` refuse toute divergence. Ajouter une origine est un amendement du PRD.
+ * §13.1 — third parties the app contacts, and what is sent.
+ * Single source: CSP (`vite.config.ts`) derives from it; `tests/csp.test.ts` rejects divergence.
+ * New origin = PRD amendment.
  */
 
 import { ORIGINES_IMAGERIE } from './imagerie.ts'
@@ -11,7 +10,7 @@ import { ORIGINES_CARTE } from './lieu-carte.ts'
 
 export interface OrigineTiers {
   readonly origine: string
-  /** Ce qui est transmis à ce tiers, en clair. C'est ce que §13.1 énumère. */
+  /** Sent in clear to this third party; §13.1 enumerates it. */
   readonly transmis: string
 }
 

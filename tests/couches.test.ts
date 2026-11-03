@@ -1,10 +1,7 @@
 /**
- * T-0338 — chaque couche reste à sa place : calcul pur dans `src/core/`, persistance dans
- * `src/data/`, React dans `src/ui/`.
- *
- * Ce qui est vérifié est ce qui casse la règle en pratique : un module de calcul qui dépend
- * d'un composant, un moteur qui touche au stockage, un composant qui lit le stockage lui-même,
- * une table partagée qu'on pourrait muter.
+ * T-0338 — layers stay in place: pure calc in `src/core/`, persistence `src/data/`, React
+ * `src/ui/`. Checks practical breakers: calc module importing a component, engine touching
+ * storage, component reading storage itself, mutable shared table.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -23,7 +20,7 @@ function fichiers(dossier: string, filtre: RegExp): readonly [string, string][] 
     .map((f) => [`${dossier}/${f}`, readFileSync(join(SRC, dossier, f), 'utf8')])
 }
 
-/** Les imports exécutés : un `import type` ne crée aucune dépendance à l'exécution. */
+/** Executed imports: `import type` creates no runtime dependency. */
 function importsExecutes(source: string): readonly string[] {
   return [...source.matchAll(/^import (?!type )[^'"]*from '([^']+)'/gm)].map((m) => m[1]!)
 }

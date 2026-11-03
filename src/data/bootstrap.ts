@@ -1,9 +1,6 @@
 /**
- * §12.1, §12.2, §12.3 — Démarrage de l'application.
- *
- * Deux vérifications, dans cet ordre : intégrité des catalogues, état du stockage. Aucune ne
- * doit produire un écran blanc ni une erreur technique brute : chaque échec a une cause nommée
- * et une conduite à tenir — une mesure sans conduite à tenir n'est pas une vérification.
+ * §12.1, §12.2, §12.3 — App startup. Two ordered checks: catalogue integrity, storage state.
+ * No white screen or raw technical error: each failure has a named cause + course of action.
  */
 
 import { baseDisponible, ecritPaquet, litPaquet } from './db.ts'
@@ -32,14 +29,14 @@ export interface EtatPaquet {
 export interface EtatCatalogues {
   readonly paquets: readonly EtatPaquet[]
   readonly manifesteLu: boolean
-  /** Conduite à tenir quand un paquet obligatoire manque ou est corrompu. */
+  /** Course of action if a mandatory package is missing/corrupt. */
   readonly cause?: string
 }
 
 /**
- * T-0343 — le manifeste vient du réseau : il est vérifié avant d'être cru. Une entrée mal
- * formée ferait planter `resoudPaquet` sur un champ absent ; refusé, le manifeste retombe sur
- * la cause « catalogues introuvables » que `verifieCatalogues` sait déjà nommer.
+ * T-0343 — manifest comes from network: verify before trust. Malformed entry would crash
+ * `resoudPaquet` on a missing field; refused → falls back to « catalogues introuvables »
+ * (already named by `verifieCatalogues`).
  */
 export function estManifeste(brut: unknown): brut is readonly ManifestePaquet[] {
   return (
@@ -68,10 +65,7 @@ async function chargeManifeste(): Promise<readonly ManifestePaquet[] | null> {
   }
 }
 
-/**
- * Récupère un paquet depuis IndexedDB ; à défaut le télécharge, vérifie sa somme de
- * contrôle et le range. Un paquet dont l'empreinte ne correspond pas n'est jamais servi.
- */
+/** IndexedDB package, else download + checksum verify + store. Hash mismatch is never served. */
 async function resoudPaquet(manifeste: ManifestePaquet): Promise<EtatPaquet> {
   const local = await litPaquet(manifeste.nom)
   const integriteLocale = await verifieIntegrite(local, manifeste)
@@ -128,7 +122,7 @@ async function verifieCatalogues(): Promise<EtatCatalogues> {
 export const PAQUET_OBJETS = 'openngc'
 export const PAQUET_NOMS_OBJETS = 'openngc-noms'
 
-/** §6.1 — Sharpless et Barnard, ce qu'OpenNGC ne décrit pas du domaine grand champ. */
+/** §6.1 — Sharpless and Barnard: wide-field domain that OpenNGC lacks. */
 export const PAQUET_OBJETS_COMPLEMENT = 'deepsky'
 export const PAQUET_NOMS_OBJETS_COMPLEMENT = 'deepsky-noms'
 
@@ -145,18 +139,15 @@ async function decodePaireDeObjets(
 }
 
 /**
- * Catalogue d'objets du ciel profond décodé depuis les paquets rangés par `demarre()`.
- * Retourne une liste vide quand les paquets manquent : la cause est déjà nommée par
- * `verifieCatalogues()`, et les moteurs §6 et §7 restent utilisables sur une cible saisie
- * à la main (§12.5).
- *
- * Deux paquets, un seul catalogue : OpenNGC porte le ciel profond classique, `deepsky`
- * les entrées Sharpless et Barnard qu'il ignore. La construction garantit qu'ils ne se
- * chevauchent pas — les doublons NGC/IC sont écartés à la source, pas ici (§6.1).
+ * Deep-sky catalogue decoded from packages stored by `demarre()`.
+ * Empty list if packages missing (cause named by `verifieCatalogues()`); §6, §7 engines stay
+ * usable on hand-entered target (§12.5).
+ * Two packages, one catalogue: OpenNGC = classic deep sky, `deepsky` = Sharpless/Barnard it
+ * ignores. No overlap: NGC/IC duplicates dropped at source, not here (§6.1).
  */
 export async function chargeObjetsCielProfond(): Promise<readonly ObjetCielProfond[]> {
-  // T-0296 — les deux lectures partent ensemble, mais les deux décodages se suivent : tranchés,
-  // ils s'entrelaceraient, et deux tranches concurrentes tiennent le fil deux fois plus long.
+  // T-0296 — reads start together, decodes in sequence: sliced, they would interleave and two
+  // concurrent slices hold the thread twice as long.
   const ngc = await decodePaireDeObjets(PAQUET_OBJETS, PAQUET_NOMS_OBJETS)
   const complement = await decodePaireDeObjets(
     PAQUET_OBJETS_COMPLEMENT,
@@ -168,9 +159,8 @@ export async function chargeObjetsCielProfond(): Promise<readonly ObjetCielProfo
 const PAQUET_ETOILES = 'hyg'
 
 /**
- * Catalogue d'étoiles décodé depuis le paquet HYG. Il sert au cheminement et à la carte de
- * pointage (§8.4) ; la liste est vide quand le paquet manque, et l'absence est déjà nommée
- * par `verifieCatalogues()`.
+ * Star catalogue decoded from HYG package; serves cheminement and pointing map (§8.4). Empty if
+ * package missing (named by `verifieCatalogues()`).
  */
 export async function chargeEtoiles(): Promise<readonly Etoile[]> {
   const paquet = await litPaquet(PAQUET_ETOILES)
@@ -179,10 +169,7 @@ export async function chargeEtoiles(): Promise<readonly Etoile[]> {
 
 const PAQUET_CONSTELLATIONS = 'constellations'
 
-/**
- * §3.4 — figures, astérismes et frontières. Un paquet absent laisse le planétarium
- * afficher les étoiles : les couches de repérage manquent, le ciel reste juste.
- */
+/** §3.4 — figures, astérismes, frontières. Package missing: stars still shown, sky correct. */
 export async function chargeConstellations(): Promise<PaquetConstellations> {
   const paquet = await litPaquet(PAQUET_CONSTELLATIONS)
   return paquet === null ? PAQUET_VIDE : decodeConstellations(paquet)
@@ -190,16 +177,15 @@ export async function chargeConstellations(): Promise<PaquetConstellations> {
 
 const PAQUET_FOND_CARTE = 'fond-carte'
 
-/** §12.5 — le fond de la carte du site. Absent, la carte reste vide et la saisie chiffrée reste. */
+/** §12.5 — site map background. Absent: empty map, numeric input stays. */
 export async function chargeFondCarte(): Promise<FondCarte> {
   const paquet = await litPaquet(PAQUET_FOND_CARTE)
   return paquet === null ? FOND_VIDE : decodeFondCarte(paquet)
 }
 
 /**
- * T-0296 — l'index de §3.3, construit par tranches parce que c'est l'étage le plus cher du
- * démarrage. Il est assemblé ici, avec les catalogues, et non dans la chaîne de calcul : un
- * `useMemo` ne sait pas rendre la main, et l'index n'a aucune raison d'attendre un rendu.
+ * T-0296 — §3.3 index, built in slices (costliest startup stage). Built here with the
+ * catalogues, not in the compute chain: `useMemo` can't yield, index needn't wait for a render.
  */
 export async function construitIndexEtoiles(
   etoiles: readonly Etoile[],
@@ -207,7 +193,7 @@ export async function construitIndexEtoiles(
   return parTranches(construitIndexPas(etoiles))
 }
 
-/** §3.3 — le paquet Gaia est différé : sa présence conditionne le plancher de zoom. */
+/** §3.3 — Gaia package deferred: its presence sets the zoom floor. */
 const PAQUET_GAIA = 'gaia'
 
 export function gaiaCharge(catalogues: EtatCatalogues): boolean {
@@ -235,10 +221,7 @@ export async function demarre(): Promise<EtatDemarrage> {
   }
 }
 
-/**
- * §12.1 — l'état posé quand le démarrage lui-même échoue : un écran qui nomme la panne et la
- * conduite à tenir, jamais un ciel vide qui attend une promesse rejetée.
- */
+/** §12.1 — startup-failure state: screen naming failure and course of action, never empty sky. */
 export function demarrageEchoue(): EtatDemarrage {
   return {
     modeReseau: modeReseauCourant(),

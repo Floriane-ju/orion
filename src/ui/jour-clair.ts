@@ -1,18 +1,12 @@
 /**
- * T-0409 — de jour, l'interface passe en clair ; le mode nuit l'emporte toujours (§11.1).
- *
- * L'instant est celui de la SCÈNE, pas de l'horloge : l'interface se lit comme le ciel
- * qu'elle commande, et une nuit affichée à 21 h sous un panneau blanc se contredisait. Scène
- * réglée sur maintenant, c'est l'heure réelle — et la scène avance d'elle-même au fil du temps.
- * Le lieu est celui saisi.
- *
- * La palette claire ne fait que poser un attribut : la feuille l'écarte d'elle-même quand le
- * mode nuit est actif, si bien qu'aucun ordre d'application ne peut faire fuir du clair
- * dans le rouge. Le canevas ne lit pas la feuille et garde son rendu.
- *
- * T-0421 — pendant un trajet, le magasin ne publie que l'arrivée : l'interface basculait une
- * fois le trajet fini, loin du coucher qu'il avait traversé. Elle suit donc aussi l'instant du
- * trajet, image par image — dans un composant qui ne rend rien, pour que seul lui se re-rende.
+ * T-0409 — UI goes light by day; mode nuit always wins (§11.1).
+ * Instant = SCENE's, not clock: UI reads like the sky it drives (night at 21 h under a white
+ * panel contradicted). Scene on now = real time. Site = entered one.
+ * Light palette only sets an attribute; stylesheet excludes itself under mode nuit → no apply
+ * order can leak light into the red. Canvas ignores the stylesheet.
+ * T-0421 — during a trajet the store publishes only the arrival (UI flipped after the trip,
+ * far from the sunset crossed) → also follow trajet instant per frame, in a render-nothing
+ * component so only it re-renders.
  */
 
 import { useEffect, useMemo } from 'react'
@@ -29,9 +23,8 @@ export function appliqueJourClair(clair: boolean): void {
 }
 
 /**
- * Le Soleil du lieu est-il levé à cet instant — `null` quand rien ne se tranche (lieu
- * illisible, date hors des séries). Mémorisé à la minute : la boucle publie l'instant à
- * chaque image, et deux recherches de lever par image coûteraient pour rien.
+ * Site's Sun up at this instant; `null` = undecidable (unreadable site, date outside series).
+ * Memoised per minute: loop publishes instant every frame, 2 sunrise searches/frame wasteful.
  */
 export function lecteurJourClair(lieu: Site): (ms: number) => boolean | null {
   let minute: number | null = null
@@ -53,7 +46,7 @@ export function JourClair({ site }: { readonly site: Site }): null {
     [latitudeDeg, longitudeDeg, altitudeM],
   )
   const selecteur = useMemo(() => (etat: EtatScene) => lit(etat.msAffiche), [lit])
-  // Un booléen : hors trajet, on ne se re-rend qu'au lever et au coucher, pas à chaque minute.
+  // Boolean: outside trajet re-renders only at sunrise/sunset, not each minute.
   const clairScene = useTrancheScene(selecteur)
   const trajetMs = useInstantTrajet()
   const clair = trajetMs === null ? clairScene : lit(trajetMs)

@@ -1,9 +1,7 @@
 /**
- * T-0362 — l'état de l'interface survit au rechargement : catalogue, fiche ouverte, mode,
- * filé, réglages de fiche et cartes se relisent tels qu'on les a laissés.
- *
- * Chaque magasin se relit au chargement de son module : un rechargement se simule donc en
- * réimportant les modules après `vi.resetModules()`, sur un stockage déjà rempli.
+ * T-0362 — UI state survives reload: catalogue, open fiche, mode, filé, fiche settings, cards.
+ * Each store re-reads at module load → reload = re-import after `vi.resetModules()` on filled
+ * storage.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -19,7 +17,7 @@ beforeEach(() => {
     getItem: (c: string) => cles.get(c) ?? null,
     setItem: (c: string, v: string) => void cles.set(c, v),
   })
-  // `gardeAuDepart` s'abonne au départ de la page : une cible d'évènements suffit à le rejouer.
+  // `gardeAuDepart` subscribes to page leave: an event target suffices to replay it.
   vi.stubGlobal('window', new EventTarget())
   vi.stubGlobal('document', Object.assign(new EventTarget(), { visibilityState: 'visible' }))
   vi.resetModules()
@@ -29,7 +27,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-/** Le départ de la page, puis un nouveau chargement des modules sur le même stockage. */
+/** Page leave, then fresh module load on same storage. */
 function recharge(): void {
   window.dispatchEvent(new Event('pagehide'))
   vi.resetModules()

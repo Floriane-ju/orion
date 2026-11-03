@@ -1,12 +1,8 @@
 /**
- * T-0287 — §8.4 à l'écran : ce que l'aide au pointage MONTRE, pas ce qu'elle calcule.
- *
- * Les trois défauts qui la rendaient inexécutable étaient tous des défauts de rendu — un
- * schéma qui ne tournait pas, des lignes sans nom, un glyphe affiché en toutes lettres — et
- * aucun ne pouvait faire échouer une suite qui s'arrêtait au moteur. D'où ce fichier.
- *
- * Aucune position n'y est attendue en dur : les repères se recalculent depuis l'angle que la
- * carte publie, comme dans `pointage.test.ts`.
+ * T-0287 — §8.4 on screen: what aide au pointage SHOWS, not what it computes.
+ * The 3 unusable defects were render defects (schema not rotating, unnamed lines, glyph as full
+ * text); an engine-only suite couldn't fail on them.
+ * No hardcoded positions: repères recomputed from the map's published angle, as `pointage.test.ts`.
  */
 
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -23,7 +19,7 @@ const DATE = new Date('2026-08-14T22:30:00Z')
 const DEG_PAR_HEURE = 15
 const POURCENT = 100
 
-/** Profil de référence de l'Annexe A : 120 mm sur plein format, 17,0° × 11,4°. */
+/** Annexe A reference profile: 120 mm full frame, 17.0° × 11.4°. */
 const FOV_H_DEG = 11.38
 const FOV_L_DEG = 17.02
 
@@ -42,9 +38,8 @@ const CIBLE: ObjetCielProfond = {
 }
 
 /**
- * Douze étoiles réparties dans le cadre, dont une seule est nommée : il en faut plus que le
- * plafond de dépliage pour que le repli ait quelque chose à cacher, et des anonymes pour que
- * la cellule sans nom soit rendue elle aussi.
+ * Twelve stars, one named: > unfold cap so the fold has something to hide; anonymous ones so the
+ * nameless cell renders.
  */
 const CIEL: readonly Etoile[] = Array.from({ length: 12 }, (_, i) => ({
   adDeg: CIBLE.adDeg + ((i % 4) - 1.5),
@@ -76,7 +71,7 @@ const PROPS: PointageProps = {
   gaiaCharge: false,
 }
 
-/** La même carte que celle que le composant demande au moteur : les repères s'en déduisent. */
+/** Same map the component requests: repères derive from it. */
 const CARTE = cartePointage({
   site: SITE,
   date: DATE,
@@ -93,18 +88,18 @@ function rendu(): string {
   return renderToStaticMarkup(<Pointage {...PROPS} />)
 }
 
-/** Le seul `<details>` sans classe est celui du repli : `TracedValue` porte `.tracee`. */
+/** Only `<details>` without a class = the fold: `TracedValue` carries `.tracee`. */
 function replie(html: string): string {
   return html.slice(html.indexOf('<details>'))
 }
 
-/** Le schéma seul, du conteneur à sa fermeture. */
+/** Schema alone, container to closing tag. */
 function schema(html: string): string {
   const debut = html.indexOf('<div class="schema"')
   return html.slice(debut, html.indexOf('</div>', debut))
 }
 
-/** Ce que React écrit pour une position de schéma, avec les mêmes arrondis. */
+/** What React writes for a schema position, same rounding. */
 function place(x: number, y: number): string {
   return `left:${(1 / 2 + x) * POURCENT}%;top:${(1 / 2 - y) * POURCENT}%`
 }
@@ -129,7 +124,7 @@ describe('T-0287 — la carte directe ne déplie que ce qui se lit', () => {
   })
 
   it('ne pose sur le schéma que les ancrages dépliés', () => {
-    // La cible, le zénith, le nord, puis les ancrages dépliés — rien de plus.
+    // Target, zenith, north, unfolded anchors only.
     expect([...schema(rendu()).matchAll(/class="schema-astre/g)]).toHaveLength(
       K('ANCRAGES_DEPLIES_MAX') + 3,
     )
@@ -153,8 +148,8 @@ describe('T-0287 — le schéma dit selon quoi il est orienté', () => {
   it('rend les ancrages à la position tournée, jamais à celle du cadre', () => {
     const html = rendu()
     const a = CARTE.ancrages[0]!
-    // L'ancrage choisi n'est sur le méridien d'aucun des deux repères : les deux positions
-    // diffèrent réellement, faute de quoi l'assertion suivante ne prouverait rien.
+    // Chosen anchor on neither repère's meridian: positions really differ, else next assertion
+    // proves nothing.
     expect(a.xDisque).not.toBeCloseTo(-a.xCadre, 6)
     expect(html).toContain(place(a.xDisque, a.yDisque))
     expect(html).not.toContain(place(-a.xCadre, a.yCadre))
@@ -173,9 +168,8 @@ describe('T-0287 — chaque ligne nomme son étoile', () => {
 })
 
 /**
- * Le défaut d'origine : « circle » et « star » collés se ligaturaient en « circles », et le
- * reste s'affichait en toutes lettres. La garantie durable est dans `icone.test.tsx` — deux
- * glyphes ne se touchent nulle part. Ici, on vérifie ce rendu-ci.
+ * Original defect: adjacent "circle" + "star" ligated into "circles", rest as full text.
+ * Lasting guarantee: `icone.test.tsx` (no two glyphs touch). Here: this rendering.
  */
 describe('T-0287 — aucun glyphe ne s’affiche en toutes lettres', () => {
   it('ne colle jamais deux ligatures, dans le schéma comme dans les lignes', () => {
@@ -192,8 +186,8 @@ describe('T-0287 — aucun glyphe ne s’affiche en toutes lettres', () => {
 })
 
 /**
- * T-0324 — le tableau dit le trajet, la scène le montre. Le bouton est le seul chemin vers
- * elle : absent, la dette de vignettes de §8.4 reste entière quoi qu'en dise le moteur.
+ * T-0324 — table says the route, scene shows it. Button = only path to it: absent, §8.4 vignette
+ * debt stays whole regardless of engine.
  */
 describe('T-0324 — l’aide au pointage mène le parcours à la scène', () => {
   it('offre de voir le parcours quand la carte en propose un', () => {
@@ -202,7 +196,7 @@ describe('T-0324 — l’aide au pointage mène le parcours à la scène', () =>
   })
 
   it('n’offre rien quand la carte n’a aucun repère à donner', () => {
-    // Un ciel vide : aucun ancrage à proposer, donc aucun trajet à montrer.
+    // Empty sky: no anchor → no route.
     const html = renderToStaticMarkup(<Pointage {...PROPS} etoiles={[]} nommees={[]} />)
     expect(html).not.toContain('Voir le parcours')
   })

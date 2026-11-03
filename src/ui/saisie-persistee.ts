@@ -1,15 +1,10 @@
 /**
- * §12.3 — la frontière entre la saisie à l'écran et les enregistrements de §12.1.
- *
- * La saisie est du texte, un enregistrement est un nombre validé : la traversée se fait ici,
- * dans les deux sens. Une saisie hors domaine ne s'enregistre pas — un `NaN` ou un Bortle 12
- * persisté ressortirait à chaque démarrage, et rendrait l'export irréimportable puisque le
- * contrôle du réimport applique les mêmes plages du registre §2.1.
- *
- * Deux choses ne sont pas persistées ici : la date de séance se déduit de l'instant de la
- * scène, que `scene-persistee.ts` garde (T-0355) — l'horloge en marche la ramène à ce soir,
- * seul un instant figé garde sa nuit — et la comparaison de recadrage est un affichage, pas
- * une saisie.
+ * §12.3 — boundary screen saisie ↔ §12.1 records. Saisie = text, record = validated number.
+ * Out-of-domain saisie not saved: persisted `NaN`/Bortle 12 resurfaces every start and makes
+ * export non-reimportable (reimport applies same §2.1 registry ranges).
+ * Not persisted here: date de séance (derived from scène instant, kept by `scene-persistee.ts`,
+ * T-0355: running clock returns to tonight, only frozen instant keeps its nuit); recadrage
+ * comparison (display).
  */
 
 import type { SiteEnregistre, ProfilMateriel } from '../data/db.ts'
@@ -27,10 +22,8 @@ import {
 } from './app-saisie.ts'
 
 /**
- * Un champ optionnel de la saisie : absent quand il est vide, BORNÉ quand il est hors domaine.
- *
- * T-0208 — c'est la valeur ramenée dans le domaine qui s'enregistre, la même que celle dont la
- * scène est déduite : ce qu'on voit est ce qu'on retrouve au démarrage suivant.
+ * Optional saisie field: absent when empty, CLAMPED when out of domain.
+ * T-0208 — clamped value saved, as scène's: what you see = what you get back at start.
  */
 function siRenseigne<C extends string>(
   nom: C,
@@ -42,24 +35,19 @@ function siRenseigne<C extends string>(
 }
 
 /**
- * Une grandeur sans laquelle l'enregistrement n'a pas de sens. Un champ vide est refusé comme
- * un `NaN`, jamais coercé en 0 : une latitude vide enregistrée à 0° ne serait pas un aveu
- * d'oubli mais un point au large du golfe de Guinée, relu tel quel à chaque démarrage.
- *
- * `valide` reste le dernier mot : sur une valeur déjà bornée il ne peut plus lever que pour
- * un `NaN`, c'est-à-dire exactement le champ vide.
+ * Grandeur without which record is meaningless. Empty refused like `NaN`, never coerced to 0:
+ * empty latitude saved as 0° = point off Gulf of Guinea, reread every start.
+ * `valide` keeps last word: on clamped value it throws only for `NaN` = empty field.
  */
 function requis(saisi: string, domaine: DomaineId): number {
   return valide(domaine, nombreSaisi(domaine, saisi).valeur)
 }
 
 /**
- * Le texte d'une grandeur relue de la base ; vide quand elle est absente, jamais « undefined ».
- *
- * T-0208 — et borné à la RELECTURE. Rien ne revalide ce que rend `litSiteActif` : une valeur
- * hors domaine déjà en base — export retouché, version antérieure, DevTools — repartait dans
- * la chaîne de calcul avant que le moindre champ soit éditable. Elle repart maintenant à sa
- * borne, et le champ reste corrigeable.
+ * Grandeur text reread from DB; empty when absent, never "undefined".
+ * T-0208 — clamped on REREAD too: nothing revalidates `litSiteActif`; out-of-domain value
+ * already in DB (edited export, old version, DevTools) reached calcul chain before any field
+ * was editable. Now goes to its bound, field stays correctable.
  */
 function texteDe(valeur: number | undefined, domaine: DomaineId): string {
   if (valeur === undefined) return ''
@@ -68,9 +56,8 @@ function texteDe(valeur: number | undefined, domaine: DomaineId): string {
 }
 
 /**
- * Le site à enregistrer, ou `null` quand la saisie n'est pas encore chiffrable. Le refus n'a
- * pas à être annoncé ici : la chaîne de calcul l'affiche déjà, et le dernier enregistrement
- * valable reste en base plutôt que d'être écrasé par une saisie en cours de frappe.
+ * Site to save, or `null` when saisie not chiffrable. Refusal shown by calcul chain, not here;
+ * last valid record stays in DB, not overwritten by mid-typing input.
  */
 export function siteAEnregistrer(lieu: SaisieLieu, masque: MasqueHorizon): SiteAExporter | null {
   try {
@@ -87,10 +74,10 @@ export function siteAEnregistrer(lieu: SaisieLieu, masque: MasqueHorizon): SiteA
   }
 }
 
-/** Le profil matériel à enregistrer, ou `null` quand la saisie n'est pas chiffrable. */
+/** Profil matériel to save, or `null` when saisie not chiffrable. */
 export function profilAEnregistrer(materiel: SaisieMateriel): ProfilAEnregistrer | null {
   const boitier = materiel.boitier
-  // T-0404 — le réglage borné par l'objectif monté : celui qu'on voit et qu'on calcule.
+  // T-0404 — setting clamped by mounted objectif: what's seen and computed.
   const reglage = reglageOptique(
     objectifActif(materiel.objectifs, materiel.objectifId),
     materiel.focale,
@@ -101,7 +88,7 @@ export function profilAEnregistrer(materiel: SaisieMateriel): ProfilAEnregistrer
       focaleMm: valide('focale_mm', reglage.focale.valeur),
       ouvertureN: valide('ouverture_N', reglage.ouverture.valeur),
       typeObjectif: materiel.typeObjectif,
-      // Toujours écrit, même vide : un parc absent se reconstruit au démarrage, un parc vidé non.
+      // Always written, even empty: missing parc rebuilt at start, emptied one not.
       objectifs: materiel.objectifs,
       ...(materiel.objectifId === '' ? {} : { objectifId: materiel.objectifId }),
       ...(materiel.boitierId === '' ? {} : { boitierId: materiel.boitierId }),
@@ -122,16 +109,15 @@ export function profilAEnregistrer(materiel: SaisieMateriel): ProfilAEnregistrer
   }
 }
 
-/** Le lieu tel qu'il se ressaisit au démarrage. `null` : rien n'a encore été enregistré. */
+/** Lieu as re-entered at start. `null`: nothing saved yet. */
 export function departLieu(site: SiteEnregistre | null): DepartLieu | null {
   if (site === null) return null
   return {
     latitude: texteDe(site.latitudeDeg, 'latitude_deg'),
     longitude: texteDe(site.longitudeDeg, 'longitude_deg'),
     altitude: texteDe(site.altitudeM, 'altitude_m'),
-    // Un Bortle vidé pour un SQM le reste : sans cela, le Bortle par défaut reviendrait au
-    // rechargement et le ciel changerait seul. Sans l'un ni l'autre, le fond de ciel serait
-    // indéterminable dès le démarrage : le Bortle de l'Annexe A reprend alors sa place.
+    // Bortle emptied for a SQM stays so: else default Bortle returns on reload, ciel changes
+    // alone. Neither → fond de ciel indeterminable at start: Annexe A Bortle takes over.
     bortle:
       site.bortleDeclare === undefined && site.sqmMesure === undefined
         ? DEFAUT.bortle
@@ -140,7 +126,7 @@ export function departLieu(site: SiteEnregistre | null): DepartLieu | null {
   }
 }
 
-/** Le matériel tel qu'il se ressaisit au démarrage. */
+/** Matériel as re-entered at start. */
 export function departMateriel(profil: ProfilMateriel | null): DepartMateriel | null {
   if (profil === null) return null
   return {
@@ -161,11 +147,10 @@ export function departMateriel(profil: ProfilMateriel | null): DepartMateriel | 
     capteurMode: profil.capteurMode,
     typeObjectif: profil.typeObjectif,
     suiviActif: profil.suiviActif,
-    // Absents d'un fichier importé d'ailleurs : les valeurs de départ de la saisie reprennent.
+    // Absent from a file imported elsewhere: saisie starting values take over.
     ...(profil.qualiteMes === undefined ? {} : { qualiteMes: profil.qualiteMes }),
-    // T-0207 — l'altazimutale a quitté le sélecteur : un profil qui la porte encore retomberait
-    // sur un `<select>` sans option correspondante. Le moteur sait toujours la traiter, mais la
-    // saisie ne peut plus la représenter, donc elle revient au type par défaut.
+    // T-0207 — altazimutale left selector: profil still carrying it would hit a `<select>` with
+    // no matching option. Engine handles it, saisie can't represent it → default type.
     ...(profil.typeMonture === undefined
       ? {}
       : { typeMonture: profil.typeMonture === 'ALTAZ' ? 'TRACKER' : profil.typeMonture }),

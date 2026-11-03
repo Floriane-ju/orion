@@ -1,6 +1,4 @@
-/**
- * T-0345 — §9.4 : le rappel batterie ne chiffre rien, il se déclenche au-delà d'un seuil.
- */
+/** T-0345 — §9.4: rappel batterie quantifies nothing, triggers past a threshold. */
 
 import { describe, expect, it } from 'vitest'
 import { rappelBatterie } from '../src/core/rappel-batterie.ts'

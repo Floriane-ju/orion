@@ -1,8 +1,7 @@
 /**
- * Dégradation lunaire de la fiche — classe de la part de S_lune perdue (§6.3, §8.3).
- *
- * Ce que ce fichier interdit de régresser : une même Lune annoncée pareille pour une galaxie et
- * pour une nébuleuse en émission, et une galaxie écartée pour la Lune lue « moyenne ».
+ * Lunar degradation of fiche — class of S_lune share lost (§6.3, §8.3). Must not regress:
+ * same Moon announced alike for galaxy and emission nebula; galaxy discarded for Moon
+ * read "moyenne".
  */
 
 import { describe, expect, it } from 'vitest'

@@ -1,13 +1,9 @@
 /**
- * §6.4 — la liste du catalogue : une ligne par objet, et ce qui décide dessus.
- *
- * Le catalogue est forgé ici plutôt que décodé : ce qui est vérifié est la règle de tri, les
- * filtres et ce qu'une ligne dit quand la donnée manque — pas le contenu d'OpenNGC. Les
- * positions sont choisies depuis le site de l'Annexe A et relues par la même conversion que
- * celle du module : le test constate un signe de hauteur, jamais une éphéméride recopiée.
- *
- * La taille en pixels est vérifiée contre `ficheCadrage`, source de la formule §6.2 : un
- * nombre écrit à la main y ferait passer une projection fausse.
+ * §6.4 — catalogue list: one row per object, sort rule, filters, row text when data missing.
+ * Catalogue forged, not decoded (not testing OpenNGC). Positions from Annexe A site, re-read
+ * via module's own conversion: test observes an altitude sign, never a copied ephemeris.
+ * Pixel size checked against `ficheCadrage` (§6.2); hand-written number lets a wrong
+ * projection pass.
  */
 
 import { readFileSync } from 'node:fs'
@@ -22,12 +18,12 @@ import type { Site } from '../src/core/ephem.ts'
 import { decodeObjets, TYPES_OBJET, type ObjetCielProfond } from '../src/data/deepsky.ts'
 import { objetGalaxie as objet } from './fixtures.ts'
 
-/** Annexe A : Bordeaux, 45° N. */
+/** Annexe A: Bordeaux, 45° N. */
 const SITE: Site = { latitudeDeg: 44.84, longitudeDeg: -0.58, altitudeM: 20 }
 const INSTANT = new Date('2026-08-18T22:00:00Z')
 const MATRICE = cielInstantane(SITE, INSTANT).matrice
 
-/** Setup de référence de l'Annexe A : 120 mm f/2.8, plein format. */
+/** Annexe A reference setup: 120 mm f/2.8, full frame. */
 const OPTIQUE = { fovHDeg: 16.4, echApx: 10.1, capteurHMm: 24, dMm: 42.86 }
 const CIEL = { sbCiel: 21.0, mLimOeil: 6.1 }
 const SETUP = { ...OPTIQUE, ...CIEL, matriceCiel: MATRICE }
@@ -38,7 +34,7 @@ function hauteurDe(adDeg: number, decDeg: number): number {
   return versSpherique(applique(MATRICE, versVecteur(adDeg, decDeg))).latitudeDeg
 }
 
-// Le pôle nord céleste ne se couche jamais depuis 44,84° N ; le pôle sud ne se lève jamais.
+// North celestial pole never sets at 44,84° N; south pole never rises.
 const CIRCUMPOLAIRE = { adDeg: 0, decDeg: 85 }
 const JAMAIS_LEVE = { adDeg: 0, decDeg: -85 }
 
@@ -78,7 +74,7 @@ describe('lignesCatalogue — une ligne par objet, rien n’est écarté', () =>
   })
 
   it('porte PHOTO_SEULE comme un verdict, pas comme un refus', () => {
-    // Grande et faible : sa brillance de surface passe sous le fond de ciel.
+    // Large and faint: surface brightness below fond de ciel.
     const lignes = liste([
       objet({
         designation: 'DIFFUSE',
@@ -127,7 +123,7 @@ describe('lignesCatalogue — une ligne par objet, rien n’est écarté', () =>
   })
 
   it('garde le même remplissage à capteur égal quand le pitch change, pas le diamètre', () => {
-    // Même capteur, deux résolutions : le champ ne bouge pas, l'échantillonnage suit le pitch.
+    // Same sensor, two resolutions: field unchanged, échantillonnage follows pitch.
     const rapportPitch = 6.1 / 5.12
     const cible = [objet({ designation: 'CIBLE', ...CIRCUMPOLAIRE, majAxArcmin: 30 })]
     const fin = lignesCatalogue({ catalogue: cible, ...SETUP })[0]!
@@ -235,8 +231,7 @@ describe('filtreLignes — les trois restrictions de §6.4', () => {
   })
 
   it('applique le filtre AVANT tout plafond d’affichage', () => {
-    // 250 galaxies plus brillantes qu'un amas globulaire : filtrer avant de plafonner le
-    // fait apparaître, filtrer après ne le montrerait jamais.
+    // 250 galaxies brighter than a globular: filter-then-cap shows it, cap-then-filter never.
     const foule = [
       ...Array.from({ length: 250 }, (_, i) =>
         objet({ designation: `GAL${i}`, ...CIRCUMPOLAIRE, vMag: 4 + i / 100 }),

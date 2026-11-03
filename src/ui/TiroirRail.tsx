@@ -1,13 +1,9 @@
 /**
- * §11.3 — le lieu et le matériel, en menus du rail : un glyphe qui ouvre sa fenêtre à droite.
- *
- * T-0437 — c'étaient des cartes posées sur le ciel, avec un état de repli tenu et enregistré.
- * Le lieu et le matériel se règlent une fois par séance : un menu suffit, et il se comporte
- * comme celui des calques — un geste dehors ou Échap le referme (`gere-echap.ts`), ouvrir l'un
- * ferme l'autre, et rien ne reste ouvert au rechargement.
- *
- * Le résumé (coordonnées, boîtier, « 24 mm f/2.8 ») passe dans la bulle : le réglage se relit
- * sans ouvrir le menu.
+ * §11.3 — lieu + matériel as rail menus: glyph opening its window rightward.
+ * T-0437 — were cards over the sky with held, saved fold state. Set once per séance → menu
+ * suffices, behaves like calques': outside gesture or Échap closes (`gere-echap.ts`), opening
+ * one closes the other, nothing open on reload.
+ * Summary (coordinates, boîtier, "24 mm f/2.8") goes in bulle: setting reread without opening.
  */
 
 import type { ReactNode } from 'react'
@@ -15,13 +11,13 @@ import { Bulle } from './Bulle.tsx'
 import { Icone } from './Icone.tsx'
 import { Tiroir } from './Tiroir.tsx'
 
-/** Les menus de réglage du rail. La clé nomme leur classe `tiroir-<cle>`. */
+/** Rail setting menus. Key names their class `tiroir-<cle>`. */
 export type CleReglage = 'site' | 'boitier' | 'optique'
 
 export interface TiroirRailProps {
   readonly cle: CleReglage
   readonly titre: string
-  /** Ligature Material Symbols du bouton — voir `Icone`. */
+  /** Button's Material Symbols ligature — see `Icone`. */
   readonly icone: string
   readonly resume?: string
   readonly children: ReactNode
@@ -40,9 +36,8 @@ export function TiroirRail(props: TiroirRailProps) {
 }
 
 /**
- * Ouvre un menu depuis un geste qui lui est EXTÉRIEUR, et porte le focus sur son premier
- * champ, celui que le geste invite à régler. Le focus entre dans le menu : l'écoute du geste
- * dehors ne le referme donc pas.
+ * Opens a menu from an EXTERNAL gesture, focuses its first field (the one the gesture invites
+ * to set). Focus enters the menu → outside-gesture listener doesn't close it.
  */
 export function ouvreReglage(cle: CleReglage): void {
   const tiroir = document.querySelector<HTMLDetailsElement>(`details.tiroir-${cle}`)

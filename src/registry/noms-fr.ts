@@ -1,29 +1,16 @@
 /**
- * T-0281 — §6.4 : les noms d'usage français des objets du ciel profond.
- *
- * Les deux amonts du catalogue — OpenNGC et le catalogue DSO de Stellarium — ne portent que
- * des noms anglais : « Andromeda Galaxy », « Veil Nebula », « North America Nebula ». §6.4
- * pose pourtant que l'utilisateur « ne connaît pas les désignations » ; celui qui tape
- * « andromède » ne trouvait rien, et l'interface lui répondait que l'objet n'existait pas.
- *
- * La table est tenue à la main, comme `NOMS_FR_ASTERISMES` de `scripts/build-catalogs.ts`,
- * et pour la même raison : aucun amont ne publie ces noms sous une forme épinglable, et une
- * traduction mécanique produirait des noms que personne ne cherche. Elle ne couvre donc QUE
- * les objets dont l'usage francophone est établi — les autres restent atteignables par leur
- * désignation et par leur nom anglais, qui, eux, sont sourcés. Elle n'est pas dans le paquet
- * binaire : ce n'est pas une donnée d'amont, et l'y mettre imposerait un `pnpm data:build`
- * pour ajouter un synonyme.
- *
- * Elle ne s'affiche pas : c'est une ENTRÉE DE RECHERCHE, pas un libellé. Ce que la fiche
- * montre reste ce que le catalogue porte (§6.3) — une seule vérité sur ce que la donnée dit.
- *
- * Format : celui de `nomsCommuns`, plusieurs noms séparés par « | ». Le premier est le nom
- * complet, les suivants sont les raccourcis réellement tapés (« Andromède », « Amérique du
- * Nord »), pour qu'ils passent en tête comme préfixes et non en occurrence interne.
- *
- * Les clés sont des désignations du catalogue : `tests/recherche-catalogue.test.ts` vérifie
- * qu'aucune ne désigne un objet absent, sans quoi une faute de frappe rendrait un nom
- * introuvable en silence.
+ * T-0281 — §6.4: French usage names of deep-sky objects.
+ * Upstreams (OpenNGC, Stellarium DSO) carry English names only; §6.4: user doesn't know
+ * designations, and "andromède" found nothing.
+ * Hand-kept like `NOMS_FR_ASTERISMES` in `scripts/build-catalogs.ts`: no upstream publishes
+ * pinnable French names, machine translation yields names nobody searches. ONLY established
+ * French usage; others reachable by designation / English name (sourced).
+ * Not in binary package (not upstream data; would force `pnpm data:build` per synonym).
+ * Never displayed: SEARCH INPUT, not a label; fiche shows catalogue data (§6.3).
+ * Format as `nomsCommuns`: names split by "|". First = full name, rest = shortcuts really typed
+ * ("Andromède", "Amérique du Nord"), ranking as prefix not inner match.
+ * Keys = catalogue designations; `tests/recherche-catalogue.test.ts` rejects keys naming an absent
+ * object (typo would silently lose a name).
  */
 
 export const NOMS_FR: Readonly<Record<string, string>> = Object.freeze({

@@ -1,36 +1,22 @@
 /**
- * §8.1 — la nuit d'un coup d'œil, dans la barre haute entre l'horloge et le retour au présent.
- *
- * Avant de choisir une cible, on veut savoir quand il fera noir et ce que fera la Lune. La
- * carte « Plan de nuit » le dit en tableau, repliée sur la scène ; ici la même nuit se lit
- * en une frise, là où l'on choisit. Aucune donnée d'objet : c'est la nuit, pas la cible.
- *
- * La frise ne porte ni légende ni note : ce qu'un motif ou un trait signifie, la bulle de
- * survol le dit à l'instant pointé. Tout texte posé à demeure repoussait la liste d'autant.
- *
- * T-0390 — la frise commande aussi le temps : un clic, un appui ou une flèche y règle
- * l'instant de la scène (§3.2). Une seule ligne reste à demeure, de jour comme de nuit,
- * l'heure et la phase de l'instant affiché : §11.2 ne laisse rien de critique au seul survol, et un écran tactile
- * n'en a pas.
- *
- * Le curseur reste au centre, la frise défile : elle montre douze heures avant et après
- * l'instant (`fenetreFrise`). Régler la date ou l'heure fait glisser le ciel sous le curseur,
- * plutôt que de promener le curseur dans une nuit figée qui en sortait.
- *
- * T-0394 — revue DA §4.2, « La tombée de la nuit ». Un clic sur la frise TRAVERSE le temps
- * jusqu'à l'instant visé. Les flèches restent des sauts : un pas de dix minutes n'a rien à
- * montrer en chemin.
- *
- * T-0411 — la frise monte dans la barre haute, liée à l'horloge : un seul endroit règle le
- * temps. Ce qu'un geste laisse à dire (saut, cause) tombe SOUS la
- * frise, par-dessus le ciel, plutôt que de faire grandir la barre.
- *
- * T-0419 — la frise se tire aussi : un glisser fait défiler l'instant sous le curseur, en
- * continu et sans trajet — le geste EST le trajet. En deçà du seuil d'un tremblement, l'appui
- * relâché reste un clic.
- *
- * T-0420 — un clic sur la frise traverse TOUJOURS le temps, comme le panneau de temps : on
- * vise un instant pour le voir venir, et un saut imposé par le zoom ôtait au clic son sens.
+ * §8.1 — the night at a glance, in top bar between clock and return-to-present.
+ * "Plan de nuit" card gives it as table, collapsed on scène; here same night as a frise, where
+ * cibles are chosen. No object data: the night, not the cible.
+ * Frise has no legend/note: hover bulle says what a pattern or stroke means at pointed instant
+ * (permanent text pushed the list down).
+ * T-0390 — frise also commands time: click, press or arrow sets scène instant (§3.2). One line
+ * stays permanently, day and night: time + phase of shown instant (§11.2: nothing critical
+ * hover-only; touch has no hover).
+ * Cursor stays centred, frise scrolls: 12 h before/after instant (`fenetreFrise`). Setting
+ * date/time slides the sky under the cursor, not the cursor through a frozen night.
+ * T-0394 — DA review §4.2 "La tombée de la nuit": click TRAVERSES time to aimed instant. Arrows
+ * stay jumps (a 10 min step has nothing to show en route).
+ * T-0411 — frise in top bar, tied to clock: one place sets time. What a gesture leaves to say
+ * (jump, cause) falls UNDER the frise, over sky, not growing the bar.
+ * T-0419 — frise also dragged: drag scrolls the instant under cursor, continuous, no trajectory
+ * (gesture IS the trajectory). Under the tremor threshold a released press stays a click.
+ * T-0420 — click ALWAYS traverses time, like the time panel: one aims an instant to watch it
+ * come; a zoom-imposed jump stripped click of meaning.
  */
 
 import {
@@ -96,7 +82,7 @@ export interface CarteNuitProps {
   readonly nuit: FenetreNocturne
 }
 
-/** Des propriétés personnalisées, jamais une couleur en ligne : la feuille garde la main. */
+/** Custom properties, never an inline colour: stylesheet keeps control. */
 function proprietes(valeurs: Readonly<Record<string, string>>): CSSProperties {
   return valeurs as CSSProperties
 }
@@ -112,13 +98,12 @@ function enPourcent(fraction: number): string {
 export function CarteNuit({ site, nuit }: CarteNuitProps) {
   const minute = useTrancheScene(minuteAffichee)
   const instantMs = minute * MS_PAR_MINUTE
-  // La frise suit le trajet image par image ; le reste, la minute publiée.
+  // Frise follows the trajectory frame by frame; the rest, the published minute.
   const trajetMs = useInstantTrajet()
   const afficheMs = trajetMs ?? instantMs
   const frise = useFriseCiel(site, afficheMs)
   const suivi = useTrancheScene(suiviScene)
-  // Ce que le dernier geste laisse à dire : un saut que la lisibilité a imposé. Le geste
-  // suivant l'efface.
+  // What the last gesture leaves to say: a jump legibility imposed. Next gesture clears it.
   const [saute, setSaute] = useState(false)
 
   const va = (ms: number, force = false): void => {
@@ -131,7 +116,7 @@ export function CarteNuit({ site, nuit }: CarteNuitProps) {
     <section className="panneau-nuit" role="region" aria-label="La nuit">
       <Frise frise={frise} site={site} instantMs={afficheMs} va={va} efface={efface} />
       <div className="nuit-messages">
-        {/* Dire ce que la visée suit : sans cela, le ciel qui glisse seul passerait pour un bug. */}
+        {/* Say what the visée follows: sky sliding alone would pass for a bug. */}
         {suivi !== null && (
           <Mention ton="etat" role="status">
             Cadré : {suivi.designation} — la visée suit la rotation du ciel.
@@ -148,7 +133,7 @@ export function CarteNuit({ site, nuit }: CarteNuitProps) {
   )
 }
 
-/** Les éphémérides de la frise se recalculent à l'heure, le défilement à chaque image. */
+/** Frise ephemerides recompute hourly, scrolling every frame. */
 function useFriseCiel(site: Site, afficheMs: number): FriseNuit {
   const heureCalcul = Math.floor(afficheMs / MS_PAR_H)
   return useMemo(
@@ -158,11 +143,10 @@ function useFriseCiel(site: Site, afficheMs: number): FriseNuit {
 }
 
 /**
- * T-0412 — la Lune de l'instant affiché, dans sa case du bloc du temps, dessinée à sa phase et
- * nommée dessous — de jour comme de nuit : sa phase se prépare avant la nuit. Le disque se lit d'un coup d'œil
- * là où « Lune décroissante 10 % » demandait une lecture ; la phase du ciel, elle, se voit dans
- * la frise juste à côté, et reste dite dans le nom accessible (§11.2 : rien de critique au seul
- * survol, et un lecteur d'écran n'a pas le disque).
+ * T-0412 — Moon at shown instant, in its cell of time block, drawn at its phase and named below —
+ * day and night: phase is prepared before night. Disc reads at a glance where "Lune décroissante
+ * 10 %" needed reading; sky's phase is seen in the frise beside, and stays in the accessible name
+ * (§11.2: nothing critical hover-only; screen reader has no disc).
  */
 export function LectureNuit({ site }: { readonly site: Site }) {
   const minute = useTrancheScene(minuteAffichee)
@@ -188,7 +172,7 @@ export function LectureNuit({ site }: { readonly site: Site }) {
   )
 }
 
-/** Un appui sur la frise : où il a commencé, l'instant d'alors, et s'il a déjà glissé. */
+/** A press on the frise: where it began, instant then, and whether it already dragged. */
 interface Appui {
   readonly x: number
   readonly ms: number
@@ -211,14 +195,14 @@ function Frise({
   readonly frise: FriseNuit
   readonly site: Site
   readonly instantMs: number
-  /** Traverse le temps jusqu'à l'instant visé. */
+  /** Traverses time to the aimed instant. */
   readonly va: (ms: number, force?: boolean) => void
-  /** Retire ce que le geste précédent avait à dire. */
+  /** Clears what the previous gesture had to say. */
   readonly efface: () => void
 }) {
   const [survol, setSurvol] = useState<Survol | null>(null)
   const appui = useRef<Appui | null>(null)
-  // Le clic suit le relâché d'un glisser : il ne doit pas traverser vers l'instant sous le doigt.
+  // Click follows a drag's release: must not traverse to the instant under the finger.
   const vientDeGlisser = useRef(false)
   const ciel = useRef<HTMLDivElement>(null)
   const vue = fenetreFrise(instantMs)
@@ -232,7 +216,7 @@ function Frise({
     survol === null ? null : lectureFrise(site, frise, new Date(instantFraction(vue, survol.fraction)))
   const curseur = curseurInstant(vue, new Date(instantMs))
   const tirets = tiretsHorizon(vue)
-  // Chaque astre marqué d'un point sur sa courbe, à l'instant du curseur.
+  // Each body marked by a dot on its curve, at cursor instant.
   const astres = [
     { astre: 'soleil', hauteurDeg: hauteurSurCourbe(frise.soleil, new Date(instantMs)) },
     { astre: 'lune', hauteurDeg: hauteurSurCourbe(frise.lune.hauteurs, new Date(instantMs)) },
@@ -244,9 +228,8 @@ function Frise({
 
   const pointe = (e: MouseEvent<HTMLDivElement>): Survol => {
     const cadre = e.currentTarget.getBoundingClientRect()
-    // La portée de l'aimant est un pas d'espacement (`--pas-2`), lu dans la feuille plutôt que
-    // recopié : la moitié d'une cible gantée happait le pointeur de trop loin, et la bulle
-    // restait collée au lever quand on voulait lire les minutes voisines.
+    // Magnet reach = one spacing step (`--pas-2`), read from stylesheet not copied: half a gloved
+    // target grabbed the pointer too far, bulle stuck on rise when reading neighbouring minutes.
     const portee =
       parseFloat(getComputedStyle(e.currentTarget).getPropertyValue('--pas-2')) *
       parseFloat(getComputedStyle(document.documentElement).fontSize) /
@@ -254,7 +237,7 @@ function Frise({
     return aimante(encadre((e.clientX - cadre.left) / cadre.width, 0, 1), marques, portee)
   }
 
-  // L'aimant vaut pour le clic comme pour le survol : un appui près d'un lever de Lune y va.
+  // Magnet applies to click as to hover: a press near a Moon rise goes there.
   const surClic = (e: MouseEvent<HTMLDivElement>) => {
     if (vientDeGlisser.current) return void (vientDeGlisser.current = false)
     va(instantFraction(vue, pointe(e).fraction), true)
@@ -294,10 +277,9 @@ function Frise({
     vaA(cible)
   }
 
-  // T-0424 — le défilement horizontal tire le ruban comme un glisser. Écouteur natif : celui de
-  // React est passif, il ne peut pas retenir le geste de retour arrière du navigateur. Le départ
-  // est `instant.ms`, à jour dès `vaA` : la molette tire plus vite que React ne rend, et la
-  // minute affichée arrondie perdrait les petits pas du trackpad.
+  // T-0424 — horizontal scroll pulls the ribbon like a drag. Native listener: React's is passive,
+  // can't hold the browser's back gesture. Start = `instant.ms`, current as of `vaA`: wheel pulls
+  // faster than React renders, rounded displayed minute would lose small trackpad steps.
   useEffect(() => {
     const el = ciel.current
     if (el === null) return
@@ -347,8 +329,7 @@ function Frise({
               style={proprietes({ '--debut': b.debut, '--largeur': b.largeur })}
             />
           ))}
-          {/* L'horizon en pointillé, les heures posées dessus ; le Soleil et la Lune sur une
-              même échelle de part et d'autre. */}
+          {/* Dotted horizon with hours on it; Sun and Moon on one scale either side. */}
           <span
             className="nuit-horizon"
             style={proprietes({
@@ -402,8 +383,7 @@ function Frise({
           </span>
         ))}
       </div>
-      {/* Après les heures, pour passer dessus : posée sur l'horizon, une étiquette cachait la
-          Lune qui s'y levait. */}
+      {/* After the hours, to pass over them: on the horizon a label hid the Moon rising there. */}
       {curseur !== null && (
         <span className="nuit-astres" aria-hidden="true">
           {astres.map(
@@ -423,9 +403,8 @@ function Frise({
 }
 
 /**
- * La bulle de survol : l'instant pointé, la Lune, le ciel — et, accrochée par l'aimant, le
- * lever ou le coucher de Lune en accent. Muette pour la synthèse, qui a le résumé de la
- * frise. Pas de `Bulle` : elle suit le pointeur, elle n'est ancrée à aucun élément.
+ * Hover bulle: pointed instant, Moon, sky — and, magnet-snapped, Moon rise/set in accent. Mute for
+ * synthèse (has the frise summary). Not `Bulle`: follows pointer, anchored to no element.
  */
 function BulleFrise({
   fraction,
@@ -450,7 +429,7 @@ function BulleFrise({
         className="nuit-bulle-corps"
         style={proprietes({ '--debut': position, '--fraction': encadre(fraction, 0, 1).toFixed(4) })}
       >
-        {/* Le ciel d'abord — l'heure et ce qu'il vaut —, la Lune ensuite, sous un filet. */}
+        {/* Sky first — time and what it's worth —, Moon next, under a rule. */}
         <span className="nuit-bulle-heure">{heure(lecture.instant)}</span>
         <span>{LIBELLE_PHASE_CIEL[lecture.phase]}</span>
         <span className="nuit-bulle-lune">
@@ -458,9 +437,9 @@ function BulleFrise({
             <DisqueLuneVue disque={disque} />
           </span>
           <span className="nuit-bulle-lune-lectures">
-            {/* À l'instant d'un lever, la hauteur du CENTRE du disque est encore négative :
-                le lever se compte au bord supérieur, réfraction comprise. « Sous l'horizon »
-                y contredirait la ligne d'accent — l'évènement la remplace. */}
+            {/* At a rise instant disc CENTRE altitude is still negative (rise = upper limb,
+                refraction incl.). "Sous l'horizon" would contradict the accent line: event
+                replaces it. */}
             {marque !== null ? (
               <span className="nuit-bulle-evenement">{marque.texte}</span>
             ) : (
@@ -474,7 +453,7 @@ function BulleFrise({
   )
 }
 
-/** Le disque éclairé selon sa phase ; sa taille vient de son conteneur. */
+/** Disc lit per its phase; size comes from its container. */
 function DisqueLuneVue({ disque }: { readonly disque: DisqueLune }) {
   return (
     <span

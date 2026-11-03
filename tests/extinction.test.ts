@@ -1,16 +1,9 @@
 /**
- * §7.6 — atténuation atmosphérique par masse d'air.
- *
- * Les deux valeurs de référence du PRD — ×1,37 au zénith, ×1,88 à 30° de hauteur, à
- * k = 0,172 — sont vérifiées sur T_requis et non sur l'atténuation seule : c'est T_requis qui
- * porte le verdict, et le facteur quadratique est le cœur de la feature.
- *
- * Ce facteur n'est exact que dans le régime dominé par le fond de ciel — le régime nominal du
- * grand champ, où T_requis ∝ 1 / E_obj². Les cas nominaux s'y placent donc explicitement,
- * avec une cible faible devant le ciel ; hors de ce régime, le facteur est encadré.
- *
- * Aucune valeur n'est recopiée du registre : k y est lu, et les facteurs attendus sont ceux
- * du tableau de la règle métier de §7.6.
+ * §7.6 — atmospheric attenuation by masse d'air.
+ * PRD refs ×1,37 zenith, ×1,88 at 30° (k = 0,172) checked on T_requis (carries the verdict;
+ * quadratic factor = feature core). Factor exact only sky-dominated (grand champ nominal,
+ * T_requis ∝ 1/E_obj²) → nominal cases use a faint target; elsewhere bracketed.
+ * k read from registry, expected factors from §7.6 rule.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -25,7 +18,7 @@ import {
 import { masseAir, masseAirBrute } from '../src/core/site.ts'
 import { K, plageK } from '../src/registry/constants.ts'
 
-/** Setup de référence de l'Annexe A : 120 mm f/2,8, pitch 5,12 µm, ZP_sys 20,20. */
+/** Annexe A setup: 120 mm f/2,8, pitch 5,12 µm, ZP_sys 20,20. */
 const OPTIQUE_REF = { zpSys: 20.2, pitchUm: 5.12, ouvertureN: 2.8 }
 const E_CIEL = fluxCiel({ sbMagArcsec2: 20.95, ...OPTIQUE_REF }).value
 const SNR = 10
@@ -33,13 +26,10 @@ const T_POSE_S = 13
 const READ_NOISE_E = 1.5
 const TAILLE_RAW_MO = 33
 
-/**
- * Cible volontairement très faible devant le fond de ciel : c'est le régime dominé par le
- * ciel de §7.3, celui pour lequel le PRD chiffre le facteur 10^(+0,8 k X).
- */
+/** Very faint target vs fond de ciel: sky-dominated §7.3 regime, PRD gives 10^(+0,8 k X). */
 const E_OBJ_DOMINE = fluxObjet({ sbMagArcsec2: 26, ...OPTIQUE_REF })
 
-/** M33 : SB 23,01 mag/arcsec² (§6.3). Assez brillante pour rester sous le plafond de §7.3. */
+/** M33: SB 23,01 mag/arcsec² (§6.3); stays under §7.3 ceiling. */
 const E_OBJ_M33 = fluxObjet({ sbMagArcsec2: 23.0148, ...OPTIQUE_REF })
 
 function tRequis(eObj: number): number {
@@ -56,7 +46,7 @@ function tRequis(eObj: number): number {
   )
 }
 
-/** Le facteur que l'extinction impose à l'intégration, à la hauteur donnée. */
+/** Integration factor from extinction at given elevation. */
 function facteurIntegration(hauteurDeg: number, eObj = E_OBJ_DOMINE): number {
   const reel = fluxObjetReel(eObj, masseAir(hauteurDeg))
   return tRequis(reel.eObjReel.value!) / tRequis(eObj.value)
@@ -82,7 +72,7 @@ describe('atténuation atmosphérique §7.6', () => {
   it('éteint le flux de l’objet de 0,4 × k × X magnitudes', () => {
     const zenith = fluxObjetReel(E_OBJ_DOMINE, masseAir(90))
     expect(zenith.masseAir.value).toBeCloseTo(1, 6)
-    // Au zénith X = 1 : la perte vaut donc exactement k magnitudes.
+    // Zenith X = 1: loss = k mag.
     expect(zenith.attenuation.value).toBeCloseTo(
       K('BASE_MAGNITUDE') ** (-K('EXTINCTION_V_MAG_PAR_MASSE_AIR') / K('POGSON')),
       12,
@@ -91,7 +81,7 @@ describe('atténuation atmosphérique §7.6', () => {
   })
 
   it('multiplie T_requis par 1,37 au zénith et par 1,88 à 30° de hauteur', () => {
-    // Les deux valeurs de référence du tableau de §7.6, au k du registre.
+    // §7.6 table values at registry k.
     expect(K('EXTINCTION_V_MAG_PAR_MASSE_AIR')).toBeCloseTo(0.172, 6)
     expect(masseAirBrute(30)).toBeCloseTo(2, 6)
     expect(facteurIntegration(90)).toBeCloseTo(1.37, 2)
@@ -99,9 +89,8 @@ describe('atténuation atmosphérique §7.6', () => {
   })
 
   it('coûte toujours du temps, jamais moins, hors du régime dominé par le ciel', () => {
-    // Une cible brillante n'est plus purement dominée par le ciel : le facteur est alors
-    // MOINDRE que 10^(+0,8 k X) sans jamais descendre sous 10^(+0,4 k X). Ignorer
-    // l'extinction reste donc optimiste dans tous les régimes, jamais pessimiste.
+    // Bright target not purely sky-dominated: 10^(+0,4 k X) ≤ factor < 10^(+0,8 k X).
+    // Ignoring extinction = optimistic in every regime, never pessimistic.
     const brillante = fluxObjet({ sbMagArcsec2: 20, ...OPTIQUE_REF })
     const x = masseAirBrute(30)
     const facteur = facteurIntegration(30, brillante)
@@ -110,8 +99,7 @@ describe('atténuation atmosphérique §7.6', () => {
   })
 
   it('n’atténue jamais le fond de ciel : il est déjà relevé au sol', () => {
-    // §7.6 — l'extinction porte sur l'objet seul. Le flux de ciel passé à l'intégration est
-    // celui de §7.1, inchangé : l'éteindre le compterait deux fois.
+    // §7.6 extinguishes object only; sky flux (§7.1) unchanged, else counted twice.
     const { reel, plan } = planAvecExtinction(30)
     expect(plan.tRequisS.inputs.e_ciel).toBeCloseTo(E_CIEL, 12)
     expect(plan.tRequisS.inputs.e_obj).toBeCloseTo(E_OBJ_M33.value * reel.attenuation.value!, 12)
@@ -124,7 +112,7 @@ describe('domaine de validité §7.6', () => {
     expect(bas.attenuation.value).toBeNull()
     expect(bas.eObjReel.value).toBeNull()
     expect(bas.attenuation.flags).toContain('HORS_DOMAINE')
-    // Le refus est nommé : rien n'est extrapolé en silence.
+    // Refusal named, no silent extrapolation.
     expect(bas.eObjReel.note).toMatch(/trop basse/)
   })
 
@@ -135,8 +123,8 @@ describe('domaine de validité §7.6', () => {
   })
 
   it('n’applique aucune extinction quand la hauteur est inconnue, et le dit', () => {
-    // Instant d'évaluation hors du domaine des séries : pas de hauteur. La durée annoncée
-    // est un plancher, marqué [HYP] — pas une estimation, et surtout pas un zénith supposé.
+    // Instant outside series domain → no elevation; duration = floor marked [HYP], never
+    // an assumed zenith.
     const sansHauteur = fluxObjetReel(E_OBJ_DOMINE, masseAir(null))
     expect(sansHauteur.attenuation.value).toBe(1)
     expect(sansHauteur.attenuation.flags).toContain('HYP')
@@ -165,20 +153,19 @@ describe('traçabilité et plage de sortie §2.1, §10.2', () => {
     expect(plan.horsDePortee).toBe(false)
     const plage = plan.tRequisS.range!
     expect(plage).toBeDefined()
-    // Un ciel plus transparent raccourcit l'intégration, un ciel plus opaque l'allonge.
+    // Clearer sky shortens integration, opaquer lengthens.
     expect(plage[0]).toBeLessThan(plan.tRequisS.value)
     expect(plage[1]).toBeGreaterThan(plan.tRequisS.value)
 
     const x = masseAirBrute(30)
     expect(plage[0]).toBeCloseTo(tRequis(E_OBJ_M33.value * attenuationBrute(x, bornes[0])), 6)
     expect(plage[1]).toBeCloseTo(tRequis(E_OBJ_M33.value * attenuationBrute(x, bornes[1])), 6)
-    // Sans la constante dans la trace, l'affichage présenterait la durée comme exacte :
-    // c'est le défaut que ce test garde fermé (§2.1, dernier critère).
+    // Constant absent from trace → UI would show duration as exact (§2.1, last criterion).
     expect(plan.tRequisS.constants.some((c) => c.ref === 'L-04')).toBe(true)
   })
 
   it('ne porte pas de fourchette quand l’extinction n’est pas chiffrée', () => {
-    // Hauteur inconnue : aucune plage ne serait honnête, puisque le terme manque.
+    // Unknown elevation: no honest range, term missing.
     const reel = fluxObjetReel(E_OBJ_M33, masseAir(null))
     const plan = planIntegration({
       eObj: reel.eObjReel.value!,

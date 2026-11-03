@@ -1,8 +1,7 @@
 /**
- * T-0356 — le couchant en vue réaliste : la lumière du Soleil bas est rougie par sa masse
- * d'air (Kasten & Young), puis rougie encore sur le trajet de visée — d'où des bandes étagées
- * en hauteur, orangé au ras de l'horizon, bleu au zénith. Les hautes lumières se compressent au
- * lieu de s'écrêter, et une lueur persiste côté Soleil en début de nuit avant de s'éteindre.
+ * T-0356 — couchant, realistic view: low-Sun light reddened by masse d'air (Kasten & Young),
+ * reddened again along sight path → height bands, orange at horizon, blue at zenith.
+ * Highlights compress, not clip; Sun-side glow persists at night start, then fades.
  */
 import { describe, expect, it } from 'vitest'
 import {
@@ -32,14 +31,14 @@ const HORIZON_DEG = 0
 const ZENITH_DEG = 90
 const MI_HAUTEUR_DEG = 8
 
-/** L'éclairage du ciel pour un Soleil à cette hauteur, au-dessus d'un site Bortle 4. */
+/** Sky lighting for a Sun at this altitude, over a Bortle 4 site. */
 function eclairage(altitudeDeg: number) {
   const sbZenith = sbZenithAvecCrepuscule(SB_SITE, -altitudeDeg)
   const bFond = Math.max(0, nanolamberts(sbZenith) - brillanceSoleilZenithNl(-altitudeDeg))
   return eclairageSoleil(altitudeDeg, bFond, sbZenith)
 }
 
-/** Couleur du ciel à la hauteur `h`, dans l'azimut du Soleil. */
+/** Sky colour at height `h`, in the Sun's azimuth. */
 function versLeSoleil(altitudeDeg: number, hauteurDeg: number) {
   return composantesCielSoleil(
     eclairage(altitudeDeg),

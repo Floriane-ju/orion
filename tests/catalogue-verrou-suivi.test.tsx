@@ -1,13 +1,10 @@
 /**
- * T-0195 — §5.2 : sans suivi, la liste par défaut ne se contente pas d'être vide.
- *
- * Une liste vide muette envoie chercher le levier dans les filtres — type, magnitude — alors
- * que le levier est le toggle de suivi. Le panneau doit donc porter la phrase du moteur.
- *
- * T-0280 — dire la cause ne suffisait pas : la phrase ne nomme pas le champ qui la lève, et
- * ce champ était le dernier d'un corps de carte qui défile. §1.5.1 veut un plan en moins de
- * deux minutes ; on vérifie donc les deux issues offertes, et que la monture s'atteigne sans
- * défiler dès que la carte s'ouvre.
+ * T-0195 — §5.2: without suivi, default list does more than sit empty. Mute empty list sends one
+ * hunting the lever in filters (type, magnitude) while the lever is the suivi toggle. Panel
+ * must carry the engine's sentence.
+ * T-0280 — stating the cause wasn't enough: sentence doesn't name the field that lifts it, last
+ * in a scrolling card body. §1.5.1 wants a plan in <2 min → check both offered exits, and mount
+ * reachable without scrolling once card opens.
  */
 
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -18,8 +15,8 @@ import { reinitialiseScene } from '../src/ui/scene-etat.ts'
 import { reinitialiseSeance } from '../src/ui/seance-etat.ts'
 import { GLOSSAIRE } from '../src/registry/glossaire.ts'
 
-// T-0297 — ce fichier teste la liste d'un catalogue ARRIVÉ (vide sous le rendu serveur) : sans
-// ce drapeau, la liste dirait seulement que le catalogue est en route.
+// T-0297 — tests a catalogue that ARRIVED (empty under SSR): without flag, list would only say
+// catalogue is on its way.
 vi.mock('../src/ui/app-donnees.ts', async (importeReel) => {
   const reel = await importeReel<typeof import('../src/ui/app-donnees.ts')>()
   return { ...reel, useCatalogues: () => ({ ...reel.useCatalogues(), enCharge: false }) }
@@ -32,7 +29,7 @@ function panneauCibles(): string {
   return html.slice(debut, html.indexOf('</section>', debut))
 }
 
-/** Le menu Boîtier, dans l'ordre où il se lit. */
+/** Boîtier menu, in reading order. */
 function corpsBoitier(): string {
   const html = renderToStaticMarkup(<App />)
   const debut = html.indexOf('tiroir-boitier')

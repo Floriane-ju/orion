@@ -1,30 +1,18 @@
 /**
- * T-0162 — un nombre qui se règle en le tirant, sans quitter des yeux ce qu'il commande.
+ * T-0162 — number set by dragging it, eyes stay on what it commands.
+ * `<input type=number>`/`range` need room barre basse lacks and pull value out of its sentence:
+ * here value STAYS the displayed text, grabbed. Role `spinbutton` (numeric, no bounded course):
+ * arrow keys → mouseless setting (§11.2).
+ * Pointer captured at `pointerdown`: gesture continues outside word, nothing on `window`.
+ * Knows neither value nature nor format: takes `texte` (written), returns `valeur` (set).
  *
- * Un `<input type="number">` ou un rail `range` demandent une place que la barre basse n'a
- * pas, et sortent la valeur de la phrase qui la porte. Ici la valeur RESTE le texte affiché :
- * c'est lui qu'on attrape. Le rôle `spinbutton` est ce que la chose est réellement — une
- * valeur numérique sans course bornée — et il apporte les flèches du clavier, donc le même
- * réglage sans souris (§11.2).
+ * NO STOP AT SCREEN EDGE: mouse crossing first cran locks pointer (Pointer Lock); move accumulates
+ * in `movementX`, ghost cursor re-enters opposite edge (Blender-like; page can't warp real mouse).
+ * Lock at first cran, not press: click stays click, no browser banner. Lock refused: capture
+ * suffices, gesture stops at edge.
  *
- * Le pointeur est capturé au `pointerdown` : le geste continue quand le curseur sort du mot,
- * ce qui est la règle du glisser, et il n'y a rien à écouter sur `window`.
- *
- * Le composant ne connaît ni la nature de la valeur ni son format : il reçoit ce qui s'écrit
- * (`texte`) et rend ce qui se règle (`valeur`). C'est ce qui lui permet de porter aussi bien
- * un mois en toutes lettres qu'un champ en degrés.
- *
- * LE GESTE NE BUTE PAS AU BORD DE L'ÉCRAN. À la souris, le premier cran franchi verrouille le
- * pointeur (Pointer Lock) : le déplacement se cumule en `movementX`, et un curseur fantôme
- * ressort du bord opposé, comme dans Blender — une page ne peut pas téléporter la vraie souris.
- * Verrouiller au premier cran, pas à l'appui : un clic reste un clic, sans bandeau du
- * navigateur. Si le verrou est refusé, la capture suffit et le geste s'arrête au bord.
- *
- * UN NOMBRE SOULIGNÉ. Le compteur porte un pointillé dessous, et un `prefixe` qui dit
- * ce qu'il règle, comme le « H » d'un éditeur graphique. Sous la souris, il se tire ; un clic
- * sans glisser, ou Entrée, l'ouvre en saisie : un `<input>` prend sa place, on tape le nombre,
- * Entrée ou la sortie du champ l'applique, Échap l'abandonne. Le champ de saisie n'existe que
- * le temps de la frappe : au repos, la valeur reste le texte qui s'affiche et s'annonce.
+ * Dotted underline + `prefixe` saying what it sets. Click without drag, or Enter → saisie:
+ * `<input>` replaces it; Enter/blur applies, Échap abandons. Input exists only while typing.
  */
 
 import {
@@ -42,29 +30,25 @@ import { nombreDeTexte } from '../registry/domains.ts'
 import { encadre, ramene } from '../core/unites.ts'
 
 export interface CompteurProps {
-  /** Nom accessible : le compteur affiche une valeur, jamais ce qu'elle désigne. */
+  /** Accessible name: shows a value, never what it denotes. */
   readonly libelle: string
   readonly valeur: number
-  /** La valeur telle qu'elle s'écrit — un mois en toutes lettres, un angle arrondi. */
+  /** Value as written — month spelled out, rounded angle. */
   readonly texte: string
-  /** Ce qu'un cran ajoute. Le pas de lecture, pas celui du modèle : c'est le geste. */
+  /** What a cran adds. Reads pas, not model's: it's the gesture. */
   readonly pas: number
   readonly min?: number
   readonly max?: number
-  /** Ce que le champ règle, en une abréviation posée devant la valeur. */
+  /** What field sets: abbreviation before value. */
   readonly prefixe?: string
-  /**
-   * Largeur de la valeur, en caractères : celle de la plus longue qu'elle puisse prendre. Le
-   * champ ne change plus de taille quand la valeur change, et ses voisins ne bougent pas.
-   */
+  /** Value width in chars: longest possible value, so field/neighbours never resize. */
   readonly largeur?: number
   readonly classe?: string
   readonly sur: (valeur: number, enGlisse?: boolean) => void
-  /** Appelé au début de tout réglage : le geste est absolu, l'appelant gèle sa référence. */
+  /** Called at start of any setting (gesture absolute: caller freezes its reference). */
   readonly surDebut?: () => void
   /**
-   * T-0292 — appelé au relâchement d'un glisser qui a bougé. Pendant le geste, `sur` reçoit
-   * `enGlisse` : l'appelant peut y différer ce qui coûte, et le solder ici une seule fois.
+   * T-0292 — moved-drag release. `sur` gets `enGlisse` meanwhile: defer costly work, settle here.
    */
   readonly surFin?: () => void
 }
@@ -72,11 +56,11 @@ export interface CompteurProps {
 interface Depart {
   readonly xPx: number
   readonly valeur: number
-  /** Un geste qui a bougé n'est plus un clic : c'est ce qui distingue les deux intentions. */
+  /** Moved gesture ≠ click. */
   bouge: boolean
-  /** La dernière valeur envoyée : un mouvement qui reste au même cran n'envoie rien (T-0292). */
+  /** Last value sent: same-cran move sends nothing (T-0292). */
   envoyee: number
-  /** Où serait le pointeur sans bord d'écran : sous verrou, `clientX` ne bouge plus. */
+  /** Pointer position w/o screen edge: `clientX` frozen under lock. */
   xPxCumule: number
   yPxCumule: number
 }
@@ -86,7 +70,7 @@ interface Point {
   readonly y: number
 }
 
-/** Sans verrou (refusé, ou absent au doigt), la capture garde le geste : il bute au bord. */
+/** Lock refused/absent (touch): capture keeps gesture, stops at edge. */
 function verrouille(cible: HTMLElement): void {
   Promise.resolve(cible.requestPointerLock()).catch(() => undefined)
 }
@@ -95,12 +79,12 @@ function deverrouille(cible: Element): void {
   if (document.pointerLockElement === cible) document.exitPointerLock()
 }
 
-/** Le nombre que la saisie propose : celui qu'on lit dans le texte, sinon la valeur brute. */
+/** Number saisie proposes: from texte, else raw valeur. */
 export function nombreDuTexte(texte: string, valeur: number): string {
   return /-?\d+(?:[.,]\d+)?/.exec(texte)?.[0] ?? String(valeur)
 }
 
-/** Ce qu'une frappe vaut : la virgule française vaut le point, le reste ne vaut rien. */
+/** Typed text value: French comma = point, else null. */
 export function lisSaisie(tape: string): number | null {
   const nombre = nombreDeTexte(tape)
   return Number.isFinite(nombre) ? nombre : null
@@ -108,24 +92,23 @@ export function lisSaisie(tape: string): number | null {
 
 export function Compteur(props: CompteurProps) {
   const depart = useRef<Depart | null>(null)
-  /** Le texte en cours de frappe ; `null` hors saisie. */
+  /** Text being typed; `null` outside saisie. */
   const [saisie, setSaisie] = useState<string | null>(null)
-  /** Vrai du premier appui au relâchement, que le geste devienne un clic ou un glisser. */
+  /** True from press to release (click or drag). */
   const [appuye, setAppuye] = useState(false)
   const initiale = useRef('')
   /**
-   * Le curseur qui remplace la souris verrouillée. Seule sa présence est un état React : sa
-   * position s'écrit dans le DOM, sans quoi chaque `pointermove` sous verrou rendrait le
-   * compteur (T-0292).
+   * Cursor replacing locked mouse. Only presence = React state; position → DOM (else each locked
+   * `pointermove` renders, T-0292).
    */
   const [fantome, setFantome] = useState(false)
   const placeFantome = useRef<Point>({ x: 0, y: 0 })
   const elFantome = useRef<HTMLSpanElement>(null)
-  // L'écoute du verrou est posée une fois : elle lit le dernier `surFin`, pas celui du montage.
+  // Listener set once: reads latest `surFin`.
   const surFin = useRef(props.surFin)
   surFin.current = props.surFin
 
-  // Échap rend la souris en plein geste : le glisser s'arrête là où il en est.
+  // Échap releases mouse mid-gesture: drag stops where it is.
   useEffect(() => {
     function surVerrou(): void {
       const d = depart.current
@@ -153,7 +136,7 @@ export function Compteur(props: CompteurProps) {
     setSaisie(initiale.current)
   }
 
-  /** Une saisie inchangée ne règle rien : l'appliquer figerait le temps pour rien. */
+  /** Unchanged saisie sets nothing (else freezes time for nothing). */
   function fermeSaisie(applique: boolean): void {
     const tape = saisie
     setSaisie(null)
@@ -163,7 +146,7 @@ export function Compteur(props: CompteurProps) {
   }
 
   function surPointerDown(e: PointerEvent<HTMLSpanElement>): void {
-    // Le bouton secondaire ouvre le menu contextuel : le capturer priverait d'un clic droit.
+    // Secondary button = context menu: capture would deny right-click.
     if (e.button !== 0) return
     e.currentTarget.setPointerCapture(e.pointerId)
     depart.current = {
@@ -199,8 +182,7 @@ export function Compteur(props: CompteurProps) {
       d.yPxCumule = e.clientY
     }
     const crans = cransGlisse(d.xPxCumule - d.xPx)
-    // Le premier cran fait la différence entre un clic et un glisser : tant qu'il n'est pas
-    // franchi, rien ne bouge et le clic reste possible.
+    // First cran = click/drag split: until crossed nothing moves, click stays possible.
     if (crans === 0 && !d.bouge) return
     if (!d.bouge && e.pointerType === 'mouse') verrouille(e.currentTarget)
     d.bouge = true
@@ -243,8 +225,7 @@ export function Compteur(props: CompteurProps) {
   }
 
   const classes = props.classe === undefined ? 'compteur' : `compteur ${props.classe}`
-  // Une propriété personnalisée et non un `width` en ligne : la feuille garde l'unité (`ch`) et
-  // peut la surcharger, un style en ligne gagnerait contre toute règle.
+  // Custom property not inline `width`: sheet keeps unit (`ch`), can override (inline wins always).
   const gabarit = (
     props.largeur === undefined ? {} : { '--compteur-largeur': props.largeur }
   ) as CSSProperties
@@ -303,7 +284,7 @@ export function Compteur(props: CompteurProps) {
       <span className="compteur-valeur" style={gabarit}>
         {props.texte}
       </span>
-      {/* Hors de la barre : un ancêtre filtré ou transformé ferait du `fixed` un `absolute`. */}
+      {/* Outside barre: filtered/transformed ancestor turns `fixed` into `absolute`. */}
       {fantome &&
         createPortal(
           <span

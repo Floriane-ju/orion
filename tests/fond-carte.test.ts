@@ -1,6 +1,6 @@
 /**
- * §12.5 — le fond embarqué de la carte du site : ce qui s'encode se relit, à la maille près,
- * et un paquet illisible donne un fond vide plutôt qu'une exception (T-0364).
+ * §12.5 — embedded site-map fond: encode round-trips to quantization cell; unreadable packet
+ * → empty fond, no exception (T-0364).
  */
 
 import { describe, expect, it } from 'vitest'
@@ -42,7 +42,7 @@ describe('paquet fond-carte', () => {
     const trace = fond.terres[0]!
     expect(trace).toHaveLength(6)
     const attendu = pixelMonde(LAT, LON, 0, 1)
-    // Une maille de quantification, projetée : bien moins d'un millième du monde.
+    // One projected quantization cell ≪ a thousandth of the world.
     expect(trace[0]).toBeCloseTo(attendu.x, 4)
     expect(trace[1]).toBeCloseTo(attendu.y, 4)
     expect(QUANTUM_FOND_DEG).toBeLessThan(0.05)

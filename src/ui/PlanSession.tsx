@@ -1,8 +1,7 @@
 /**
- * §8.3 plan de session ordonné, §8.4 carte de pointage, §11.2 export imprimable.
- *
- * Livrable du lot 3 : ce qui est affiché ici est exécutable sur le terrain. Une chronologie,
- * un budget, une aide au pointage sans GoTo, et un export texte qui survit à l'écran éteint.
+ * §8.3 ordered session plan, §8.4 pointage map, §11.2 printable export.
+ * Lot 3 deliverable: what shows here is executable in the field. Timeline, budget, pointage
+ * aid without GoTo, and a text export surviving a dead screen.
  */
 
 import { useEffect, useMemo, useState } from 'react'
@@ -38,10 +37,9 @@ import { DEG_PAR_HEURE, POURCENT } from '../core/unites.ts'
 
 
 /**
- * T-0287 — cinq étoiles brillantes du ciel réel n'ont aucune désignation dans les paquets
- * versionnés, et le cadre en contient de plus faibles que le paquet nommé ne couvre pas. La
- * ligne le DIT plutôt que de laisser une cellule vide : une colonne blanche se lit comme un
- * défaut d'affichage, pas comme une étoile anonyme.
+ * T-0287 — five bright real-sky stars have no designation in the versioned packs, and the
+ * cadre holds fainter ones than the named pack covers. Row SAYS so instead of an empty cell:
+ * a blank column reads as a display bug, not an anonymous star.
  */
 
 export interface PlanSessionProps {
@@ -52,18 +50,17 @@ export interface PlanSessionProps {
   readonly mLimOeil: number | null
   readonly fovChercheurDeg?: number
   readonly etoiles: readonly Etoile[]
-  /** §3.4 — le paquet qui donne un nom aux étoiles repères de §8.4 (T-0287). */
+  /** §3.4 — pack naming the §8.4 reference stars (T-0287). */
   readonly nommees: readonly EtoileNommee[]
-  /** §3.3 — il borne le champ que « Voir le parcours » demande à la scène (T-0324). */
+  /** §3.3 — bounds of the champ "Voir le parcours" asks of the scène (T-0324). */
   readonly gaiaCharge: boolean
   readonly enTete: EnTetePlan
 }
 
 /**
- * T-0288 — vrai pendant une impression. L'aide au pointage ne se calcule qu'à la demande
- * (un parcours sur le catalogue par étape) : sur la feuille, elle doit pourtant figurer pour
- * TOUTES les étapes. `flushSync` : le navigateur fige la page à la sortie de `beforeprint`,
- * un rendu planifié arriverait après.
+ * T-0288 — true during printing. Pointage aid computed on demand only (one catalogue pass per
+ * étape): on paper it must appear for ALL étapes. `flushSync`: browser freezes the page on
+ * `beforeprint` exit, a scheduled render would land after.
  */
 function useImpression(): boolean {
   const [imprime, setImprime] = useState(false)
@@ -103,9 +100,9 @@ export function PlanSessionVue(props: PlanSessionProps) {
           <Mention ton="cause">{plan.contrainteDominante}</Mention>
         )}
         {plan.alternative !== undefined && <p className="etat">{plan.alternative}</p>}
-        {/* T-0322 — le budget ne retire plus de cible : il se CONSTATE. Sans cette phrase, un
-            plan qui déborde de la nuit se lirait comme un plan qui tient. Le détail du budget
-            reste hors de l'écran (T-0318) et dans l'export ; ce qui compte ici est le fait. */}
+        {/* T-0322 — budget no longer removes a target: it is STATED. Without this sentence an
+            overflowing plan reads as one that fits. Budget detail stays off screen (T-0318) and
+            in the export; the fact is what matters here. */}
         {!plan.budget.tient && plan.etapes.length > 0 && (
           <Mention ton="cause">
             Le total dépasse la nuit de{' '}
@@ -149,23 +146,17 @@ export function PlanSessionVue(props: PlanSessionProps) {
 }
 
 /**
- * §8.3 — ce qu'il advient d'une cible qu'on a demandée et qui n'a pas de place ce soir.
- *
- * T-0318 avait retiré la table des écartées, et c'était juste : elle listait des milliers de
- * refus du catalogue que la fiche explique déjà, cible par cible. Le motif s'inverse depuis
- * que l'entrée du plan est une SÉLECTION : ces lignes-là sont des cibles qu'on a explicitement
- * cochées, elles sont une ou deux, et une disparition muette ferait lire le geste d'ajout
- * comme un bouton cassé. §1.5 l'interdit par ailleurs — aucune cible écartée sans sa cause.
- *
- * T-0322 — la liste a beaucoup maigri, et c'est le but : le budget ne retire plus rien, et
- * une cible de plusieurs nuits ne prend plus la place d'une cible courte. Ce qui reste est
- * le seul cas où la nuit n'offre rien — un créneau intégralement occupé —, plus les cibles
- * choisies qu'un changement de matériel a rendues impossibles depuis.
- *
- * La cause vient du moteur, jamais d'ici, et le code interne ne s'affiche pas.
- *
- * T-0429 — plus de carte à part : ces cibles sont la suite du plan, pas une autre rubrique.
- * Une seule alerte les regroupe, en tête du plan, là où l'on vérifie ce qu'on a demandé.
+ * §8.3 — fate of a requested target with no place tonight.
+ * T-0318 removed the discarded table, rightly: thousands of catalogue refusals the fiche
+ * already explains per target. Reason inverts since plan input is a SELECTION: these rows are
+ * explicitly ticked targets, one or two; a mute disappearance would make the add gesture read
+ * as a broken button. §1.5 forbids it anyway — no discarded target without cause.
+ * T-0322 — list shrank, intended: budget removes nothing, multi-night target no longer takes a
+ * short one's place. Remaining: the only case where the night offers nothing (fully occupied
+ * créneau) + chosen targets a matériel change made impossible since.
+ * Cause from the engine, never from here; internal code not displayed.
+ * T-0429 — no separate card: these targets continue the plan, not another section. One alert
+ * groups them, at plan top, where one checks what was asked.
  */
 function Ecartees({ ecartees }: { readonly ecartees: readonly CibleEcartee[] }) {
   if (ecartees.length === 0) return null
@@ -201,24 +192,24 @@ export function Etape({ etape, rang, imprime, ...props }: EtapeProps) {
   return (
     <div className="etape">
       <p className="etape-titre">
-        {/* T-0323 — le nom ouvre la fiche, seul détour que le plan garde. Tout ce que l'étape
-            annonçait d'elle-même — pose, volume, verdicts, masse d'air, sous-scores — y est
-            déjà écrit, en contexte et avec sa trace. Le redire ici faisait d'une chronologie
-            à exécuter dans le noir un tableau de bord à déchiffrer. */}
+        {/* T-0323 — name opens the fiche, the only detour the plan keeps. All the étape
+            announced (pose, volume, verdicts, masse d'air, sous-scores) is already written
+            there, in context with its trace. Repeating it made a timeline to execute in the dark
+            a dashboard to decipher. */}
         <button type="button" className="etape-lien" onClick={() => ouvreCible(etape.objet)}>
           {rang}. {nom}
         </button>
         <span className="etape-horaire">
           {heure(etape.creneauAlloue.debut)} → {heure(etape.creneauAlloue.fin)} ·{' '}
           {dureeMinLisible(etape.dureeAlloueeMin)}
-          {/* T-0407 — sous un zoom, la bague se règle à chaque cible : l'étape le dit. T-0436 :
-              et l'objectif se change, quand le parc en offre plusieurs. */}
+          {/* T-0407 — under a zoom, the ring is set per target: étape says so. T-0436: and the
+              objectif changes, when the parc offers several. */}
           {etape.objectifNom !== undefined && ` · ${etape.objectifNom} à`}
           {etape.focaleMm !== undefined && ` ${etape.objectifNom === undefined ? '· ' : ''}${nombre(etape.focaleMm, 0)} mm`}
         </span>
       </p>
-      {/* §6.4 — la seule lecture qui reste : elle se compte d'un coup d'œil, à la frontale,
-          et c'est la même note que la ligne de liste, lue sur le même score. */}
+      {/* §6.4 — the only reading left: counted at a glance, headlamp on, same note as the list
+          row, same score. */}
       {facilite !== null && <Pastilles note={facilite.note} libelle={facilite.libelle} />}
       {manque !== null && <Mention ton="cause">{manque}</Mention>}
       {retournement !== null && (
@@ -256,14 +247,12 @@ export function Etape({ etape, rang, imprime, ...props }: EtapeProps) {
 }
 
 /**
- * §8.4 — une étoile repère par ligne, avec de quoi la reconnaître dans le ciel et de quoi
- * régler des cercles gradués.
- *
- * T-0287 — le glyphe REND LA LIGNE AU SCHÉMA : sans lui, rien ne dit lequel des points de
- * l'image est celui que la ligne décrit. Il porte seul le rang de l'ancrage depuis que le
- * nom de l'étoile occupe la cellule, donc il porte aussi son `libelle` — deux icônes collées
- * se ligaturaient d'ailleurs en travers (« circle » suivi de « star » donnait « circles » et
- * le reste en toutes lettres).
+ * §8.4 — one reference star per row: what recognises it in the sky + what sets graduated
+ * circles.
+ * T-0287 — glyph RETURNS THE ROW TO THE SCHEMA: without it nothing says which image point the
+ * row describes. It alone carries the anchor rank (star name fills the cell), hence its
+ * `libelle` — two adjacent icons also ligatured across ("circle" then "star" gave "circles"
+ * and the rest in plain text).
  */
 function TableAncrages({ ancrages }: { readonly ancrages: readonly Ancrage[] }) {
   return (
@@ -299,10 +288,9 @@ function TableAncrages({ ancrages }: { readonly ancrages: readonly Ancrage[] }) 
 }
 
 /**
- * §8.4 — l'aide au pointage d'une cible à un instant.
- *
- * T-0287 — elle ne prend PAS l'étape du plan : une cible et une heure lui suffisent, et le
- * plan complet en entrée l'obligeait à exister dans une session entière pour être regardée.
+ * §8.4 — pointage aid for a target at an instant.
+ * T-0287 — takes NOT the plan étape: target + time suffice; the full plan as input forced a
+ * whole session to exist to be looked at.
  */
 export interface PointageProps {
   readonly objet: ObjetCielProfond
@@ -314,13 +302,13 @@ export interface PointageProps {
   readonly fovChercheurDeg?: number | undefined
   readonly etoiles: readonly Etoile[]
   readonly nommees: readonly EtoileNommee[]
-  /** §3.3 — il borne le champ que « Voir le parcours » demande à la scène (T-0324). */
+  /** §3.3 — bounds of the champ "Voir le parcours" asks of the scène (T-0324). */
   readonly gaiaCharge: boolean
 }
 
 export function Pointage(props: PointageProps) {
-  // T-0324 — un cheminement est un parcours en largeur sur le catalogue : le mémo le retient
-  // pour que basculer le parcours, ou n'importe quel interrupteur de la scène, ne le relance pas.
+  // T-0324 — a cheminement is a breadth-first pass over the catalogue: memo keeps it so toggling
+  // the parcours, or any scène switch, does not rerun it.
   const carte = useMemo(
     () =>
       cartePointage({
@@ -375,8 +363,8 @@ export function Pointage(props: PointageProps) {
         unite="°"
       />
 
-      {/* T-0324 — le tableau dit le trajet, la scène le MONTRE. Absent quand la carte n'a
-          rien à proposer : elle en donne déjà la cause juste au-dessus. */}
+      {/* T-0324 — table states the path, scène SHOWS it. Absent when the map has nothing to
+          offer: it already gives the cause just above. */}
       {etapes.length > 0 && (
         <button
           type="button"
@@ -396,8 +384,8 @@ export function Pointage(props: PointageProps) {
 
       {carte.ancrages.length > 0 && (
         <>
-          {/* T-0068 — sans rôle, l'`aria-label` d'une `div` n'est pas exposé : l'intention
-                était bonne, l'effet nul. Le schéma est une image composée en HTML. */}
+          {/* T-0068 — without a role a `div`'s `aria-label` is not exposed (good intent, no
+              effect). Schema = an image composed in HTML. */}
           <div
             className="schema"
             role="img"
@@ -406,9 +394,8 @@ export function Pointage(props: PointageProps) {
             <span className="schema-astre schema-cible" style={{ left: '50%', top: '50%' }}>
               <Icone nom="my_location" />
             </span>
-            {/* T-0287 — le zénith est en haut par construction, le nord tourne avec l'heure.
-                Les deux sont nommés : un schéma orienté qui ne dit pas selon quoi se lit
-                comme un schéma quelconque. */}
+            {/* T-0287 — zenith is up by construction, nord turns with the hour. Both named: an
+                oriented schema not saying by what it reads is like any schema. */}
             <span className="schema-astre schema-repere" style={{ left: '50%', top: '0%' }}>
               zénith
             </span>
@@ -435,9 +422,8 @@ export function Pointage(props: PointageProps) {
             ))}
           </div>
           <TableAncrages ancrages={tete} />
-          {/* T-0287 — un cadre de 17° contient une vingtaine d'étoiles sous la magnitude de
-              l'œil nu : dépliées, elles se lisent comme un semis, et l'ancrage principal s'y
-              perd. Les suivantes restent disponibles, repliées. */}
+          {/* T-0287 — a 17° cadre holds ~20 stars below naked-eye magnitude: unfolded they read
+              as a scatter, main anchor lost. The others stay available, folded. */}
           {reste.length > 0 && (
             <details>
               <summary>

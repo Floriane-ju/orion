@@ -1,9 +1,6 @@
 /**
- * §3 + §9 — un seul pointage pour les deux vues.
- *
- * Ce que ce fichier garde : le magasin de scène est bien partagé, et une visée déplacée
- * ailleurs se lit dans le grand champ. Tant que chaque vue tenait son propre état, cadrer
- * dans l'une ne cadrait pas dans l'autre.
+ * §3 + §9 — one pointage for both views: scene store really shared; aim moved elsewhere reads in
+ * grand champ. Per-view state didn't carry framing across.
  */
 
 import { createElement } from 'react'
@@ -60,11 +57,10 @@ const MATERIEL = {
   modeObjectif: 'MODE_CADRE',
 } as const
 
-/** La ligne d'état du grand champ porte la visée en ascension droite et déclinaison. */
+/** Grand champ status line: aim in right ascension + declination. */
 /**
- * T-0154 — le panneau ne réécrit plus la visée : elle se lit au centre de la barre basse. Ce qui
- * atteste qu'il suit le pointage, ce sont ses nombres — pose maximale du cadre, longueur des arcs,
- * position du pôle — donc c'est le rendu entier qui se compare, pas une phrase.
+ * T-0154 — panel no longer rewrites aim: read at bottom bar centre. Numbers prove it follows
+ * pointage (frame pose max, arc length, pole position): whole render compared.
  */
 function cadrageAffiche(): string {
   return renderToStaticMarkup(createElement(PanneauFile, MATERIEL))
@@ -85,7 +81,7 @@ describe('§3 — le magasin de scène', () => {
   it('T-0239 — s’ouvre en grand champ, sous le plafond de sa projection', () => {
     const { fovDeg, mode } = etatScene().vue
     expect(fovDeg).toBe(K('FOV_INITIAL_DEG'))
-    // L'état initial ne passe pas par majVue : rien d'autre ne le borne.
+    // Initial state skips majVue: nothing else bounds it.
     expect(fovDeg).toBeLessThanOrEqual(fovMaxSelonMode(mode))
   })
 
@@ -94,7 +90,7 @@ describe('§3 — le magasin de scène', () => {
     majVue({ azimutDeg: 90 })
     expect(avant.vue.azimutDeg).toBe(180)
     expect(etatScene().vue.azimutDeg).toBe(90)
-    // Le temps n'est pas touché par une retouche de vue : son identité doit survivre.
+    // Time untouched by view tweak: identity must survive.
     expect(etatScene().temps).toBe(avant.temps)
   })
 
@@ -111,8 +107,8 @@ describe('§3 — le magasin de scène', () => {
   })
 
   it('va à un instant choisi et met le temps en pause', () => {
-    // §3.2 — sans la pause, `MAINTENANT` resynchroniserait sur l'horloge système à l'image
-    // suivante : l'instant choisi n'aurait vécu qu'une image.
+    // §3.2 — without pause, `MAINTENANT` resyncs to system clock next frame: chosen instant lives
+    // one frame.
     const choisi = Date.UTC(2026, 7, 21, 20, 41, 7)
     vaA(choisi)
     expect(instant.ms).toBe(choisi)
@@ -144,9 +140,8 @@ describe('§5.1 — le type d’objectif pilote la projection de la scène', () 
   })
 
   it('n’offre à la scène que la projection de l’objectif déclaré', () => {
-    // T-0213 — le choix de projection est porté par le rail de la vue avec le reste des
-    // réglages de scène ; ce qu'il propose reste dicté par l'objectif déclaré au panneau
-    // matériel. Une bascule : éteinte le planétarium, allumée la projection de l'objectif.
+    // T-0213 — projection choice on view rail with other scene settings; what it offers stays
+    // dictated by lens declared in matériel panel. Toggle: off = planetarium, on = lens projection.
     majVue({ mode: modeObjectif('FISHEYE') })
     const html = renderToStaticMarkup(
       createElement(RailVue, {
@@ -158,7 +153,7 @@ describe('§5.1 — le type d’objectif pilote la projection de la scène', () 
       }),
     )
     expect(html).toContain('Vue comme l’appareil — équidistante')
-    // Un objectif fisheye ne produit pas de projection gnomonique : elle n'est pas proposée.
+    // Fisheye lens: no gnomonic projection offered.
     expect(html).not.toContain('gnomonique')
   })
 })
@@ -171,12 +166,12 @@ describe('T-0095 — le champ ne survit pas au passage en gnomonique', () => {
   it('ramène le champ sous le plafond de la projection choisie', () => {
     majVue({ mode: 'MODE_PLANETARIUM', fovDeg: K('FOV_MAX_DEG') })
     expect(etatScene().vue.fovDeg).toBe(K('FOV_MAX_DEG'))
-    // Le geste que le ticket décrit : on regardait tout le ciel, on passe à la projection de
-    // l'objectif. Sans borne, l'échelle s'annule et le ciel s'effondre sur le pixel central.
+    // Ticket gesture: looking at whole sky, switch to lens projection. Without a bound, scale
+    // vanishes, sky collapses onto central pixel.
     majVue({ mode: 'MODE_CADRE' })
     expect(etatScene().vue.fovDeg).toBe(K('FOV_MAX_GNOMONIQUE_DEG'))
-    // Le retour en stéréographique ne rend pas le champ perdu : la borne descend, elle ne
-    // remonte pas. Rouvrir le champ est un geste de zoom, pas un effet de bord du menu.
+    // Back to stereographic doesn't restore lost field: bound goes down, not up. Reopening = zoom
+    // gesture, not a menu side effect.
     majVue({ mode: 'MODE_PLANETARIUM' })
     expect(etatScene().vue.fovDeg).toBe(K('FOV_MAX_GNOMONIQUE_DEG'))
   })
@@ -199,17 +194,16 @@ describe('T-0056 — s’abonner à une tranche, pas au magasin entier', () => {
   })
 
   /**
-   * Dix secondes de temps qui défile, à la cadence à laquelle la boucle de rendu publie
-   * l'instant (`PERIODE_PUBLICATION_MS` = 500 ms) et le facteur de défilement par défaut
-   * (×60). Chaque publication change l'identité de l'état : c'est le nombre de rendus qu'un
-   * abonnement complet — celui que `App` portait — impose à tout l'arbre.
+   * Ten seconds of scrolling at render-loop publish rate (`PERIODE_PUBLICATION_MS` = 500 ms),
+   * default scroll ×60. Each publish changes state identity: renders a full subscription (what
+   * `App` held) imposes on whole tree.
    */
   function publieDixSecondes(): { readonly etats: number; readonly epoques: number } {
     const depart = etatScene().msAffiche
     const etats = new Set<EtatScene>()
     const epoques = new Set<number>()
     for (let n = 1; n <= 20; n++) {
-      // ×60 : une demi-seconde de montre vaut trente secondes de ciel.
+      // ×60: half a watch-second = thirty sky-seconds.
       afficheInstant(depart + n * 30_000)
       etats.add(etatScene())
       epoques.add(epoqueAffichee(etatScene()))
@@ -219,10 +213,10 @@ describe('T-0056 — s’abonner à une tranche, pas au magasin entier', () => {
 
   it('ne réveille l’application que quand sa tranche change', () => {
     const mesure = publieDixSecondes()
-    // Avant : un rendu de `App` par publication, soit deux par seconde.
+    // Before: one `App` render per publish = two per second.
     expect(mesure.etats).toBe(20)
-    // Après : l'époque de précession est prise au jour près, dix minutes de ciel ne la
-    // changent pas — `App` ne se rend plus du tout pendant ces dix secondes.
+    // After: precession epoch taken to the day, ten sky-minutes don't change it → no `App` render
+    // in these ten seconds.
     expect(mesure.epoques).toBe(1)
   })
 
@@ -241,44 +235,39 @@ describe('T-0056 — s’abonner à une tranche, pas au magasin entier', () => {
 })
 
 /**
- * T-0258 — le centre de la scène se calcule sur le ciel resté libre.
- *
- * Les mesures reproduisent la coque à 1440 × 900 : le rail de la vue à gauche, le panneau de
- * séance à droite, tous deux décollés du bord d'un jour de carte. Ce sont les deux seules
- * surfaces toujours ouvertes ; les cartes du matériel et le plan de nuit se replient et ne
- * comptent donc pas — une visée qui saute au repli d'une carte se juge plus mal qu'une visée
- * décalée une fois pour toutes.
+ * T-0258 — scene centre computed on sky left free.
+ * Reproduces shell at 1440 × 900: view rail left, session panel right, both a map-gap off edge.
+ * Only two always-open surfaces; matériel cards + night plan fold → not counted (aim jumping on
+ * fold is worse than one fixed offset).
  */
 describe('T-0258 — le centre de la scène', () => {
   const SCENE = { left: 0, right: 1440, top: 0, bottom: 900 }
   const RAIL = { left: 12, right: 56, top: 56, bottom: 852 }
   const PANNEAU = { left: 1076, right: 1428, top: 56, bottom: 852 }
-  /** Le milieu du ciel laissé libre, en pixels CSS, mesuré sans passer par la fonction testée. */
+  /** Middle of free sky in CSS px, measured without the tested function. */
   const MILIEU_LIBRE = (RAIL.right + PANNEAU.left) / 2
 
   it('pose la visée au milieu de ce que le rail et le panneau laissent voir', () => {
     const decalage = decalageCentreScene(SCENE, [RAIL, PANNEAU], SCENE.right)
     expect(SCENE.right / 2 + decalage).toBeCloseTo(MILIEU_LIBRE, 9)
-    // Le panneau est le plus large : la visée part vers le rail.
+    // Panel is widest: aim moves toward rail.
     expect(decalage).toBeLessThan(0)
   })
 
   it('s’exprime dans la définition de rendu, pas en pixels CSS', () => {
-    // Le décalage sert une projection : il se compte dans les pixels que le canevas peint,
-    // qui ne sont ceux de la feuille de style qu'à l'échelle 1.
+    // Offset serves a projection: painted canvas px, = stylesheet px only at scale 1.
     const enCss = decalageCentreScene(SCENE, [RAIL, PANNEAU], SCENE.right)
     expect(decalageCentreScene(SCENE, [RAIL, PANNEAU], SCENE.right / 2)).toBeCloseTo(enCss / 2, 9)
   })
 
   it('ne borne la scène que par les surfaces toujours ouvertes', () => {
-    // C'est le sélecteur qui porte la décision, pas le calcul : les cartes repliables —
-    // Boîtier, Optique, Plan de nuit — n'y sont pas, sinon la visée sauterait à chaque repli.
+    // Selector carries the decision, not the calculation: foldable cards (Boîtier, Optique, Plan de
+    // nuit) excluded, else aim jumps at each fold.
     expect([...BORDURES_SCENE]).toEqual(['.coque-rail', '.coque-lateral'])
   })
 
   it('ne décale rien sous le repli, où les mêmes surfaces passent dans le flux', () => {
-    // Le rail devient une rangée au-dessus de la scène, le panneau une section en dessous :
-    // ils ne recouvrent plus rien, et la feuille de style suffit à le dire.
+    // Rail = row above scene, panel = section below: they cover nothing, stylesheet suffices.
     const dessus = { left: 0, right: 1440, top: -60, bottom: 0 }
     const dessous = { left: 0, right: 1440, top: 900, bottom: 1600 }
     expect(decalageCentreScene(SCENE, [dessus, dessous], SCENE.right)).toBe(0)
@@ -291,10 +280,9 @@ describe('T-0258 — le centre de la scène', () => {
 })
 
 /**
- * §8.4 / T-0324 — montrer un parcours fige l'horloge à l'heure du pointage. Une horloge
- * arrêtée sans qu'on sache quand ni pourquoi est un bug, pas un mode : le fermer doit rendre
- * exactement l'instant et le mode d'avant, sinon le ciel, la Lune et le crépuscule restent
- * bloqués à l'heure d'une étape qu'on ne consulte plus.
+ * §8.4 / T-0324 — showing a parcours freezes the clock at pointage time. Clock stopped without
+ * known when/why = bug: closing restores exact prior instant + mode, else sky, Moon, crépuscule
+ * stay stuck at a step no longer consulted.
  */
 describe('T-0324 — le parcours rend l’horloge qu’il a empruntée', () => {
   const PARCOURS: ParcoursScene = {
@@ -342,8 +330,8 @@ describe('T-0324 — le parcours rend l’horloge qu’il a empruntée', () => {
   })
 
   it('retient l’horloge du PREMIER parcours quand on passe de l’un à l’autre', () => {
-    // Deux étapes du plan peuvent avoir leur aide au pointage ouverte : passer de la première
-    // à la seconde ne doit pas faire de l'heure de la première l'état « d'avant ».
+    // Two plan steps may have aide au pointage open: first → second must not make first's time the
+    // "before" state.
     const avantMs = instant.ms
     montreParcours(PARCOURS, HEURE_ETAPE)
     montreParcours({ ...PARCOURS, designation: 'M31' }, HEURE_ETAPE + 3600_000)
@@ -385,7 +373,7 @@ describe('T-0292 — une écriture qui ne change rien ne notifie pas', () => {
 describe('« Cadrer » suit la cible jusqu’au premier geste de pointage', () => {
   beforeEach(() => reinitialiseScene())
 
-  // Le magasin ne lit pas les coordonnées : c'est la boucle de rendu qui les projette.
+  // Store doesn't read coordinates: render loop projects them.
   const suivi = { designation: 'M 31', adDeg: 0, decDeg: 0 }
 
   it('le recalage de la boucle garde le suivi', () => {

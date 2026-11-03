@@ -1,8 +1,7 @@
 /**
- * §8.1 — ce que la carte « La nuit » pose sur sa frise : des positions en pourcentage de la
- * fenêtre vue, et les libellés qui vont avec. Les instants viennent de `friseCiel`, rien
- * n'est recalculé ici. La fenêtre vue est centrée sur l'instant : ce qui en sort n'est pas
- * posé, la frise défile.
+ * §8.1 — what the "La nuit" card puts on its frise: positions as % of the viewed window + labels.
+ * Instants come from `friseCiel`, nothing recomputed. Window centred on the instant: output isn't
+ * placed, the frise scrolls.
  */
 
 import type {
@@ -17,12 +16,12 @@ import { encadre, MS_PAR_H, MS_PAR_MINUTE, POURCENT, QUART_TOUR_DEG as ZENITH_DE
 import { K } from '../registry/constants.ts'
 import { heure, LOCALE } from './horaire.ts'
 
-/** Le nombre de l'heure, sans son suffixe : « 22 h » ne tient pas dans une graduation. */
+/** Hour number without suffix: "22 h" doesn't fit a tick. */
 const HEURE_SEULE = new Intl.DateTimeFormat(LOCALE, { hour: '2-digit', hourCycle: 'h23' })
 
 /**
- * La phase se lit à son MOTIF, du plus dense au vide : §11.1 confisque la teinte, et la nuit
- * rouge n'a pas assez de luminance pour étager quatre gris.
+ * Phase read by PATTERN, densest to empty: §11.1 confiscates hue, night red lacks luminance for
+ * four greys.
  */
 export const LIBELLE_PHASE_CIEL: Readonly<Record<PhaseCiel, string>> = Object.freeze({
   JOUR: 'Jour',
@@ -40,27 +39,22 @@ export interface BandePhase {
 }
 
 /**
- * Une graduation par heure ronde, les heures paires portent leur nombre : toutes étiquetées,
- * elles se touchaient. La parité tient à l'heure et non au rang : la frise défile, une
- * étiquette ne doit pas sauter d'une graduation à l'autre.
+ * One tick per round hour, even hours numbered (all labelled would touch). Parity by hour not
+ * rank: frise scrolls, a label must not jump between ticks.
  */
 export interface Repere {
   readonly cle: string
   readonly texte: string
   readonly position: string
   readonly majeur: boolean
-  /**
-   * T-0418 — le repère tombe dans le jour : son étiquette prend un aplat clair, encre sombre,
-   * au lieu de l'aplat noir de la nuit et des crépuscules.
-   */
+  /** T-0418 — marker in daytime: label takes light fill + dark ink, not night/twilight black. */
   readonly jour: boolean
 }
 
 /**
- * Le disque de la Lune : quel côté est éclairé, et la largeur de l'ellipse du terminateur.
- * Croissante, la Lune est éclairée à droite dans l'hémisphère nord, à gauche dans le sud.
- * Le terminateur mesure |1 − 2k| du diamètre : nul au quartier, plein à la nouvelle et à la
- * pleine Lune. Il assombrit la moitié éclairée sous le quartier, éclaire l'autre au-delà.
+ * Moon disc: lit side + terminator ellipse width. Waxing Moon lit on right in northern hemisphere,
+ * left in south. Terminator = |1 − 2k| of diameter: zero at quarter, full at new/full Moon.
+ * Darkens lit half below quarter, lights the other beyond.
  */
 export interface DisqueLune {
   readonly eclaireADroite: boolean
@@ -77,29 +71,28 @@ function dansVue(vue: Intervalle, instant: Date): boolean {
   return instant >= vue.debut && instant <= vue.fin
 }
 
-/** L'instant (ms) d'une fraction de la fenêtre vue : ce que vise un clic ou un appui. */
+/** Instant (ms) of a fraction of the viewed window: what a click or press aims at. */
 export function instantFraction(vue: Intervalle, x: number): number {
   const debut = vue.debut.getTime()
   return debut + encadre(x, 0, 1) * (vue.fin.getTime() - debut)
 }
 
 /**
- * T-0419 — l'instant qu'amène sous le curseur un glisser de `dx` (fraction de la largeur) parti
- * de `departMs`. La frise défile sous un curseur fixe : on tire le ruban, le temps vient en sens
- * inverse du geste — vers la droite, le passé arrive.
+ * T-0419 — instant a drag of `dx` (fraction of width) from `departMs` puts under the cursor.
+ * Frise scrolls under a fixed cursor: ribbon pulled, time comes opposite to the gesture (drag
+ * right → past arrives).
  */
 export function instantGlisse(vue: Intervalle, departMs: number, dx: number): number {
   return departMs - dx * (vue.fin.getTime() - vue.debut.getTime())
 }
 
-/** Les unités de `WheelEvent.deltaMode` (DOM) : constantes de la plate-forme, pas des réglages. */
+/** `WheelEvent.deltaMode` units (DOM): platform constants, not settings. */
 export const WheelMode = Object.freeze({ PIXEL: 0, LIGNE: 1, PAGE: 2 } as const)
 
 /**
- * T-0424 — le glisser (fraction de la largeur, sens de `instantGlisse`) qu'équivaut un
- * défilement, ou `null` s'il est surtout vertical : celui-là reste à la page. Défiler vers la
- * droite pousse le ruban vers la gauche — l'avenir arrive, comme un glisser vers la gauche.
- * Firefox compte la molette en lignes : on les convertit, sans quoi le pas serait d'un pixel.
+ * T-0424 — drag (fraction of width, sense of `instantGlisse`) equivalent to a scroll, or `null`
+ * if mostly vertical (stays with the page). Scroll right pushes ribbon left — future arrives, like
+ * a left drag. Firefox counts wheel in lines: converted, else step = 1 px.
  */
 export function glisseMolette(
   e: { readonly deltaX: number; readonly deltaY: number; readonly deltaMode: number },
@@ -113,9 +106,8 @@ export function glisseMolette(
 }
 
 /**
- * T-0390 — où mène une touche sur la frise, ou `null` si elle ne la règle pas. La frise
- * défile avec l'instant : les flèches n'ont pas de butée, Début et Fin mènent aux bords de
- * la fenêtre vue.
+ * T-0390 — where a key leads on the frise, or `null` if not set by it. Frise scrolls with the
+ * instant: arrows have no stop, Home/End go to window edges.
  */
 export function instantClavier(vue: Intervalle, ms: number, touche: string): number | null {
   const pas = K('PAS_FRISE_CLAVIER_MIN') * MS_PAR_MINUTE
@@ -135,12 +127,12 @@ export function instantClavier(vue: Intervalle, ms: number, touche: string): num
   }
 }
 
-/** Une fraction écrite pour le CSS (« 42.00% ») : une machine la relit, d'où le point. */
+/** Fraction written for CSS ("42.00%"): machine-read, hence the dot. */
 export function pourcentCss(fraction: number): string {
   return `${(fraction * POURCENT).toFixed(2)}%`
 }
 
-/** Les phases qui touchent la fenêtre vue ; ce qui déborde, la frise le rogne. */
+/** Phases touching the viewed window; overflow is clipped by the frise. */
 export function bandesPhases(frise: FriseNuit, vue: Intervalle): readonly BandePhase[] {
   return frise.segments
     .filter((s) => s.fin > vue.debut && s.debut < vue.fin)
@@ -155,7 +147,7 @@ export function bandesPhases(frise: FriseNuit, vue: Intervalle): readonly BandeP
     })
 }
 
-/** Sans frise, aucun repère n'est dit de jour : l'aplat reste celui de la nuit. */
+/** Without frise no marker is said daytime: fill stays night's. */
 export function reperesHeures(vue: Intervalle, frise?: FriseNuit): readonly Repere[] {
   const premiere = Math.ceil(vue.debut.getTime() / MS_PAR_H) * MS_PAR_H
   const reperes: Repere[] = []
@@ -175,9 +167,8 @@ export function reperesHeures(vue: Intervalle, frise?: FriseNuit): readonly Repe
 }
 
 /**
- * Le pas des tirets de l'horizon, en fractions de la frise : une heure, et la place de la
- * première heure pleine. Les tirets sont accrochés aux heures et défilent avec elles — posés à
- * pas fixe sur l'écran, ils restaient immobiles sous un ciel qui glissait.
+ * Horizon dash step as frise fractions: one hour, and place of first full hour. Dashes hooked to
+ * hours scroll with them; a fixed screen step stayed still under a sliding sky.
  */
 export function tiretsHorizon(vue: Intervalle): { readonly heure: number; readonly premiere: number } {
   const duree = vue.fin.getTime() - vue.debut.getTime()
@@ -185,7 +176,7 @@ export function tiretsHorizon(vue: Intervalle): { readonly heure: number; readon
   return { heure: MS_PAR_H / duree, premiere: fraction(vue, new Date(premiere)) }
 }
 
-/** L'instant affiché sur la frise, ou `null` quand il tombe hors de la fenêtre vue. */
+/** Instant shown on the frise, or `null` when outside the viewed window. */
 export function curseurInstant(vue: Intervalle, instant: Date): string | null {
   return dansVue(vue, instant) ? pourcentCss(fraction(vue, instant)) : null
 }
@@ -203,18 +194,17 @@ export function disqueLune(
 }
 
 /**
- * L'échelle verticale de la frise, commune au Soleil et à la Lune : le nadir en bas, le zénith
- * en haut, l'horizon au milieu. Le Soleil passe sous l'horizon toute la nuit, sa courbe doit
- * y descendre ; deux échelles dans une même bande se liraient l'une pour l'autre.
+ * Frise vertical scale, shared by Sun and Moon: nadir bottom, zenith top, horizon middle. Sun
+ * stays below horizon all night, curve must go down there; two scales in one band would be read
+ * for each other.
  */
 export function hauteurFrise(hauteurDeg: number): number {
   return (hauteurDeg + ZENITH_DEG) / (2 * ZENITH_DEG)
 }
 
 /**
- * La courbe d'un astre en points SVG, dans un repère de 100 × 100 étiré sur la frise : les
- * abscisses sont des pourcentages de la fenêtre vue, les ordonnées descendent vers le bas.
- * Les points hors de la fenêtre restent : le tracé se rogne au bord au lieu de s'y arrêter.
+ * Body curve as SVG points in a 100 × 100 frame stretched over the frise: x = % of viewed window,
+ * y goes down. Points outside the window stay: stroke clipped at the edge, not stopped.
  */
 export function pointsCourbe(hauteurs: readonly HauteurAstre[], vue: Intervalle): string {
   return hauteurs
@@ -227,9 +217,8 @@ export function pointsCourbe(hauteurs: readonly HauteurAstre[], vue: Intervalle)
 }
 
 /**
- * La hauteur d'un astre à `instant`, lue sur sa courbe échantillonnée : le point posé sur la
- * courbe au curseur doit tomber SUR le trait, pas sur un calcul d'éphéméride qui s'en écarterait
- * entre deux échantillons. `null` hors de la courbe.
+ * Body altitude at `instant`, read on its sampled curve: cursor dot must fall ON the stroke, not
+ * on an ephemeris calcul drifting between samples. `null` off the curve.
  */
 export function hauteurSurCourbe(hauteurs: readonly HauteurAstre[], instant: Date): number | null {
   const t = instant.getTime()
@@ -241,7 +230,7 @@ export function hauteurSurCourbe(hauteurs: readonly HauteurAstre[], instant: Dat
   return a.hauteurDeg + (b.hauteurDeg - a.hauteurDeg) * k
 }
 
-/** L'ordonnée CSS d'une hauteur dans la frise, du haut : le repère de `pointsCourbe`. */
+/** CSS ordinate of an altitude in the frise, from top: `pointsCourbe` frame. */
 export function ordonneeFrise(hauteurDeg: number): string {
   return pourcentCss(1 - hauteurFrise(hauteurDeg))
 }
@@ -253,7 +242,7 @@ export interface MarqueLune {
   readonly texte: string
 }
 
-/** Les levers et couchers de la Lune tombés dans la fenêtre vue : un trait, et ce que l'aimant dit. */
+/** Moon rises and sets inside the viewed window: a stroke, and what the magnet says. */
 export function marquesLune(frise: FriseNuit, vue: Intervalle): readonly MarqueLune[] {
   return frise.lune.evenements
     .filter((e) => dansVue(vue, e.instant))
@@ -266,9 +255,8 @@ export function marquesLune(frise: FriseNuit, vue: Intervalle): readonly MarqueL
 }
 
 /**
- * L'aimant du survol : un pointeur à moins de `portee` (en fraction de la frise) d'un lever
- * ou d'un coucher de Lune s'y accroche. Sans lui, viser un trait d'un pixel à la souris — ou
- * au doigt — tenait du hasard. Le plus proche l'emporte quand deux traits se touchent.
+ * Hover magnet: pointer within `portee` (fraction of frise) of a Moon rise/set snaps to it.
+ * Without: aiming a 1 px stroke with mouse/finger was luck. Nearest wins when two touch.
  */
 export function aimante(
   pointeur: number,
@@ -284,7 +272,7 @@ export function aimante(
     : { fraction: proche.m.fraction, marque: proche.m }
 }
 
-/** La Lune de la fenêtre vue dite en une phrase : ses heures levées, et sa hauteur la plus grande. */
+/** Viewed-window Moon in one sentence: rise hours and highest altitude. */
 export function resumeLuneFrise(lune: LuneDeLaNuit, vue: Intervalle): string {
   const levee = lune.levee
     .filter((i) => i.fin > vue.debut && i.debut < vue.fin)
@@ -298,15 +286,14 @@ export function resumeLuneFrise(lune: LuneDeLaNuit, vue: Intervalle): string {
   return `Lune levée ${plages}, jusqu’à ${degres(haute)} de hauteur.`
 }
 
-/** La phase à l'instant pointé : son sens et sa fraction éclairée, « Décroissante 93% ». */
+/** Phase at pointed instant: sense and lit fraction, "Décroissante 93%". */
 export function libellePhaseLune(croissante: boolean, illumination: number): string {
   return `${croissante ? 'Croissante' : 'Décroissante'} ${pourcentage(illumination)}`
 }
 
 /**
- * La Lune à l'instant pointé, en une ligne : sa hauteur, ou sa profondeur sous l'horizon —
- * « 2° sous l'horizon » dit qu'elle va se lever, « 40° » qu'elle n'est pas près de le faire.
- * Au degré près, zéro se dit « à l'horizon » plutôt que « à 0° ».
+ * Moon at pointed instant, one line: altitude or depth below horizon — "2° sous l'horizon" = will
+ * rise, "40°" = not near. To the degree; zero reads "à l'horizon", not "à 0°".
  */
 export function libelleLuneInstant(hauteurDeg: number): string {
   const degres = Math.abs(Math.round(hauteurDeg))

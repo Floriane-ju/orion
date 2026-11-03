@@ -1,10 +1,8 @@
 /**
- * §6.3 — détectabilité et quatre verdicts.
- *
- * Les trois cas de référence du PRD sont vérifiés par le calcul, pas mémorisés : M57 est
- * dix-huit fois plus brillante par arcsec² qu'un ciel Bortle 4,5 alors que sa magnitude
- * intégrée la dit cinq magnitudes plus faible que M31 ; M33, plus brillante que M57 en
- * magnitude, est sept fois plus faible que ce même fond de ciel.
+ * §6.3 — détectabilité, four verdicts. PRD's three reference cases checked by calc, not
+ * memorised: M57 is 18× brighter per arcsec² than a Bortle 4,5 sky though 5 mag fainter than
+ * M31 in integrated magnitude; M33, brighter than M57 in magnitude, is 7× fainter than that
+ * same sky background.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -23,7 +21,7 @@ const OPTIQUE = profilOptique({
   ...capteurEffectif(BOITIER_REFERENCE, 'FULL_FRAME'),
 })
 
-/** Site de référence : Bortle 4,5 → SB 20,95 mag/arcsec², m_lim œil nu 6,05. */
+/** Reference site: Bortle 4,5 → SB 20,95 mag/arcsec², naked-eye m_lim 6,05. */
 const CIEL = { sbCiel: 20.95, mLimOeil: 6.05, dMm: OPTIQUE.dMm.value }
 
 describe('brillance de surface §6.3', () => {
@@ -36,8 +34,8 @@ describe('brillance de surface §6.3', () => {
     expect(m57.deltaSb.value).toBeCloseTo(3.16, 2)
     expect(m31.sbObj.value).toBeCloseTo(22.17, 2)
     expect(m31.deltaSb.value).toBeCloseTo(-1.22, 2)
-    // Le PRD écrit 23,02 : c'est 23,0164, obtenu avec le facteur arrondi 8,63. Le moteur
-    // calcule π/4 × 3600 au lieu de le recopier, d'où 23,0148 — l'écart est de 0,002 mag.
+    // PRD writes 23,02: it is 23,0164 with rounded factor 8,63. Engine computes π/4 × 3600
+    // instead of copying: 23,0148; gap 0,002 mag.
     expect(m33.sbObj.value).toBeCloseTo(23.02, 1)
     expect(m33.sbObj.value).toBeCloseTo(23.0148, 3)
     expect(m33.deltaSb.value).toBeCloseTo(-2.07, 1)
@@ -66,8 +64,8 @@ describe('les quatre verdicts §6.3', () => {
   })
 
   it('n’augmente jamais la brillance de surface : seule la taille apparente joue', () => {
-    // Deux diamètres très différents, même ΔSB : c'est le seuil lié à la taille apparente
-    // qui change, jamais le contraste lui-même.
+    // Two very different diameters, same ΔSB: threshold tied to apparent size changes, never
+    // contrast itself.
     const petit = detectabilite({ mInt: 9, aArcmin: 10, bArcmin: 10, typeObjet: 'GALAXIE', ...CIEL, dMm: 30 })
     const grand = detectabilite({ mInt: 9, aArcmin: 10, bArcmin: 10, typeObjet: 'GALAXIE', ...CIEL, dMm: 300 })
     expect(grand.deltaSb.value).toBeCloseTo(petit.deltaSb.value!, 6)

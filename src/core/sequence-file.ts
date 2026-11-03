@@ -1,19 +1,12 @@
 /**
- * §9.4 — Logistique de séquence de filé.
- *
- * Traduit une durée souhaitée en paramètres d'intervallomètre et en contraintes matérielles
- * VÉRIFIABLES AVANT DE SORTIR.
- *
- * T-0374 — la durée totale est la seule saisie. La pose et l'intervalle ne se règlent plus :
- * ils se prescrivent (`planPanorama`). L'intervalle vaut C-09, donc le refus d'un intervalle
- * trop long n'a plus d'entrée à refuser. Reste une règle dure : la réduction de bruit sur
- * longue exposition du boîtier occupe un temps égal à la pose après chaque image, et la
- * séquence est ruinée. Sa désactivation est une consigne bloquante, prescrite sans condition —
- * T-0167, la déclarer active ne changeait pas la consigne, elle la rédigeait deux fois.
- *
- * Aucune autonomie de batterie n'est modélisée (T-0150) : seule la durée de prise de vue est
- * connue, et elle sert de rappel, pas de prédiction. Aucun budget de carte non plus (T-0167) :
- * le volume nécessaire est calculé, l'espace restant se saisissait à la main.
+ * §9.4 — filé sequence logistics: desired duration → intervalometer parameters + hardware
+ * constraints VERIFIABLE BEFORE GOING OUT.
+ * T-0374 — total duration = only input; pose and interval prescribed (`planPanorama`). Interval =
+ * C-09, no input left to refuse. One hard rule: boîtier long-exposure noise reduction occupies a
+ * time equal to the pose after each frame → sequence ruined. Disabling it = blocking consigne,
+ * prescribed unconditionally (T-0167).
+ * No battery autonomy modelled (T-0150): only shooting duration known, reminder not prediction.
+ * No card budget (T-0167): required volume computed, remaining space was hand-entered.
  */
 
 import { K } from '../registry/constants.ts'
@@ -37,17 +30,14 @@ export interface SequenceFile {
 }
 
 /**
- * T-0374 — ce que le temps de prise de vue prescrit. Jusqu'à la pose max du cadre (§9.1), le
- * temps tient dans une seule photo à étoiles ponctuelles : c'est l'aperçu de §9.2, posé sur
- * toute la durée. Au-delà, des étoiles qui filent sont le but, et la durée se découpe en poses
- * de C-36 haut séparées de C-09.
- *
- * Pourquoi C-36 haut et non la pose max : la netteté de chaque image ne compte plus dans un
- * filé, seul le nombre d'images coûte. L'optimum dépend en vérité du capteur (bruit de lecture
- * face au fond de ciel, thermique) — non modélisé, la convention terrain en tient lieu.
- *
- * `poseMaxS` vaut `null` tant que le panneau n'a pas chiffré le cadre : C-36 sert alors de
- * seuil, faute de mieux, et l'aperçu bascule dès que la vraie pose max est connue.
+ * T-0374 — what shooting time prescribes. Up to frame pose max (§9.1) the time fits one point-star
+ * photo: §9.2 preview over whole duration. Beyond, trailing stars are the goal: duration splits
+ * into C-36-high poses spaced by C-09.
+ * Why C-36 high, not pose max: per-frame sharpness no longer matters in a filé, only frame count
+ * costs. True optimum depends on sensor (read noise vs fond de ciel, thermal) — not modelled,
+ * field convention stands in.
+ * `poseMaxS` is `null` until panel quantifies the frame: C-36 = threshold meanwhile, preview
+ * switches once real pose max known.
  */
 export interface PlanPanorama {
   readonly mode: 'CHAMP' | 'FILE'
@@ -62,7 +52,7 @@ export function planPanorama(dureeTotaleS: number, poseMaxS: number | null): Pla
   return {
     mode,
     tPoseS: trace({
-      // Une durée plus courte qu'une pose conseillée tient en une pose : elle file, seule.
+      // Duration < advised pose fits one pose: trails alone.
       value: mode === 'CHAMP' ? dureeTotaleS : Math.min(K('T_POSE_FILE_MAX_S'), dureeTotaleS),
       formula: 'PLAN_PANORAMA',
       inputs,
@@ -79,11 +69,10 @@ export function planPanorama(dureeTotaleS: number, poseMaxS: number | null): Pla
 
 export function sequenceFile(entree: EntreeSequenceFile): SequenceFile {
   const dureeTotaleS = entree.dureeTotaleMin * S_PAR_MIN
-  // Assez de poses pour COUVRIR le temps voulu, quitte à le dépasser d'une fraction de pose :
-  // 1 min en poses de 30 s, c'est deux photos, pas une. L'intervalle ne retire rien au compte,
-  // il allonge seulement la séquence d'une seconde par pose. La durée est ramenée à la seconde,
-  // le pas de sa saisie : rendue en minutes puis en secondes, elle garde une poussière
-  // flottante (45,000000001) qui ajouterait une photo.
+  // Enough poses to COVER wanted time, may overshoot by a fraction of a pose: 1 min of 30 s poses
+  // = two photos, not one. Interval removes nothing from the count, only lengthens séquence 1 s per
+  // pose. Duration rounded to second (input step): min→s round trip leaves float dust
+  // (45.000000001) that would add a photo.
   const nPosesValeur = Math.ceil(Math.round(dureeTotaleS) / entree.tPoseS)
   const volume = (nPosesValeur * entree.tailleRawMo) / K('MO_PAR_GO')
 
@@ -109,8 +98,7 @@ export function sequenceFile(entree: EntreeSequenceFile): SequenceFile {
       'traînées seront pointillées.',
   ]
 
-  // Le résumé « N poses de 30 s, X Go, traînées de Y° » est parti : il répétait les lignes
-  // chiffrées posées juste au-dessus de lui.
+  // No "N poses of 30 s, X Go, trails of Y°" summary: repeated the figure lines above.
   const messages: string[] = []
   const rappel = rappelBatterie(entree.dureeTotaleMin)
   if (rappel !== null) messages.push(rappel)

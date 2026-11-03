@@ -1,10 +1,7 @@
 /**
- * §9.1 — Pose maximale à étoiles ponctuelles.
- *
- * Le critère qui compte n'est pas qu'une formule soit appliquée, mais qu'elle soit appliquée
- * PAR RÉGION DU CIEL : le setup grand angle de référence du PRD donne 25,2 s à l'équateur
- * céleste et 1 442 s à δ = +89°. Une pose unique pour tout le ciel serait fausse des deux
- * côtés — c'est ce que le test « suit la déclinaison, et non une règle uniforme » tient.
+ * §9.1 — pose max at point stars. Formula applied PER SKY REGION: PRD wide-angle reference
+ * gives 25,2 s at celestial equator, 1 442 s at δ = +89°. One pose for whole sky is wrong both
+ * ways; held by "suit la déclinaison, et non une règle uniforme".
  */
 
 import { describe, expect, it } from 'vitest'
@@ -13,7 +10,7 @@ import { fovDeg } from '../src/core/optics.ts'
 import { npf } from '../src/core/suivi.ts'
 import { K } from '../src/registry/constants.ts'
 
-/** Setup grand angle de référence du PRD : 10 mm f/2,8, pitch 5,12 µm, plein format. */
+/** PRD wide-angle reference: 10 mm f/2,8, pitch 5,12 µm, plein format. */
 const GRAND_ANGLE = { focaleMm: 10, ouvertureN: 2.8, pitchUm: 5.12 }
 const CAPTEUR_L_MM = 35.9
 const CAPTEUR_H_MM = 23.9
@@ -60,7 +57,7 @@ describe('§9.1 — pose max par déclinaison', () => {
   })
 
   it('retient la zone de plus faible déclinaison absolue, pas le centre de visée', () => {
-    // Bande verticale couvrant δ = +5° à δ = +70° : c'est δ = +5° qui commande.
+    // Vertical band δ = +5° to +70°: δ = +5° governs.
     const resultat = carte({ centreDecDeg: 37.5, fovLDeg: 2, fovHDeg: 65 })
     expect(resultat.decMinAbsDeg).toBeCloseTo(5, 0)
     expect(resultat.tMaxCadreS.value).toBeCloseTo(npf({ ...GRAND_ANGLE, decDeg: 5 }).value!, 0)
@@ -81,7 +78,7 @@ describe('§9.1 — pose max par déclinaison', () => {
     expect(sansSuivi.regime).toBe('NPF')
     expect(avecSuivi.regime).toBe('SUIVI')
     expect(avecSuivi.poseOperanteS).toBe(120)
-    // La NPF reste calculée et affichée, à titre informatif.
+    // NPF still computed and shown, informational.
     expect(avecSuivi.tMaxCadreS.value).toBeCloseTo(25.16, 1)
     expect(avecSuivi.messages.join(' ')).toMatch(/c’est la monture qui limite/)
   })
@@ -90,16 +87,16 @@ describe('§9.1 — pose max par déclinaison', () => {
     const resultat = carte({ centreDecDeg: 0 })
     expect(resultat.cellules.length).toBe(resultat.cote ** 2)
     const declinaisons = resultat.cellules.map((c) => c.decDeg)
-    // Sur un grand champ, la déclinaison varie de plusieurs dizaines de degrés dans le cadre.
+    // Grand champ: declination varies by tens of degrees across frame.
     expect(Math.max(...declinaisons) - Math.min(...declinaisons)).toBeGreaterThan(60)
   })
 
   it('chiffre la traînée réellement inscrite sur le capteur', () => {
     const echApx = (K('RADIAN_EN_ARCSEC') * GRAND_ANGLE.pitchUm) / (GRAND_ANGLE.focaleMm * 1000)
-    // 15,041 "/s à δ = 0 : une pose de 60 s inscrit 902 arcsecondes de traînée.
+    // 15,041 "/s at δ = 0: 60 s pose = 902 arcsec of trail.
     const trainee = traceePx(60, 0, echApx)
     expect(trainee.value * echApx).toBeCloseTo(K('ROTATION_CIEL_DEG_H') * 60, 3)
-    // À déclinaison plus élevée, la même pose trace moins.
+    // Higher declination: same pose trails less.
     expect(traceePx(60, 60, echApx).value).toBeCloseTo(trainee.value / 2, 3)
   })
 })
@@ -132,7 +129,7 @@ describe('§9.1 — carte de pose d’un fisheye (T-0219)', () => {
       modeObjectif: 'MODE_FISHEYE',
     })
     for (const cellule of resultat.cellules) expect(Number.isFinite(cellule.decDeg)).toBe(true)
-    // Rotation nulle, visée sur l'équateur : le bord haut du cadre est à δ = fovH / 2.
+    // Zero rotation, aim on equator: frame top edge at δ = fovH / 2.
     expect(resultat.decMaxAbsDeg).toBeCloseTo(fovH / 2, 6)
   })
 })

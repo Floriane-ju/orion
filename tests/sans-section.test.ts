@@ -1,8 +1,7 @@
 /**
- * §1.5 — le registre garde ses renvois au PRD, l'interface n'en montre aucun.
- *
- * Le corpus est balayé en entier plutôt qu'échantillonné : une constante ajoutée demain
- * avec une forme de renvoi inédite fait échouer ce test, pas l'affichage.
+ * §1.5 — registry keeps its PRD cross-references, UI shows none.
+ * Whole corpus swept, not sampled: tomorrow's constant with a new reference form fails this test,
+ * not the display.
  */
 
 import { describe, expect, test } from 'vitest'
@@ -10,7 +9,7 @@ import { REGISTRE } from '../src/registry/constants.ts'
 import { FORMULES } from '../src/registry/formulas.ts'
 import { sansSection } from '../src/ui/sans-section.ts'
 
-/** Tout ce que la valeur tracée déplie sous une formule. */
+/** Everything the traced value unfolds under a formula. */
 function textesAffiches(): readonly string[] {
   const constantes = Object.values(REGISTRE).flatMap((c) => [c.source, c.tolerance ?? ''])
   const formules = Object.values(FORMULES).map((f) => ('note' in f ? f.note : ''))
@@ -27,9 +26,9 @@ describe('sansSection', () => {
     expect(restants).toEqual([])
   })
 
-  // Le retrait ne doit pas laisser de préposition orpheline ni de ponctuation en l'air.
-  // Le décompte est comparé au texte d'origine : une expression mathématique déjà espacée
-  // ainsi (`exp( −|b| / 20° )`) n'est pas une régression.
+  // Removal leaves no orphan preposition nor floating punctuation.
+  // Count compared to original text: a maths expression already spaced so (`exp( −|b| / 20° )`)
+  // isn't a regression.
   test('la phrase reste grammaticale une fois le renvoi retiré', () => {
     const orphelins = (t: string) => t.match(/\s,|\s\.|\s\)|(^|\s)(de|du|par|à)\s*[,.:]/g)?.length ?? 0
     const bancal = textesAffiches().filter((t) => orphelins(sansSection(t)) > orphelins(t))

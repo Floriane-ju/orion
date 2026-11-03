@@ -1,7 +1,6 @@
 /**
- * T-0431 — le plan de la nuit voyage par un lien : la nuit, le lieu et les cibles choisies
- * s'écrivent dans la query string et s'y relisent sur un autre appareil. Le trajet vérifié
- * est l'aller-retour : une écriture qui ne se relit pas ne transporte rien.
+ * T-0431 — night plan travels by link: night, lieu, chosen targets in query string, read back on
+ * another device. Verified path = round-trip: unreadable write carries nothing.
  */
 
 import 'fake-indexeddb/auto'

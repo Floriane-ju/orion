@@ -1,10 +1,7 @@
 /**
- * Ce que les cinq bancs recopiaient à l'identique : la racine du dépôt, le site de l'annexe A,
- * la lecture d'un paquet de `public/data/`, la médiane.
- *
- * Deux médianes divergeaient : celle du banc d'incrustation prenait la valeur haute sur un
- * nombre pair de passes, celle du banc de frappe la moyenne des deux centrales. Un même mot
- * qui mesure deux choses rend deux bancs incomparables.
+ * Shared by 5 benches: repo root, annexe A site, `public/data/` pack reader, median.
+ * One median only: incrustation took upper value on even counts, frappe the mean of the 2
+ * central ones → not comparable.
  */
 
 import { readFileSync } from 'node:fs'
@@ -16,7 +13,7 @@ export const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 export const SITE: Site = { latitudeDeg: 46.391, longitudeDeg: 6.697, altitudeM: 500 }
 
-/** Un paquet binaire réel, découpé à ses propres octets : `Buffer` partage un tampon plus grand. */
+/** Real binary pack, sliced to its own bytes (`Buffer` shares a larger pool). */
 export function lit(nom: string): ArrayBuffer {
   const octets = readFileSync(join(RACINE, 'public/data', nom))
   return octets.buffer.slice(
@@ -25,7 +22,7 @@ export function lit(nom: string): ArrayBuffer {
   ) as ArrayBuffer
 }
 
-/** La médiane plutôt que la moyenne : une moyenne suit le premier échauffement. */
+/** Median, not mean: a mean follows the first warm-up run. */
 export function mediane(valeurs: readonly number[]): number {
   const triees = [...valeurs].sort((a, b) => a - b)
   const milieu = Math.floor(triees.length / 2)

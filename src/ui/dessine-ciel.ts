@@ -1,12 +1,8 @@
 /**
- * Passe de rendu du planétarium — §3.1, §3.3, §3.4, §3.5.
- *
- * Une image = une matrice, un parcours d'index, un tracé. Le coût suit le nombre d'étoiles
- * RETENUES, jamais le nombre d'étoiles stockées : les cellules hors champ ne sont pas
- * visitées, et le parcours d'une cellule s'arrête à la magnitude limite du zoom.
- *
- * Les étoiles sont regroupées par teinte avant d'être tracées : changer `fillStyle` coûte
- * plus cher que tracer un disque, et huit changements par image valent mieux que dix mille.
+ * Planétarium render pass — §3.1, §3.3, §3.4, §3.5.
+ * One frame = one matrix, one index walk, one draw. Cost follows RETAINED star count, never stored:
+ * off-field cells unvisited, cell walk stops at zoom limiting magnitude.
+ * Stars grouped by teinte: `fillStyle` change costs more than a disc; 8 changes/frame beat 10000.
  */
 
 import { K } from '../registry/constants.ts'
@@ -97,13 +93,13 @@ export interface CouchesActives {
   readonly cadre: boolean
   readonly horizon: boolean
   readonly voieLactee: boolean
-  /** §4.1 — le sol du site masque ce qui est dessous : rien n'y est tracé ni cliquable. */
+  /** §4.1 — site sol masks what's below: nothing drawn nor clickable there. */
   readonly sol: boolean
 }
 
 export type TypeCible = 'ETOILE' | 'OBJET' | 'CORPS'
 
-/** Élément dessiné, conservé pour le pointage à la souris. */
+/** Drawn element, kept for mouse pointing. */
 export interface CibleEcran {
   readonly type: TypeCible
   readonly xPx: number
@@ -114,19 +110,16 @@ export interface CibleEcran {
   readonly etoileNommee?: EtoileNommee
   readonly corps?: PositionCorps
   /**
-   * T-0144 — encombrement du marqueur peint, en pixels depuis son centre. Le label s'y appuie
-   * pour ne pas tomber DANS l'objet, et le clic pour porter jusqu'à son bord.
+   * T-0144 — painted marker footprint, px from centre. Label avoids landing IN the object; click
+   * reaches its edge.
    */
   readonly rayonPx?: number
 }
 
 /**
- * T-0085, T-0109 — l'élément sous le curseur, et rien d'autre.
- *
- * L'appelant range ce que `cibleSousLeCurseur` lui a rendu ; la scène résout le texte et sa
- * place au moment où elle peint, avec les mêmes fonctions que les labels retenus. Un texte
- * déjà composé par l'appelant serait un second vocabulaire — c'est exactement ce que T-0109
- * a supprimé.
+ * T-0085, T-0109 — element under cursor, nothing else. Caller stores what `cibleSousLeCurseur`
+ * returned; scène resolves text and place at paint, with same functions as retained labels.
+ * Caller-composed text = second vocabulary (T-0109 removed it).
  */
 export interface SurvolEcran {
   readonly cible: CibleEcran
@@ -135,7 +128,7 @@ export interface SurvolEcran {
 export interface EntreeDessin {
   readonly ctx: CanvasRenderingContext2D
   readonly projecteur: Projecteur
-  /** J2000 → repère horizontal du site : elle sert aux éléments définis dans ce repère. */
+  /** J2000 → site horizontal frame: for elements defined in that frame. */
   readonly matriceCiel: Mat3
   readonly index: IndexCiel
   readonly etoiles: readonly Etoile[]
@@ -151,81 +144,67 @@ export interface EntreeDessin {
   readonly couches: CouchesActives
   readonly magLimite: number
   /**
-   * T-0357 — part visible des étoiles et des repères nocturnes (`apparitionReperes`) : ils
-   * reviennent en fondu après le coucher. La Lune et les planètes n'y passent pas. Absente : 1.
+   * T-0357 — visible share of stars and night repères (`apparitionReperes`): fade back in after
+   * sunset. Lune, planets exempt. Absent: 1.
    */
   readonly apparition?: number | undefined
-  /**
-   * §3.7 — fond de ciel du site : c'est lui qui module le contraste de la bande. La scène
-   * montre ce que L'UTILISATEUR verra, pas une carte de référence idéale.
-   */
+  /** §3.7 — site fond de ciel: modulates band contrast. Scène shows what USER sees, not ideal. */
   readonly sbCiel: number
-  /** §3.7 — latitude du site : elle décide si le centre galactique est atteignable d'ici. */
+  /** §3.7 — site latitude: decides if galactic centre is reachable from here. */
   readonly latitudeDeg: number
-  /** §4.1 — relief du site : il donne sa hauteur au sol de la couche `sol`, azimut par azimut. */
+  /** §4.1 — site relief: gives `sol` layer its height, per azimut. */
   readonly masque: MasqueHorizon
   /**
-   * §3.3 — vue réaliste : le fond prend la luminance du fond de ciel du site, le halo
-   * d'horizon et le halo lunaire s'y ajoutent, et les repères compensent le contraste perdu.
-   * Décochée, la scène est celle d'avant T-0097, au pixel près.
+   * §3.3 — vue réaliste: fond takes site fond de ciel luminance, horizon and Lune halos add,
+   * repères compensate lost contrast. Unchecked: pre-T-0097 scène, pixel-exact.
    */
   readonly vueRealiste: boolean
-  /**
-   * T-0100 — la Lune telle que la scène la dessine. Absente : elle n'entre dans aucun calcul,
-   * ce qui est le cas dès qu'elle est masquée (§3.1) ou que la vue réaliste est décochée.
-   */
+  /** T-0100 — Lune as scène draws it. Absent: enters no calc (masked §3.1, or vue réaliste off). */
   readonly lune?: LuneEcran | undefined
-  /** Le Soleil de l'instant affiché. Absent : aucun halo solaire n'est peint. */
+  /** Sun at displayed instant. Absent: no solar halo painted. */
   readonly soleil?: SoleilEcran | undefined
   readonly modeNuit: boolean
   /**
-   * §9.3 / T-0116 — la passe de filé, peinte entre le sol et les repères, avec le PROJECTEUR
-   * FILTRÉ de la scène : les traces tombent donc sur les mêmes étoiles que le ciel qui les
-   * entoure, et rien ne se peint sous le relief (§4.1).
-   *
-   * Sa présence REMPLACE la couche d'étoiles ponctuelles : une trace surmontée d'un point net
-   * à une extrémité n'existe sur aucune pose. Elle vide aussi `cibles` (T-0316) : sous
-   * l'aperçu, rien n'est peint, donc rien ne se désigne — une étoile n'est plus au pixel où
-   * elle se projette, et les marqueurs d'objets et de corps ne sont plus là du tout.
+   * §9.3 / T-0116 — filé pass, between sol and repères, scène FILTERED PROJECTEUR: traces fall on
+   * same stars as surrounding sky, nothing paints under relief (§4.1). Presence REPLACES
+   * point-star layer (trace topped by sharp dot exists on no pose); also empties `cibles` (T-0316):
+   * nothing painted under preview → nothing designated (star off its projected pixel; object/corps
+   * markers absent).
    */
   readonly passeFile?:
     | ((ctx: CanvasRenderingContext2D, projecteur: Projecteur) => void)
     | undefined
   /**
-   * T-0427 — l'aperçu est un filé : le temps de prise de vue dépasse la pose max à étoiles
-   * ponctuelles. Le ciel tourne pendant la prise de vue ; un trait figé à l'instant affiché
-   * n'y correspond à rien.
+   * T-0427 — preview is a filé: shooting time exceeds pose max for point stars. Sky rotates during
+   * shot; trace frozen at displayed instant matches nothing.
    */
   readonly etoilesFilent?: boolean | undefined
   /**
-   * T-0399 — la Lune aux instants de la prise de vue, de l'instant affiché à la fin du filé.
-   * Lue seulement sous l'aperçu : la pose à monture coupée y étire le disque en trace.
+   * T-0399 — Lune at shooting instants, displayed instant → filé end. Read under preview only:
+   * pose with cut monture stretches disc into trace.
    */
   readonly trajetLune?: readonly PositionCorps[] | undefined
   /**
-   * §9.1 / T-0142 — l'optique dont la carte de pose a besoin. Présente : le cadre matériel est
-   * masqué et garni de la grille de §9.1, en dernier, par-dessus tout ce qu'il recouvre.
+   * §9.1 / T-0142 — optique the pose card needs. Present: matériel cadre masked and filled with
+   * §9.1 grid, last, over all it covers.
    */
   readonly poseCadre?: OptiquePose | undefined
-  /** §3.4 / T-0085 — absent : rien n'est survolé, la scène ne révèle aucun nom. */
+  /** §3.4 / T-0085 — absent: nothing hovered, scène reveals no name. */
   readonly survol?: SurvolEcran | undefined
   /**
-   * §6.4 — les désignations que les filtres du catalogue retiennent (`cibles-en-avant.ts`).
-   * Les autres marqueurs se peignent estompés, nom compris : la scène répond alors à la même
-   * question que la liste. Absent — aucun filtre actif — tout garde sa pleine opacité.
+   * §6.4 — désignations kept by catalogue filters (`cibles-en-avant.ts`). Other markers paint
+   * dimmed, name included: scène answers list's question. Absent (no filter): full opacity.
    */
   readonly enAvant?: ReadonlySet<string> | undefined
   /**
-   * §8.4 / T-0324 — le trajet de pointage. Présent, il tient lieu de scène entière : comme
-   * l'aperçu de §9.5, il éteint tout ce qui COMMENTE le ciel, et il éteint en plus ce qui le
-   * cadre — sol, horizon, grille de pose — parce qu'aucun de ces repères n'aide à aller d'une
-   * étoile à la suivante. Ne survivent que le cadre matériel, seule échelle de distance, les
-   * étoiles de fond très atténuées, et le trajet lui-même.
+   * §8.4 / T-0324 — pointage path. Present: replaces whole scène; like §9.5 preview switches off
+   * all that COMMENTS sky, plus what frames it (sol, horizon, pose grid): none helps star to star.
+   * Survive: matériel cadre (only distance scale), very dim fond stars, the path.
    */
   readonly parcours?: ParcoursScene | undefined
   /**
-   * §6.4 / T-0283 — la cible dont la fiche est ouverte, ou les cibles du plan sur « Mon plan » :
-   * réticulées et nommées à tout champ.
+   * §6.4 / T-0283 — cible whose fiche is open, or plan cibles on « Mon plan »: reticled and named
+   * at any field.
    */
   readonly ciblesOuvertes?: readonly ObjetCielProfond[] | undefined
 }
@@ -235,28 +214,25 @@ export interface SortieDessin {
   readonly etoilesDessinees: number
   readonly cibles: readonly CibleEcran[]
   readonly labels: readonly CandidatLabel[]
-  /** T-0085 — le label transitoire du survol, hors budget de §3.4. */
+  /** T-0085 — transient hover label, outside §3.4 budget. */
   readonly revele: BoiteLabel | null
-  /** T-0283 — les repères des cibles ouvertes à l'écran ; vide sans cible ou hors de l'écran. */
+  /** T-0283 — repères of cibles opened on screen; empty without cible or off-screen. */
   readonly reperes: readonly BoiteLabel[]
 }
 
-/* T-0109 — la mise en page des labels appartient à `libelles-cibles.ts` : les tailles y sont
-   déclarées, et importées ici pour les labels qui n'ont pas de cible (constellations,
-   astérismes, Voie lactée). */
+/* T-0109 — label layout in `libelles-cibles.ts` (sizes declared there), imported for labels
+   without cible (constellations, astérismes, Voie lactée). */
 export const RAYON_CLIC_PX = 10
-/* T-0107 — pas de la clé de pixel entier. Toute largeur de canevas réaliste lui est très
-   inférieure, ce qui rend `y * PAS + x` injectif, y compris pour le voisinage à x = −1. */
+/* T-0107 — whole-pixel key pas. Any realistic canvas width is far below → `y * PAS + x` injective,
+   incl. neighbourhood at x = −1. */
 const PAS_CLE_PIXEL = 65536
 
 
 
 /**
- * T-0107 — un pixel du voisinage immédiat porte-t-il déjà une étoile nommée ?
- *
- * Le voisinage 3×3 et non le seul pixel : les deux passes projettent la même étoile depuis
- * deux paquets qui n'ont pas la même précision, et leurs arrondis peuvent tomber de part et
- * d'autre d'une frontière de pixel.
+ * T-0107 — does a pixel in immediate neighbourhood already carry a named star? 3×3 not single
+ * pixel: both passes project the same star from two packets of different precision; roundings can
+ * fall either side of a pixel boundary.
  */
 function pixelDejaNomme(pixels: ReadonlySet<number>, xPx: number, yPx: number): boolean {
   const x = Math.round(xPx)
@@ -271,50 +247,46 @@ function pixelDejaNomme(pixels: ReadonlySet<number>, xPx: number, yPx: number): 
 
 
 /**
- * Ce que toutes les passes d'une image partagent.
- *
- * `entree` porte le projecteur FILTRÉ par le sol ; `brut` est celui qui ignore le sol, et il
- * reste nécessaire à ce qui doit se peindre sous l'horizon — le cadre du matériel, l'horizon
- * lui-même, la bande. Les deux tableaux sont les accumulateurs de l'image : une passe y dépose
- * ce qu'elle a peint, `dessineCiel` en tire les labels et les cibles cliquables.
+ * What all passes of a frame share.
+ * `entree` = sol-FILTERED projecteur; `brut` ignores sol, still needed for what paints below
+ * horizon (matériel cadre, horizon, band). Both arrays = frame accumulators: a pass deposits what
+ * it painted, `dessineCiel` derives labels and clickable cibles from them.
  */
 interface Passe {
   readonly entree: EntreeDessin
   readonly brut: Projecteur
   readonly couches: CouchesActives
   readonly teintes: PaletteCiel
-  /** T-0171 — faux quand l'aperçu plein ciel tient lieu de prise de vue : les repères s'effacent. */
+  /** T-0171 — false when full-sky preview stands for shot: repères fade. */
   readonly peintReperes: boolean
-  /** T-0324 — vrai quand la scène ne montre qu'un parcours de pointage (§8.4). */
+  /** T-0324 — true when scène shows only a pointage parcours (§8.4). */
   readonly modeParcours: boolean
   /**
-   * T-0324 — opacité des étoiles de fond. Nulle sous l'aperçu de §9.5, où un point net à
-   * l'extrémité d'une trace n'existe sur aucune pose ; atténuée sous un parcours, où le fond
-   * n'est plus le sujet mais reste ce qui dit où l'on regarde ; pleine partout ailleurs.
+   * T-0324 — fond star opacity. 0 under §9.5 preview (sharp dot at trace end exists on no pose);
+   * attenuated under parcours (fond says where we look, isn't subject); full elsewhere.
    */
   readonly opaciteEtoiles: number
   readonly fondPeint: boolean
-  /** T-0357 — opacité des repères nocturnes : figures, marqueurs, noms autres que ceux des corps. */
+  /** T-0357 — night repère opacity: figures, markers, names other than corps. */
   readonly apparition: number
   readonly largeur: number
   readonly hauteur: number
-  /** Point de travail unique pour toute l'image : aucune passe n'alloue par élément (T-0065). */
+  /** Single work point for whole frame: no pass allocates per element (T-0065). */
   readonly p: PointEcranMut
   readonly cibles: CibleEcran[]
   readonly candidats: CandidatLabel[]
 }
 
 
-/** §3.7, §4.1 — le fond, les halos, la bande et le sol : ce qui se peint sous tout le reste. */
+/** §3.7, §4.1 — fond, halos, band, sol: all painted under the rest. */
 function passeFond(passe: Passe): void {
   const { entree, brut, couches, teintes, fondPeint, largeur, hauteur } = passe
   const { ctx, projecteur } = passe.entree
 
   ctx.fillStyle = teintes.fond
   ctx.fillRect(0, 0, largeur, hauteur)
-  // T-0098, T-0100 — les deux couches qui éclaircissent le fond passent AVANT la bande, le
-  // sol et les repères : un fond peint par-dessus le repérage masque ce qui sert à s'orienter
-  // (§3.7), et le relief doit recouvrir le halo quand la visée est basse (T-0094).
+  // T-0098, T-0100 — the two fond-brightening layers go BEFORE band, sol, repères: fond over
+  // repérage masks orientation aids (§3.7); relief must cover halo when aim is low (T-0094).
   if (fondPeint) {
     dessineHaloHorizon(ctx, brut, entree.matriceCiel, entree.sbCiel)
     if (
@@ -325,15 +297,13 @@ function passeFond(passe: Passe): void {
     }
     if (entree.lune !== undefined) dessineHaloLune(ctx, brut, entree.sbCiel, entree.lune)
   }
-  // §3.7 — la bande appartient au fond : elle passe sous l'aperçu de §9.5 comme
-  // sous les repères. Peinte plus tard, elle laverait la prévisualisation qu'elle recouvre.
-  // Elle est tracée au projecteur BRUT, puis recouverte par le sol : filtrée, un trait de
-  // cinq degrés de large s'interromprait un pas d'azimut trop tôt et laisserait une encoche
-  // au-dessus de l'horizon.
+  // §3.7 — band belongs to fond: under §9.5 preview as under repères; painted later it'd wash the
+  // preview it covers. RAW projecteur then covered by sol: filtered, a 5° wide stroke would stop
+  // one azimut step early, leaving a notch above horizon.
   if (couches.voieLactee) traceBandeVoieLactee({ ...entree, projecteur: brut })
-  // §4.1 — le sol, peint sur le fond et sur la bande, sous tout le reste.
+  // §4.1 — sol, painted over fond and band, under everything else.
   if (couches.sol) {
-    // T-0409 — le sol suit le Soleil de la scène, comme l'interface suit le sien.
+    // T-0409 — sol follows scène Sun, as the interface follows its own.
     const soleilLeve = entree.soleil !== undefined && entree.soleil.altitudeDeg > 0
     dessineSol(ctx, brut, entree.matriceCiel, entree.masque, {
       sol: soleilLeve ? teintes.solJour : teintes.sol,
@@ -341,11 +311,10 @@ function passeFond(passe: Passe): void {
       bords: teintes.horizon,
     })
   }
-  // §9.5 — la passe de filé passe APRÈS le sol, mais avec le projecteur qui l'ignore : le sol
-  // reste peint par-dessus le fond, et aucune trace ne se calcule sous l'horizon (§4.1).
-  // T-0396 — le filé, ce sont des étoiles : il revient au même fondu qu'elles au crépuscule,
-  // et de jour, où rien ne se verrait, il ne se calcule pas. La passe porte son opacité dans
-  // ses couleurs, elle n'écrit jamais `globalAlpha`.
+  // §9.5 — filé pass AFTER sol, sol-ignoring projecteur: sol stays over fond, no trace computed
+  // under horizon (§4.1).
+  // T-0396 — filé is stars: same twilight fade; by day, nothing shows → not computed. Pass carries
+  // opacity in its colours, never writes `globalAlpha`.
   if (passe.apparition > 0) {
     ctx.globalAlpha = passe.apparition
     entree.passeFile?.(ctx, projecteur)
@@ -353,15 +322,15 @@ function passeFond(passe: Passe): void {
   }
 }
 
-/** §3.3, T-0110, T-0173 — les repères tracés : constellations, horizon, plan galactique. */
+/** §3.3, T-0110, T-0173 — drawn repères: constellations, horizon, galactic plane. */
 function passeTraces(passe: Passe): CandidatLabel | null {
   const { entree, brut, couches, teintes } = passe
   const { ctx, projecteur } = passe.entree
   ctx.font = POLICE_LABEL
   ctx.textBaseline = 'middle'
 
-  // T-0110 — le champ se prend sur le projecteur BRUT : c'est une propriété de la vue, pas du
-  // filtrage par le sol. La calotte obtenue englobe donc ce que le projecteur filtré montrera.
+  // T-0110 — field on RAW projecteur: view property, not sol filtering. Resulting cap encloses
+  // what filtered projecteur shows.
   const champScene = champVisible(brut)
   ctx.globalAlpha = passe.apparition
   if (couches.frontieres) {
@@ -375,24 +344,22 @@ function passeTraces(passe: Passe): CandidatLabel | null {
     traceSegments(ctx, projecteur, entree.figures, champScene)
   }
   if (couches.asterismes) {
-    // Couche distincte des figures IAU par l'épaisseur — même gris —, pas par des tirets :
-    // le motif de tirets se rend plein sur un segment plus court que sa période, et un
-    // astérisme mélange des branches longues et des chaînes de segments courts. La même
-    // couche paraîtrait alors tracée de deux façons.
+    // Distinct from IAU figures by thickness (same grey), not dashes: dash pattern renders solid
+    // on a segment shorter than its period, and an astérisme mixes long branches and short-segment
+    // chains → same layer would look drawn two ways.
     ctx.strokeStyle = teintes.asterismes
     ctx.lineWidth = 2
     traceSegments(ctx, projecteur, entree.asterismes, champScene)
     ctx.lineWidth = 1
   }
-  // L'horizon cadre la vue, de jour comme de nuit : il ne passe pas au fondu.
+  // Horizon frames the view, day and night: no fade.
   ctx.globalAlpha = 1
   if (couches.horizon) traceHorizon(entree, teintes.horizon, brut)
-  // T-0173 — le TRAIT du plan galactique survit à l'aperçu : sur une prise de vue où la Voie
-  // lactée se voit, c'est la seule ligne qui dise où elle passe. Il cadre comme l'horizon
-  // cadre. La bande, le repère du centre et les noms, eux, l'annotent : ils restent éteints.
-  // T-0324 — sous un parcours il s'éteint quand même : ce qui cadre une PRISE DE VUE n'aide pas
-  // à aller d'une étoile à la suivante, et la scène du parcours ne garde que le cadre matériel.
-  // T-0427 — sous un filé non plus : la bande a tourné avec le ciel pendant la prise de vue.
+  // T-0173 — galactic plane TRAIT survives preview: on a shot where Voie lactée shows, only line
+  // saying where it runs. Frames like horizon. Band, centre repère, names annotate: stay off.
+  // T-0324 — off under parcours too: what frames a SHOT doesn't help star to star; parcours scène
+  // keeps only matériel cadre.
+  // T-0427 — off under filé too: band rotated with sky during shot.
   if (entree.couches.voieLactee && !passe.modeParcours && entree.etoilesFilent !== true) {
     ctx.strokeStyle = teintes.voieLactee
     ctx.lineWidth = 1
@@ -405,8 +372,8 @@ function passeTraces(passe: Passe): CandidatLabel | null {
 }
 
 /**
- * Appariement des sommets au catalogue, une fois par couche et par index : les couches sont
- * construites au chargement du paquet et ne se réallouent pas (même clé que `calottesDe`).
+ * Vertex↔catalogue pairing, once per layer+index: layers built at packet load, not reallocated
+ * (same key as `calottesDe`).
  */
 const etoilesTracesMemo = new WeakMap<object, { index: IndexCiel; etoiles: readonly EtoileTrace[] }>()
 
@@ -418,16 +385,15 @@ function etoilesTraces(couches: readonly CoucheTraces[], index: IndexCiel): read
   return etoiles
 }
 
-/** §3.3 — les étoiles du paquet, regroupées par teinte : huit tracés, pas seize mille. */
+/** §3.3 — packet stars grouped by teinte: 8 draws, not 16000. */
 function passeEtoiles(passe: Passe): { stats: StatistiquesSelection; etoilesDessinees: number } {
   const { entree, opaciteEtoiles, largeur, hauteur, p, cibles } = passe
   const { ctx, projecteur, index } = passe.entree
-  // --- Étoiles ------------------------------------------------------------
-  // Rayon du champ : la diagonale du canevas, exprimée en degrés au centre.
+  // --- Étoiles ---
+  // Field radius: canvas diagonal as degrees at centre.
   const { centre: centreJ2000, rayonDeg: rayonChampDeg } = champVisible(projecteur)
-  // Un `Path2D` par teinte, réalloué à chaque image : l'API n'offre aucun effacement, et
-  // un chemin réutilisé accumulerait les disques des images précédentes. Contrainte de la
-  // plateforme, pas négligence — huit objets par image, contre un par étoile évité plus bas.
+  // One `Path2D` per teinte, reallocated per frame: API has no clear, reused path would accumulate
+  // previous frames' discs. Platform constraint — 8 objects/frame vs one per star avoided below.
   const chemins = Array.from({ length: TEINTES }, () => new Path2D())
   let etoilesDessinees = 0
 
@@ -452,9 +418,8 @@ function passeEtoiles(passe: Passe): { stats: StatistiquesSelection; etoilesDess
       }
     },
   )
-  // Un trait de figure qui aboutit dans le vide se lit comme une erreur : les étoiles des
-  // tracés affichés passent outre la limite du zoom. Celles qui la tiennent sont déjà peintes.
-  // Une limite à −∞ (le jour) n'en laisse aucune : il n'y a alors pas d'étoile à rejoindre.
+  // A figure stroke ending in the void reads as error: stars of displayed traces bypass zoom limit
+  // (those within it already painted). Limit −∞ (day) leaves none: no star to join.
   if (opaciteEtoiles > 0 && entree.magLimite > Number.NEGATIVE_INFINITY) {
     const tracees = [
       ...(passe.couches.figures ? etoilesTraces(entree.figures, index) : []),
@@ -482,11 +447,11 @@ function passeEtoiles(passe: Passe): { stats: StatistiquesSelection; etoilesDess
   return { stats, etoilesDessinees }
 }
 
-/** §3.4 — les étoiles nommées : leurs labels, et les pixels qu'elles occupent déjà (T-0107). */
+/** §3.4 — named stars: their labels, and pixels they already occupy (T-0107). */
 function passeEtoilesNommees(passe: Passe): ReadonlySet<number> {
   const { entree, peintReperes, largeur, hauteur, p, cibles, candidats } = passe
   const { projecteur } = passe.entree
-  // --- Étoiles nommées : labels et identification au clic -----------------
+  // --- Named stars: labels, click identification ---
   const pixelsNommes = new Set<number>()
   for (const nommee of entree.etoilesNommees) {
     if (!etoileLabellisable(nommee.magV)) continue
@@ -494,8 +459,8 @@ function passeEtoilesNommees(passe: Passe): ReadonlySet<number> {
     if (!projecteur.projetteEn(v.x, v.y, v.z, p)) continue
     if (horsCanevas(p, largeur, hauteur)) continue
     pixelsNommes.add(Math.round(p.yPx) * PAS_CLE_PIXEL + Math.round(p.xPx))
-    // T-0109 — `nom` ne porte plus le libellé : le nom d'une étoile se demande à
-    // `libelleCible`, seule source du vocabulaire de la scène.
+    // T-0109 — `nom` no longer carries label: star name asked of `libelleCible`, sole scène
+    // vocabulary source.
     const cible: CibleEcran = {
       type: 'ETOILE',
       xPx: p.xPx,
@@ -513,35 +478,30 @@ function passeEtoilesNommees(passe: Passe): ReadonlySet<number> {
   return pixelsNommes
 }
 
-/** §3.4 — le ciel profond : un tracé par objet, chacun avec la teinte de son type. */
+/** §3.4 — deep sky: one path per object, each with its type's teinte. */
 function passeObjets(passe: Passe): void {
   const { entree, teintes, peintReperes, largeur, hauteur, p, cibles, candidats } = passe
   const { ctx, projecteur } = passe.entree
-  // --- Objets du ciel profond ---------------------------------------------
-  // Un tracé par objet, là où les étoiles se regroupent en huit chemins : chacun porte la teinte
-  // de son type et son dégradé (`apparence-objets.ts`). Ce sont quelques centaines d'ordres, pas
-  // les seize mille que le regroupement des étoiles évite.
+  // --- Objets du ciel profond ---
+  // One path per object (stars group into 8): each carries type teinte and gradient
+  // (`apparence-objets.ts`). A few hundred orders, not the 16000 star grouping avoids.
   const teintesParType = teintesObjets(entree.modeNuit, entree.vueRealiste, entree.sbCiel)
-  // T-0195 — le plafond du ciel profond est FIXE, il n'est pas `entree.magLimite`. Celle-ci
-  // est asservie au zoom (§3.3) parce que 83 479 étoiles referment le canevas à 180° ; un
-  // marqueur d'objet ne représente pas un flux, il désigne un endroit. Asservi, il s'effaçait
-  // au dézoom — le geste même par lequel on cherche où la cible tombe dans le ciel. Même
-  // raison que la teinte des marqueurs en vue réaliste (`apparence-objets.ts`) : un repère ne
-  // s'éteint ni avec le fond de ciel, ni avec le champ.
+  // T-0195 — deep-sky cap FIXED, not `entree.magLimite` (zoom-driven, §3.3: 83479 stars close
+  // canvas at 180°). Object marker isn't a flux, it designates a place; driven, it vanished on
+  // zoom-out — the gesture used to find where cible sits. Same reason as marker teinte in vue
+  // réaliste (`apparence-objets.ts`): repère goes out neither with fond de ciel nor field.
   const magObjets = K('MAG_LIMITE_OBJETS')
   for (const objet of entree.objets) {
     if (objet.vMag === null || objet.vMag > magObjets) continue
     const v = versVecteur(objet.adDeg, objet.decDeg)
     if (!projecteur.projetteEn(v.x, v.y, v.z, p)) continue
     if (horsCanevas(p, largeur, hauteur)) continue
-    // La géométrie vient APRÈS les trois rejets : ses deux projections auxiliaires ne se paient
-    // que pour ce qui se voit.
+    // Geometry AFTER the three rejections: its two auxiliary projections paid only for what shows.
     const teintesObjet = teintesParType[objet.type]
     const geo = geometrieMarqueur(projecteur, objet, p.xPx, p.yPx)
-    // Le filtre ne retire rien de la scène : il ne fait qu'éteindre ce qu'il ne retient pas.
-    // Le clic, le survol et la fiche continuent donc de fonctionner sur un marqueur estompé.
+    // Filter removes nothing, only dims: click, hover, fiche keep working on a dimmed marker.
     const estompe = entree.enAvant !== undefined && !entree.enAvant.has(objet.designation)
-    // La géométrie se calcule même sans peinture : c'est elle qui donne au clic son rayon.
+    // Geometry computed even unpainted: it gives click its radius.
     if (peintReperes) {
       ctx.globalAlpha = (estompe ? OPACITE_OBJET_ESTOMPE : 1) * passe.apparition
       if (geo === null) peintCroix(ctx, p.xPx, p.yPx, teintesObjet.bord)
@@ -554,11 +514,11 @@ function passeObjets(passe: Passe): void {
       yPx: p.yPx,
       nom: objet.designation,
       objet,
-      // T-0144 — le nom et le clic suivent le marqueur peint, plus un carré de quatre pixels.
+      // T-0144 — name and click follow painted marker, no longer a 4 px square.
       rayonPx: geo === null ? MARQUEUR_OBJET_PX : geo.demiGrandPx,
     }
     cibles.push(cible)
-    // T-0283 — la cible ouverte porte son nom au repère : la nommer ici l'écrirait deux fois.
+    // T-0283 — opened cible carries its name at repère: naming it here would write it twice.
     const ouverte = entree.ciblesOuvertes?.some((c) => c.designation === objet.designation) ?? false
     const texte = peintReperes && !ouverte ? libelleCible(cible) : null
     if (texte !== null) {
@@ -566,21 +526,20 @@ function passeObjets(passe: Passe): void {
         ...boiteLabel(cible, texte),
         categorie: 'OBJET',
         priorite: objet.vMag,
-        // Le nom suit son marqueur : un libellé à pleine lumière au-dessus d'un disque éteint
-        // ramènerait au premier plan ce que le filtre vient d'écarter.
+        // Name follows marker: full-light label over dimmed disc would bring forward what filter
+        // dropped.
         ...(estompe ? { couleur: avecOpacite(teintes.texte, OPACITE_OBJET_ESTOMPE) } : {}),
       })
     }
   }
-  // Les passes suivantes tracent au trait fin : l'épaisseur des contours ne leur appartient pas.
+  // Next passes stroke thin: outline thickness isn't theirs.
   ctx.lineWidth = 1
 }
 
 /**
- * T-0399 — sous l'aperçu de filé, la Lune reste peinte : sa trace est ce qui ruine la pose.
- * Elle se juge sur TOUT le trajet, pas sur la Lune de l'instant : une Lune encore sous l'horizon
- * ou hors du champ peut s'y lever ou y entrer avant la fin du filé. Sans durée, la trace se
- * réduit au disque en phase.
+ * T-0399 — under filé preview Lune stays painted: its trace ruins the pose. Judged on WHOLE path,
+ * not instant's Lune: one below horizon/off-field may rise/enter before filé end. Without
+ * duration, trace reduces to phase disc.
  */
 function passeTrajetLune(passe: Passe): void {
   const { entree, teintes, peintReperes, p } = passe
@@ -589,8 +548,7 @@ function passeTrajetLune(passe: Passe): void {
   const versJ2000 = transpose(entree.matriceCiel)
   const versCiel = (c: PositionCorps) => applique(versJ2000, versVecteur(c.azimutDeg, c.hauteurDeg))
   const points = entree.trajetLune.map(versCiel)
-  // Le rayon se mesure sur le premier point visible : le diamètre apparent ne varie pas d'une
-  // quantité lisible sur la durée d'un filé.
+  // Radius at first visible point: apparent diameter changes unreadably over a filé.
   const premier = points.find((v) => projecteur.projetteEn(v.x, v.y, v.z, p))
   if (premier === undefined) return
   const r = rayonLunePx(projecteur, premier, p, entree.lune?.demiDiametreDeg ?? null)
@@ -606,20 +564,19 @@ function passeTrajetLune(passe: Passe): void {
   )
 }
 
-/** §3.4 — les corps mobiles, dont les noms passent avant tous les autres. */
+/** §3.4 — moving corps, names before all others. */
 function passeCorps(passe: Passe): void {
   const { entree, teintes, peintReperes, largeur, hauteur, p, cibles, candidats } = passe
   const { ctx, projecteur } = passe.entree
-  // --- Corps mobiles -------------------------------------------------------
+  // --- Corps mobiles ---
   const versJ2000 = transpose(entree.matriceCiel)
   const versCiel = (c: PositionCorps) => applique(versJ2000, versVecteur(c.azimutDeg, c.hauteurDeg))
   const soleil = entree.corps.find((c) => c.corps === Body.Sun)
   for (const corps of entree.corps) {
     const v = versCiel(corps)
     if (!projecteur.projetteEn(v.x, v.y, v.z, p)) continue
-    // Hors canevas comme partout ailleurs : un corps derrière l'observateur reste projetable,
-    // et son label part avec la priorité la plus haute de la scène. Sans ce test, une planète
-    // qu'on ne voit pas prenait la place d'un nom qu'on voit (§3.4).
+    // Off-canvas as elsewhere: corps behind observer still projectable, its label gets scène's top
+    // priority. Without this test an unseen planet took a seen name's place (§3.4).
     if (horsCanevas(p, largeur, hauteur)) continue
     const rayonLune =
       corps.corps === Body.Moon
@@ -629,15 +586,15 @@ function passeCorps(passe: Passe): void {
       const angle = soleil === undefined ? null : angleLimbeEclaireRad(projecteur, v, versCiel(soleil), p)
       dessineLune(ctx, p, rayonLune, angle, entree.lune?.anglePhaseDeg ?? null, teintes)
     } else if (peintReperes) {
-      // T-0324 — la teinte se pose au moment de peindre, pas avant la boucle : une couleur
-      // déposée sur le contexte par une passe qui ne peint rien annonce une couche absente.
+      // T-0324 — teinte set at paint, not before loop: colour left by a pass painting nothing
+      // announces an absent layer.
       ctx.fillStyle = teintes.corps
       ctx.beginPath()
       ctx.arc(p.xPx, p.yPx, RAYON_CORPS_PX, 0, TOUR_RAD)
       ctx.fill()
     }
     const nom = entree.nomsCorps[corps.corps] ?? String(corps.corps)
-    // Le nom et le clic suivent le disque peint, comme pour un objet (T-0144).
+    // Name and click follow painted disc, as for an object (T-0144).
     const cible: CibleEcran = {
       type: 'CORPS',
       xPx: p.xPx,
@@ -658,16 +615,14 @@ function passeCorps(passe: Passe): void {
   }
 }
 
-/** T-0034, T-0091 — les noms de la couche Voie lactée : la bande, puis le centre galactique. */
+/** T-0034, T-0091 — Voie lactée layer names: band, then galactic centre. */
 function passeNomsVoieLactee(passe: Passe, labelCentreGalactique: CandidatLabel | null): void {
   const { couches, teintes, largeur, hauteur, candidats } = passe
   const { projecteur } = passe.entree
-  // --- Noms de la couche Voie lactée --------------------------------------
-  // Posés avant les noms de constellations : à priorité égale, le tri stable de
-  // `composeLabels` les laisse passer devant eux plutôt que derrière. Et le repère du
-  // centre galactique passe devant le nom de la bande, pour la même raison : les deux
-  // s'ancrent au même endroit quand la visée est sur le centre, et c'est le repère qui
-  // porte la conséquence site-dépendante.
+  // --- Voie lactée layer names ---
+  // Before constellation names: at equal priority `composeLabels` stable sort lets them through in
+  // front. Galactic-centre repère before band name, same reason: both anchor at same spot aiming at
+  // centre, repère carries the site-dependent consequence.
   if (couches.voieLactee) {
     if (labelCentreGalactique !== null) candidats.push(labelCentreGalactique)
     const ancre = ancreVoieLactee(projecteur, largeur, hauteur)
@@ -686,11 +641,11 @@ function passeNomsVoieLactee(passe: Passe, labelCentreGalactique: CandidatLabel 
   }
 }
 
-/** §3.3 — les noms de constellations et d'astérismes, candidats comme les autres. */
+/** §3.3 — constellation and astérisme names, candidates like the others. */
 function passeNomsConstellations(passe: Passe): void {
   const { entree, couches, peintReperes, largeur, hauteur, p, candidats } = passe
   const { projecteur } = passe.entree
-  // --- Noms de constellations ---------------------------------------------
+  // --- Noms de constellations ---
   for (const figure of peintReperes ? entree.figures : []) {
     if (figure.centre === null) continue
     if (!projecteur.projetteEn(figure.centre.x, figure.centre.y, figure.centre.z, p)) continue
@@ -724,14 +679,14 @@ function passeNomsConstellations(passe: Passe): void {
   }
 }
 
-/** §3.4, T-0085 — les labels retenus, puis le nom que le survol révèle. */
+/** §3.4, T-0085 — retained labels, then name revealed by hover. */
 function passeLabels(passe: Passe): {
   labels: readonly CandidatLabel[]
   revele: BoiteLabel | null
 } {
   const { entree, teintes, candidats, peintReperes } = passe
   const { ctx, projecteur } = passe.entree
-  // --- Labels --------------------------------------------------------------
+  // --- Labels ---
   const labels = composeLabels(candidats, projecteur.vue.fovDeg)
   for (const label of labels) {
     ctx.globalAlpha = label.categorie === 'CORPS' ? 1 : passe.apparition
@@ -740,18 +695,15 @@ function passeLabels(passe: Passe): {
   }
   ctx.globalAlpha = 1
 
-  // T-0085 — le nom masqué par le seuil de zoom, révélé le temps du survol. Il est peint
-  // après les labels retenus et n'entre pas dans leur budget : `labelSurvol` le loge entre
-  // eux ou y renonce, il n'en efface aucun.
+  // T-0085 — name masked by zoom threshold, revealed on hover. After retained labels, outside
+  // their budget: `labelSurvol` fits it between them or gives up, erases none.
   //
-  // T-0109 — mêmes fonctions que la passe des labels, donc même texte au même pixel : ce que
-  // le survol révèle est exactement ce que l'élément aurait porté peint. Faute de libellé —
-  // une étoile brillante que le paquet nommé ne porte pas — il retombe sur le titre de fiche,
-  // seul nom que cet astre possède.
+  // T-0109 — same functions as labels pass → same text at same pixel: hover reveals exactly what
+  // element would have carried. No label (bright star absent from named packet): falls back to
+  // fiche title, the only name that body has.
   //
-  // T-0316 — sauf sous l'aperçu, où la scène ne nomme plus rien : le survol y désignait ce
-  // qu'aucune couche n'a peint. La garde est ici ET dans les cibles, parce que `survol` survit
-  // au basculement de mode — il ne s'efface qu'au mouvement de souris suivant.
+  // T-0316 — except under preview, where scène names nothing: hover designated what no layer
+  // painted. Guard HERE AND in cibles: `survol` survives mode switch (cleared at next mouse move).
   const revele =
     entree.survol === undefined || !peintReperes
       ? null
@@ -771,30 +723,24 @@ function passeLabels(passe: Passe): {
 }
 
 /**
- * L'image du planétarium : une passe par couche, dans l'ordre où elles se recouvrent.
- *
- * T-0193 — cette fonction dépasse cinquante lignes et doit le rester. Ce qu'elle contient est
- * l'ORDRE des passes, et l'ordre est le contrat : chaque couche peint sur ce que la précédente
- * a déposé. Le découper en deux moitiés ne raccourcirait pas la liste, il la couperait en deux
- * endroits où il faut aller la lire — c'est-à-dire qu'il cacherait la seule chose que ce corps
- * a à dire. Les passes, elles, tiennent chacune sous cinquante lignes.
+ * Planétarium frame: one pass per layer, in overlap order.
+ * T-0193 — exceeds 50 lines, must stay so: holds the ORDER of passes, and order is the contract:
+ * each layer paints on what previous deposited. Splitting would hide the only thing this body
+ * says. Passes themselves stay under 50 lines.
  */
 export function dessineCiel(entreeBrute: EntreeDessin): SortieDessin {
   const brut = entreeBrute.projecteur
-  // §4.1 — la couche Sol tient par deux gestes complémentaires. Le sol est PEINT, opaque, sur
-  // ce qui a été tracé avant lui : rien d'autre ne masque la largeur d'un trait épais. Et ce
-  // qui est tracé APRÈS lui hérite d'un projecteur aveugle au sol — sans quoi les étoiles se
-  // reposeraient par-dessus le sol qu'on vient de peindre, et resteraient cliquables.
-  // T-0324 — sous un parcours le sol n'est pas peint, donc il ne filtre rien : le trajet et ses
-  // étoiles se voient jusque sous l'horizon, et la grille de pose de §9.1 quitte le cadre —
-  // elle y garnirait le seul repère d'échelle que la scène garde d'une information qui ne dit
-  // rien du chemin à suivre.
-  // L'APERÇU L'EMPORTE. La carte du plan et le rail restent montés quel que soit l'onglet :
-  // ouvrir un parcours en ciel profond puis basculer en panorama amenait les deux modes sur la
-  // même image — un aperçu de filé au cadre forcé visible, au sol forcé invisible, avec un
-  // trajet en tirets par-dessus. Aucun des deux ne prévoit cela. L'aperçu tient lieu de prise
-  // de vue (§9.5) ; un trajet peint dessus annoterait une photo, ce qu'elle n'est pas. Le
-  // parcours reste en mémoire et revient dès qu'on quitte l'aperçu.
+  // §4.1 — sol layer holds by two complementary gestures. Sol PAINTED, opaque, over what was
+  // drawn before: nothing else masks a thick stroke's width. What is drawn AFTER gets sol-blind
+  // projecteur — else stars repaint over fresh sol and stay clickable.
+  // T-0324 — under parcours sol isn't painted so filters nothing: path and its stars show below
+  // horizon, and §9.1 pose grid leaves cadre — it'd fill the only scale repère scène keeps with
+  // information saying nothing about the path.
+  // PREVIEW WINS. Plan card and rail stay mounted whatever the tab: opening a deep-sky parcours
+  // then switching to panorama put both modes on one image — filé preview with cadre forced
+  // visible, sol forced invisible, dashed path on top. Preview stands for a shot (§9.5); a path
+  // over it would annotate a photo, which it isn't. Parcours stays in memory, returns on leaving
+  // preview.
   const modeParcours = entreeBrute.parcours !== undefined && entreeBrute.passeFile === undefined
   const entree: EntreeDessin = modeParcours
     ? { ...entreeBrute, poseCadre: undefined }
@@ -805,10 +751,9 @@ export function dessineCiel(entreeBrute: EntreeDessin): SortieDessin {
         }
       : entreeBrute
   const { projecteur } = entree
-  // T-0171 — l'aperçu peint sur toute la scène tient lieu de prise de vue : ce qui la
-  // commente s'efface. Ne restent que le sol, l'horizon et le cadre matériel — ce qui CADRE le
-  // champ, pas ce qui l'annote. T-0316 — la sélection s'arrête avec la peinture : sous
-  // l'aperçu, ni survol ni clic ne désignent quoi que ce soit (voir la sortie, plus bas).
+  // T-0171 — preview on whole scène stands for a shot: what comments it fades. Remain: sol,
+  // horizon, matériel cadre — what FRAMES the field. T-0316 — selection stops with painting: under
+  // preview neither hover nor click designate anything (see output below).
   const peintReperes = entree.passeFile === undefined && !modeParcours
   const couches: CouchesActives = peintReperes
     ? entree.couches
@@ -818,14 +763,13 @@ export function dessineCiel(entreeBrute: EntreeDessin): SortieDessin {
         frontieres: false,
         asterismes: false,
         voieLactee: false,
-        // T-0324 — le parcours va plus loin que l'aperçu : il éteint aussi ce qui CADRE le
-        // champ. Le cadre matériel, lui, est forcé allumé quel que soit le rail — c'est de lui
-        // seul qu'on tire la distance qui reste à parcourir.
+        // T-0324 — parcours goes further than preview: also off what FRAMES the field. Matériel
+        // cadre forced on whatever the rail — only source of remaining distance to cover.
         ...(modeParcours ? { sol: false, horizon: false, cadre: true } : {}),
       }
   const teintes = paletteScene(entree.modeNuit, entree.vueRealiste, entree.sbCiel)
-  // §11.1 — le mode nuit protège l'adaptation à l'obscurité : éclaircir tout le canevas le
-  // rendrait inutile. La vue réaliste n'y change donc que la magnitude limite.
+  // §11.1 — mode nuit protects dark adaptation: brightening whole canvas defeats it. Vue réaliste
+  // there changes only limiting magnitude.
   const fondPeint = entree.vueRealiste && !entree.modeNuit
   const apparition = entree.apparition ?? 1
   const largeur = projecteur.vue.largeurPx
@@ -848,9 +792,8 @@ export function dessineCiel(entreeBrute: EntreeDessin): SortieDessin {
     candidats: [],
   }
 
-  // L'ORDRE EST LE CONTRAT. Chaque passe peint sur ce que la précédente a déposé : le sol
-  // recouvre la bande, les repères recouvrent le sol, les labels recouvrent les repères, et la
-  // carte de pose recouvre tout ce qui tombe dans le cadre. Réordonner, c'est changer l'image.
+  // ORDER IS THE CONTRACT. Each pass paints on what previous deposited: sol covers band, repères
+  // cover sol, labels cover repères, pose card covers all in cadre. Reorder = change image.
   passeFond(passe)
   const labelCentreGalactique = passeTraces(passe)
   const { stats, etoilesDessinees } = passeEtoiles(passe)
@@ -860,8 +803,8 @@ export function dessineCiel(entreeBrute: EntreeDessin): SortieDessin {
   passeTrajetLune(passe)
   passeNomsVoieLactee(passe, labelCentreGalactique)
   passeNomsConstellations(passe)
-  // §3.5, §9.1 — le cadre matériel encadre tout le reste : son contour avec les repères, sa
-  // carte de pose tout en dernier, parce qu'elle masque ce qu'elle recouvre.
+  // §3.5, §9.1 — matériel cadre frames all the rest: outline with repères, pose card LAST (masks
+  // what it covers).
   const cadreMateriel: EntreeCadre = {
     ctx: entree.ctx,
     brut,
@@ -874,7 +817,7 @@ export function dessineCiel(entreeBrute: EntreeDessin): SortieDessin {
   }
   dessineContourCadre(cadreMateriel)
   const { labels, revele } = passeLabels(passe)
-  // T-0283 — au-dessus des libellés : le nom de la cible ouverte ne cède à aucun autre.
+  // T-0283 — above labels: opened cible name yields to no other.
   const reperes = peintReperes
     ? (entree.ciblesOuvertes ?? []).flatMap((objet) => {
         const boite = dessineRepereCible({
@@ -889,13 +832,16 @@ export function dessineCiel(entreeBrute: EntreeDessin): SortieDessin {
       })
     : []
   dessineCarteDansCadre(cadreMateriel)
-  // T-0324 — EN DERNIER : le trajet passe au-dessus du contour du cadre qu'il traverse. Peint
-  // avant, il se ferait couper par le seul repère qu'on lui a laissé.
+  // T-0324 — LAST: path goes over outline of the cadre it crosses. Painted before, the only
+  // repère left to it would cut it.
   if (modeParcours && entree.parcours !== undefined) {
     dessineParcours(entree.ctx, projecteur, entree.parcours, teintes)
   }
 
-  // encore les étoiles brillantes que le paquet nommé ne porte pas.
+  // T-0107 — named star must not ALSO be an anonymous cible. Same star read twice: `hyg-1.bin`
+  // (Float32 position) vs `constellations-1.bin` (double). 0.04″ gap made anonymous entry win
+  // nearest-hit half the time → hover said "no designation" under painted name. Same pixel:
+  // identified one answers. Fallback branch still serves bright stars absent from named packet.
   const ciblesUniques = passe.cibles.filter(
     (c: CibleEcran) =>
       c.type !== 'ETOILE' ||
@@ -903,32 +849,28 @@ export function dessineCiel(entreeBrute: EntreeDessin): SortieDessin {
       !pixelDejaNomme(pixelsNommes, c.xPx, c.yPx),
   )
 
-  // T-0316 — sous l'aperçu, RIEN n'est désignable, parce que rien n'est peint. Une étoile y
-  // est un arc long de dizaines de pixels : le point où elle se projette ne porte plus rien, et
-  // l'y survoler nommait du vide. Un marqueur d'objet ou un corps n'y est pas peint du tout —
-  // le survoler nommait un repère que l'image ne montre pas. La règle est la même pour les
-  // trois : ce que l'aperçu n'a pas peint, le curseur ne le trouve pas.
+  // T-0316 — under preview NOTHING is designatable, nothing painted. Star there = arc tens of px
+  // long: its projected point carries nothing, hovering named void. Object marker/corps isn't
+  // painted at all — hovering named a repère image doesn't show. Same rule for all three: what
+  // preview didn't paint, cursor doesn't find.
   if (!peintReperes) return { stats, etoilesDessinees, cibles: [], labels, revele, reperes }
 
   return { stats, etoilesDessinees, cibles: ciblesUniques, labels, revele, reperes }
 }
 
 /**
- * Cible la plus proche du point cliqué, dans un rayon de quelques pixels.
- *
- * T-0144 — un marqueur plus grand que ce rayon est éligible sur toute son étendue : une ellipse
- * de cent pixels ne se désigne pas en visant son centre. La règle de DÉSIGNATION ne change pas
- * pour autant — parmi les cibles éligibles, c'est toujours la plus proche du point visé qui
- * gagne, y compris quand une petite se superpose à une grande.
+ * Cible nearest to clicked point, within a few px.
+ * T-0144 — marker larger than this radius is eligible over its whole extent (100 px ellipse isn't
+ * designated by aiming its centre). DESIGNATION rule unchanged: among eligible cibles, nearest to
+ * aimed point wins, even when a small one overlaps a large one.
  */
 export function cibleSousLeCurseur(
   cibles: readonly CibleEcran[],
   xPx: number,
   yPx: number,
   /**
-   * T-0069 — tolérance de désignation. Le pointeur vise au pixel, une touche non : le
-   * pilotage au clavier passe donc un rayon plus large, sans changer la règle — c'est
-   * toujours la cible la plus proche du point visé qui est retenue.
+   * T-0069 — designation tolerance. Pointer aims at pixel, touch doesn't: keyboard driving passes
+   * a wider radius, same rule (nearest cible to aimed point wins).
    */
   rayonPx: number = RAYON_CLIC_PX,
 ): CibleEcran | null {

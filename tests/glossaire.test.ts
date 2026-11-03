@@ -1,10 +1,7 @@
 /**
- * §10.1 — glossaire contextuel.
- *
- * Le glossaire est indexé sur l'interface, pas sur un lexique : aucun terme affiché ne peut
- * être absent du glossaire. Cette inclusion-là est garantie par le typage — un libellé se
- * rend par sa clé de glossaire, et une clé absente ne compile pas. Ce test vérifie ce que
- * le typage ne peut pas voir : la forme des entrées.
+ * §10.1 — glossaire contextuel, indexed on the UI not a lexicon: no displayed term can be
+ * missing. Inclusion guaranteed by typing (label rendered by glossaire key; absent key doesn't
+ * compile). Test checks what typing can't see: entry shape.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -64,7 +61,7 @@ describe('glossaire §10.1', () => {
   })
 
   it('refuse à la compilation un terme affiché sans définition', () => {
-    // @ts-expect-error — c'est le garde-fou de §10.1 : un libellé sans entrée casse le build.
+    // @ts-expect-error — §10.1: label without entry breaks the build.
     const absent: TermeGlossaire = 'terme-sans-definition'
     expect(GLOSSAIRE[absent as TermeGlossaire]).toBeUndefined()
   })

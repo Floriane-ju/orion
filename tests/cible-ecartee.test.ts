@@ -1,9 +1,7 @@
 /**
- * T-0379, T-0380 — les leviers d'une cible écartée.
- *
- * Aucune focale ni date attendue n'est écrite : chaque levier est vérifié en le RÉINJECTANT
- * dans le moteur qui avait écarté la cible. Une focale juste remet la cible dans les bornes ;
- * une nuit juste a un créneau, et celle d'avant n'en a pas.
+ * T-0379, T-0380 — levers of an écartée cible. No expected focale/date written: each lever
+ * verified by RE-INJECTING it into the engine that rejected the cible. Right focale → cible back
+ * in bounds; right nuit → has a créneau, the previous one doesn't.
  */
 
 import { Body, Equator } from 'astronomy-engine'
@@ -26,7 +24,7 @@ import { objetNebuleuse as objet, SITE_REFERENCE as SITE } from './fixtures.ts'
 
 const NUIT = fenetreNocturne(SITE, new Date('2026-08-14T12:00:00Z'))
 
-/** Setup ciel profond de l'Annexe A : 120 mm f/2,8 sur plein format. */
+/** Annexe A ciel profond setup: 120 mm f/2,8 on plein format. */
 const CONTEXTE: ContexteSession = {
   site: SITE,
   nuit: NUIT,
@@ -53,7 +51,7 @@ const CONTEXTE: ContexteSession = {
 
 const BORNES = bornesTailleCadre(CONTEXTE.fovHDeg)
 
-/** Les bornes que donnerait une autre focale sur le même capteur. */
+/** Bounds another focale would give on the same sensor. */
 function bornesA(focaleMm: number) {
   return bornesTailleCadre(fovDeg(CONTEXTE.capteurHMm, focaleMm).value)
 }
@@ -93,7 +91,7 @@ describe('T-0379 — la focale qu’il faudrait', () => {
   })
 })
 
-/** Créneau de la nuit qui suit `depart`, avec le moteur qui écarte. */
+/** Créneau of the nuit following `depart`, with the rejecting engine. */
 function aUnCreneau(cible: ReturnType<typeof objet>, depart: Date): boolean {
   const nuit = fenetreNocturne(SITE, depart)
   if (nuit.debutReference === null || nuit.finReference === null) return false
@@ -104,7 +102,7 @@ function aUnCreneau(cible: ReturnType<typeof objet>, depart: Date): boolean {
 }
 
 describe('T-0380 — le prochain créneau d’une cible hors saison', () => {
-  // Une cible en conjonction avec le Soleil cette nuit-là : ses coordonnées sont les siennes.
+  // A cible in conjunction with the Soleil that night: its coordinates are the Soleil's.
   const soleil = Equator(Body.Sun, NUIT.milieuNuitVrai!, observateur(SITE), true, true)
   const HORS_SAISON = objet({
     designation: 'HS',
@@ -120,8 +118,8 @@ describe('T-0380 — le prochain créneau d’une cible hors saison', () => {
     const instant = prochainCreneau(CONTEXTE, HORS_SAISON)
     expect(instant).not.toBeNull()
     if (instant === null) return
-    // Le départ d'une recherche de nuit est un instant de jour : un jour et demi avant
-    // l'instant trouvé tombe le jour de la veille, quelle que soit l'heure de la nuit.
+    // Nuit search starts at a daytime instant: 1.5 days before the found instant falls on the
+    // day before, whatever the nuit hour.
     const veille = new Date(instant.getTime() - 1.5 * MS_PAR_JOUR)
     const jourMeme = new Date(instant.getTime() - 0.5 * MS_PAR_JOUR)
     expect(aUnCreneau(HORS_SAISON, jourMeme)).toBe(true)
@@ -159,7 +157,7 @@ describe('T-0379, T-0380 — ce que la carte écrit', () => {
   })
 
   it('montre TOUTES les causes : trop petite ET hors saison', () => {
-    // Le moteur s'arrête à la taille ; la carte doit aussi dire que la date ne va pas.
+    // Engine stops at size; card must also say the date doesn't fit.
     const soleil = Equator(Body.Sun, NUIT.milieuNuitVrai!, observateur(SITE), true, true)
     const cible = objet({
       adDeg: soleil.ra * DEG_PAR_HEURE,

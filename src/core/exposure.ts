@@ -1,19 +1,17 @@
 /**
- * §7.1 flux du fond de ciel · §7.2 pose unitaire · §7.3 nombre de poses et intégration.
+ * §7.1 fond de ciel flux · §7.2 pose unitaire · §7.3 number of poses and intégration.
  *
- * Trois points du PRD sont câblés ici, parce qu'ils sont contre-intuitifs :
+ * Counter-intuitive PRD points:
+ *   1. SKY-BACKGROUND FLUX PER PIXEL IS DIAMETER-INDEPENDENT: depends on aperture ratio and
+ *      pixel pitch. Same f/N and pitch → same fond de ciel per pixel, whatever the diameter.
+ *   2. DARKER SKY NEEDS LONGER POSES: t_opt ∝ 1 / E_ciel.
+ *   3. SNR ∝ √T: doubling quality quadruples time.
+ *   4. §7.6 — OBJECT FLUX IS ATTENUATED BY ATMOSPHERE, NOT FOND DE CIEL. Catalogue magnitude is
+ *      out of atmosphere; sky brillance is measured at ground, already extinct → attenuating
+ *      both counts extinction twice.
  *
- *   1. LE FLUX DE FOND DE CIEL PAR PIXEL NE DÉPEND PAS DU DIAMÈTRE. Il dépend du rapport
- *      d'ouverture et du pas des pixels. Deux setups de même f/N et même pitch collectent
- *      le même fond de ciel par pixel, quel que soit leur diamètre.
- *   2. UN CIEL PLUS NOIR EXIGE DES POSES PLUS LONGUES, pas plus courtes : t_opt ∝ 1 / E_ciel.
- *   3. SNR ∝ √T. Doubler la qualité quadruple le temps.
- *   4. §7.6 — LE FLUX DE L'OBJET EST ATTÉNUÉ PAR L'ATMOSPHÈRE, PAS LE FOND DE CIEL. Une
- *      magnitude de catalogue est hors atmosphère ; une brillance de fond de ciel est relevée
- *      au sol, donc déjà éteinte. Atténuer les deux compterait l'extinction deux fois.
- *
- * Et aucune calibration : le point zéro est livré par boîtier, en lecture seule. L'optimum
- * de pose est plat, la plage utile [t/2 ; t×2] absorbe l'incertitude (§2.3, §7.1).
+ * No calibration: zero point shipped per boîtier, read-only. Pose optimum is flat, useful
+ * range [t/2 ; t×2] absorbs uncertainty (§2.3, §7.1).
  */
 
 import { K, plageK } from '../registry/constants.ts'
@@ -26,7 +24,7 @@ import { S_PAR_H } from './unites.ts'
 
 
 // ---------------------------------------------------------------------------
-// §7.1 — estimateur de flux
+// §7.1 — flux estimator
 // ---------------------------------------------------------------------------
 
 export interface EntreeFlux {
@@ -34,19 +32,18 @@ export interface EntreeFlux {
   readonly zpSys: number
   readonly pitchUm: number
   readonly ouvertureN: number
-  /** Vrai quand le point zéro vient du générique C-14 : la sortie porte [ESTIMÉ] (§2.3). */
+  /** True when zero point comes from generic C-14: output carries [ESTIMÉ] (§2.3). */
   readonly zpEstime?: boolean
 }
 
-/** Rapport de flux entre deux sources séparées de `deltaMag` magnitudes : loi de Pogson. */
+/** Flux ratio between two sources `deltaMag` magnitudes apart: Pogson law. */
 export function rapportDeFlux(deltaMag: number): number {
   return K('BASE_MAGNITUDE') ** (-deltaMag / K('POGSON'))
 }
 
 /**
- * Conversion brute d'une brillance de surface en flux, sans garde de domaine. Réservée aux
- * usages où la valeur est déjà validée : notamment le calcul de sensibilité de §10.2, qui
- * perturbe légèrement chaque entrée et ne doit pas buter sur une borne.
+ * Raw surface-brillance → flux conversion, no domain guard. For callers with validated values:
+ * notably §10.2 sensitivity, which perturbs each input slightly and must not hit a bound.
  */
 export function fluxE(sb: number, zpSys: number, pitchUm: number, ouvertureN: number): number {
   return rapportDeFlux(sb - zpSys) * (pitchUm / ouvertureN) ** 2
@@ -73,54 +70,48 @@ function flux(entree: EntreeFlux, champ: DomaineId, formula: 'FLUX_CIEL' | 'FLUX
   })
 }
 
-/** Flux du fond de ciel, e⁻/s/px. Refuse une brillance hors du domaine plutôt qu'extrapoler. */
+/** Fond de ciel flux, e⁻/s/px. Refuses out-of-domain brillance instead of extrapolating. */
 export function fluxCiel(entree: EntreeFlux): Traced<number> {
   return flux(entree, 'sb_ciel', 'FLUX_CIEL')
 }
 
-/** Flux de l'objet, e⁻/s/px, à partir de sa brillance de surface (§6.3). */
+/** Object flux, e⁻/s/px, from its brillance de surface (§6.3). */
 export function fluxObjet(entree: EntreeFlux): Traced<number> {
   return flux(entree, 'sb_obj', 'FLUX_OBJET')
 }
 
 // ---------------------------------------------------------------------------
-// §7.6 — atténuation atmosphérique par masse d'air
+// §7.6 — atmospheric attenuation by masse d'air
 // ---------------------------------------------------------------------------
 
 /**
- * Fraction du flux qui survit à la traversée, pour une masse d'air donnée. Sans trace :
- * consommée telle quelle par l'analyse de sensibilité de §10.2, qui perturbe la masse d'air
- * comme les autres entrées et ne doit pas buter sur une garde de domaine.
+ * Flux fraction surviving the crossing, per masse d'air. No trace: consumed as-is by §10.2
+ * sensitivity, which perturbs masse d'air like other inputs and must not hit a domain guard.
  */
 export function attenuationBrute(masseAirX: number, kExtinction = K('EXTINCTION_V_MAG_PAR_MASSE_AIR')): number {
   return rapportDeFlux(kExtinction * masseAirX)
 }
 
 export interface FluxObjetReel {
-  /** La masse d'air d'évaluation, telle que l'appelant l'a choisie et doit l'afficher. */
+  /** Evaluation masse d'air, as the caller chose it and must display it. */
   readonly masseAir: Traced<number | null>
   readonly attenuation: Traced<number | null>
-  /** E_obj × atténuation. `null` quand l'atténuation est refusée : rien n'est extrapolé. */
+  /** E_obj × attenuation. `null` when attenuation refused: nothing extrapolated. */
   readonly eObjReel: Traced<number | null>
   /**
-   * E_obj réel aux deux bornes de k. Toute sortie qui en dépend — l'intégration — porte sa
-   * fourchette plutôt qu'une valeur exacte (§2.1) : k est un ordre de grandeur.
+   * Real E_obj at both k bounds. Outputs depending on it (intégration) carry a range, not an
+   * exact value (§2.1): k is an order of magnitude.
    */
   readonly plageEObj: readonly [number, number] | null
 }
 
 /**
- * §7.6 — le flux qui atteint réellement le capteur.
- *
- * Trois cas, tous nommés à l'écran, aucun silencieux :
- *
- *   1. masse d'air connue et dans le domaine → atténuation appliquée ;
- *   2. masse d'air hors du domaine de l'approximation plane (sous ~15° de hauteur) →
- *      atténuation REFUSÉE. L'extrapoler sous-estimerait l'extinction là où elle est la plus
- *      forte, ce qui est le sens de l'erreur le plus coûteux ;
- *   3. hauteur inconnue — la cible n'a pas été évaluée à un instant chiffrable → aucune
- *      atténuation, et la sortie porte [HYP] : la durée annoncée est alors un PLANCHER, pas
- *      une estimation.
+ * §7.6 — flux actually reaching the sensor. 3 cases, all named on screen:
+ *   1. masse d'air known, in domain → attenuation applied;
+ *   2. masse d'air outside plane-approximation domain (hauteur < ~15°) → attenuation REFUSED:
+ *      extrapolating underestimates extinction where strongest, the costlier error direction;
+ *   3. hauteur unknown (cible not evaluated at a computable instant) → no attenuation, output
+ *      carries [HYP]: announced duration is a FLOOR, not an estimate.
  */
 export function fluxObjetReel(
   eObj: Traced<number>,
@@ -181,7 +172,7 @@ export function fluxObjetReel(
 
   const attenuationValeur = attenuationBrute(x)
   const bornesK = plageK('EXTINCTION_V_MAG_PAR_MASSE_AIR')
-  // Un k plus grand éteint davantage : la borne haute de k donne la borne BASSE du flux.
+  // Larger k extinguishes more: k upper bound gives flux LOWER bound.
   const plageAttenuation =
     bornesK === null
       ? null
@@ -217,18 +208,18 @@ export function fluxObjetReel(
 }
 
 // ---------------------------------------------------------------------------
-// §7.2 — pose unitaire optimale
+// §7.2 — optimal pose unitaire
 // ---------------------------------------------------------------------------
 
 export type RegimePose = 'NOMINAL' | 'LIMITE_SUIVI'
 
 export interface EntreePose {
   readonly eCiel: number
-  /** `null` quand la base matériel ne donne pas la courbe du boîtier : repli à 3 e⁻. */
+  /** `null` when matériel base lacks the boîtier curve: fallback 3 e⁻. */
   readonly readNoiseE: number | null
-  /** Plafond de la monture (§5.2), ou pose NPF quand il n'y a pas de suivi (§9.1). */
+  /** Mount cap (§5.2), or NPF pose when no suivi (§9.1). */
   readonly tMaxS: number | null
-  /** Mode permissif C-03 = 3 : ciel pollué, suivi imprécis, vent. */
+  /** Permissive mode C-03 = 3: polluted sky, imprecise suivi, wind. */
   readonly permissif?: boolean
   readonly zpEstime?: boolean
 }
@@ -236,39 +227,39 @@ export interface EntreePose {
 export interface PoseUnitaire {
   readonly tOptS: Traced<number>
   readonly tRecommandeS: Traced<number>
-  /** Arrondie à une valeur d'obturateur usuelle : un boîtier ne propose pas 13,43 s. */
+  /** Rounded to a usual shutter value: a boîtier doesn't offer 13,43 s. */
   readonly tAfficheeS: number
-  /** [t/2 ; t×2], présentée comme équivalente (§2.3). */
+  /** [t/2 ; t×2], presented as equivalent (§2.3). */
   readonly plageUtileS: Traced<readonly [number, number]>
   readonly regime: RegimePose
-  /** T-0383 — t_opt tombe sur la plus courte vitesse : le fond de ciel limite, pas la monture. */
+  /** T-0383 — t_opt lands on shortest speed: fond de ciel limits, not the mount. */
   readonly limiteeParCiel: boolean
   readonly message: string
-  /** Perte de rapport signal sur bruit quand la monture bride la pose. */
+  /** SNR loss when the mount caps pose. */
   readonly perteSnrBridee?: number
   /**
-   * Présente uniquement en mode permissif : pose obtenue, perte de SNR consentie et raison
-   * d'usage. Le mode raccourcit la pose d'un facteur trois — il doit être choisi, jamais subi.
+   * Permissive mode only: pose obtained, accepted SNR loss, reason. Mode shortens pose ×3 —
+   * must be chosen, never suffered.
    */
   readonly notePermissif?: string
   readonly readNoiseUtiliseE: number
   readonly readNoiseEstime: boolean
 }
 
-/** Perte de rapport signal sur bruit consentie pour un facteur C donné (§2.3). */
+/** SNR loss accepted for a given factor C (§2.3). */
 function perteSnr(c: number): number {
   return 1 - Math.sqrt(c / (c + 1))
 }
 
 /**
- * T-0383 — la pose arrondie tombe sur la plus courte vitesse de la table : sous un ciel que la
- * Lune éclaire, t_opt peut passer sous la seconde, et « 1 s » se lirait comme un choix.
+ * T-0383 — rounded pose lands on table's shortest speed: under a Lune-lit sky t_opt can drop
+ * below 1 s, and "1 s" would read as a choice.
  */
 function auPlancherObturateur(tS: number): boolean {
   return arrondiObturateur(tS) === Math.min(...VALEURS_OBTURATEUR_S)
 }
 
-/** Valeur d'obturateur usuelle la plus proche (§2.3). */
+/** Nearest usual shutter value (§2.3). */
 export function arrondiObturateur(tS: number): number {
   return VALEURS_OBTURATEUR_S.reduce((meilleure, valeur) =>
     Math.abs(valeur - tS) < Math.abs(meilleure - tS) ? valeur : meilleure,
@@ -280,7 +271,7 @@ export function poseUnitaire(entree: EntreePose): PoseUnitaire {
   const rn = readNoiseEstime ? K('READ_NOISE_DEFAUT_E') : valide('read_noise_e', entree.readNoiseE!)
   const constanteC = entree.permissif === true ? 'FACTEUR_POSE_C_PERMISSIF' : 'FACTEUR_POSE_C_DEFAUT'
   const tOpt = (K(constanteC) * rn ** 2) / entree.eCiel
-  /** Ce que la pose vaudrait sans le mode permissif : le mode s'annonce avec son coût. */
+  /** What the pose would be without permissive mode: mode announces its cost. */
   const tOptDefaut = (K('FACTEUR_POSE_C_DEFAUT') * rn ** 2) / entree.eCiel
 
   const flags: Flag[] = []
@@ -306,11 +297,11 @@ export function poseUnitaire(entree: EntreePose): PoseUnitaire {
   const regime: RegimePose = bride ? 'LIMITE_SUIVI' : 'NOMINAL'
   const limiteeParCiel = !bride && auPlancherObturateur(tRecommande)
 
-  // C effectif atteint quand la monture bride : E_ciel × t / RN², d'où la perte de §2.3.
+  // Effective C reached when mount caps: E_ciel × t / RN², hence §2.3 loss.
   const cEffectif = bride ? (entree.eCiel * tMax) / rn ** 2 : K(constanteC)
   const perte = perteSnr(cEffectif)
 
-  // PLAGE_UTILE_POSE (§2.3) : le facteur 2 EST la formule tracée ci-dessous, pas un seuil.
+  // PLAGE_UTILE_POSE (§2.3): factor 2 IS the formula traced below, not a threshold.
   const plage: readonly [number, number] = [Math.floor(tRecommande / 2), Math.floor(tRecommande * 2)]
 
   return {
@@ -355,7 +346,7 @@ export function poseUnitaire(entree: EntreePose): PoseUnitaire {
 }
 
 // ---------------------------------------------------------------------------
-// §7.3 — nombre de poses et intégration totale
+// §7.3 — number of poses and total intégration
 // ---------------------------------------------------------------------------
 
 export interface EntreeIntegration {
@@ -365,11 +356,11 @@ export interface EntreeIntegration {
   readonly readNoiseE: number
   readonly snrCible: number
   readonly tailleRawMo: number
-  /** Durée exploitable d'une nuit sur cette cible (§8.2). Absente : pas de découpe. */
+  /** Usable night duration on this cible (§8.2). Absent: no splitting. */
   readonly dureeCreneauS?: number | null
   /**
-   * §7.6 — E_obj réel aux deux bornes du coefficient d'extinction. Présente, l'intégration
-   * s'affiche avec sa fourchette : k est un ordre de grandeur, donc la durée aussi (§2.1).
+   * §7.6 — real E_obj at both extinction-coefficient bounds. Present → intégration shown with
+   * its range (k order of magnitude → so is duration, §2.1).
    */
   readonly eObjPlage?: readonly [number, number] | null
 }
@@ -379,13 +370,13 @@ export interface PlanIntegration {
   readonly nPoses: Traced<number>
   readonly volumeGo: Traced<number>
   readonly nNuits?: Traced<number>
-  /** Vrai quand l'intégration dépasse le plafond : la cible est annoncée hors de portée. */
+  /** True when intégration exceeds the cap: cible announced out of reach. */
   readonly horsDePortee: boolean
   readonly loiFondamentale: string
   readonly messages: readonly string[]
 }
 
-/** Temps d'intégration total requis pour un rapport signal sur bruit visé (§7.3). */
+/** Total intégration time required for a target SNR (§7.3). */
 export function integrationRequiseS(entree: EntreeIntegration, snrCible: number): number {
   const { eObj, eCiel, tPoseS, readNoiseE } = entree
   return (snrCible ** 2 * (eObj + eCiel + readNoiseE ** 2 / tPoseS)) / eObj ** 2
@@ -408,8 +399,8 @@ export function planIntegration(entree: EntreeIntegration): PlanIntegration {
     read_noise_e: entree.readNoiseE,
   }
 
-  // Un E_obj plus faible allonge l'intégration : la borne basse du flux donne la borne
-  // HAUTE de la durée. La fourchette n'a pas de sens quand l'affichage est déjà plafonné.
+  // Lower E_obj lengthens intégration: flux lower bound → duration UPPER bound. Range
+  // meaningless once display is already capped.
   const plageEObj = entree.eObjPlage ?? null
   const plageT =
     plageEObj === null || horsDePortee

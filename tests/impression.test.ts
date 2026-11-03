@@ -1,9 +1,7 @@
 /**
- * T-0288 — l'impression rend une feuille de terrain lisible (§11.2).
- *
- * La suite tourne sous `node`, sans moteur de mise en page : on lit le bloc `@media print`
- * de la feuille. Ce qui compte : ce qui se clique ne sort pas, et l'encre est noire sur le
- * papier quel que soit le mode.
+ * T-0288 — printing yields a readable feuille de terrain (§11.2).
+ * Env `node`, no layout engine: reads the stylesheet's `@media print` block.
+ * Matters: clickables don't print, ink black on paper whatever the mode.
  */
 
 import { readFileSync } from 'node:fs'
@@ -15,7 +13,7 @@ const CSS = readFileSync(join(import.meta.dirname, '..', 'src', 'ui', 'styles.cs
   '',
 )
 
-/** Le bloc `@media print`, accolades équilibrées. */
+/** `@media print` block, balanced braces. */
 function blocImpression(): string {
   const debut = CSS.indexOf('@media print {')
   expect(debut).toBeGreaterThan(-1)
@@ -27,7 +25,7 @@ function blocImpression(): string {
   throw new Error('bloc @media print non fermé')
 }
 
-/** Les sélecteurs des règles du bloc qui déclarent `display: none`. */
+/** Selectors of block rules declaring `display: none`. */
 function masques(bloc: string): ReadonlySet<string> {
   const corps = bloc.slice(bloc.indexOf('{') + 1)
   return new Set(
@@ -37,7 +35,7 @@ function masques(bloc: string): ReadonlySet<string> {
   )
 }
 
-/** Valeur de `--fond` dans le premier bloc qui commence par `selecteur {`. */
+/** Value of `--fond` in first block starting with `selecteur {`. */
 function fond(selecteur: string): string {
   const debut = CSS.indexOf(`${selecteur} {`)
   const bloc = CSS.slice(debut, CSS.indexOf('}', debut))
@@ -63,7 +61,7 @@ describe('T-0288 — la feuille imprimée', () => {
     const bloc = blocImpression()
     expect(bloc).toMatch(/color:\s*var\(--fond\)\s*!important/)
     expect(bloc).toMatch(/background:\s*transparent\s*!important/)
-    // Le masque rouge de la nuit multiplie chaque pixel : il ne doit pas teinter le papier.
+    // Night red mask multiplies each pixel: must not tint paper.
     expect(masques(bloc)).toContain(":root[data-mode-nuit='true'] body::after")
   })
 

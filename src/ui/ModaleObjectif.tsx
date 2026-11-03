@@ -1,13 +1,10 @@
 /**
- * §5.1, T-0406 — l'ajout ou la retouche d'un objectif du parc, dans une modale.
- *
- * Le parc se lit, il ne se corrige plus en place : une ligne de quatre champs nus ne disait pas
- * ce qu'on y tapait, et recopier le dernier objectif pour le retoucher faisait passer un doublon
- * pour un ajout. La modale pose d'abord ce qui change la forme de la saisie — zoom, fisheye —,
- * puis, sous un filet, focale et ouverture max — une rangée par bout pour un zoom. La notation qui en sortira se lit
- * avant d'ajouter.
- *
- * Pas d’élément `dialog` natif : la couche du haut échapperait au masque du mode nuit (`mode-nuit.test.tsx`).
+ * §5.1, T-0406 — add or edit a parc objectif, in a modal.
+ * Parc is read, no longer edited in place (row of 4 bare fields hid what was typed; copying
+ * the last objectif to edit it passed a duplicate for an add). Modal first sets what changes
+ * input shape (zoom, fisheye), then focale + ouverture max (one row per end for a zoom).
+ * Resulting notation readable before adding.
+ * No native `dialog`: top layer would escape the mode nuit mask (`mode-nuit.test.tsx`).
  */
 
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
@@ -18,7 +15,7 @@ import { Mention } from './Mention.tsx'
 import { caracteristiques, objectifDeSaisie, saisieDe, type SaisieObjectif } from './parc-saisie.ts'
 
 export interface ModaleObjectifProps {
-  /** L'objectif à retoucher ; absent, la modale en ajoute un nouveau. */
+  /** Objectif to edit; absent = add. */
   readonly objectif?: Objectif | undefined
   readonly surValide: (o: Objectif) => void
   readonly surFermeture: () => void
@@ -28,9 +25,9 @@ const VIDE: SaisieObjectif = { focaleMin: '', focaleMax: '', ouvertureGrandAngle
 
 export type LectureAjout = { readonly objectif: Objectif } | { readonly refus: string } | null
 
-/** L'objectif que la saisie décrit, ou le refus qui nomme le champ ; `null` tant qu'un champ requis manque. */
+/** Objectif the input describes, or the refusal naming the field; `null` if a field is missing. */
 export function lectureAjout(saisie: SaisieObjectif, zoom: boolean, fisheye: boolean, id: string): LectureAjout {
-  // Sans zoom, les bouts télé n'existent pas : vides, ils valent focale fixe et ouverture constante.
+  // No zoom: télé ends do not exist; empty = fixed focale, constant ouverture.
   const retenue = zoom ? saisie : { ...saisie, focaleMax: '', ouvertureTele: '' }
   const requis = zoom ? Object.values(retenue) : [retenue.focaleMin, retenue.ouvertureGrandAngle]
   if (requis.some((t) => t.trim() === '')) return null
@@ -46,7 +43,7 @@ interface ChampLie {
   readonly surValeur: (v: string) => void
 }
 
-/** Une focale et sa pleine ouverture, sur une rangée. */
+/** One focale and its max ouverture, on a row. */
 function Bout({ focale, ouverture }: { readonly focale: ChampLie; readonly ouverture: ChampLie }) {
   return (
     <div className="champs paire">
@@ -57,9 +54,8 @@ function Bout({ focale, ouverture }: { readonly focale: ChampLie; readonly ouver
 }
 
 /**
- * La saisie d'un objectif à retoucher. Un zoom à ouverture constante garde son ouverture télé
- * écrite : `saisieDe` la laisse vide (la ligne d'avant la lisait « constante »), et la modale
- * exige les deux bouts d'un zoom.
+ * Input of an objectif to edit. Constant-ouverture zoom keeps its télé ouverture written:
+ * `saisieDe` leaves it empty (old row read "constante"), the modal requires both zoom ends.
  */
 function saisieModale(objectif: Objectif): SaisieObjectif {
   const zoom = objectif.focaleMinMm !== objectif.focaleMaxMm
@@ -73,7 +69,7 @@ export function ModaleObjectif({ objectif, surValide, surFermeture }: ModaleObje
   const [zoom, setZoom] = useState(objectif !== undefined && objectif.focaleMinMm !== objectif.focaleMaxMm)
   const [saisie, setSaisie] = useState(() => (objectif === undefined ? VIDE : saisieModale(objectif)))
   const [fisheye, setFisheye] = useState(objectif?.typeObjectif === 'FISHEYE')
-  // Retoucher garde l'identifiant : l'objectif reste à sa place dans le parc, et monté s'il l'était.
+  // Editing keeps the id: objectif stays in place in the parc, and mounted if it was.
   const [id] = useState(() => objectif?.id ?? crypto.randomUUID())
   const titre = useId()
   const corps = useRef<HTMLFormElement>(null)
@@ -93,9 +89,9 @@ export function ModaleObjectif({ objectif, surValide, surFermeture }: ModaleObje
     if (lecture !== null && 'objectif' in lecture) surValide(lecture.objectif)
   }
 
-  // Échap s'arrête ici : la modale se ferme seule, sans emporter un tiroir ou une carte dessous.
-  // `tabIndex={-1}` sur le voile : un clic hors des champs y garde le focus au lieu de le rendre
-  // à `body`, où cette écoute n'entendait plus Échap.
+  // Escape stops here: modal closes alone, not a drawer or card below.
+  // `tabIndex={-1}` on the veil: click outside fields keeps focus there, not on `body`
+  // where this listener no longer heard Escape.
   function touche(e: KeyboardEvent) {
     if (e.key !== 'Escape') return
     e.stopPropagation()
@@ -115,16 +111,16 @@ export function ModaleObjectif({ objectif, surValide, surFermeture }: ModaleObje
           Objectif fisheye
         </Interrupteur>
         <hr />
-        {/* Un bout de zoom par groupe, chacun comme une focale fixe : sa focale, son ouverture max.
-            La légende du groupe distingue les deux « Focale » pour un lecteur d'écran. Le bout
-            télé reste à l'écran, désactivé, hors zoom : basculer le zoom ne fait rien sauter. */}
+        {/* One zoom end per group, each like a fixed focale: its focale, its max ouverture.
+            Legend tells the two "Focale" apart for screen readers. Télé end stays on screen,
+            disabled, outside zoom: toggling zoom jumps nothing. */}
         <fieldset className="modale-bout">
           <legend>{zoom ? 'Focale min' : 'Focale fixe'}</legend>
           <Bout focale={champ('focaleMin')} ouverture={champ('ouvertureGrandAngle')} />
         </fieldset>
         <hr />
-        {/* Hors zoom, le titre s'efface en tiret : une focale fixe n'a pas de bout max. Le groupe
-            garde son nom pour un lecteur d'écran, qui lirait sinon « tiret ». */}
+        {/* Outside zoom the title fades to a dash: fixed focale has no max end. Group keeps its
+            name for screen readers (else "tiret"). */}
         <fieldset className="modale-bout" disabled={!zoom} aria-label="Focale max">
           <legend>{zoom ? 'Focale max' : '-'}</legend>
           <Bout focale={champ('focaleMax')} ouverture={champ('ouvertureTele')} />

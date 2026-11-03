@@ -1,14 +1,10 @@
 /**
- * §5.1, §6.4, §8.3 — T-0407 : sous un zoom, chaque cible s'évalue à sa focale optimale.
- *
- * Le contexte de la nuit reste UN : site, nuit, boîtier, ciel. Seul ce que la focale fixe —
- * champ, échantillonnage, pupille, ouverture au plancher, pose max — change d'une cible à
- * l'autre, et ces champs-là viennent du même `evalueMateriel` que le réglage courant. Un
- * second assemblage écrit ici aurait fini par annoncer une autre pose que la fiche.
- *
- * Les contextes se mémoïsent par focale : les cibles bornées au grand-angle ou au télé — la
- * plupart — partagent le leur, donc l'évaluation mémoïsée par contexte (`evaluation()`) reste
- * partagée entre la liste et le plan.
+ * §5.1, §6.4, §8.3 — T-0407: under zoom, each cible evaluated at its optimal focale.
+ * Nuit context stays ONE: site, nuit, boîtier, ciel. Only what focale fixes (champ,
+ * échantillonnage, pupille, ouverture au plancher, pose max) varies per cible, from the same
+ * `evalueMateriel` as current setting. A 2nd assembly here would announce another pose than fiche.
+ * Contexts memoized per focale: cibles bounded at wide or tele (most) share theirs → context-
+ * memoized evaluation (`evaluation()`) stays shared between list and plan.
  */
 
 import {
@@ -27,45 +23,45 @@ import type { ContexteFiche } from './fiche-cible-calcul.ts'
 import type { ProfilCadre } from '../core/cadre.ts'
 import { nombreLibre } from '../registry/ecriture.ts'
 
-/** Ce que la chaîne sait d'une focale de la plage : le contexte de nuit et celui de la fiche. */
+/** What chain knows of a plage focale: nuit context + fiche context. */
 export interface ZoomAFocale {
   readonly contexte: ContexteSession
   readonly fiche: ContexteFiche
 }
 
-/** T-0436 — l'objectif du parc retenu pour une cible, et la focale où le régler. */
+/** T-0436 — parc objectif retained for a cible, and focale to set it at. */
 export interface ChoixOptique {
   readonly objectif: Objectif
   readonly focaleMm: number
 }
 
 export interface Zoom {
-  /** L'objectif monté : la scène peint les bouts de SA bague, et de nulle autre. */
+  /** Mounted objectif: scène paints THE ENDS OF ITS ring, no other. */
   readonly monte: Objectif | null
-  /** T-0436 — les objectifs parmi lesquels chaque cible choisit : les rectilinéaires du parc. */
+  /** T-0436 — objectifs each cible chooses among: parc rectilinéaires. */
   readonly parc: readonly Objectif[]
-  /** L'objectif et la focale optimaux d'une cible, `null` sans dimensions au catalogue. */
+  /** Optimal objectif + focale of a cible, `null` without dimensions in catalogue. */
   readonly choixDe: (objet: ObjetCielProfond) => ChoixOptique | null
   readonly contexteDe: ContexteDe
-  /** `null` quand le matériel n'est pas chiffrable à cette focale. */
+  /** `null` when matériel isn't chiffrable at this focale. */
   readonly aFocale: (objectif: Objectif, focaleMm: number) => ZoomAFocale | null
 }
 
 export interface EntreeZoom {
   readonly monte: Objectif | null
-  /** T-0436 — tout le parc ; les fisheyes en sont écartés ici. */
+  /** T-0436 — whole parc; fisheyes dropped here. */
   readonly parc: readonly Objectif[]
-  /** Le contexte du réglage courant : repli des cibles sans dimensions. */
+  /** Current setting's context: fallback for cibles without dimensions. */
   readonly base: ContexteSession
   readonly focaleMm: number
   readonly ouvertureN: number
-  /** Le matériel évalué sous un autre objectif, à une autre focale et une autre ouverture. */
+  /** Matériel evaluated under another objectif, focale and ouverture. */
   readonly evalue: (objectif: Objectif, focaleMm: number, ouvertureN: number) => ZoomAFocale | null
 }
 
 /**
- * `null` quand il n'y a rien à choisir — objectif libre, ou un fixe seul au parc : le contexte
- * unique suffit. Le monté reste au parc même s'il en a disparu : c'est lui qui est réglé.
+ * `null` when nothing to choose (free objectif, or single fixe in parc): the one context
+ * suffices. Mounted stays in parc even if gone from it: it's the one set.
  */
 export function zoomSur(entree: EntreeZoom): Zoom | null {
   const { monte, base } = entree
@@ -81,8 +77,8 @@ export function zoomSur(entree: EntreeZoom): Zoom | null {
     const cle = `${objectif.id}@${focaleMm}`
     const deja = parFocale.get(cle)
     if (deja !== undefined) return deja
-    // Le monté suit la règle de la saisie (T-0407) ; un objectif qui n'est pas monté n'a pas
-    // d'ouverture saisie : il est lu à son plancher, comme la liste lit le monté (T-0433).
+    // Mounted follows saisie rule (T-0407); non-mounted objectif has no saisie ouverture: read at
+    // its plancher, as list reads the mounted (T-0433).
     const n =
       objectif.id === monte?.id
         ? ouvertureA(objectif, entree.ouvertureN, entree.focaleMm, focaleMm)
@@ -111,7 +107,7 @@ export function zoomSur(entree: EntreeZoom): Zoom | null {
   }
 }
 
-/** T-0436 — la focale optimale d'une cible sous un objectif donné : le choix d'une fiche. */
+/** T-0436 — optimal focale of a cible under a given objectif: a fiche's choice. */
 export function focaleSous(objectif: Objectif, objet: ObjetCielProfond, capteurHMm: number): number {
   return objet.majAxArcmin === null || objet.majAxArcmin <= 0
     ? objectif.focaleMinMm
@@ -119,9 +115,8 @@ export function focaleSous(objectif: Objectif, objet: ObjetCielProfond, capteurH
 }
 
 /**
- * T-0407 — le champ aux deux bouts de la plage : la borne basse de taille se lit au télé, la
- * borne haute au grand-angle. T-0436 : sur tout le parc, le télé le plus long et le grand-angle
- * le plus court. Hors zoom, les deux valent le champ du réglage courant.
+ * T-0407 — champ at both plage ends: low size bound read at tele, high at wide. T-0436: over
+ * whole parc, longest tele + shortest wide. Out of zoom, both = current setting's champ.
  */
 export function champsExtremes(
   zoom: Zoom | null,
@@ -136,9 +131,8 @@ export function champsExtremes(
 }
 
 /**
- * Le cadre de la scène à une focale de la plage. `modele` est le profil du réglage courant :
- * il porte ce que la focale ne change pas — la projection de l'objectif, le libellé du mode.
- * `null` quand le matériel n'est pas chiffrable à cette focale.
+ * Scène cadre at a plage focale. `modele` = current profil: carries what focale doesn't change
+ * (objectif projection, mode label). `null` when matériel not chiffrable at this focale.
  */
 export function profilA(
   zoom: Zoom,
@@ -160,10 +154,9 @@ export function profilA(
 }
 
 /**
- * Sous un zoom, la scène montre le cadre du réglage, PUIS ce que la bague peut donner : le cadre
- * du grand-angle et celui du télé. Le réglage reste premier — c'est lui qui porte la carte de
- * pose et le trait plein ; les deux bouts se peignent estompés. Hors zoom MONTÉ, le réglage seul :
- * les autres objectifs du parc ne sont pas sur le boîtier (T-0436).
+ * Under zoom, scène shows setting's cadre, THEN what the ring can give: wide + tele cadres.
+ * Setting first (carries pose map + solid line); both ends painted faded. Out of MOUNTED zoom,
+ * setting alone: other parc objectifs aren't on the boîtier (T-0436).
  */
 export function profilsScene(zoom: Zoom | null, profils: readonly ProfilCadre[]): readonly ProfilCadre[] {
   const modele = profils[0]
@@ -175,7 +168,7 @@ export function profilsScene(zoom: Zoom | null, profils: readonly ProfilCadre[])
   })]
 }
 
-/** L'objectif et la focale essayés sur une fiche, retenus pour sa seule cible. */
+/** Objectif + focale tried on a fiche, kept for its cible only. */
 export interface EssaiZoom {
   readonly designation: string
   readonly objectifId: string
@@ -183,8 +176,8 @@ export interface EssaiZoom {
 }
 
 /**
- * T-0436 — l'objectif et la focale d'une fiche : l'essai fait sur SA cible, sinon le choix
- * optimal. Un essai dont l'objectif a quitté le parc retombe sur le choix.
+ * T-0436 — a fiche's objectif + focale: the trial made on ITS cible, else optimal choice. Trial
+ * whose objectif left parc → choice.
  */
 export function choixFiche(zoom: Zoom, objet: ObjetCielProfond, essai: EssaiZoom | null): ChoixOptique | null {
   const objectif =
@@ -193,9 +186,8 @@ export function choixFiche(zoom: Zoom, objet: ObjetCielProfond, essai: EssaiZoom
 }
 
 /**
- * Le cadre que la cible obtiendrait : à l'objectif et la focale essayés sur sa fiche, sinon à
- * ses optimaux. `null` hors zoom — le cadre du réglage EST alors celui de la cible — ou sans
- * dimensions au catalogue.
+ * Cadre the cible would get: at objectif + focale tried on its fiche, else at optimals. `null`
+ * out of zoom (setting's cadre IS the cible's) or without dimensions in catalogue.
  */
 export function profilCible(
   zoom: Zoom | null,

@@ -1,9 +1,7 @@
 /**
- * T-0222 — le créneau photo de la fiche est celui du plan de séance (§8.2).
- *
- * Aucune heure n'est écrite : le test compare la sortie de la fiche à celle de `planSession`
- * sur le même contexte. Une monture GEM est choisie pour que le découpage au méridien — la
- * partie la plus facile à perdre en reconstruisant l'entrée — soit comparé lui aussi.
+ * T-0222 — fiche créneau photo = plan de séance créneau (§8.2).
+ * No hour written: fiche vs `planSession` on same context. GEM monture so the méridien
+ * split (easy to lose when rebuilding input) is compared too.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -42,11 +40,7 @@ const CONTEXTE: ContexteSession = {
   typeMonture: 'GEM',
 }
 
-/**
- * Un relief qui monte au maximum du domaine sur tout le tour : il cache n'importe quelle
- * cible, quelle que soit sa culmination. C'est le seul moyen de forcer l'exclusion RELIEF
- * sans écrire d'éphéméride ni supposer le relief d'un lieu réel.
- */
+/** Relief at domain max all around: hides any target. Forces RELIEF exclusion, no ephemeris. */
 const MASQUE_INTEGRAL: readonly PointMasque[] = Array.from({ length: 360 }, (_, azimutDeg) => ({
   azimutDeg,
   altitudeDeg: DOMAINES.masque_horizon_deg.max,
@@ -85,10 +79,9 @@ describe('nuitFiche — le créneau', () => {
   })
 
   /**
-   * T-0268 — hors créneau, la fiche porte la cause du moteur au lieu de chiffrer. Elle
-   * repliait sur la culmination : une cible dont le méridien passe haut mais que le relief
-   * cache toute la nuit gardait une masse d'air valide, donc une intégration complète — un
-   * plan de capture affiché deux blocs sous « cachée par le relief ».
+   * T-0268 — outside créneau, fiche carries engine cause, no computing. Was falling back on
+   * culmination: target high at méridien but relief-hidden all night kept valid masse d'air
+   * + full integration under "cachée par le relief".
    */
   it('porte la cause du moteur au lieu de replier sur la culmination', () => {
     const nuit = nuitFiche(CONTEXTE, { ...NGC7000, designation: 'AUSTRALE', decDeg: -80 })
@@ -99,10 +92,8 @@ describe('nuitFiche — le créneau', () => {
   })
 
   /**
-   * Le cas que la culmination masquait : le relief exclut la cible alors qu'elle passe TRÈS
-   * haut. `masseAirMin` restait une valeur valide, et la fiche chiffrait une intégration là
-   * où la liste et le plan écartaient la cible. Un masque intégral force ce cas sans écrire
-   * la moindre éphéméride.
+   * Culmination masked: relief excludes target despite high culmination. `masseAirMin` stayed
+   * valid → fiche computed integration while list/plan dropped target. Full mask forces it.
    */
   it('n’en chiffre pas davantage quand le relief cache une cible qui culmine haut', () => {
     const contexte: ContexteSession = { ...CONTEXTE, masque: masqueDepuisPoints(MASQUE_INTEGRAL) }
@@ -113,7 +104,7 @@ describe('nuitFiche — le créneau', () => {
     const nuit = nuitFiche(contexte, circumpolaire)
     const creneau = nuit.creneau.chiffre ? nuit.creneau.creneau : null
     expect(creneau?.causeExclusion).toBe('RELIEF')
-    // La culmination reste chiffrable : c'est exactement ce qui rendait le repli invisible.
+    // Culmination still computable: what hid the fallback.
     expect(creneau?.altCulminationDeg.value).toBeGreaterThan(0)
     expect(nuit.capture.exclusion).toBe(creneau?.message)
     expect(nuit.capture.masseAir.value).toBeNull()

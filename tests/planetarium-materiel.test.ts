@@ -7,7 +7,7 @@ import {
 } from '../src/ui/planetarium-materiel.ts'
 import type { ObjetCielProfond } from '../src/data/deepsky.ts'
 
-// L'optique est opaque pour la règle : seule son identité compte.
+// Optics opaque to the rule: only identity matters.
 const MATERIEL = { optique: {} } as unknown as MaterielFile
 
 describe('poseCadreAffichee — T-0377', () => {

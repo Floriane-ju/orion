@@ -1,9 +1,7 @@
 /**
- * §8.3 — Le vocabulaire du plan de session : ce qu'on lui donne, ce qu'il rend.
- *
- * Ces déclarations sont partagées par les quatre étages du plan — pré-filtrage, évaluation
- * d'une candidate, allocation de la nuit, assemblage — et n'appartiennent à aucun d'eux.
- * Elles vivent donc à part, pour que chaque étage puisse les lire sans dépendre des autres.
+ * §8.3 — plan de session vocabulary: inputs and outputs.
+ * Shared by the four plan stages (pre-filter, candidate evaluation, night allocation, assembly),
+ * owned by none → lives apart so each stage reads it without depending on others.
  */
 
 import { K } from '../registry/constants.ts'
@@ -47,7 +45,7 @@ export interface PoidsScoring {
   readonly lune: number
 }
 
-/** Poids C-15 par défaut : exposés et réglables, jamais appris (§8.3). */
+/** Default C-15 weights: exposed and tunable, never learned (§8.3). */
 export function poidsParDefaut(): PoidsScoring {
   return Object.freeze({
     cadrage: K('POIDS_SCORING_CADRAGE'),
@@ -59,14 +57,10 @@ export function poidsParDefaut(): PoidsScoring {
 }
 
 /**
- * §8.3 — la somme des cinq poids vaut 1, quelle que soit la façon dont ils ont été réglés.
- *
- * Cinq curseurs indépendants plutôt qu'une redistribution des quatre autres à chaque geste :
- * redistribuer ferait bouger des valeurs que l'utilisateur n'a pas touchées, et le résultat
- * dépendrait de l'ordre des gestes — donc ne serait plus reproductible.
- *
- * Une somme nulle rendrait tous les scores NaN et l'arbitrage de créneau silencieusement
- * aléatoire : elle retombe sur C-15, la référence.
+ * §8.3 — five weights sum to 1 however tuned.
+ * Five independent sliders rather than redistributing the other four per gesture: that moves
+ * untouched values and makes result depend on gesture order → not reproducible.
+ * Zero sum → all scores NaN, créneau arbitration silently random: falls back to C-15.
  */
 export function normalisePoids(brut: PoidsScoring): PoidsScoring {
   const somme = brut.cadrage + brut.hauteur + brut.signal + brut.fenetre + brut.lune
@@ -85,9 +79,9 @@ export interface ContexteSession {
   readonly nuit: FenetreNocturne
   readonly fenetreUtile: FenetreUtile
   readonly masque: MasqueHorizon
-  /** T-0407 — la focale de ce contexte ; renseignée par la chaîne, absente des fixtures. */
+  /** T-0407 — this context's focal; set by the chain, absent from fixtures. */
   readonly focaleMm?: number
-  /** T-0436 — l'objectif du parc de ce contexte, quand la cible l'a choisi. */
+  /** T-0436 — park lens of this context, when the target chose it. */
   readonly objectifNom?: string
   readonly fovHDeg: number
   readonly echApx: number
@@ -100,18 +94,15 @@ export interface ContexteSession {
   readonly readNoiseE: number | null
   readonly tailleRawMo: number
   readonly isoSession: number
-  /** Fond de ciel sans Lune, avant pénalité de crépuscule (§2.2). */
+  /** fond de ciel without Moon, before twilight penalty (§2.2). */
   readonly sbCielNoir: number
   readonly mLimOeil: number | null
   readonly tMaxS: number | null
   /**
-   * §5.2 — la cause du verrou du domaine ciel profond quand il est fermé — pas de suivi,
-   * ou monture altazimutale —, `null` quand il est ouvert.
-   *
-   * Le PRD nomme cette sortie `domaine_cp_ouvert`, un booléen. Elle porte ici sa cause plutôt
-   * qu'un drapeau : un domaine fermé sans phrase à afficher laisserait l'écran vide et muet,
-   * et c'est le seul résultat que §5.2 interdit — « présenté comme fermé, avec le grand champ
-   * en alternative ». La phrase vient de `profilSuivi`, elle n'est pas réécrite ici.
+   * §5.2 — cause of ciel profond domain lock when closed (no suivi, or alt-az mount), `null` when
+   * open. PRD names this output `domaine_cp_ouvert`, boolean; carries cause instead: closed domain
+   * with no sentence leaves screen empty and mute, the one outcome §5.2 forbids ("presented as
+   * closed, with grand champ as alternative"). Sentence comes from `profilSuivi`, not rewritten.
    */
   readonly domaineCpFerme: string | null
   readonly snrCible: number
@@ -122,10 +113,9 @@ export interface ContexteSession {
 }
 
 /**
- * T-0407 — le contexte sous lequel UNE cible s'évalue. Sous un zoom, chaque cible a sa focale
- * optimale, donc son champ, son échantillonnage, son ouverture et sa pose max ; hors zoom,
- * c'est le contexte unique. La nuit, le site et le boîtier, eux, ne changent jamais d'une
- * cible à l'autre : seul ce que la focale fixe diffère.
+ * T-0407 — context under which ONE target is evaluated. Under a zoom each target has its optimal
+ * focal → own field, échantillonnage, aperture, pose max; without zoom, the single context.
+ * Nuit, site, boîtier never change per target: only what focal fixes differs.
  */
 export type ContexteDe = (objet: ObjetCielProfond) => ContexteSession
 
@@ -139,9 +129,9 @@ export interface DetailScore {
 
 export interface EtapePlan {
   readonly objet: ObjetCielProfond
-  /** T-0407 — la focale de l'étape sous un zoom ; absente quand toutes partagent la même. */
+  /** T-0407 — étape focal under a zoom; absent when all share one. */
   readonly focaleMm?: number
-  /** T-0436 — l'objectif du parc de l'étape, quand chaque cible choisit le sien. */
+  /** T-0436 — park lens of the étape, when each target picks its own. */
   readonly objectifNom?: string
   readonly creneauAlloue: Intervalle
   readonly dureeAlloueeMin: number
@@ -154,14 +144,14 @@ export interface EtapePlan {
   readonly detailScore: DetailScore
   readonly deltaSbLuneMag: Traced<number>
   readonly sbCielEffectif: number
-  /** Faux quand l'intégration requise dépasse ce que la nuit alloue : le plan le dit. */
+  /** False when required integration exceeds what the nuit allocates: plan says so. */
   readonly integrationComplete: boolean
   readonly nNuits: number
   readonly consigne: string
   readonly creneau: CreneauCible
   readonly pose: PoseUnitaire
   readonly integration: PlanIntegration
-  /** §7.6 — reprise de la candidate : la masse d'air qui a dosé l'intégration affichée. */
+  /** §7.6 — from the candidate: masse d'air that dosed the displayed integration. */
   readonly extinction: FluxObjetReel
   readonly cadrage: FicheCadrage
   readonly detect: Detectabilite
@@ -181,34 +171,33 @@ export interface PlanSession {
   readonly etapes: readonly EtapePlan[]
   readonly ciblesEcartees: readonly CibleEcartee[]
   /**
-   * Décompte complet par cause, y compris les exclusions non listées une par une. Un plan
-   * maigre s'explique : sans ce décompte, l'utilisateur croit le ciel vide alors que c'est
-   * le catalogue qui ne porte pas la donnée.
+   * Full count per cause, incl. unlisted exclusions: thin plan explains itself, else user thinks
+   * sky empty when catalogue lacks data.
    */
-  // T-0275 — typé par la cause, pas par `string` : c'est ce qui permet d'indexer la table
-  // des libellés sans cast, donc de voir à la compilation une cause qui n'en aurait pas.
+  // T-0275 — typed by cause, not `string`: label table indexed without cast, a cause lacking a
+  // label fails at compile time.
   readonly comptesEcartees: Readonly<Partial<Record<CauseEcart, number>>>
   readonly budget: BudgetNuit
   readonly poids: PoidsScoring
   readonly calibration: PlanCalibration | null
   readonly message: string
-  /** Renseignée quand aucune cible ne passe : la contrainte qui a dominé le pré-filtrage. */
+  /** Set when no target passes: constraint that dominated pre-filter. */
   readonly contrainteDominante?: string
   readonly alternative?: string
-  /** Ce que le catalogue ne porte pas, quand ça borne le plan plus que le ciel. */
+  /** What catalogue lacks, when it bounds the plan more than the sky. */
   readonly noteCouvertureCatalogue?: string
-  /** Rappelé sur chaque plan : l'application ne prétend pas connaître la météo. */
+  /** Repeated on every plan: app doesn't claim to know the weather. */
   readonly avertissementMeteo: string
   /**
-   * Renseigné quand la capture dépasse C-16 : une longue nuit vide une batterie. Un rappel,
-   * pas un budget — aucune autonomie n'est modélisée (T-0150).
+   * Set when capture exceeds C-16: long night drains a battery. Reminder, not budget (no autonomy
+   * modelled, T-0150).
    */
   readonly avertissementBatterie?: string
 }
 
 export const AVERTISSEMENT_METEO = 'Météo non prise en compte : vérifiez les nuages avant de partir.'
 
-/** Une candidate évaluée : tout ce qu'il faut savoir d'elle avant de lui allouer du temps. */
+/** Evaluated candidate: all to know before allocating time. */
 export interface Candidate {
   readonly objet: ObjetCielProfond
   readonly creneau: CreneauCible
@@ -216,7 +205,7 @@ export interface Candidate {
   readonly detect: Detectabilite
   readonly pose: PoseUnitaire
   readonly integration: PlanIntegration
-  /** §7.6 — masse d'air moyenne du créneau et atténuation qu'elle impose au flux. */
+  /** §7.6 — créneau mean masse d'air and the flux attenuation it imposes. */
   readonly extinction: FluxObjetReel
   readonly deltaSbLuneMag: Traced<number>
   readonly sbCielEffectif: number

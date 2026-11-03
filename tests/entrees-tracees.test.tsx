@@ -1,10 +1,8 @@
 /**
- * T-0120 — §6.3, §10.2 : une entrée tracée absente se lit comme une valeur absente.
- *
- * `Traced.inputs` accepte `null`, donc un moteur qui n'a pas la grandeur le déclare au lieu
- * d'écrire `Number.NaN` faute de mot. Ce qui est vérifié ici est double : les quatre moteurs
- * ne fabriquent plus de `NaN`, et l'écran rend cette absence avec la seule et même formule
- * que celle d'une sortie absente.
+ * T-0120 — §6.3, §10.2: absent traced input reads as absent value. `Traced.inputs` accepts
+ * `null`: engine lacking the quantity declares it, not `Number.NaN`. Checks both: the four
+ * engines no longer fabricate `NaN`; screen renders this absence with the same formula as an
+ * absent output.
  */
 
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -76,7 +74,7 @@ describe('entrées tracées sans valeur — §6.3', () => {
   })
 
   it('rend une entrée absente avec la convention d’une valeur absente', () => {
-    // T-0386 — les entrées ne se lisent plus dans la bulle, mais dans la rubrique « Calcul ».
+    // T-0386 — inputs no longer read in the bubble but in the "Calcul" section.
     const markup = renderToStaticMarkup(
       <DetailTrace
         terme="extinction_atmospherique"

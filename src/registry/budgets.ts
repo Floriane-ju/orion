@@ -1,15 +1,11 @@
 /**
- * §3.2 et §1.5.1 — Budgets de réactivité de l'interface.
- *
- * §3.2 chiffre l'animation (50 Hz) et §1.5.1 la séance (un plan en moins de deux minutes).
- * Aucun des deux ne dit ce qu'une FRAPPE a le droit de coûter, et c'est pourtant là que les
- * deux se paient : une saisie qui recalcule toute la nuit dans le rendu de la touche les rend
- * inatteignables sans qu'aucun critère du PRD soit formellement violé.
- *
- * Ces valeurs ne sont pas des grandeurs physiques — aucune formule n'en dépend, aucun verdict
- * ne les cite. Elles vivent donc à côté de §2.1 plutôt que dedans, comme `imagerie.ts`. Ce
- * qu'elles gardent est la règle du projet : un seuil écrit dans le banc qui le mesure n'est
- * plus un seuil, c'est une constatation.
+ * §3.2 and §1.5.1 — UI responsiveness budgets.
+ * §3.2 quantifies animation (50 Hz), §1.5.1 the séance (plan < 2 min). Neither says what a
+ * KEYSTROKE may cost, yet both are paid there: input recomputing the whole night in the key's
+ * render makes them unreachable with no PRD criterion formally violated.
+ * Not physical quantities: no formula depends on them, no verdict cites them. Live beside §2.1,
+ * like `imagerie.ts`. Project rule kept: a threshold written in the bench measuring it is no
+ * threshold, it is a finding.
  */
 
 export interface ValeurBudget {
@@ -25,12 +21,9 @@ function valeur(v: ValeurBudget): ValeurBudget {
 
 export const BUDGETS = Object.freeze({
   /**
-   * Ce qu'un caractère tapé a le droit de coûter, bridage compris.
-   *
-   * Le repère n'est pas le confort, c'est la cadence de frappe soutenue : au-delà de ce délai
-   * la touche suivante arrive avant que la précédente soit peinte, et la saisie décroche. Ce
-   * n'est pas une gêne subjective — c'est le symptôme que T-0291 a mesuré, 486 à 692 ms par
-   * caractère en configuration télescope.
+   * What a typed character may cost, throttling included.
+   * Reference = sustained typing cadence, not comfort: beyond it next key arrives before the
+   * previous is painted, input stalls. T-0291 measured 486–692 ms/char in telescope config.
    */
   FRAPPE_MS: valeur({
     valeur: 50,
@@ -40,11 +33,8 @@ export const BUDGETS = Object.freeze({
   }),
 
   /**
-   * Le bridage sous lequel le budget vaut.
-   *
-   * Les mesures de T-0255 sont prises à ×4 parce que c'est la classe de machine que §11.2
-   * vise — une tablette sur le terrain, pas la station de développement. Un banc qui tourne
-   * sans bridage divise donc son budget par ce facteur avant de conclure.
+   * Throttling under which the budget holds. T-0255 measures at ×4: §11.2 target machine class
+   * (field tablet, not dev workstation). Unthrottled bench divides its budget by this factor.
    */
   BRIDAGE_CPU: valeur({
     valeur: 4,
@@ -54,11 +44,9 @@ export const BUDGETS = Object.freeze({
   }),
 
   /**
-   * Le seuil au-delà duquel une tâche du fil principal est une tâche longue.
-   *
-   * Ce n'est pas une convention du projet : c'est la définition de l'API Long Tasks, celle
-   * que l'outil de mesure applique. Un travail qui tient le fil au-delà retarde la première
-   * image, la frappe et le geste, tous ensemble.
+   * Main-thread task length beyond which it is a long task. Not a project convention: Long Tasks
+   * API definition, as the measuring tool applies it. Holding the thread past it delays first
+   * frame, typing, gesture alike.
    */
   TACHE_LONGUE_MS: valeur({
     valeur: 50,
@@ -68,14 +56,10 @@ export const BUDGETS = Object.freeze({
   }),
 
   /**
-   * Ce qu'une tranche de décodage ou d'indexation a le droit de tenir le fil principal.
-   *
-   * Le budget se mesure en temps d'horloge sur la machine qui calcule : un bridage CPU ralentit
-   * le travail accompli dans la tranche, il n'allonge pas la tranche. C'est ce qui rend le
-   * découpage juste sur une tablette comme sur une station, sans facteur à régler.
-   *
-   * La valeur tient sous l'image de 20 ms que §3.2 demande à 50 Hz : le ciel continue de
-   * tourner pendant que les catalogues se décodent.
+   * What a decode/index slice may hold the main thread.
+   * Wall-clock on the computing machine: CPU throttling slows work per slice, not slice length →
+   * right on tablet and workstation, no factor to tune. Under §3.2's 20 ms frame (50 Hz): sky
+   * keeps turning while catalogues decode.
    */
   TRANCHE_MS: valeur({
     valeur: 8,
@@ -85,12 +69,9 @@ export const BUDGETS = Object.freeze({
   }),
 
   /**
-   * Le nombre d'éléments balayés entre deux points de coupe.
-   *
-   * C'est la granularité du découpage, donc le dépassement maximal d'une tranche : le budget
-   * n'est vérifié qu'à un point de coupe. Trop fin, le test coûte plus que le travail ; trop
-   * gros, la tranche déborde sur une machine lente. Quatre mille éléments, c'est un quart de
-   * milliseconde sur une station et quelques millisecondes sur un téléphone bridé.
+   * Elements swept between two cut points. Slicing granularity = max slice overrun (budget
+   * checked only at a cut point). Too fine: test costs more than work; too coarse: slice
+   * overflows on slow machine. 4000 elements = ¼ ms workstation, few ms throttled phone.
    */
   PAS_TRANCHE: valeur({
     valeur: 4096,
@@ -100,9 +81,8 @@ export const BUDGETS = Object.freeze({
   }),
 
   /**
-   * T-0335 — le plafond de cadence du planétarium. Sous les 50 Hz de §3.2 : une scène lourde
-   * reste en dessous sans que la boucle la force, et une scène légère ne brûle pas la batterie
-   * à peindre des images que l'œil ne distingue plus.
+   * T-0335 — planetarium frame-rate cap. Under §3.2's 50 Hz: heavy scene stays below unforced,
+   * light one doesn't burn battery painting frames the eye can't tell.
    */
   IMAGES_PAR_S_MAX: valeur({
     valeur: 30,
@@ -111,7 +91,7 @@ export const BUDGETS = Object.freeze({
     tolerance: 'sans objet — budget d’interface, pas une grandeur mesurée',
   }),
 
-  /** T-0335 — l'instant rendu et les compteurs du filé se republient à ce rythme : lisible sans clignoter. */
+  /** T-0335 — rendered instant and filé counters republish at this rate: readable, no flicker. */
   PUBLICATION_MS: valeur({
     valeur: 500,
     unite: 'ms',
@@ -120,8 +100,8 @@ export const BUDGETS = Object.freeze({
   }),
 
   /**
-   * T-0435 — le temps pendant lequel le bouton de partage dit « copié » avant de redevenir le
-   * bouton de partage : assez pour être lu, pas assez pour qu'on cherche le bouton.
+   * T-0435 — duration of « copié » on the share button before reverting: readable, yet short
+   * enough not to hunt for the button.
    */
   COMPTE_RENDU_COPIE_MS: valeur({
     valeur: 2000,
@@ -133,7 +113,7 @@ export const BUDGETS = Object.freeze({
 
 export type IdBudget = keyof typeof BUDGETS
 
-/** Lecture d'une valeur, sur le modèle de `K()` du registre §2.1. */
+/** Value read, modelled on `K()` (§2.1 registry). */
 export function B(id: IdBudget): number {
   return BUDGETS[id].valeur
 }

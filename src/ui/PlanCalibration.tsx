@@ -1,9 +1,7 @@
 /**
- * §7.4 — les lots de calibration que la nuit exige, et ce qu'ils coûtent en temps.
- *
- * Il vit dans le plan de nuit, plus dans la fiche : les flats se prennent une fois pour
- * l'optique, les darks une fois par durée de pose, et c'est le plan entier qui fixe ces
- * durées. Sur la fiche, il redisait le même lot à chaque cible ouverte.
+ * §7.4 — calibration batches the night requires, and their time cost.
+ * In the night plan, not the fiche: flats once per optics, darks once per pose duration, and
+ * the whole plan fixes those durations. On the fiche the same batch repeated per open target.
  */
 
 import type { PlanCalibration as Calibration } from '../core/calibration.ts'

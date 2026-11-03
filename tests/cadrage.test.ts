@@ -1,9 +1,7 @@
 /**
- * §6.1 focale idéale · §6.2 verdict de cadrage.
- *
- * Valeurs de référence : Annexe A et critères d'acceptation du PRD. Le fil directeur des
- * cas limites est toujours le même — une cible écartée l'est avec sa cause, et jamais avec
- * une proposition de recadrage logiciel.
+ * §6.1 focale idéale · §6.2 verdict de cadrage. Reference values: Annexe A + PRD acceptance
+ * criteria. Edge-case thread: a cible is écartée with its cause, never with a software
+ * recadrage proposal.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -55,7 +53,7 @@ describe('verdict de cadrage §6.2', () => {
   })
 
   it('refuse le verdict « faisable » à une cible de 44 px, cause et focale à l’appui', () => {
-    // M84 : 6,5’, soit 0,108° — 0,95 % du champ et 44 px de diamètre (§6.1).
+    // M84: 6.5’ = 0.108° — 0.95 % of champ, 44 px diameter (§6.1).
     const fiche = cadre(6.5, 6.5)
     expect(fiche.diamPx.value).toBeCloseTo(44, 0)
     expect(fiche.faisable).toBe(false)
@@ -82,8 +80,8 @@ describe('verdict de cadrage §6.2', () => {
 
 describe('focale nécessaire §6.1', () => {
   it('encadre la focale de M84 par la fenêtre C-05', () => {
-    // Le PRD annonce « ordre de 4 200 mm », qui est la borne d’un remplissage au tiers du
-    // champ. La valeur retenue vise 42 %, milieu de la fenêtre, et la plage couvre les deux.
+    // PRD says "ordre de 4 200 mm", bound of a one-third champ fill. Retained value aims at 42 %,
+    // window middle; plage covers both.
     const focale = focaleIdeale(6.5 / 60, REFERENCE.capteurHMm)
     expect(focale.value).toBeCloseTo(5309, 0)
     expect(focale.range?.[0]).toBeCloseTo(4213, 0)

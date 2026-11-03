@@ -1,12 +1,8 @@
 /**
- * §11.2 — Export texte imprimable du plan de session.
- *
- * Un plan qui exige un écran allumé pendant trois heures est un plan qui vide la batterie.
- * L'export est donc du texte brut : imprimable, lisible sans l'application, et sans aucune
- * dépendance au réseau.
- *
- * TOUTE VALEUR PORTE SON UNITÉ. Un « 13 » sans unité est une source d'erreur de manipulation
- * sur le terrain — c'est la règle de §11.2, et elle vaut aussi dans l'export.
+ * §11.2 — printable text export of plan de session.
+ * Plan needing a lit screen for 3 h drains battery → plain text: printable, readable without app
+ * or network.
+ * EVERY VALUE CARRIES ITS UNIT (§11.2): bare "13" = field-handling error source.
  */
 
 import { dureeLisible, dureeMinLisible, nombre, nombreLibre } from '../registry/ecriture.ts'
@@ -22,7 +18,7 @@ import {
 } from '../registry/libelles.ts'
 import { S_PAR_MIN } from './unites.ts'
 
-/** Colonne des lots de calibration : le plus long libellé, pour que les deux-points s'alignent. */
+/** Calibration lot column: longest label, so colons align. */
 const LARGEUR_LOT = Math.max(...Object.values(LIBELLE_LOT_CALIBRATION).map((l) => l.length))
 
 const MINUTE_DEUX_CHIFFRES = 2
@@ -42,8 +38,7 @@ export interface EnTetePlan {
 
 export function planEnTexte(plan: PlanSession, enTete: EnTetePlan): string {
   const lignes: string[] = []
-  // T-0267 — la nuit porte deux dates : un plan lu à 2 h du matin sous la frontale ne doit
-  // pas laisser deviner si « 17/09 » désigne le soir écoulé ou celui qui vient.
+  // T-0267 — nuit has two dates: plan read at 2 am by headlamp can't leave "17/09" ambiguous.
   const titre = `PLAN DE SESSION — ${nomDeLaNuit(enTete.nuitIso)}`
   lignes.push(titre, '='.repeat(titre.length), '')
   lignes.push(`Lieu     : ${enTete.lieu}`)
@@ -95,7 +90,7 @@ export function planEnTexte(plan: PlanSession, enTete: EnTetePlan): string {
         `     Fond de ciel     : ${nombre(etape.sbCielEffectif, 2)} mag/arcsec²` +
           ` (Lune : +${nombre(etape.deltaSbLuneMag.value, 2)} mag/arcsec²)`,
       )
-      // Le score est sans dimension : « sur 1 » le dit, plutôt que de laisser un nombre nu.
+      // Score dimensionless: "sur 1" says so, not a bare number.
       lignes.push(`     Score            : ${nombre(etape.score.value, 3)} sur 1`)
       lignes.push(`     Consigne         : ${etape.consigne}`)
       const retournement = retournementDansEtape(etape)
@@ -133,8 +128,7 @@ export function planEnTexte(plan: PlanSession, enTete: EnTetePlan): string {
     }
     lignes.push(
       `  Décompte par cause : ${Object.entries(plan.comptesEcartees)
-        // `Object.entries` élargit toujours la clé en `string` ; le cast est sûr depuis que
-        // `comptesEcartees` est typé par `CauseEcart` — c'est le type qui garantit la clé.
+        // `Object.entries` widens key to `string`; cast safe: key typed by `CauseEcart`.
         .map(([code, nombre]) => `${LIBELLE_CAUSE_ECART[code as CauseEcart]} ${nombre} objets`)
         .join(', ')}`,
     )

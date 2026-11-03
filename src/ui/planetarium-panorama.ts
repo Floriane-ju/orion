@@ -1,13 +1,9 @@
 /**
- * §9.3 — Ce que la passe de filé du mode Panorama tient des réglages, publié pour la boucle.
- *
- * T-0116 — il n'y a plus d'image à peindre ici. La passe se dessine dans la boucle, image par
- * image, avec le projecteur de la scène : ce module ne fournit plus que la part des paramètres
- * qui vient du matériel et du panneau, et qui ne dépend donc d'aucune image en particulier.
- *
- * Les paramètres s'écrivent PENDANT le rendu React, comme l'état de boucle de `Planetarium` :
- * la boucle les relit à chaque image, et un panoramique n'a donc rien à replanifier. T-0117 a
- * retiré le dernier report de geste : plus de signature à surveiller, plus d'attente à annoncer.
+ * §9.3 — what the Panorama-mode filé pass takes from settings, published for the loop.
+ * T-0116 — no image painted here. Pass drawn in the loop, per frame, with the scène projector:
+ * module supplies only params from matériel and panel (frame-independent).
+ * Params written DURING React render, like `Planetarium`'s loop state: loop re-reads them each
+ * frame, a pan reschedules nothing. T-0117 removed the last gesture deferral.
  */
 
 import { useRef, type RefObject } from 'react'
@@ -25,10 +21,7 @@ export interface EntreeParametresFile {
   readonly materiel: MaterielFile | undefined
 }
 
-/**
- * Les paramètres de la passe de filé, ou `null` hors Panorama. La référence est lue
- * par la boucle de rendu : c'est elle qui appelle `dessineChamp` avec la vue de l'image.
- */
+/** Filé pass params, `null` outside Panorama. Loop reads it → `dessineChamp` with the frame vue. */
 export function useParametresFile(
   entree: EntreeParametresFile,
 ): RefObject<ParametresFile | null> {
@@ -42,30 +35,25 @@ export function useParametresFile(
   }
   const plan = planDeSeance(seance)
   const apercu = plan.mode
-  // T-0398 — la pose unitaire se joint ici, où la séance se lit déjà : la chaîne de
-  // l'application n'a plus à se recalculer quand la pose max suit la visée.
+  // T-0398 — pose unitaire joined here, where the séance is already read: app chain need not
+  // recompute when pose max follows the visée.
   const profondeur = { ...materiel.profondeur, tPoseS: plan.tPoseS.value }
-  // T-0398 — ni catalogue ni semis ici : les index se construisent là où la passe peint
-  // (`file-index.ts`), dans le worker quand il existe.
+  // T-0398 — no catalogue or seeding here: indexes build where the pass paints (`file-index.ts`),
+  // in the worker when present.
   parametres.current = {
     magLimite: magnitudeLimitePrevisu(profondeur).value,
     profondeur,
     tacheArcsec: tacheNpfArcsec(materiel.optique),
     sbSiteMag: materiel.sbCiel,
-    // En panorama, la monture est réputée coupée : le ciel tourne, dans le filé comme dans
-    // l'aperçu de champ, quel que soit le suivi déclaré au matériel.
+    // Panorama: mount assumed off, sky rotates in filé + champ preview whatever suivi says.
     suiviActif: false,
-    // Une photo unique accumule sa pose, un filé sa séquence : dans les deux cas, le temps de
-    // prise de vue entier (T-0374).
+    // Single photo accumulates its pose, filé its sequence: both = whole shooting time (T-0374).
     dureeS: seance.file.dureeTotaleS,
-    // T-0119 — deux plafonds, deux portées. La LISIBILITÉ ne concerne que le filé : l'aperçu de
-    // champ montre des points, qui ne se recouvrent pas et dont aucune longueur ne se lit. Le
-    // COÛT concerne les deux : l'aperçu de champ lisait le catalogue à pleine profondeur, soit
-    // cent quatre-vingt mille étoiles et 160 ms par image au plein ciel.
-    //
-    // Ce que T-0118 exigeait tient dans les deux cas : aucun des deux plafonds ne dépend du
-    // geste. Ils suivent le champ et la durée, donc ils bougent au zoom comme le champ lui-même,
-    // jamais sous un panoramique.
+    // T-0119 — two caps, two scopes. READABILITY concerns filé only (champ preview shows dots: no
+    // overlap, no length to read). COST concerns both: preview at full catalogue depth = 180 000
+    // stars, 160 ms/frame at full sky.
+    // T-0118 still holds: neither cap depends on the gesture; they follow champ + duration
+    // (move with zoom, never under a pan).
     couvertureMax: apercu === 'FILE' ? K('COUVERTURE_TRACES_MAX') : null,
     effectifMax: K('EFFECTIF_CIEL_MAX_APERCU'),
   }

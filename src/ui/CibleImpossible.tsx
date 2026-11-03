@@ -1,13 +1,9 @@
 /**
- * §6.4, §8.3 — la carte d'une cible écartée : pourquoi, et le levier qui la ferait revenir.
- *
- * T-0379 — un refus de cadrage se dit en FOCALE, pas en minutes d'arc : « votre cadre
- * convient de 19’ à 95’ » est juste, mais c'est la focale qu'on change.
- * T-0380 — une cible hors saison se dit hors saison, et offre la nuit où elle revient.
- *
- * Aucun calcul ici : la focale et la saison viennent de `cible-ecartee.ts`, qui inverse les
- * règles du moteur qui écarte. Le prochain créneau ne se cherche qu'au CLIC — une quinzaine de
- * nuits d'éphémérides par carte, multipliées par deux cents cartes, gèleraient la liste.
+ * §6.4, §8.3 — écartée cible card: why + lever that brings it back.
+ * T-0379 — cadrage refusal as FOCALE, not arcmin (focale = what user changes).
+ * T-0380 — hors saison: says so, offers return night.
+ * No calc: focale/saison from `cible-ecartee.ts` (inverts écartant engine rules).
+ * Prochain créneau searched on CLICK only: ~15 nights ephemerides × 200 cards freezes list.
  */
 
 import { useState } from 'react'
@@ -34,19 +30,12 @@ import { matriceALaMinute } from '../core/horloges.ts'
 import { MS_PAR_MINUTE } from '../core/unites.ts'
 
 export const HORS_SAISON = 'Invisible aujourd’hui'
-/**
- * Trop basse ou jamais levée : pour qui regarde la carte, c'est la même réponse — ce site ne la
- * montre pas assez haut, et ni la focale ni la date n'y changent rien. La hauteur exacte reste
- * sur la fiche.
- */
+/** Too low / never risen: same card answer (neither focale nor date helps); hauteur on fiche. */
 export const NON_PHOTOGRAPHIABLE_ICI = 'Non photographiable d’ici'
 export const AUCUN_CRENEAU = 'Aucun créneau de nuit dans l’année qui vient'
 export const AUCUNE_NUIT_SANS_LUNE = 'Aucune nuit sans Lune gênante dans le mois qui vient'
 
-/**
- * T-0380, T-0382 — les deux dates qu'une carte écartée sait chercher : la saison qui revient,
- * la Lune qui se couche. Même geste, même bouton ; seuls la recherche et ses mots changent.
- */
+/** T-0380, T-0382 — dates an écartée card can search: saison return, Lune set. Same button. */
 const RECHERCHES = Object.freeze({
   SAISON: {
     icone: 'fast_forward',
@@ -62,17 +51,14 @@ const RECHERCHES = Object.freeze({
   },
 })
 
-/** Arrondi du côté qui tient la promesse : « au moins » vers le haut, « au plus » vers le bas. */
+/** Round toward kept promise: AU_MOINS up, AU_PLUS down. */
 function arrondie(f: FocaleRequise): FocaleRequise {
   if (f.sens === 'AU_MOINS') return { sens: f.sens, focaleMm: Math.ceil(f.focaleMm) }
   if (f.sens === 'AU_PLUS') return { sens: f.sens, focaleMm: Math.floor(f.focaleMm) }
   return f
 }
 
-/**
- * T-0404 — §6.1 : quand le parc a de quoi la cadrer, la phrase nomme l'objectif et sa focale.
- * « Focale min 135 mm » dit le levier ; « 70-200 à 135 mm » dit lequel on a déjà dans le sac.
- */
+/** T-0404 — §6.1: if parc can cadrer it, phrase names objectif + focale (already owned). */
 export function phraseFocale(requise: FocaleRequise, parc: readonly Objectif[] = []): string {
   const f = arrondie(requise)
   const solution = objectifPour(parc, f)
@@ -89,15 +75,12 @@ export function phraseFocale(requise: FocaleRequise, parc: readonly Objectif[] =
   }
 }
 
-/** Les codes dont le créneau peut cacher une seconde cause : ce sont ceux où il n'a pas tranché. */
+/** Codes where créneau may hide a second cause (not decided). */
 const CRENEAU_A_TESTER: ReadonlySet<CauseEcart | null> = new Set(['CADRAGE', 'HAUTEUR', 'RELIEF', 'FENETRE'])
 
 /**
- * Les phrases de la carte, TOUTES les causes et pas seulement la première : la taille, puis le
- * créneau — dans l'ordre où on agit, le matériel puis la date. Une cause sans levier chiffré
- * garde la phrase du moteur.
- *
- * Suivi et donnée manquante ferment tout le reste : ils ne se combinent pas, leur phrase suffit.
+ * Card phrases: ALL causes, not first only: taille then créneau (action order: matériel, date).
+ * No numeric lever → engine phrase. Suivi, donnée manquante close the rest: no combining.
  */
 export function causesCarte(
   contexte: ContexteSession,
@@ -115,8 +98,7 @@ export function causesCarte(
     focale !== null ? phraseFocale(focale, parc) : null,
     creneau === null ? null : phraseCreneau(creneau),
   ].filter((p): p is string => p !== null)
-  // Ni la taille ni le créneau n'expliquent l'écart (un verdict de cadrage autre que la taille,
-  // un créneau trop court) : la phrase du moteur, seule à le savoir.
+  // Neither taille nor créneau (other cadrage verdict, créneau too short): engine phrase.
   return {
     phrases:
       phrases.length > 0 || etat.cause === null
@@ -132,7 +114,7 @@ function phraseCreneau({ cause, message }: ExclusionCreneau): string {
   return message
 }
 
-/** Les phrases viennent de `causesCarte`, calculées une fois par la carte qui décide aussi du pied. */
+/** `causesCarte` phrases, computed once by card (which also decides pied). */
 export function CibleImpossible({ phrases }: { readonly phrases: readonly string[] }) {
   return (
     <span className="cible-impossible">
@@ -147,20 +129,19 @@ export function CibleImpossible({ phrases }: { readonly phrases: readonly string
 }
 
 /**
- * Hors du bouton de fiche, comme « Cadrer » : un `<button>` ne s'imbrique pas. Il se pose donc
- * dans le pied de la carte, à côté de « Cadrer », pendant que la phrase « hors saison » reste
- * avec les autres causes. Sans créneau dans l'année, le bouton le DIT et s'éteint — un clic
- * qui ne fait rien serait un mensonge.
+ * Outside-fiche button like « Cadrer » (`<button>` can't nest): in card pied beside it; « hors
+ * saison » phrase stays with other causes. No créneau in year: button says so, goes eteinte
+ * (no-op click would lie).
  */
 export interface BoutonProchainCreneauProps {
   readonly objet: ObjetCielProfond
   readonly contexte: ContexteSession
-  /** Pour cadrer la cible à l'arrivée, comme le fait « Cadrer ». */
+  /** To cadrer cible on arrival, like « Cadrer ». */
   readonly profil: ProfilCadre | undefined
   readonly gaiaCharge: boolean
-  /** Ce qui écarte la cible ce soir : la saison (par défaut) ou la Lune. */
+  /** What écarte tonight: saison (default) or Lune. */
   readonly attendre?: keyof typeof RECHERCHES
-  /** Le pied de la carte de liste nomme le geste en toutes lettres : la phrase de la bulle. */
+  /** List-card pied spells gesture out: the bulle phrase. */
   readonly avecLibelle?: boolean
 }
 
@@ -189,7 +170,7 @@ export function BoutonProchainCreneau({
           return
         }
         vaA(instant.getTime())
-        // La direction À CET INSTANT-LÀ, pas à l'instant quitté : la cible y est au plus haut.
+        // Direction AT that instant, not the one left (cible highest there).
         const matrice = matriceALaMinute(contexte.site, Math.floor(instant.getTime() / MS_PAR_MINUTE))
         const { azimutDeg, hauteurDeg } = coordonneesHorizon(objet, matrice)
         cadreScene(objet, azimutDeg, hauteurDeg, profil, gaiaCharge)

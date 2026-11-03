@@ -1,15 +1,10 @@
 /**
- * §3.7 — la couche Voie lactée du planétarium : le plan galactique, la bande de brillance et
- * le repère du centre galactique.
- *
- * T-0193 — sortie de `dessine-ciel.ts` sans une ligne de changement. Le sujet se tient tout
- * seul : une géométrie J2000 fixe, calculée une fois au chargement, dont seule la projection
- * dépend de l'instant. C'est ici que T-0106 viendra creuser la Grande Faille, et il n'aura pas
- * à traverser la passe des étoiles pour le faire.
- *
- * Ce que la bande n'est PAS : un polygone rempli. Une polyligne dont une partie sort du champ
- * se rompt en segments, et un polygone rompu se referme n'importe où — le trait épais, lui, ne
- * peint que ce qui reste.
+ * §3.7 — planétarium Voie lactée layer: galactic plane, brightness band, galactic centre repère.
+ * T-0193 — split from `dessine-ciel.ts` unchanged. Self-contained: fixed J2000 geometry computed
+ * once at load; only projection depends on instant. T-0106 will carve the Grande Faille here,
+ * outside the star pass.
+ * Band = polyline, NOT filled polygon: partly out of champ it breaks into segments, a broken
+ * polygon closes anywhere; thick stroke paints only what remains.
  */
 
 import { applique, DEG, versSpherique, type Vec3 } from '../core/mat3.ts'
@@ -28,26 +23,23 @@ import { HAUTEUR_LABEL_PX, LARGEUR_CARACTERE_PX, RAYON_CORPS_PX } from './libell
 import type { EntreeDessin } from './dessine-ciel.ts'
 import { QUART_TOUR_DEG, TOUR_DEG, TOUR_RAD } from '../core/unites.ts'
 
-/* Niveaux d'opacité distincts que le canevas sait composer : sa couche alpha tient sur un
-   octet. Deux tracés dont les opacités tombent dans le même niveau peignent le même pixel —
-   c'est ce qui autorise à les réunir. Fait de plateforme, pas seuil de rendu. */
+/* Distinct opacity levels the canvas can compose (alpha layer = 1 byte). Two traces with
+   opacities in the same level paint the same pixel → mergeable. Platform fact, not threshold. */
 const NIVEAUX_ALPHA = 2 ** 8 - 1
 
 export const NOM_VOIE_LACTEE = 'Voie lactée'
 
 const PAS_LONGITUDE_GALACTIQUE_DEG = 3
 /**
- * T-0103 — pas des tranches de la bande. À 2°, la marche de couleur entre deux tranches
- * voisines vaut 1/255 sur toute la table Bortle : elle est SOUS la quantification de l'écran,
- * donc invisible sans le moindre flou. C'était vrai à l'exposition d'origine ; triplée (C-38),
- * la marche se voit, et la bande passe par le lissage de `lissage.ts` (T-0352).
+ * T-0103 — band slice step. At 2°, colour step between neighbour slices = 1/255 over the whole
+ * Bortle table: BELOW screen quantization, invisible without blur. True at original exposure;
+ * tripled (C-38) the step shows → band goes through `lissage.ts` smoothing (T-0352).
  */
 const PAS_LATITUDE_BANDE_DEG = 2
 
 /**
- * T-0033 — le plan galactique `b = 0`, échantillonné en longitude comme l'horizon l'est en
- * azimut. Il est fixe en J2000 : la polyligne se calcule une fois au chargement du module,
- * jamais par image. Seule sa projection dépend de l'instant et du zoom.
+ * T-0033 — galactic plane `b = 0`, sampled in longitude as horizon in azimut. Fixed in J2000:
+ * polyline computed once at load, never per frame; only projection depends on instant + zoom.
  */
 export const PLAN_GALACTIQUE: readonly Vec3[] = Array.from(
   { length: TOUR_DEG / PAS_LONGITUDE_GALACTIQUE_DEG + 1 },
@@ -55,50 +47,34 @@ export const PLAN_GALACTIQUE: readonly Vec3[] = Array.from(
 )
 
 /**
- * T-0105 — longueur d'un segment de brillance, en longitude galactique.
- *
- * Même critère que le pas en latitude, et la même mesure : à 12°, la marche de couleur entre
- * deux segments voisins vaut au plus 1/255 sur toute la table Bortle — sous la quantification
- * de l'écran, donc invisible sans flou. À 18° elle passe à 2/255 depuis que l'exposition a
- * triplé (C-38) et se verrait. C'est `tests/voie-lactee.test.ts` qui tient ce chiffre.
- *
- * Le pas est un multiple de l'échantillonnage géométrique : un segment reste une polyligne de
- * quatre cordes, pas une corde unique.
+ * T-0105 — brightness segment length, galactic longitude. Same criterion + measure as latitude
+ * step: at 12°, colour step between neighbour segments ≤ 1/255 over Bortle table (below screen
+ * quantization). At 18° = 2/255 since exposure tripled (C-38) → would show.
+ * `tests/voie-lactee.test.ts` holds this figure.
+ * Step = multiple of geometric sampling: segment stays a 4-chord polyline, not one chord.
  */
 const PAS_LONGITUDE_BANDE_DEG = 12
 const SEGMENTS_PAR_TRANCHE = TOUR_DEG / PAS_LONGITUDE_BANDE_DEG
 
 /**
- * T-0091, T-0103, T-0105 — la bande, en tranches de latitude, chacune coupée en segments de
- * longitude.
- *
- * Une tranche = une bande à latitude constante, tracée au trait épais de la largeur de la
- * tranche. Le trait, et pas le polygone rempli : une polyligne dont une partie sort du champ se
- * rompt en segments, et un polygone rompu se referme n'importe où. Le trait, lui, ne peint que
- * ce qui reste — la bande se coupe proprement au bord du champ.
- *
- * T-0105 découpe chaque tranche en longitude, parce que la brillance n'y est plus constante :
- * le bulbe du Sagittaire est une demi-magnitude au-dessus de l'anticentre. Un segment porte une
- * couleur, comme une tranche porte la sienne.
- *
- * Les raccords entre segments sont DÉCALÉS d'une tranche à l'autre. Deux segments voisins se
- * touchent bout à bout (`lineCap = 'butt'`) : sur le côté convexe du virage, l'angle entre les
- * deux bouts laisse une encoche de quelques pixels au bord de la tranche. Alignées d'une tranche
- * sur l'autre, ces encoches se liraient comme un trait sombre en travers de la bande ; décalées,
- * ce sont des accidents isolés sous le seuil de l'œil. Le décalage ne coûte rien : il est cuit
- * dans les polylignes au chargement.
- *
- * L'échelle va d'un pôle galactique à l'autre : c'est la seule borne géométrique, et elle
- * remplace la latitude de coupure qu'il fallait auparavant choisir. Ce qui décide de ce qui
- * est peint est la brillance du segment, évaluée par image — pas une étendue figée ici.
- *
- * Fixe en J2000 : les polylignes se calculent au chargement du module.
+ * T-0091, T-0103, T-0105 — band as latitude slices, each cut into longitude segments.
+ * Slice = constant-latitude band, stroked thick at slice width. Stroke, not filled polygon (see
+ * header): paints only what remains → clean cut at champ edge.
+ * T-0105 cuts slices in longitude since brightness isn't constant there: Sagittaire bulb is
+ * half a magnitude above anticentre. Segment carries a colour as slice does.
+ * Joins STAGGERED between slices. Neighbour segments touch end to end (`lineCap = 'butt'`): on
+ * the convex side of a bend, the angle leaves a few-pixel notch at slice edge. Aligned across
+ * slices = dark line across band; staggered = isolated accidents below eye threshold. Free:
+ * baked into polylines at load.
+ * Scale runs pole to pole: only geometric bound, replaces the cut latitude once chosen. Painted
+ * = decided by segment brightness, evaluated per frame — no extent fixed here.
+ * Fixed in J2000: polylines computed at module load.
  */
 interface SegmentBande {
-  /** Longitude du milieu du segment : c'est elle qui porte sa brillance. */
+  /** Segment middle longitude: carries its brightness. */
   readonly lDeg: number
   readonly ligne: readonly Vec3[]
-  /** Milieu du segment, et rayon de la calotte qui le contient : ils servent à l'écarter. */
+  /** Segment middle + radius of its containing cap: used to reject it. */
   readonly centre: Vec3
   readonly demiExtensionDeg: number
 }
@@ -107,8 +83,7 @@ const TRANCHES_BANDE: readonly {
   readonly bDeg: number
   readonly segments: readonly SegmentBande[]
 }[] = Array.from({ length: (2 * QUART_TOUR_DEG) / PAS_LATITUDE_BANDE_DEG }, (_, i) => {
-  // Centre de la tranche : c'est lui qui porte sa brillance, comme `hauteurRepresentative`
-  // le fait pour un palier de halo.
+  // Slice centre: carries its brightness, as `hauteurRepresentative` does for a halo palier.
   const bDeg = -QUART_TOUR_DEG + (i + 0.5) * PAS_LATITUDE_BANDE_DEG
   const decalageDeg = (i % 2) * (PAS_LONGITUDE_BANDE_DEG / 2)
   const pointsParSegment = PAS_LONGITUDE_BANDE_DEG / PAS_LONGITUDE_GALACTIQUE_DEG + 1
@@ -118,16 +93,15 @@ const TRANCHES_BANDE: readonly {
       Array.from({ length: SEGMENTS_PAR_TRANCHE }, (_unused, k) => {
         const departDeg = decalageDeg + k * PAS_LONGITUDE_BANDE_DEG
         const lDeg = departDeg + PAS_LONGITUDE_BANDE_DEG / 2
-        // Un segment couvre PAS_LONGITUDE de longitude — soit un arc rétréci par cos(b), les
-        // méridiens se resserrant vers les pôles — et l'épaisseur d'une tranche en latitude.
+        // Segment covers PAS_LONGITUDE of longitude (arc shrunk by cos(b), meridians closing
+        // toward poles) and the slice's latitude thickness.
         const demiLongueurDeg = (PAS_LONGITUDE_BANDE_DEG / 2) * Math.cos(bDeg * DEG)
         return Object.freeze({
           lDeg,
           centre: depuisGalactique(lDeg, bDeg),
           demiExtensionDeg: Math.hypot(demiLongueurDeg, PAS_LATITUDE_BANDE_DEG / 2),
-          // Le dernier point d'un segment est le premier du suivant : les deux traits se
-          // rejoignent sur le même sommet, sans recouvrement — un recouvrement se composerait
-          // deux fois et laisserait une tache claire.
+          // Last point of a segment = first of next: strokes meet at same vertex, no overlap —
+          // translucent overlap composes twice → bright spot.
           ligne: Object.freeze(
             Array.from({ length: pointsParSegment }, (_p, j) =>
               depuisGalactique(departDeg + j * PAS_LONGITUDE_GALACTIQUE_DEG, bDeg),
@@ -139,14 +113,13 @@ const TRANCHES_BANDE: readonly {
   })
 })
 
-/** T-0091 — le centre galactique : l = 0°, b = 0°, soit δ ≈ −29°. Calculé, jamais recopié. */
+/** T-0091 — galactic centre: l = 0°, b = 0°, i.e. δ ≈ −29°. Computed, never copied. */
 const CENTRE_GALACTIQUE: Vec3 = depuisGalactique(0, 0)
 const NOM_CENTRE_GALACTIQUE = 'Centre galactique'
 
 /**
- * T-0034 — ancre du label : le point de la ligne visible le plus proche du centre du canevas,
- * pour que le nom se pose sur la bande et non collé à un bord. `null` si la ligne ne traverse
- * pas le champ affiché — le label est alors absent, pas déporté.
+ * T-0034 — label anchor: visible line point nearest canvas centre → name sits on band, not an
+ * edge. `null` if line doesn't cross displayed champ: label absent, not displaced.
  */
 export function ancreVoieLactee(
   projecteur: Projecteur,
@@ -160,8 +133,8 @@ export function ancreVoieLactee(
   for (const point of PLAN_GALACTIQUE) {
     if (!projecteur.projetteEn(point.x, point.y, point.z, p)) continue
     if (horsCanevas(p, largeur, hauteur)) continue
-    // T-0258 — l'ancre se rapproche du centre de VISÉE : posée au milieu du canevas, l'étiquette
-    // se serait rangée sous le panneau de séance, illisible là où elle nomme la bande.
+    // T-0258 — anchor approaches visée centre: at canvas middle, label sits under séance panel,
+    // unreadable where it names the band.
     const distance = Math.hypot(p.xPx - projecteur.centreXPx, p.yPx - projecteur.centreYPx)
     if (distance < meilleureDistance) {
       meilleureDistance = distance
@@ -169,59 +142,45 @@ export function ancreVoieLactee(
       meilleurY = p.yPx
     }
   }
-  // L'ancre survit à la boucle : c'est le seul point de cette passe qui se copie.
+  // Anchor survives the loop: only point of this pass that is copied.
   return meilleureDistance === Infinity ? null : { xPx: meilleurX, yPx: meilleurY }
 }
 
 /**
- * §3.7 — la bande de la Voie lactée, telle qu'elle se verra DEPUIS CE SITE (T-0103).
- *
- * La bande est un CONTRIBUTEUR DE BRILLANCE, pas un calque teinté. Chaque tranche se compose
- * comme le halo lunaire de T-0100 : sa part de la brillance totale sert d'opacité, et la
- * couleur de cette totale sert de teinte. Les deux sont couplées, et c'est ce couplage qui
- * fait le rendu juste — là où la bande domine, la couleur peinte est exactement celle du
- * modèle ; là où elle s'efface, sa part multiplie une couleur devenue indiscernable du fond,
- * donc ne se voit pas.
- *
- * Rien n'est seuillé. La bande s'atténue vers les pôles galactiques et disparaît quand le site
- * est pollué parce que la physique le dit, pas parce qu'une opacité de convention et une
- * latitude de coupure ont été choisies — c'étaient les deux constantes qui donnaient à cette
- * couche ses stries à bord franc en travers du ciel.
- *
- * L'épaisseur du trait suit le zoom : une tranche de latitude couvre le même angle, donc
- * d'autant plus de pixels que le champ est serré. L'échelle est prise au centre du champ —
- * la projection l'étire vers les bords, et un repère de lecture n'en souffre pas.
- *
- * ponytail: l'écart peint est calculé contre le fond du zénith et ajouté en `lighter`, donc
- * en sRGB encodé et pas en lumière linéaire. Sur un fond relevé par les halos (Lune, horizon),
- * la bande ressort un peu trop — jamais plus sombre que le fond, ce qui était le défaut. Le
- * jour où il faudra la composer juste par direction, c'est un champ 2D à peindre.
+ * §3.7 — Voie lactée band as seen FROM THIS SITE (T-0103).
+ * Band = BRIGHTNESS CONTRIBUTOR, not tinted layer. Each slice composes like T-0100 lunar halo:
+ * its share of total brightness = opacity, colour of total = tint. Coupled → right render: where
+ * band dominates, painted colour = model's exactly; where it fades, its share multiplies a
+ * colour indistinguishable from background → unseen. Nothing thresholded. Band fades toward
+ * galactic poles and vanishes at polluted sites because physics says so, not because an opacity
+ * and cut latitude were chosen (those 2 constants gave hard-edged streaks).
+ * Stroke width follows zoom: latitude slice spans same angle → more pixels when champ tighter.
+ * Scale at champ centre; projection stretches toward edges, a reading repère doesn't suffer.
+ * ponytail: painted gap computed against zénith background, added in `lighter` → encoded sRGB,
+ * not linear light. On background raised by halos (Lune, horizon) band stands out a bit much,
+ * never darker than background (the defect). Compose right per direction → paint a 2D field.
  */
 interface TeinteBande {
-  /** Ce que la bande ajoute au fond, peint à l'opacité `part`. */
+  /** What band adds to background, painted at opacity `part`. */
   readonly couleur: string
   readonly part: number
-  /** Le même ajout, déjà multiplié par `part` : peint opaque sur le canevas réduit. */
+  /** Same addition, pre-multiplied by `part`: painted opaque on the reduced canvas. */
   readonly premultipliee: string
   readonly segments: SegmentBande[]
 }
 
 /**
- * Les 2 700 segments de la bande, regroupés par teinte peinte.
- *
- * Un `stroke()` par segment, c'était 2 700 traits larges et translucides étalés sur le canevas
- * à chaque image — le coût explose au dézoom, où tous tombent dans le champ. La teinte d'un
- * segment ne dépend QUE de sa position galactique et du fond de ciel du site : elle ne bouge
- * ni au zoom, ni au défilement. Le regroupement se calcule donc une fois par fond de ciel,
- * et l'image n'a plus qu'un tracé par teinte distincte.
- *
- * L'opacité est quantifiée au 255e, précision de la composition du canevas : deux segments
- * rangés ensemble s'y peignaient déjà à l'identique.
+ * The 2 700 band segments, grouped by painted tint.
+ * One `stroke()` per segment = 2 700 wide translucent strokes per frame; cost explodes zoomed
+ * out, all in champ. Segment tint depends ONLY on galactic position + site fond de ciel: no move
+ * with zoom/scroll. Grouping computed once per fond de ciel → one trace per distinct tint.
+ * Opacity quantized to 1/255 (canvas composition precision): two segments grouped already paint
+ * identically.
  */
 function teintesBande(sbCiel: number, modeNuit: boolean): readonly TeinteBande[] {
   const brillanceCiel = nanolamberts(sbCiel)
-  // Couleur du fond seul : la tranche qui la reproduit n'ajoute rien de visible, à un
-  // 255e près. C'est la borne de peinture, et elle se déduit — elle ne se règle pas.
+  // Background colour alone: slice reproducing it adds nothing visible, to 1/255. Paint bound,
+  // deduced, not tuned.
   const fondSeul = fondRealiste(sbCiel)
   const groupes = new Map<string, TeinteBande>()
   for (const tranche of TRANCHES_BANDE) {
@@ -231,9 +190,8 @@ function teintesBande(sbCiel: number, modeNuit: boolean): readonly TeinteBande[]
         brillanceVoieLacteeNl(segment.lDeg, tranche.bDeg) * K('GAIN_RENDU_VOIE_LACTEE'),
         modeNuit,
       )
-      // Peint sous le demi-niveau d'octet : la tranche recouvre le fond par sa propre
-      // couleur. Deux façons de ne rien changer — une couleur égale à celle du fond, ou une
-      // opacité qui ramène l'écart sous ce que l'écran sait distinguer.
+      // Painted below half a byte level: slice covers background with its own colour. Two ways
+      // to change nothing — colour = background's, or opacity under what the screen distinguishes.
       if (rendu.couleur === fondSeul || Math.round(rendu.deltaPeintOctets) === 0) continue
       const part = Math.round(rendu.part * NIVEAUX_ALPHA) / NIVEAUX_ALPHA
       const [r, v, b] = rendu.ajoutOctets
@@ -252,12 +210,11 @@ function teintesBande(sbCiel: number, modeNuit: boolean): readonly TeinteBande[]
   return [...groupes.values()]
 }
 
-/** Une seule entrée : le fond de ciel change à la main, jamais d'une image à l'autre. */
+/** Single entry: fond de ciel changes by hand, never frame to frame. */
 let bandeMemo: { readonly cle: string; readonly teintes: readonly TeinteBande[] } | null = null
 
 /**
- * Trace les teintes de la bande sur `cible`, en coordonnées écran. Une seule boucle sur les
- * 2 700 segments, exécutée à chaque image.
+ * Traces band tints on `cible`, screen coords. One loop over the 2 700 segments per frame.
  */
 function traceTeintes(
   cible: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
@@ -265,14 +222,13 @@ function traceTeintes(
   teintes: readonly TeinteBande[],
   lisse: boolean,
 ): void {
-  // Même écart que pour les cellules d'étoiles (§3.3) : un produit scalaire par segment plutôt
-  // que sept projections. Au dézoom, la moitié des segments est derrière l'observateur et ne
-  // se rejetait qu'après avoir été projetée point par point.
+  // Same rejection as star cells (§3.3): one dot product per segment, not seven projections.
+  // Zoomed out, half the segments are behind observer, rejected only after point-by-point
+  // projection.
   const champ = champVisible(projecteur)
   const p = pointEcran()
   for (const teinte of teintes) {
-    // T-0110 — le chemin se construit AVANT que la teinte ne soit posée : une teinte dont
-    // aucun segment n'atteint le champ ne doit rien coûter au pilote graphique.
+    // T-0110 — path built BEFORE tint set: tint with no segment in champ must cost GPU nothing.
     let tracé = false
     for (const segment of teinte.segments) {
       if (horsDuChamp(champ, segment.centre, segment.demiExtensionDeg)) continue
@@ -299,21 +255,15 @@ function traceTeintes(
 }
 
 /**
- * T-0352 — la bande se peint en dégradé : ses tranches passent par le canevas réduit de
- * `peintLisse`, à un pixel par tranche, et s'agrandissent lissées.
- *
- * Sur ce canevas, chaque tranche est OPAQUE, dans sa couleur déjà multipliée par sa part, et
- * deux fois plus épaisse que son pas. L'épaisseur est mesurée au centre de l'écran, et la
- * projection étire le ciel vers les bords : à l'épaisseur exacte, des interstices vides
- * s'ouvraient entre tranches, et le lissage les moyennait avec la bande — elle perdait de son
- * intensité. Doublées, les tranches se recouvrent au lieu de s'écarter, et, opaques, elles se
- * remplacent au lieu de s'additionner : le recouvrement ne compte qu'une fois. Recopiée en
- * `lighter`, chaque pixel ajoute au fond exactement `part × ajout`.
- *
- * ponytail: le double de l'épaisseur couvre l'étirement jusqu'à un facteur 2, celui de la
- * stéréographique à 90° du centre ; au-delà, des interstices reviendraient au bord du champ.
- *
- * Sans `OffscreenCanvas`, les tranches se peignent directement en `lighter`, à leur part.
+ * T-0352 — band painted as gradient: slices go through `peintLisse` reduced canvas, 1 px per
+ * slice, enlarged smoothed. There each slice is OPAQUE, colour pre-multiplied by its part, 2×
+ * its step thick. Thickness measured at screen centre, projection stretches sky toward edges:
+ * at exact thickness, empty gaps opened between slices, smoothing averaged them with band →
+ * intensity lost. Doubled, slices overlap instead of parting; opaque, they replace instead of
+ * adding → overlap counts once. Copied in `lighter`, each pixel adds exactly `part × ajout`.
+ * ponytail: 2× thickness covers stretch up to factor 2 (stéréographique at 90° from centre);
+ * beyond, gaps return at champ edge.
+ * Without `OffscreenCanvas`, slices paint directly in `lighter`, at their part.
  */
 export function traceBandeVoieLactee(entree: EntreeDessin): void {
   const { ctx, projecteur } = entree
@@ -334,35 +284,31 @@ export function traceBandeVoieLactee(entree: EntreeDessin): void {
 
   const opaciteInitiale = ctx.globalAlpha
   const compositionInitiale = ctx.globalCompositeOperation
-  // La bande s'AJOUTE au fond : peinte par-dessus, elle assombrirait tout ciel plus clair que
-  // le zénith — halo lunaire, halo d'horizon.
+  // Band ADDS to background: painted over, it would darken any sky lighter than zénith (halo
+  // lunaire, halo d'horizon).
   ctx.globalCompositeOperation = 'lighter'
   ctx.lineJoin = 'round'
-  // Bout franc, et pas arrondi : deux segments de longitude voisins partagent leur sommet, et
-  // un bout arrondi les ferait se recouvrir d'un demi-trait — un recouvrement translucide se
-  // compose deux fois, donc se voit comme une perle claire à chaque raccord.
+  // Butt cap, not round: neighbour segments share a vertex, round cap overlaps them by half a
+  // stroke → translucent overlap composes twice = bright bead at each join.
   ctx.lineCap = 'butt'
   ctx.lineWidth = tranchePx
   traceTeintes(ctx, projecteur, teintes, false)
   ctx.globalAlpha = opaciteInitiale
   ctx.globalCompositeOperation = compositionInitiale
-  // Rendus à leurs valeurs par défaut : les repères tracés ensuite partagent ce contexte,
-  // et un trait épais laissé arrondi arrondirait aussi les frontières et l'horizon.
+  // Back to defaults: repères traced next share this context; thick round stroke left would
+  // round frontières and horizon too.
   ctx.lineWidth = 1
   ctx.lineJoin = 'miter'
 }
 
 /**
- * §3.7 — le repère du centre galactique et son verdict site-dépendant.
- *
- * La hauteur COURANTE dit où le chercher maintenant ; la hauteur de CULMINATION dit si le
- * chercher a un sens depuis ce site. Les deux sont nécessaires : §8.2 a déjà calculé que le
- * centre galactique culmine à 14,6° depuis le site de référence, et ce chiffre vit dans un
- * tableau que personne n'ouvre. Sous le seuil d'imagerie, le repère porte donc la cause ET
- * la latitude qui rendrait la cible atteignable.
- *
- * Le tout dans UN label : c'est le repère qui porte la conséquence, et il s'arbitre au
- * budget de §3.4 d'un seul bloc, sans passe-droit.
+ * §3.7 — galactic centre repère + its site-dependent verdict.
+ * CURRENT hauteur = where to look now; CULMINATION hauteur = whether looking makes sense from
+ * this site. Both needed: §8.2 already computed GC culminates 14.6° from reference site, a
+ * figure in a table nobody opens. Under imaging threshold the repère carries the cause AND the
+ * latitude that would make cible reachable.
+ * ONE label: repère carries the consequence, arbitrated in §3.4 budget as one block, no
+ * exemption.
  */
 export function repereCentreGalactique(
   entree: EntreeDessin,

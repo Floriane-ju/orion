@@ -1,9 +1,7 @@
 /**
- * T-0276 — nombres, unités et symboles s'écrivent à la française, partout pareil.
- *
- * La règle tient par un seul formateur : ce fichier vérifie ce qu'il écrit, et qu'aucun
- * `toFixed` ne rende de texte hors de lui. Un `toFixed` ne reste permis que là où une
- * machine relit la valeur — une propriété CSS, une couleur.
+ * T-0276 — numbers, units, symbols written the French way, same everywhere. One formatter
+ * holds the rule: checks what it writes, and that no `toFixed` renders text outside it.
+ * `toFixed` allowed only where a machine re-reads the value (CSS property, colour).
  */
 
 import { readFileSync, readdirSync } from 'node:fs'
@@ -16,7 +14,7 @@ import { Etiquette } from '../src/ui/Terme.tsx'
 
 const SRC = join(import.meta.dirname, '..', 'src')
 
-/** Les seuls `toFixed` admis : ils écrivent une valeur CSS ou une couleur, pas un texte lu. */
+/** Only allowed `toFixed`: they write a CSS value or colour, not read text. */
 const TOFIXED_MACHINE = new Set([
   'ui/CarteNuit.tsx',
   'ui/carte-nuit-calcul.ts',
@@ -55,7 +53,7 @@ describe('T-0276 — le formateur', () => {
   it('écrit une durée en heures et minutes, jamais en heures décimales', () => {
     expect(dureeMinLisible(8 * MIN_PAR_H + 8)).toBe('8 h 08')
     expect(dureeMinLisible(MIN_PAR_H - 1)).toBe('59 min')
-    // Arrondie sur le total : 59 min 40 s ne donne pas « 0 h 60 ».
+    // Rounded on the total: 59 min 40 s does not give "0 h 60".
     expect(dureeLisible((MIN_PAR_H - 1) * S_PAR_MIN + 40)).toBe('1 h 00')
   })
 })

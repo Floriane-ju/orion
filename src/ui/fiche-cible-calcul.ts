@@ -1,9 +1,6 @@
 /**
- * La chaîne de calcul de la fiche : d'une cible du catalogue jusqu'à « pose 13 s, 252 images,
- * 8,3 Go », en passant par §6.2 cadrage, §6.3 détectabilité et §7 pose.
- *
- * Aucune de ces fonctions ne connaît React : elles prennent des valeurs et rendent des
- * valeurs tracées. C'est ce qui rend la chaîne vérifiable de bout en bout.
+ * Fiche calc chain: catalogue cible → « pose 13 s, 252 images, 8,3 Go », via §6.2 cadrage, §6.3
+ * détectabilité, §7 pose. No React: values in, traced values out → chain verifiable end to end.
  */
 
 import { ficheCadrage, type FicheCadrage } from '../core/cadrage.ts'
@@ -39,7 +36,7 @@ import type { TypeObjet, ObjetCielProfond } from '../data/deepsky.ts'
 import type { Boitier, IsoRetenu, PointZeroSysteme } from '../data/equipment.ts'
 import { LIBELLE_VERDICT_DETECTABILITE } from '../registry/libelles.ts'
 
-/** Le matériel et le ciel sous lesquels une cible est évaluée. */
+/** Matériel and sky under which a cible is evaluated. */
 export interface ContexteFiche {
   readonly optique: ProfilOptique
   readonly capteurHMm: number
@@ -47,53 +44,49 @@ export interface ContexteFiche {
   readonly ouvertureN: number
   readonly boitier: Boitier
   readonly zeroSysteme: PointZeroSysteme
-  /** §7.2 — l'ISO retenu, recommandé par le double gain ou choisi à la main. */
+  /** §7.2 — retained ISO, recommended by double gain or hand-picked. */
   readonly iso: IsoRetenu
   readonly sbCiel: number
   readonly mLimOeil: number | null
-  /** Plafond de pose : monture avec suivi (§5.2), ou pose NPF sans suivi (§9.1). */
+  /** Pose cap: monture with suivi (§5.2), or NPF pose without suivi (§9.1). */
   readonly tMaxS: number | null
-  /** Classe Bortle déclarée, quand elle l'est : elle conditionne le conseil filtre (§7.5). */
+  /** Declared Bortle class, when it is: conditions filtre advice (§7.5). */
   readonly bortle: number | null
   readonly suiviActif: boolean
   readonly focaleMm: number
 }
 
 /**
- * T-0089 — l'état du ciel sous la Lune retenu par la fiche. Jamais implicite : soit la Lune
- * est évaluée à un instant nommé, soit elle ne l'est pas et la fiche dit pourquoi. Le fond
- * de ciel noir du site n'est jamais présenté comme le ciel de la nuit sans le dire.
+ * T-0089 — sky state under Lune retained by fiche. Never implicit: Lune evaluated at a named
+ * instant, or not and fiche says why. Black site fond never passed off as night sky.
  */
 export type LuneFiche =
   | { readonly evaluee: true; readonly instant: Date; readonly ciel: CielSousLaLune }
   | { readonly evaluee: false; readonly cause: string }
 
 /**
- * T-0268 — ce que le créneau de la nuit impose à la fiche, et rien d'autre.
- *
- * La masse d'air qui DOSE est celle du plan de séance : la moyenne du créneau (§7.6). La fiche
- * chiffrait la culmination, donc le meilleur instant de la nuit, et annonçait systématiquement
- * moins de temps que la capture n'en demande — 22 min là où le plan en alloue 23.
- *
- * `plusHaut` porte la variante affichée à côté : le plancher qu'on atteint en ne shootant
- * qu'autour du méridien. C'est un levier chiffré, pas la prévision.
+ * T-0268 — what the night créneau imposes on fiche, nothing else.
+ * DOSING masse d'air = plan de séance's: créneau mean (§7.6). Fiche used culmination = night's best
+ * instant → always announced less time than capture needs (22 min where plan allots 23).
+ * `plusHaut` = variant shown beside: floor reached shooting only around meridian. A quantified
+ * lever, not the forecast.
  */
 export interface CaptureNuit {
   readonly masseAir: Traced<number | null>
-  /** §7.3 — la durée du créneau, qui décide du nombre de nuits. `null` sans créneau. */
+  /** §7.3 — créneau duration, decides nights count. `null` without créneau. */
   readonly dureeCreneauS: number | null
-  /** §7.6 — le meilleur instant du créneau, ou `null` quand la nuit n'en offre aucun. */
+  /** §7.6 — créneau best instant, or `null` when night offers none. */
   readonly plusHaut: PlusHautDuCreneau | null
   /**
-   * La cause du moteur quand la nuit n'offre AUCUN créneau : relief, fenêtre, hauteur, cible
-   * jamais levée. Le plan et la liste écartent alors la cible ; la fiche chiffrait quand même
-   * une intégration, en repliant sur la culmination — 24 h et 1 108 poses affichées sous une
-   * section « Créneau photo » qui venait de dire « cachée par le relief ». `null` sinon.
+   * Engine cause when night offers NO créneau: relief, fenêtre, hauteur, cible never risen. Plan
+   * and list écartent the cible; fiche still computed an integration from culmination — 24 h and
+   * 1 108 poses under a « Créneau photo » section that had just said « cachée par le relief ».
+   * `null` otherwise.
    */
   readonly exclusion: string | null
 }
 
-/** §7.6 — l'intégration au meilleur instant du créneau : un plancher, jamais la prévision. */
+/** §7.6 — integration at créneau best instant: a floor, never the forecast. */
 export interface Plancher {
   readonly plusHaut: PlusHautDuCreneau
   readonly extinction: FluxObjetReel
@@ -101,30 +94,29 @@ export interface Plancher {
 }
 
 export interface Resultat {
-  /** §8.1 — le ciel sous la Lune tel qu'il a été retenu, ou la raison de son absence. */
+  /** §8.1 — sky under Lune as retained, or reason for its absence. */
   readonly lune: LuneFiche
-  /** Fond de ciel effectivement employé : celui du site, dégradé par la Lune si elle l'est. */
+  /** Sky fond actually used: site's, degraded by Lune if evaluated. */
   readonly sbCielEffectif: number
-  /** `null` quand le catalogue ne donne pas les dimensions : §6.2 n'a alors rien à dire. */
+  /** `null` when catalogue gives no dimensions: §6.2 has nothing to say. */
   readonly cadrage: FicheCadrage | null
   readonly detect: Detectabilite
   readonly eCiel: Traced<number>
   readonly eObj: Traced<number> | null
   /**
-   * §7.6 — l'extinction atmosphérique appliquée au flux de l'objet, avec la masse d'air et
-   * la hauteur qui la produisent. Toujours présente : un refus se lit, il ne disparaît pas.
+   * §7.6 — atmospheric extinction on object flux, with masse d'air and height producing it.
+   * Always present: a refusal is read, doesn't vanish.
    */
   readonly extinction: FluxObjetReel | null
-  /** T-0268 — le meilleur instant du créneau, celui que la variante « plancher » chiffre. */
+  /** T-0268 — créneau best instant, the one the « plancher » variant quantifies. */
   readonly plusHaut: PlusHautDuCreneau | null
   readonly pose: PoseUnitaire | null
-  /** La cause de l'écart quand la nuit n'offre aucun créneau : rien n'est alors chiffré. */
+  /** Cause of the écart when night offers no créneau: nothing quantified then. */
   readonly exclusionCreneau: string | null
   readonly integration: PlanIntegration | null
   /**
-   * T-0268 — la même cible au seul meilleur instant du créneau. `null` quand la nuit n'a pas
-   * de créneau : il n'y a alors qu'une convention, et annoncer un plancher égal à la
-   * prévision ferait croire à un arbitrage là où il n'y en a pas.
+   * T-0268 — same cible at créneau best instant only. `null` without créneau: only a convention
+   * then, and a floor equal to forecast would suggest arbitration where none exists.
    */
   readonly plancher: Plancher | null
   readonly explique: Explication | null
@@ -136,8 +128,8 @@ export interface Conseils {
 }
 
 /**
- * `permissif` est le mode C-03 = 3 de §7.2 : il n'est jamais déduit du contexte, il est
- * demandé. Une pose divisée par trois se choisit, elle ne s'applique pas en silence.
+ * `permissif` = C-03 = 3 mode of §7.2: requested, never deduced from context (pose ÷3 is chosen,
+ * not silent).
  */
 export function evalue(
   contexte: ContexteFiche,
@@ -149,18 +141,16 @@ export function evalue(
   permissif = false,
 ): Resultat {
   const fovHDeg = contexte.optique.fovHDeg.value
-  // T-0089 — le plan de séance dose la pose sous le ciel réel de la nuit (§8.1) ; la fiche
-  // le faisait sous le ciel noir du site, et annonçait donc une autre pose pour la même
-  // cible. Un seul fond de ciel traverse maintenant toute la chaîne.
+  // T-0089 — plan de séance doses pose under night's real sky (§8.1); fiche did it under black site
+  // sky, announcing another pose for same cible. One fond de ciel now runs the chain.
   const sbCiel = lune.evaluee ? lune.ciel.sbCielEffectif : contexte.sbCiel
   const a = objet.majAxArcmin
   const b = objet.minAxArcmin
   const m = objet.vMag
 
-  // Sans grand axe au catalogue, aucun cadrage n'est produit — comme le plan de séance et la
-  // liste de cibles le font déjà. Substituer une taille nulle donnerait un remplissage de 0 %,
-  // un refus « trop petit » et une focale nécessaire infinie : trois verdicts sur une donnée
-  // inventée, ce qui est pire que l'absence.
+  // No grand axe in catalogue → no cadrage, as plan de séance and cibles list. A zero size gives
+  // 0 % fill, « trop petit » refusal and infinite focale: three verdicts on invented data, worse
+  // than absence.
   const cadrage =
     a === null || a <= 0
       ? null
@@ -181,8 +171,8 @@ export function evalue(
     sbCiel,
     mLimOeil: contexte.mLimOeil,
     dMm: contexte.optique.dMm.value,
-    // La tolérance lunaire du type d'objet (§6.3) n'est portée que si la Lune est évaluée :
-    // annoncer « Lune sous l'horizon » sans l'avoir calculée serait une affirmation gratuite.
+    // §6.3 object-type Lune tolerance carried only if Lune evaluated: « Lune sous l'horizon »
+    // uncomputed = gratuitous claim.
     ...(lune.evaluee
       ? {
           lune: {
@@ -230,13 +220,13 @@ export function evalue(
     ouvertureN: contexte.ouvertureN,
     zpEstime,
   })
-  // T-0268 — la masse d'air vient du créneau, comme dans `evalueCandidate` : c'est ce qui rend
-  // la fiche incapable d'annoncer une autre intégration que la liste et le plan.
+  // T-0268 — masse d'air from créneau, as `evalueCandidate`: fiche can't announce an integration
+  // different from list and plan.
   const extinction = fluxObjetReel(eObj, capture.masseAir)
   const eObjReel = extinction.eObjReel.value
 
-  // Extinction refusée hors du domaine de l'approximation plane : la chaîne s'arrête là,
-  // et l'écran affiche le refus plutôt qu'une intégration extrapolée (§7.6, borne dure).
+  // Extinction refused outside plane-approximation domain: chain stops, screen shows refusal, not
+  // extrapolated integration (§7.6, hard bound).
   if (eObjReel === null) {
     return {
       lune,
@@ -264,11 +254,10 @@ export function evalue(
   })
 
   /**
-   * T-0268 — la nuit n'offre aucun créneau : le plan et la liste écartent la cible, la fiche
-   * n'a donc rien à chiffrer non plus. Elle repliait sur la culmination et affichait « 24 h,
-   * 1 108 poses » deux blocs sous « cachée par le relief » — sa propre section « Créneau »
-   * la contredisait. La POSE reste, elle : elle ne tient qu'au fond de ciel et au boîtier,
-   * et vaut cette nuit-là quelle que soit la cible.
+   * T-0268 — no créneau: plan and list écartent the cible, so fiche has nothing to quantify. It
+   * used to fall back to culmination: « 24 h, 1 108 poses » two blocks under « cachée par le
+   * relief », contradicting its own « Créneau » section. POSE stays: depends only on fond de ciel
+   * and boîtier, valid that night whatever the cible.
    */
   if (capture.exclusion !== null) {
     return {
@@ -288,8 +277,8 @@ export function evalue(
     }
   }
 
-  // §7.3 — la durée du créneau décide du nombre de nuits. Sans elle, la fiche restait muette
-  // sur une intégration qui ne tient pas dans une nuit, là où le plan le disait.
+  // §7.3 — créneau duration decides nights count. Without it fiche stayed mute on an integration
+  // not fitting one night, where plan said it.
   const integrationCommune = {
     eCiel: eCiel.value,
     tPoseS: pose.tRecommandeS.value,
@@ -336,14 +325,11 @@ export function evalue(
 }
 
 /**
- * T-0268, §7.6 — la même cible, éteinte au seul meilleur instant du créneau.
- *
- * Ce n'est pas un second verdict : la pose, le fond de ciel et la cible sont ceux de la
- * prévision, seule la masse d'air change. L'écart entre les deux durées est ce que coûte le
- * fait de shooter toute la fenêtre plutôt que l'heure du méridien — donc un levier chiffré.
- *
- * `null` sans créneau : le plancher vaudrait alors la prévision, et deux fois le même nombre
- * sous deux libellés différents fait croire à un arbitrage qui n'existe pas.
+ * T-0268, §7.6 — same cible, extinguished at créneau best instant only.
+ * Not a second verdict: pose, fond de ciel, cible are the forecast's; only masse d'air changes.
+ * Gap between durations = cost of shooting whole window vs meridian hour → quantified lever.
+ * `null` without créneau: floor = forecast, same number under two labels suggests non-existent
+ * arbitration.
  */
 function plancherAuMeilleurInstant(
   plusHaut: PlusHautDuCreneau | null,
@@ -366,29 +352,27 @@ function plancherAuMeilleurInstant(
 }
 
 /**
- * Le point d'explication §10.2 : les entrées que `sensibilites` (core/explain.ts) perturbe
- * une à la fois pour désigner le facteur dominant. `masse_air` est absente hors évaluation
- * lunaire (§7.6) — c'est le seul champ optionnel.
+ * §10.2 explanation point: inputs `sensibilites` (core/explain.ts) perturbs one at a time to name
+ * dominant factor. `masse_air` absent outside lunar evaluation (§7.6) — only optional field.
  */
 interface PointExplicationFiche extends Readonly<Record<string, number>> {
-  /** mag/arcsec² — brillance de surface de l'objet, §6.3. */
+  /** mag/arcsec² — object surface brightness, §6.3. */
   readonly sb_obj: number
-  /** mag/arcsec² — brillance de surface du fond de ciel. */
+  /** mag/arcsec² — fond de ciel surface brightness. */
   readonly sb_ciel: number
-  /** s — pose unitaire recommandée, §7.2. */
+  /** s — recommended pose unitaire, §7.2. */
   readonly t_pose_s: number
-  /** e⁻ — bruit de lecture retenu pour la pose. */
+  /** e⁻ — read noise retained for the pose. */
   readonly read_noise_e: number
-  /** sans unité — SNR visé. */
+  /** unitless — target SNR. */
   readonly snr_cible: number
-  /** sans unité — masse d'air de la cible, §7.6. */
+  /** unitless — cible masse d'air, §7.6. */
   readonly masse_air?: number
 }
 
 /**
- * §10.2 — la sensibilité est calculée sur la sortie qui porte le verdict : la durée
- * d'intégration requise. Les flux sont recalculés sans garde de domaine, pour que la
- * perturbation d'une entrée ne bute pas sur une borne de saisie.
+ * §10.2 — sensitivity on the verdict-carrying output: required integration duration. Fluxes
+ * recomputed without domain guard so perturbing an input doesn't hit an input bound.
  */
 function expliqueVerdict(
   contexte: ContexteFiche,
@@ -407,9 +391,8 @@ function expliqueVerdict(
     readonly sbCiel: number
   },
 ): Explication {
-  // §7.6 — la masse d'air entre dans la sensibilité comme les autres entrées : c'est ce qui
-  // permet à §10.2 de désigner la HAUTEUR comme facteur dominant quand elle l'est, plutôt
-  // que de laisser croire que seule la cible décide du temps de pose.
+  // §7.6 — masse d'air enters sensitivity like other inputs: lets §10.2 name HAUTEUR dominant
+  // factor when it is, not imply only cible decides pose time.
   const masseAirValeur = r.extinction.masseAir.value
   const point: PointExplicationFiche = {
     sb_obj: r.sbObj,
@@ -460,8 +443,8 @@ function expliqueVerdict(
       typeObjet: objet.type,
       cibleImposee: true,
       cadrageRefuse: r.cadrage?.faisable === false,
-      // §7.6 — sous le seuil d'imagerie, le créneau devient un levier chiffré et non une
-      // recommandation de principe : l'extinction y double le temps d'intégration.
+      // §7.6 — under imaging threshold créneau = quantified lever, not principle recommendation:
+      // extinction doubles integration time there.
       hauteurFaible:
         r.hauteurEvaluationDeg !== null &&
         r.hauteurEvaluationDeg < K('SEUIL_HAUTEUR_IMAGERIE_DEG'),
@@ -470,8 +453,8 @@ function expliqueVerdict(
 }
 
 /**
- * §7.5 et §10.3 — le conseil filtre et la recommandation d'équipement ne sont calculés qu'à
- * l'ouverture de l'explication. Jamais de bandeau, jamais de suggestion spontanée.
+ * §7.5, §10.3 — conseil filtre and équipement recommendation computed only when explanation is
+ * opened. Never banner, never spontaneous suggestion.
  */
 export function conseilsCible(
   contexte: ContexteFiche,
@@ -486,11 +469,10 @@ export function conseilsCible(
   const filtre = conseilFiltre({
     typeObjet: entree.typeObjet,
     bortle: contexte.bortle,
-    // §7.5 — la dégradation lunaire déclenche le conseil filtre au même titre que le
-    // Bortle : une nébuleuse en émission reste faisable sous Lune gibbeuse avec un
-    // bi-bande, et c'est là que ça se dit.
+    // §7.5 — Lune degradation triggers conseil filtre like Bortle: emission nebula doable under
+    // gibbous Lune with a bi-bande, said here.
     deltaSbLuneMag: r.lune.evaluee ? r.lune.ciel.delta.value : 0,
-    // Sans cadrage, rien ne dit que le cadrage bloque : le conseil filtre reste ouvert.
+    // Without cadrage nothing says cadrage blocks: conseil filtre stays open.
     cadragePlanifiable: r.cadrage === null || r.cadrage.faisable,
     explicationDepliee: entree.explicationDepliee,
     eObj: r.eObj.value,

@@ -1,13 +1,9 @@
 /**
- * §3 — La boucle de rendu du ciel, en marge de React.
- *
- * Le rendu vit dans un `requestAnimationFrame` qui lit un état mutable ; React ne réagit
- * qu'aux commandes et à l'instant publié, jamais à l'image. Sans cette séparation, une
- * animation à 60 Hz déclencherait soixante rendus React par seconde.
- *
- * T-0248 — la boucle tourne en continu mais ne PEINT que ce qui a changé. Le ciel de
- * `MAINTENANT` dérive d'un pixel toutes les vingt-cinq secondes à 200° de champ : le repeindre
- * trente fois par seconde, c'était un cœur de processeur occupé à reproduire la même image.
+ * §3 — sky render loop, beside React.
+ * Render lives in a `requestAnimationFrame` reading mutable state; React reacts only to
+ * commands and the published instant, never the frame (else 60 renders/s).
+ * T-0248 — loop runs continuously but PAINTS only what changed. `MAINTENANT` sky drifts 1 px
+ * per 25 s at 200° champ: repainting 30×/s = a CPU core reproducing the same image.
  */
 
 import { useEffect, useRef, type RefObject } from 'react'
@@ -57,7 +53,7 @@ import { luneFile, type LuneFile } from '../core/fond-lune-file.ts'
 import { R } from '../registry/relief.ts'
 import { HORIZON_PLAT, horizonA, versHorizon, type TransitionHorizon } from './horizon-transition.ts'
 
-/** Noms français des corps mobiles de §3.1. */
+/** French names of §3.1 moving bodies. */
 const NOMS_CORPS: Readonly<Record<string, string>> = Object.freeze({
   Sun: 'Soleil',
   Moon: 'Lune',
@@ -71,19 +67,17 @@ const NOMS_CORPS: Readonly<Record<string, string>> = Object.freeze({
 
 const PERIODE_PUBLICATION_MS = B('PUBLICATION_MS')
 const INTERVALLE_MIN_MS = MS_PAR_S / B('IMAGES_PAR_S_MAX')
-/** La plus petite dérive que l'écran sait montrer. Fait de plateforme, pas seuil de rendu. */
+/** Smallest drift the screen can show. Platform fact, not a render threshold. */
 const DERIVE_VISIBLE_PX = 1
 
-/** T-0395 — un relief en transition n'a pas de courbes : celles d'arrivée attendent qu'il soit posé. */
+/** T-0395 — a relief in transition has no courbes: arrival ones wait until it settles. */
 const COURBES_VIDES = new Float32Array(0)
 
 /**
- * La visée de la cible suivie à l'instant de l'image, `null` sans suivi.
- *
- * L'image se peint avec ELLE, pas avec la vue du rendu React : celle-ci a toujours un rendu
- * de retard, et le ciel peint à l'instant courant sous une visée d'avant avançait d'un pixel
- * puis revenait — le suivi saccadait. Le magasin, lui, n'est recalé qu'au pixel de dérive :
- * en deçà, le réécrire réveillerait React à chaque image sans rien changer aux lectures.
+ * Tracked target aim at frame instant; `null` = no suivi.
+ * Paint with it, not React vue (always 1 render behind: sky at current instant under an older
+ * aim advanced 1 px then returned → suivi jitter). Store re-synced only at 1 px drift, else
+ * React wakes every frame for unchanged readings.
  */
 function suitCible(site: Site, date: Date): { azimutDeg: number; hauteurDeg: number } | null {
   const { suivi, vue } = etatScene()
@@ -99,7 +93,7 @@ function suitCible(site: Site, date: Date): { azimutDeg: number; hauteurDeg: num
   return visee
 }
 
-/** Tout ce que la boucle lit à chaque image, réécrit à chaque rendu React. */
+/** Everything the loop reads per frame, rewritten each React render. */
 export interface EtatBoucle {
   readonly site: Site
   readonly etoiles: readonly Etoile[]
@@ -112,46 +106,45 @@ export interface EtatBoucle {
   readonly asterismes: readonly CoucheTraces[]
   readonly frontieres: CoucheFrontieres
   readonly couches: CouchesActives
-  /** Vue réaliste, Soleil levé : seuls le Soleil et la Lune restent dessinés, sans ciel profond. */
+  /** Vue réaliste, Soleil levé: only Sun and Moon drawn, no ciel profond. */
   readonly jour: boolean
-  /** §4.1 — relief du site : la couche Sol y prend la hauteur du sol, azimut par azimut. */
+  /** §4.1 — site relief: Sol layer takes ground height, azimuth by azimuth. */
   readonly masque: MasqueHorizon
-  /** T-0369 — le relief du lieu saisi se charge : la couche Sol s'aplatit en l'attendant. */
+  /** T-0369 — entered lieu's relief loading: Sol layer flattens meanwhile. */
   readonly horizonEnAttente: boolean
   readonly magLimite: number
-  /** T-0357 — part visible des étoiles et des repères nocturnes, 0 de jour, 1 la nuit. */
+  /** T-0357 — visible share of stars and night marks: 0 by day, 1 at night. */
   readonly apparition: number
-  /** §3.7 — fond de ciel du site : il module le contraste de la bande de la Voie lactée. */
+  /** §3.7 — site fond de ciel: modulates Voie lactée contrast. */
   readonly sbCiel: number
-  /** §3.3 — vue réaliste : le fond du ciel prend la luminance du site (T-0097). */
+  /** §3.3 — vue réaliste: sky background takes the site's luminance (T-0097). */
   readonly vueRealiste: boolean
-  /** T-0100 — la Lune de l'instant affiché. Absente : aucun halo lunaire n'est peint. */
+  /** T-0100 — Moon at displayed instant. Absent = no lunar halo. */
   readonly lune: LuneEcran | null
-  /** Le Soleil de l'instant affiché. `null` : aucun halo solaire n'est peint. */
+  /** Sun at displayed instant. `null` = no solar halo. */
   readonly soleil: SoleilEcran | null
-  /** §9.1 / T-0142 — l'optique quand la carte de pose est demandée dans le cadre, `null` sinon. */
+  /** §9.1 / T-0142 — optics when the pose map is requested in the cadre, else `null`. */
   readonly poseCadre: OptiquePose | null
-  /** §6.4 — les cibles retenues par les filtres du catalogue, `null` si aucun n'est actif. */
+  /** §6.4 — targets retained by catalogue filters; `null` if none active. */
   readonly enAvant: ReadonlySet<string> | null
-  /** §8.4 / T-0324 — le trajet de pointage montré, `null` quand la scène est celle de tous les jours. */
+  /** §8.4 / T-0324 — pointage path shown; `null` = everyday scène. */
   readonly parcours: ParcoursScene | null
-  /** §6.4 / T-0283 — la cible de la fiche ouverte, ou celles du plan sur « Mon plan ». */
+  /** §6.4 / T-0283 — open fiche's target, or the plan's on "Mon plan". */
   readonly ciblesOuvertes: readonly ObjetCielProfond[]
-  /** Sous un zoom, le cadre que la cible ouverte ou survolée obtiendrait ; `null` sinon. */
+  /** Under a zoom, the cadre the open or hovered target would get; else `null`. */
   readonly cadreCible: { readonly objet: ObjetCielProfond; readonly profil: ProfilCadre } | null
   readonly vue: VueScene
   readonly modeTemps: string
   readonly facteur: number
-  /** §3.2 — l'écart constant entre l'instant affiché et l'horloge système. */
+  /** §3.2 — constant gap between displayed instant and system clock. */
   readonly decalageMs: number
   readonly anime: boolean
 }
 
 /**
- * L'instant de l'image suivante. En `MAINTENANT`, resynchronisation continue : aucune dérive ne
- * s'accumule sur plusieurs heures, et le décalage rend la lecture reprenable là où on l'avait
- * laissée — l'horloge système donne la cadence, pas la destination (T-0137). T-0360 : le
- * transport s'arrête aux bornes de l'année affichée, il ne les traverse pas.
+ * Next frame's instant. `MAINTENANT`: continuous resync, no drift over hours; offset makes the
+ * reading resumable where left — system clock gives cadence, not destination (T-0137).
+ * T-0360: transport stops at displayed-year bounds, does not cross them.
  */
 export function instantSuivant(
   courant: Pick<EtatBoucle, 'modeTemps' | 'facteur' | 'decalageMs' | 'anime'>,
@@ -163,24 +156,23 @@ export function instantSuivant(
   return courant.anime ? borneInstant(ms + dtMs * courant.facteur) : ms
 }
 
-/** T-0248 — ce qu'une image a lu : de quoi dire si la suivante peindrait autre chose. */
+/** T-0248 — what a frame read: to tell whether the next would paint anything else. */
 export interface ImageLue {
-  /** Son identité change à chaque rendu React de la scène : vue, couches, filé, mode nuit… */
+  /** Identity changes at each React render of the scène: vue, couches, filé, mode nuit… */
   readonly etat: Pick<EtatBoucle, 'vue' | 'modeTemps' | 'anime'>
-  /** L'astre survolé, pas l'entrée de `cibles` qui le porte : celle-ci est neuve à chaque image. */
+  /** Hovered body, not the `cibles` entry carrying it (new each frame). */
   readonly survole: unknown
-  /** Définition du canevas : la réécrire l'efface. */
+  /** Canvas definition: rewriting it clears it. */
   readonly largeurPx: number
   readonly hauteurPx: number
   readonly instantMs: number
 }
 
 /**
- * T-0248 — l'image courante diffère-t-elle de la dernière peinte ?
- *
- * En `MAINTENANT`, le ciel tourne sans qu'aucun état ne change : on repeint quand sa rotation
- * a déplacé l'écran d'un pixel, à la vitesse de §3.2 (`vitesseEcran`, facteur 1). En
- * défilement, chaque image est neuve. Temps figé, seul un changement d'état compte.
+ * T-0248 — does the current frame differ from the last painted?
+ * `MAINTENANT`: sky turns with no state change → repaint when rotation moved the screen 1 px,
+ * at §3.2 speed (`vitesseEcran`, factor 1). Scrolling: each frame new. Frozen time: only a
+ * state change counts.
  */
 export function doitDessiner(peinte: ImageLue | null, courante: ImageLue): boolean {
   if (peinte === null) return true
@@ -193,8 +185,8 @@ export function doitDessiner(peinte: ImageLue | null, courante: ImageLue): boole
     return true
   }
   if (courante.etat.anime) return true
-  // T-0394 — temps figé, l'instant ne bouge que sous un geste : un trajet l'écrit à chaque
-  // image, et la minute publiée ne change pas assez vite pour repeindre ses deux extrémités.
+  // T-0394 — frozen time, instant moves only under a gesture: a trajet writes it each frame;
+  // published minute changes too slowly to repaint its two ends.
   if (courante.etat.modeTemps !== 'MAINTENANT') return courante.instantMs !== peinte.instantMs
   const { largeurPx, fovDeg } = courante.etat.vue
   const pxParS = vitesseEcran(1, pxParDegre(largeurPx, fovDeg)).value
@@ -202,25 +194,25 @@ export function doitDessiner(peinte: ImageLue | null, courante: ImageLue): boole
   return deriveS * pxParS >= DERIVE_VISIBLE_PX
 }
 
-/** L'astre que le survol désigne, stable d'une image à l'autre ; `null` sans survol. */
+/** Body the hover designates, stable across frames; `null` without hover. */
 function astreSurvole(survol: SurvolEcran | null): unknown {
   const cible = survol?.cible
   if (cible === undefined) return null
-  // Un corps mobile est repositionné à chaque image : son nom est sa seule identité stable.
+  // Moving body repositioned each frame: its name is its only stable identity.
   return cible.objet ?? cible.etoileNommee ?? cible.etoile ?? cible.nom
 }
 
 /**
- * Démarre la boucle et rend la liste des cibles à l'écran, réécrite à chaque image peinte : c'est
- * elle que le clic interroge pour savoir ce qui se trouve sous le curseur.
+ * Starts the loop; returns the on-screen target list, rewritten each painted frame: what the
+ * click queries for what is under the cursor.
  */
 export function useBoucleRendu(entree: {
   readonly canevas: RefObject<HTMLCanvasElement | null>
   readonly etat: RefObject<EtatBoucle>
   readonly instant: { ms: number }
-  /** §9.3 — les paramètres de la passe de filé, ou `null` quand elle est éteinte. */
+  /** §9.3 — filé pass params; `null` = off. */
   readonly parametresFile: RefObject<ParametresFile | null>
-  /** T-0085 — l'élément désigné par le curseur, relu par image plutôt qu'à chaque rendu React. */
+  /** T-0085 — element under the cursor, re-read per frame, not per React render. */
   readonly survol: RefObject<SurvolEcran | null>
 }): RefObject<readonly CibleEcran[]> {
   const { canevas, etat, instant, parametresFile, survol } = entree
@@ -228,8 +220,8 @@ export function useBoucleRendu(entree: {
   const ephemerides = useRef<EtatEphemerides | null>(null)
 
   useEffect(() => {
-    // T-0248 — opaque : `passeFond` recouvre tout le canevas avant la moindre couche, et le
-    // compositeur n'a plus à mélanger la scène avec ce qui se trouve derrière elle.
+    // T-0248 — opaque: `passeFond` covers the whole canvas before any layer, compositor need
+    // not blend with what is behind.
     const contexte = canevas.current?.getContext('2d', { alpha: false }) ?? null
     if (contexte === null) return
 
@@ -237,34 +229,34 @@ export function useBoucleRendu(entree: {
     let dernierTs: number | null = null
     let dernierePublication = 0
     let peinte: ImageLue | null = null
-    // T-0116 — les compteurs du filé se publient avec l'instant, jamais par image :
-    // `poseRenduFile` passe par le magasin de séance, donc par un rendu React.
+    // T-0116 — filé counters publish with the instant, never per frame: `poseRenduFile` goes
+    // through the séance store → a React render.
     const publieFile = publicateurRenduFile(poseRenduFile)
-    // Boîte réécrite par image plutôt qu'une variable locale : la passe de filé écrit depuis
-    // une fermeture, et le flux de contrôle ne la suit pas jusque-là.
+    // Box rewritten per frame, not a local: filé pass writes from a closure, control flow does
+    // not follow it there.
     const derniereFile: { sortie: SortieDessinChamp | null } = { sortie: null }
-    // T-0065 — une seule `Date`, réécrite par image. `cielInstantane` la lit sans la
-    // garder : rien ne survit à l'appel, donc rien ne justifie d'en allouer une neuve.
+    // T-0065 — single `Date`, rewritten per frame. `cielInstantane` reads without keeping:
+    // nothing survives the call, no new allocation justified.
     const instantDate = new Date(0)
-    // T-0369 — la couche Sol glisse d'un relief à l'autre ; sans mouvement demandé, elle saute.
+    // T-0369 — Sol layer glides between reliefs; without requested motion it jumps.
     const dureeHorizonMs = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       ? 0
       : R('DUREE_TRANSITION_RELIEF_MS')
     let transitionHorizon: TransitionHorizon | null = null
-    // T-0398 — la passe de filé se peint dans un worker quand la plateforme le permet.
+    // T-0398 — filé pass painted in a worker when the platform allows.
     const port = creePortFile()
     const horsFil: ClientFile | null = port === null ? null : clientFile(port)
     let versionPeinte = 0
     let catalogueEnvoye: readonly Etoile[] | null = null
-    /** Ce qui décide d'une image de filé : sans changement, aucune demande ne repart. */
+    /** What decides a filé frame: unchanged → no request goes out. */
     let derniereDemande: readonly unknown[] = []
-    // T-0399 — les positions de la Lune déjà calculées : un panoramique n'en recalcule aucune.
+    // T-0399 — Moon positions already computed: a pan recomputes none.
     const cacheLune = cacheTrajetLune()
 
     const image = (ts: number): void => {
       if (!actif) return
       requestAnimationFrame(image)
-      // Plafond de cadence : on saute ce tick, la prochaine frame réévaluera.
+      // Rate cap: skip this tick, next frame re-evaluates.
       if (dernierTs !== null && ts - dernierTs < INTERVALLE_MIN_MS) return
       const courant = etat.current
       const dt = dernierTs === null ? 0 : ts - dernierTs
@@ -285,23 +277,23 @@ export function useBoucleRendu(entree: {
       transitionHorizon = versHorizon(transitionHorizon, cibleHorizon, ts, dureeHorizonMs)
       const horizon = horizonA(transitionHorizon, ts, dureeHorizonMs)
       const enTransition = horizon !== transitionHorizon.cible
-      // T-0398 — une image de filé reçue du worker se pose sans attendre un autre changement.
+      // T-0398 — filé frame received from the worker is set without awaiting another change.
       const recue = horsFil !== null && horsFil.version() !== versionPeinte
       if (enTransition || recue || doitDessiner(peinte, courante)) {
         if (horsFil !== null) versionPeinte = horsFil.version()
         dessine(courant, horizon, visee)
-        // Pendant la transition, aucune image n'est définitive : la suivante se peint aussi,
-        // y compris celle qui pose la cible.
+        // During transition no frame is final: the next also paints, including the one setting
+        // the target.
         peinte = enTransition ? null : courante
       }
 
-      // L'horloge d'affichage avance même quand rien ne se peint : la barre de temps compte
-      // les secondes d'un ciel qui ne bouge pas d'un pixel.
-      // T-0394 — sauf pendant un trajet : il publie lui-même son arrivée, et une publication en
-      // chemin réveillerait la liste des cibles au milieu du mouvement.
+      // Display clock advances even when nothing paints: time bar counts seconds of a sky not
+      // moving a pixel.
+      // T-0394 — except during a trajet: it publishes its own arrival, a mid-way publication
+      // would wake the target list mid-motion.
       if (!enTrajet() && ts - dernierePublication >= PERIODE_PUBLICATION_MS) {
         afficheInstant(instant.ms)
-        // `parametresFile` fait foi sur l'extinction : la boîte, elle, garde la dernière passe.
+        // `parametresFile` is authoritative on shutdown: the box keeps the last pass.
         const rendu = parametresFile.current === null ? null : derniereFile.sortie
         publieFile(rendu === null ? null : { reelles: rendu.etoilesReelles })
         dernierePublication = ts
@@ -309,8 +301,8 @@ export function useBoucleRendu(entree: {
     }
 
     /**
-     * T-0398 — demande au worker l'image de filé de cette vue. Le filtre du sol se refait de
-     * l'autre côté : seul le relief part, pas ses courbes, qui ne servent qu'à peindre le sol.
+     * T-0398 — asks the worker for this view's filé frame. Sol filter redone on the other side:
+     * only relief goes, not its courbes (used only to paint the sol).
      */
     const demandeFile = (
       courant: EtatBoucle,
@@ -319,7 +311,7 @@ export function useBoucleRendu(entree: {
       ciel: { readonly matrice: Mat3; readonly epoqueAnnee: number },
       masque: MasqueHorizon,
       horizon: readonly number[],
-      // Se déduit de `courant`, `params` et de l'instant, déjà dans la clé : il n'y entre pas.
+      // Derived from `courant`, `params` and the instant, already in the key: not entered in it.
       lune: LuneFile | null,
     ): void => {
       if (horsFil === null) return
@@ -365,14 +357,14 @@ export function useBoucleRendu(entree: {
           )
 
       const vue = visee === null ? courant.vue : { ...courant.vue, ...visee }
-      // §3.5 — le boîtier tourne, la vue non : c'est ce qui rend le contour du cadre mobile
-      // à l'écran au lieu de faire tourner tout le ciel derrière un cadre immobile (T-0084).
+      // §3.5 — the boîtier rotates, the view does not: cadre outline moves on screen instead of
+      // rotating the whole sky behind a still cadre (T-0084).
       const vueCourante = vuePlanetarium(vue)
       const params = parametresFile.current
-      // T-0398 — quand le filé vient du worker, toute la scène se peint avec la vue de l'image
-      // reçue : le sol, le cadre et les traces restent d'un seul tenant sous le geste. Une image
-      // d'une autre définition (canevas redimensionné) ne vaut plus, et de jour la passe ne
-      // demande rien : la vue courante reprend, sans quoi la scène resterait figée.
+      // T-0398 — filé from the worker: whole scène paints with the received frame's vue (sol,
+      // cadre, traces one piece under the gesture). Frame of another definition (canvas
+      // resized) is void; by day the pass requests nothing → current vue resumes, else scène
+      // would freeze.
       const horsFilActif =
         params !== null && courant.apparition > 0 && horsFil !== null && !horsFil.enPanne()
       const derniere = horsFilActif ? horsFil.derniere() : null
@@ -393,7 +385,7 @@ export function useBoucleRendu(entree: {
             }),
           )
         : []
-      // Centré sur la cible et non sur la visée : il montre ce qu'elle remplirait, où qu'on pointe.
+      // Centred on the target, not the aim: shows what it would fill, wherever one points.
       const cible = courant.couches.cadre ? courant.cadreCible : null
       const cadreCible: Cadre | undefined =
         cible === null
@@ -403,16 +395,14 @@ export function useBoucleRendu(entree: {
               ...viseeVersVue(cible.objet.adDeg, cible.objet.decDeg, ciel.matrice),
               rotationDeg: vue.rotationCadreDeg,
             }
-      // §9.3 / T-0116 — le filé couvre tout le planétarium, pas le seul cadre : il se calcule
-      // ici, avec la vue de CETTE image, et se peint sous les repères et les noms. Le contour
-      // du cadre reste tracé par-dessus, en fin de passe : c'est lui, et lui seul, qui dit ce
-      // que le capteur enregistrerait quand tout le ciel file.
-      // T-0396 — de jour, la passe de filé ne se calcule pas : ses compteurs ne survivent pas.
+      // §9.3 / T-0116 — filé covers the whole planetarium, not only the cadre: computed here
+      // with THIS frame's vue, painted under marks and names. Cadre outline stays on top, end of
+      // pass: it alone says what the sensor would record while the whole sky streaks.
+      // T-0396 — by day the filé pass is not computed: its counters do not survive.
       if (courant.apparition === 0) derniereFile.sortie = null
-      // Ce qui reste alloué par image — le projecteur et sa fermeture, le littéral d'entrée
-      // de `dessineCiel`, la fermeture `passeFile`, les cadres — dépend de la vue de cette
-      // image et ne se hisse donc pas. C'est une poignée d'objets, contre les milliers que
-      // la boucle par étoile n'alloue plus (T-0065).
+      // Still allocated per frame (projector + closure, `dessineCiel` input literal, `passeFile`
+      // closure, cadres): depends on this frame's vue, cannot be hoisted. A handful of objects
+      // vs the thousands the per-star loop no longer allocates (T-0065).
       const masque =
         horizon === courant.masque.altitudesDeg
           ? courant.masque
@@ -421,17 +411,17 @@ export function useBoucleRendu(entree: {
               altitudesDeg: horizon,
               courbesDeg: COURBES_VIDES,
               silhouettesDeg: COURBES_VIDES,
-              // Une crête fine vide rend la main à l'horizon interpolé de la transition.
+              // A thin empty crest hands back to the transition's interpolated horizon.
               creteDeg: COURBES_VIDES,
             }
-      // T-0399 — en Panorama, la Lune file sur toute la prise de vue, comme les étoiles.
+      // T-0399 — Panorama: Moon streaks across the whole shot, like the stars.
       const dureeMs = params === null ? 0 : params.dureeS * MS_PAR_S
       const trajet =
         params === null || ciel.corpsMasques
           ? null
           : trajetLune(courant.site, instant.ms, dureeMs, cacheLune)
-      // T-0400 — en vue réaliste, elle voile aussi le filé : le fond de la séance est celui du
-      // moment où elle est la plus haute, et il pèse d'autant plus qu'une trace passe près d'elle.
+      // T-0400 — vue réaliste: also veils the filé: session background = that of its highest
+      // moment, weighs more the closer a trace passes to it.
       const luneSeance =
         trajet === null || params === null || !courant.vueRealiste || courant.lune === null
           ? null
@@ -448,12 +438,12 @@ export function useBoucleRendu(entree: {
         matriceCiel: ciel.matrice,
         index: courant.index,
         etoiles: courant.etoiles,
-        // De jour, le ciel profond est noyé comme les étoiles : ni halo, ni marqueur.
+        // By day ciel profond is drowned like the stars: no halo, no marker.
         objets: courant.jour ? [] : courant.objets,
         figures: courant.figures,
         asterismes: courant.asterismes,
         frontieres: courant.frontieres,
-        // De jour, les étoiles nommées ne sont ni peintes ni survolables.
+        // By day named stars neither painted nor hoverable.
         etoilesNommees: courant.jour ? [] : courant.constellations.etoilesNommees,
         corps,
         nomsCorps: NOMS_CORPS,
@@ -469,14 +459,14 @@ export function useBoucleRendu(entree: {
         sbCiel: courant.sbCiel,
         vueRealiste: courant.vueRealiste,
         ...(trajet === null ? {} : { trajetLune: trajet }),
-        // §3.1 — corps masqués : la Lune n'est ni dessinée ni comptée, donc pas de halo.
+        // §3.1 — bodies masked: Moon neither drawn nor counted, so no halo.
         ...(courant.lune === null || ciel.corpsMasques ? {} : { lune: courant.lune }),
         ...(courant.soleil === null || ciel.corpsMasques ? {} : { soleil: courant.soleil }),
         latitudeDeg: courant.site.latitudeDeg,
         masque,
         modeNuit: courant.modeNuit,
         survol: survol.current ?? undefined,
-        // T-0427 — le plafond de lisibilité n'existe que sous un filé (`useParametresFile`).
+        // T-0427 — readability cap exists only under a filé (`useParametresFile`).
         etoilesFilent: params !== null && params.couvertureMax !== null,
         passeFile:
           params === null
@@ -493,9 +483,8 @@ export function useBoucleRendu(entree: {
                     ...params,
                     ...indexFile(courant.etoiles),
                     ctx,
-                    // Le projecteur de la scène, filtré du sol : les arcs tombent sur les
-                    // mêmes étoiles que le ciel qui les entoure, et rien ne se peint sous
-                    // l'horizon (§4.1).
+                    // Scène projector, sol-filtered: arcs land on the same stars as the sky around
+                    // them, nothing paints under the horizon (§4.1).
                     projecteur: proj,
                     axePoleNord: axePoleDeDate(ciel.epoqueAnnee),
                     modeNuit: courant.modeNuit,

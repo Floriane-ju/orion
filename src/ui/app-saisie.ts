@@ -1,9 +1,7 @@
 /**
- * §4 et §5 — l'état de saisie de l'application : où l'on est, avec quoi on photographie.
- *
- * Chaque hook rend ses valeurs ET ses commandes sous les noms qu'attendent les panneaux,
- * pour qu'une région se garnisse d'un seul étalement plutôt que de seize propriétés
- * recopiées à la main.
+ * §4 and §5 — app input state: where we are, what we shoot with.
+ * Each hook returns values AND commands under the names panels expect: a region fills with one
+ * spread, not sixteen hand-copied props.
  */
 
 import { useState } from 'react'
@@ -20,9 +18,8 @@ import { objectifActif, plancherA, reglageOptique } from './objectif-saisie.ts'
 import { parcDeDepart } from './parc-saisie.ts'
 
 /**
- * Site et configuration ciel profond de l'Annexe A. `resolutionMpx` reprend la résolution du
- * boîtier de référence (33 Mpx) : sans elle, l'écran de départ n'aurait rien à calculer avant
- * la première saisie.
+ * Site + deep-sky config of Annexe A. `resolutionMpx` takes reference boîtier resolution (33 Mpx):
+ * else start screen has nothing to calcul before first input.
  */
 export const DEFAUT = {
   latitude: '46.391',
@@ -50,11 +47,8 @@ export interface SaisieLieu {
 }
 
 /**
- * §12.3 — le lieu tel qu'il a été enregistré, relu au démarrage. `null` au premier
- * démarrage : les valeurs de l'Annexe A servent alors de départ.
- *
- * La date n'en fait pas partie : une séance se prépare pour la nuit qui vient, pas pour
- * celle du dernier rechargement.
+ * §12.3 — lieu as saved, reread at startup. `null` on first start: Annexe A values seed. Date
+ * excluded: a séance is prepared for the coming night, not the last reload's.
  */
 export interface DepartLieu {
   readonly latitude: string
@@ -65,10 +59,9 @@ export interface DepartLieu {
 }
 
 /**
- * T-0267 — la nuit en cours, pas le jour civil : démarrer l'application à 2 h du matin sur
- * le terrain doit ouvrir le plan qu'on est en train d'exécuter, pas celui du soir suivant.
- * T-0355 — la nuit de l'instant que la scène a relu : un instant figé au rechargement garde
- * sa nuit. En `MAINTENANT`, l'horloge fait foi, avec le décalage que la scène a gardé.
+ * T-0267 — current night, not civil day: starting at 2 am in the field opens the plan being run,
+ * not next evening's. T-0355 — night of the instant scène reread: an instant frozen at reload
+ * keeps its night. In `MAINTENANT`, clock rules, with the offset scène kept.
  */
 export function nuitDeLaScene(): string {
   const { modeTemps, decalageMs } = etatScene().temps
@@ -101,9 +94,8 @@ export function useSaisieLieu(depart: DepartLieu | null): SaisieLieu {
 }
 
 /**
- * §5.1 — les grandeurs du mode avancé : vides, aucune n'est présumée (§2.3). Le format de
- * capteur et la résolution, eux, partent de l'Annexe A (`DEFAUT`) — un écran de départ qui
- * n'aurait rien à calculer avant la première saisie ne démontrerait rien.
+ * §5.1 — advanced-mode quantities: empty, none presumed (§2.3). Sensor format + resolution start
+ * from Annexe A (`DEFAUT`): a start screen with nothing to calcul proves nothing.
  */
 const BOITIER_VIDE = {
   readNoiseE: '',
@@ -113,16 +105,16 @@ const BOITIER_VIDE = {
 } as const
 
 export interface SaisieMateriel {
-  /** T-0204 — identifiant d'une ligne de `boitiers.md`, ou `''` pour le mode personnalisé. */
+  /** T-0204 — id of a `boitiers.md` row, or `''` for custom mode. */
   readonly boitierId: string
   readonly surBoitierId: (v: string) => void
-  /** §5.1 — le type de capteur et la résolution, quand aucun boîtier n'est choisi. */
+  /** §5.1 — sensor type and resolution, when no boîtier is chosen. */
   readonly boitier: SaisieBoitier
   readonly surBoitier: (v: SaisieBoitier) => void
-  /** §7.2 — ISO de capture, vide tant que celui du double gain convient. */
+  /** §7.2 — capture ISO, empty while the dual-gain one fits. */
   readonly iso: string
   readonly surIso: (v: string) => void
-  /** T-0404 — le parc d'objectifs, et l'identifiant de celui qui est monté (`''` : objectif libre). */
+  /** T-0404 — lens park, and id of the mounted one (`''`: free lens). */
   readonly objectifs: readonly Objectif[]
   readonly surObjectifs: (v: readonly Objectif[]) => void
   readonly objectifId: string
@@ -143,13 +135,13 @@ export interface SaisieMateriel {
   readonly surTypeMonture: (v: TypeMonture) => void
 }
 
-/** §12.3 — le matériel tel qu'il a été enregistré, relu au démarrage. */
+/** §12.3 — matériel as saved, reread at startup. */
 export interface DepartMateriel {
-  /** Absent d'un enregistrement antérieur à T-0204 : le mode personnalisé s'applique. */
+  /** Absent from a pre-T-0204 record: custom mode applies. */
   readonly boitierId?: string
   readonly boitier: SaisieBoitier
   readonly iso: string
-  /** Absents d'un enregistrement antérieur à T-0404 : parc vide, objectif libre. */
+  /** Absent from a pre-T-0404 record: empty park, free lens. */
   readonly objectifs?: readonly Objectif[]
   readonly objectifId?: string
   readonly focale: string
@@ -157,15 +149,14 @@ export interface DepartMateriel {
   readonly capteurMode: CapteurMode
   readonly typeObjectif: TypeObjectif
   readonly suiviActif: boolean
-  /** Absents d'un enregistrement venu d'ailleurs : le départ de la saisie s'applique. */
+  /** Absent from a foreign record: input start applies. */
   readonly qualiteMes?: QualiteMiseEnStation
   readonly typeMonture?: TypeMonture
 }
 
 /**
- * Le matériel du premier démarrage : le format et la résolution de l'Annexe A (`DEFAUT`), le
- * reste vide ou à sa valeur la plus prudente. Partagé avec l'URL du plan (T-0431), qui en part
- * quand un champ manque ou se refuse.
+ * First-start matériel: Annexe A format + resolution (`DEFAUT`), rest empty or at most prudent
+ * value. Shared with plan URL (T-0431), which starts from it when a field is missing or refused.
  */
 export const MATERIEL_PAR_DEFAUT: DepartMateriel = Object.freeze({
   boitier: Object.freeze({
@@ -184,8 +175,8 @@ export const MATERIEL_PAR_DEFAUT: DepartMateriel = Object.freeze({
 })
 
 export function useSaisieMateriel(depart: DepartMateriel | null): SaisieMateriel {
-  // Un identifiant disparu de la base — ligne supprimée, fichier édité — retombe sur le mode
-  // personnalisé, avec les champs enregistrés : la saisie reste utilisable, rien n'est perdu.
+  // An id gone from base (row deleted, file edited) falls back to custom mode with saved fields:
+  // input usable, nothing lost.
   const [boitierId, setBoitierId] = useState(() =>
     ligneBoitier(depart?.boitierId ?? '') === null ? '' : (depart?.boitierId ?? ''),
   )
@@ -206,8 +197,8 @@ export function useSaisieMateriel(depart: DepartMateriel | null): SaisieMateriel
   const [objectifs, setObjectifs] = useState<readonly Objectif[]>(parcInitial.objectifs)
   const [objectifId, setObjectifId] = useState(parcInitial.objectifId)
   const [focale, setFocale] = useState(depart?.focale ?? DEFAUT.focale)
-  // Sous un objectif monté, l'ouverture est sa pleine ouverture : une ouverture fermée relue
-  // d'un enregistrement antérieur ne se corrigerait plus, son champ n'existant plus.
+  // Under a mounted lens, aperture = its full aperture: a stopped-down aperture reread from an old
+  // record couldn't be corrected (field no longer exists).
   const [ouverture, surOuverture] = useState(() => {
     const monte = objectifActif(parcInitial.objectifs, parcInitial.objectifId)
     const focaleDepart = depart?.focale ?? DEFAUT.focale
@@ -221,24 +212,22 @@ export function useSaisieMateriel(depart: DepartMateriel | null): SaisieMateriel
   const [typeMonture, surTypeMonture] = useState<TypeMonture>(d.typeMonture ?? 'TRACKER')
 
   /**
-   * T-0204 — quitter un boîtier de la base recopie ses grandeurs dans les champs : on repart
-   * d'une copie modifiable plutôt que d'un formulaire vide. Le sens inverse ne recopie rien —
-   * tant qu'un boîtier est choisi, c'est la base qui fait foi, pas ce qui traîne dans l'état.
+   * T-0204 — leaving a base boîtier copies its quantities into the fields: start from an editable
+   * copy, not an empty form. Reverse copies nothing: while chosen, base rules.
    */
   function surBoitierId(id: string) {
     const quitte = id === '' ? ligneBoitier(boitierId) : null
     if (quitte !== null) surBoitier(quitte.saisie)
-    // T-0205 — le poids d'une image reste saisissable sous un boîtier de la base : la ligne
-    // préremplit le champ, elle ne le remplace pas. Le réglage RAW change sans changer d'appareil.
+    // T-0205 — image weight stays editable under a base boîtier: row prefills, doesn't replace.
+    // RAW setting changes without changing camera.
     const entre = ligneBoitier(id)
     if (entre !== null) surBoitier({ ...boitier, tailleRawMo: entre.saisie.tailleRawMo })
     setBoitierId(id)
   }
 
   /**
-   * T-0404 — monter un objectif ramène le réglage dans ce qu'il permet : la focale dans sa
-   * plage, l'ouverture à son plancher — on monte un objectif pour s'en servir à pleine
-   * ouverture, c'est le régime du ciel profond. Sa projection devient celle de la scène.
+   * T-0404 — mounting a lens brings the setting within what it allows: focale in range, aperture
+   * to its floor (mounted to be used wide open: deep-sky regime). Its projection becomes scène's.
    */
   function surObjectifId(id: string) {
     monteDans(objectifs, id)
@@ -255,8 +244,8 @@ export function useSaisieMateriel(depart: DepartMateriel | null): SaisieMateriel
   }
 
   /**
-   * Le texte de la focale ramenée dans la plage. Un champ vide prend la focale la plus courte :
-   * sous une focale fixe le champ n'est plus affiché, et un vide y serait irréparable.
+   * Focale text clamped into range. Empty field takes the shortest focale: under a fixed focale
+   * the field is hidden, an empty one would be unrecoverable.
    */
   function focaleDans(objectif: Objectif, texte: string): string {
     const { valeur, refus } = reglageOptique(objectif, texte, '').focale
@@ -264,10 +253,10 @@ export function useSaisieMateriel(depart: DepartMateriel | null): SaisieMateriel
     return refus !== null ? String(valeur) : texte
   }
 
-  /** T-0404 — sous un zoom, l'ouverture suit la focale : c'est la pleine ouverture de l'objectif. */
+  /** T-0404 — under a zoom, aperture follows focale: it is the lens's full aperture. */
   function surFocale(v: string) {
     const objectif = objectifActif(objectifs, objectifId)
-    // Un champ vidé le temps d'être retapé n'est pas une focale : l'ouverture attend la suivante.
+    // A field emptied mid-retype isn't a focale: aperture waits for the next.
     if (objectif !== null && Number.isFinite(nombreDeTexte(v))) {
       surOuverture(String(plancherA(objectif, v)))
     }
@@ -275,12 +264,11 @@ export function useSaisieMateriel(depart: DepartMateriel | null): SaisieMateriel
   }
 
   /**
-   * Le parc édité : l'objectif monté qui en sort cède la place au premier du parc — l'objectif
-   * libre ne revient que parc vide ; celui qui est modifié en place reborne le réglage, comme à
-   * son montage.
+   * Edited park: a mounted lens leaving it yields to the park's first — free lens returns only on
+   * empty park; one edited in place reclamps the setting, as at mounting.
    */
   function surObjectifs(parc: readonly Objectif[]) {
-    // Le parc n'est jamais vidé : le dernier objectif est celui avec lequel on photographie.
+    // Park is never emptied: the last lens is the one shot with.
     if (parc.length === 0) return
     setObjectifs(parc)
     const monte = objectifActif(parc, objectifId)
@@ -290,14 +278,14 @@ export function useSaisieMateriel(depart: DepartMateriel | null): SaisieMateriel
     }
     const focaleRetenue = focaleDans(monte, focale)
     setFocale(focaleRetenue)
-    // T-0404 — l'ouverture ne se saisit plus : c'est la pleine ouverture de l'objectif.
+    // T-0404 — aperture no longer typed: it is the lens's full aperture.
     surOuverture(String(plancherA(monte, focaleRetenue)))
     if (monte.typeObjectif !== typeObjectif) surTypeObjectif(monte.typeObjectif)
   }
 
   /**
-   * §5.1 — changer d'objectif change la projection, pas un réglage de rendu. Si la scène
-   * regarde déjà « comme l'objectif », elle suit ; si elle est en planétarium, elle y reste.
+   * §5.1 — changing lens changes projection, not a render setting. Scène already "comme
+   * l'objectif" → follows; planétarium → stays.
    */
   function surTypeObjectif(type: TypeObjectif) {
     setTypeObjectif(type)
@@ -332,7 +320,7 @@ export function useSaisieMateriel(depart: DepartMateriel | null): SaisieMateriel
   }
 }
 
-/** Les cinq critères du score C-15, dans l'ordre où ils se règlent (§8.3). */
+/** The five C-15 score criteria, in the order they're set (§8.3). */
 export const CRITERES_SCORING = Object.freeze([
   'cadrage',
   'hauteur',
@@ -344,18 +332,16 @@ export const CRITERES_SCORING = Object.freeze([
 export type CritereScoring = (typeof CRITERES_SCORING)[number]
 
 export interface SaisiePoids {
-  /** Poids bruts tels qu'ils sont réglés. La normalisation à 1 appartient au moteur (§8.3). */
+  /** Raw weights as set. Normalisation to 1 belongs to the moteur (§8.3). */
   readonly poids: PoidsScoring
   readonly surPoids: (critere: CritereScoring, valeur: number) => void
-  /** Retour aux valeurs C-15 du registre, qui restent la référence (§2.1). */
+  /** Back to registre C-15 values, which stay the reference (§2.1). */
   readonly surDefaut: () => void
 }
 
 /**
- * §8.3 et §2.4 — les poids de scoring se règlent, et rien ne les apprend.
- *
- * L'état vit ici, comme le reste de la saisie : relu au démarrage (T-0362) comme le lieu et le
- * matériel, jamais ajusté d'après les choix passés. Ce qui revient est ce qui a été réglé.
+ * §8.3 and §2.4 — scoring weights are set, never learned. State lives here like the rest of
+ * input: reread at startup (T-0362) like lieu and matériel, never adjusted from past choices.
  */
 export function useSaisiePoids(depart: PoidsScoring | null): SaisiePoids {
   const [poids, setPoids] = useState<PoidsScoring>(() => depart ?? poidsParDefaut())

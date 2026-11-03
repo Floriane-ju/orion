@@ -1,9 +1,7 @@
 /**
- * T-0169 — la loi du rail : conversion course ↔ valeur, crantage, accroche.
- *
- * Rien d'astronomique ici, et c'est voulu : le rail est de la géométrie d'écran. Ce que
- * l'accroche vaut — la pose maximale à étoiles ponctuelles — reste vérifié par
- * `grand-champ.test.ts`, qui la calcule.
+ * T-0169 — rail law: travel ↔ value, crantage, accroche. Nothing astronomical on purpose:
+ * rail = screen geometry. Accroche value (pose maximale at point stars) checked by
+ * `grand-champ.test.ts`, which computes it.
  */
 
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -18,7 +16,7 @@ import {
   type Rail,
 } from '../src/ui/curseur-glisse.ts'
 
-/** Le rail de la pose unitaire : 1 s à 240 s au pas de la seconde. */
+/** Pose unitaire rail: 1 s to 240 s, 1 s step. */
 const POSE: Rail = { min: 1, max: 240, pas: 1 }
 const LARGEUR_PX = 240
 
@@ -59,19 +57,19 @@ describe('position sur la course', () => {
 
 describe('accroche', () => {
   const rail: Rail = { ...POSE, accroche: 25 }
-  /** Fraction de course que désigne une valeur, pour attaquer le rail par le geste. */
+  /** Travel fraction a value designates, to drive the rail by gesture. */
   function fraction(valeur: number): number {
     return (valeur - rail.min) / (rail.max - rail.min)
   }
 
   it('aimante le geste qui passe dans la détente', () => {
-    // 2 px de rail à côté du repère : sous la demi-largeur de la détente.
+    // 2 px of rail beside the marker: under half the detent width.
     expect(valeurDuRail(fraction(25) + 2 / LARGEUR_PX, rail, LARGEUR_PX)).toBe(25)
     expect(valeurDuRail(fraction(25) - 2 / LARGEUR_PX, rail, LARGEUR_PX)).toBe(25)
   })
 
   it('laisse passer au-delà de la détente', () => {
-    // 20 px plus loin : la valeur voisine reste atteignable, sinon le repère serait un mur.
+    // 20 px further: neighbour value reachable, else marker = wall.
     expect(valeurDuRail(fraction(25) + 20 / LARGEUR_PX, rail, LARGEUR_PX)).toBe(45)
   })
 
@@ -151,16 +149,14 @@ describe('le rail rendu', () => {
   })
 
   it('donne l’abscisse du repère à la feuille de style plutôt qu’un décalage figé', () => {
-    // La légende occupe toute la largeur du rail : c'est ce qui lui permet de s'arrêter au
-    // bord de la colonne de texte au lieu de déborder.
+    // Legend spans whole rail width: stops at text column edge instead of overflowing.
     expect(html(25)).toContain('curseur-legendes')
     expect(html(25)).toMatch(/--curseur-x:\s*10\.04%/)
   })
 
   it('ne peint aucun repère sans accroche, ou hors course', () => {
     expect(html(null)).not.toContain('curseur-accroche')
-    // Pose max au-delà du plafond de pose, ou en deçà de la première seconde : le repère
-    // collé à la borne dirait un seuil qui n'est pas là.
+    // Pose max beyond ceiling or under 1 s: marker stuck at bound would state a false threshold.
     expect(html(POSE.max + 1)).not.toContain('curseur-accroche')
     expect(html(0)).not.toContain('curseur-accroche')
   })

@@ -1,12 +1,9 @@
 /**
- * §6.2, §7.1–§7.3 — la carte « Photographie » de la fiche : ce qui décide du cadre, ce qu'on
- * règle et ce que la séance coûte.
- *
- * T-0381 — la facilité en tête, puis la taille dans le cadre et l'inclinaison.
- * T-0385 — les régions « Pose » et « Combien de photos » s'y fondent : pose unitaire, qualité
- * visée, nombre d'images, intégration, stockage et nuits se lisent ensemble, et leurs
- * avertissements avec eux. Le reste de ces régions (flux, masse d'air, plancher au méridien)
- * ne décidait rien au moment de déclencher, et vit dans les traces dépliables.
+ * §6.2, §7.1–§7.3 — fiche « Photographie » card: what decides cadre, what's set, séance cost.
+ * T-0381 — ease first, then taille dans le cadre and inclination.
+ * T-0385 — « Pose » and « Combien de photos » merge in: pose unitaire, target quality, image count,
+ * integration, storage, nights, with their warnings. Rest of those regions (flux, masse d'air,
+ * meridian floor) decided nothing at shooting time: in expandable traces.
  */
 
 import { dureeLisible, degres, pourcentage } from '../registry/ecriture.ts'
@@ -33,9 +30,9 @@ export interface PhotographieProps {
   readonly facilite: EtatCible | null
   readonly snrCible: number
   readonly surSnr: (valeur: number) => void
-  /** §7.1 — `zp_source` accompagne toute pose affichée. */
+  /** §7.1 — `zp_source` accompanies every displayed pose. */
   readonly zeroSysteme: PointZeroSysteme
-  /** §7.2 — mode permissif C-03 : demandé, jamais déduit. */
+  /** §7.2 — permissif C-03 mode: requested, never deduced. */
   readonly permissif: boolean
   readonly surPermissif: (valeur: boolean) => void
 }
@@ -50,7 +47,7 @@ export function Photographie(props: PhotographieProps) {
           <Icone nom="photo_camera" />
           {facilite === null ? 'Photographie' : `Photographie ${facilite.libelle}`}
         </p>
-        {/* Sans note, aucune pastille : cinq vides se liraient « impossible ». */}
+        {/* No note, no pastille: five empties would read « impossible ». */}
         {facilite !== null && (
           <Pastilles note={facilite.note} libelle={facilite.libelle} cause={facilite.cause} />
         )}
@@ -61,11 +58,11 @@ export function Photographie(props: PhotographieProps) {
           valeur={`${pourcentage(cadrage.remplissage.value)} — ${LIBELLE_VERDICT_CADRAGE[cadrage.verdict]}`}
         />
       )}
-      {/* Une cible presque ronde, ou d'orientation inconnue, n'a pas d'angle à conseiller. */}
+      {/* Near-round cible, or unknown orientation: no angle to advise. */}
       {cadrage !== null && cadrage.angleBoitierDeg !== null && (
         <Lecture libelle="Inclinaison objet" valeur={degres(cadrage.angleBoitierDeg)} />
       )}
-      {/* La même ΔSB_lune que le plan, pesée par la tolérance du type (§6.3). */}
+      {/* Same ΔSB_lune as plan, weighted by type tolerance (§6.3). */}
       <Lecture
         libelle="Dégradation lunaire"
         valeur={
@@ -80,10 +77,9 @@ export function Photographie(props: PhotographieProps) {
   )
 }
 
-/** §7.1, §7.2 — la pose unitaire et ce qui la borne. */
+/** §7.1, §7.2 — pose unitaire and what bounds it. */
 function Pose({ r, zeroSysteme, permissif, surPermissif }: PhotographieProps) {
-  // Sans donnée de détectabilité, aucune pose n'est chiffrable : le point zéro et le fond de
-  // ciel du setup ne diraient rien de cette cible-là.
+  // No détectabilité data → no priceable pose: zero point and fond de ciel say nothing of cible.
   if (r.detect.verdict === null) return null
   const pose = r.pose
   if (pose === null) {
@@ -91,10 +87,9 @@ function Pose({ r, zeroSysteme, permissif, surPermissif }: PhotographieProps) {
   }
   return (
     <>
-      {/* La pose RETENUE, pas l'optimum : bridée par la monture, t_opt annoncerait une pose
-          que le suivi ne tient pas. */}
+      {/* RETAINED pose not optimum: monture-capped, t_opt announces a pose suivi can't hold. */}
       <TracedValue terme="pose_unitaire" trace={pose.tRecommandeS} decimales={1} unite="s" />
-      {/* T-0383 — une pose courte malgré le suivi se lit comme un oubli : la carte en dit la cause. */}
+      {/* T-0383 — short pose despite suivi reads as an oversight: card says the cause. */}
       {pose.limiteeParCiel && <Mention ton="conseil">{pose.message}</Mention>}
       {pose.regime !== 'NOMINAL' && <Mention ton="cause">{pose.message}</Mention>}
       <Mention ton={zeroSysteme.estime ? 'cause' : 'etat'}>{libelleZpSource(zeroSysteme)}</Mention>
@@ -112,12 +107,12 @@ function Pose({ r, zeroSysteme, permissif, surPermissif }: PhotographieProps) {
   )
 }
 
-/** §7.3 — l'intégration requise pour la qualité visée, en poses, en durée, en gigaoctets. */
+/** §7.3 — integration required for target quality, in poses, duration, gigabytes. */
 function Integration({ r, s, snrCible, surSnr }: PhotographieProps) {
   const integration = r.integration
   if (integration === null) {
-    // T-0268 — cible écartée du créneau : sa cause passe AVANT tout refus d'extinction. Un
-    // refus se lit : le taire laisserait croire que le calcul n'a pas été demandé.
+    // T-0268 — cible écartée from créneau: cause goes BEFORE any extinction refusal (a refusal is
+    // read: silencing it would suggest calc wasn't requested).
     const refus = r.exclusionCreneau ?? r.extinction?.attenuation.note
     return refus === undefined ? null : <Mention ton="cause">{refus}</Mention>
   }
@@ -136,8 +131,8 @@ function Integration({ r, s, snrCible, surSnr }: PhotographieProps) {
         </select>
       </label>
       <Lecture libelle="Images" valeur={String(integration.nPoses.value)} />
-      {/* T-0282 — le plan peut n'allouer qu'une part de l'intégration, à sa propre qualité :
-          la qualité choisie ici ne le réécrit pas, la carte dit donc ce qu'il prévoit. */}
+      {/* T-0282 — plan may allot only part of integration, at its own quality: quality chosen here
+          doesn't rewrite it, so card says what plan foresees. */}
       {s.auPlan && s.nPoses !== null && s.nPoses !== integration.nPoses.value && (
         <Mention ton="etat">Le plan de la nuit en prévoit {s.nPoses}.</Mention>
       )}

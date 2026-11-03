@@ -1,10 +1,7 @@
 /**
- * §5.1 — aucun boîtier ne se choisit dans une liste : type de capteur et résolution décrivent
- * le matériel, et le pitch s'en déduit.
- *
- * Le cas limite du PRD est celui qui compte : un profil sans bruit de lecture renseigné doit
- * produire une pose calculée avec le repli du registre, affichée, et marquée [ESTIMÉ] —
- * jamais un résultat qui passe pour une mesure (§2.3, §7.1).
+ * §5.1 — no boîtier picked from a list: capteur type + résolution describe matériel, pitch
+ * derived. PRD edge case: profil without read noise must give a pose computed with registry
+ * fallback, displayed, marked [ESTIMÉ] — never a result passing as a measure (§2.3, §7.1).
  */
 
 import { describe, expect, it } from 'vitest'
@@ -24,7 +21,7 @@ import { DOMAINES, SaisieRefuseeError } from '../src/registry/domains.ts'
 import { K } from '../src/registry/constants.ts'
 import { LIBELLE_ZP_SOURCE } from '../src/registry/libelles.ts'
 
-/** Un boîtier saisi dont seuls le format de capteur et la résolution sont renseignés. */
+/** Saisie boîtier with only sensor format and résolution filled. */
 function saisie(partiel: Partial<SaisieBoitier> = {}): SaisieBoitier {
   return {
     formatCapteur: 'APSC_NIKON',
@@ -54,8 +51,8 @@ describe('§5.1 — le boîtier saisi à la main', () => {
     expect(() =>
       resoutBoitier(saisie({ resolutionMpx: String(DOMAINES.resolution_mpx.max + 1) })),
     ).toThrow(/hors de la plage/)
-    // Résolution dans son propre domaine mais physiquement incohérente avec le format choisi :
-    // le pitch dérivé est refusé, pas la résolution elle-même.
+    // Résolution within own domain but physically inconsistent with chosen format: derived pitch
+    // refused, not the résolution.
     expect(() =>
       resoutBoitier(saisie({ formatCapteur: 'PLEIN_FORMAT', resolutionMpx: '1' })),
     ).toThrow(DOMAINES.pitch_um.champ)
@@ -100,15 +97,15 @@ describe('§5.1 cas limite — profil sans bruit de lecture renseigné', () => {
     expect(notes.readNoiseE).toContain(String(K('READ_NOISE_DEFAUT_E')))
   })
 
-  // T-0275 — §7.1 exige que la SOURCE du point zéro soit affichée, pas que le nom du champ
-  // le soit : la phrase dit désormais « source : valeur générique », et l'exigence tient.
+  // T-0275 — §7.1 requires the SOURCE of displayed point zéro, not field name: sentence now says
+  // "source : valeur générique", requirement holds.
   it('applique le point zéro générique et le dit dans la source affichée (§7.1)', () => {
     expect(zeroSysteme.source).toBe('GENERIQUE')
     expect(zeroSysteme.estime).toBe(true)
     expect(zeroSysteme.valeur).toBe(K('ZP_SYS_GENERIQUE'))
     expect(libelleZpSource(zeroSysteme)).toContain(LIBELLE_ZP_SOURCE.GENERIQUE)
     expect(libelleZpSource(zeroSysteme)).toContain('[ESTIMÉ]')
-    // Le point zéro saisi, lui, n'est plus le générique : la mention [ESTIMÉ] disparaît.
+    // Entered point zéro is no longer the generic: [ESTIMÉ] mention disappears.
     const declare = pointZeroSysteme(resoutBoitier(saisie({ zpSys: '20.5' })))
     expect(declare.source).toBe('BASE_MATERIEL')
     expect(libelleZpSource(declare)).toContain(LIBELLE_ZP_SOURCE.BASE_MATERIEL)
@@ -151,9 +148,9 @@ describe('§7.2 — l’ISO retenu se voit, se justifie et se change', () => {
 })
 
 /**
- * T-0199 — la note d'une grandeur absente appartient à SON champ. Ce qui se vérifie ici n'est
- * pas le texte mais l'indexation : une note posée sur le mauvais champ afficherait l'alerte
- * loin de la saisie qui l'éteint, ce que le bloc d'encadrés faisait déjà.
+ * T-0199 — missing-grandeur note belongs to ITS field. Checks indexing, not text: note on the
+ * wrong field would show the alert away from the saisie that clears it (as the encadrés block
+ * did).
  */
 describe('§5.1 — les notes d’estimation, champ par champ', () => {
   it('ne note que les grandeurs vides, et sous leur propre clé', () => {
@@ -170,8 +167,8 @@ describe('§5.1 — les notes d’estimation, champ par champ', () => {
   })
 
   it('dit au seuil de double gain qu’il rend inutilisable le bruit de lecture saisi', () => {
-    // §7.2 — un bruit de lecture sans ISO auquel le rattacher ne sert à rien : c'est le seuil
-    // qui manque, et c'est donc lui qui doit porter l'alerte.
+    // §7.2 — read noise without an ISO to attach to is useless: missing threshold must carry the
+    // alert.
     const notes = notesEstimation(saisie({ readNoiseE: '2.4' }))
     expect(notes.readNoiseE).toBeUndefined()
     expect(notes.seuilDoubleGainIso).toContain('bruit de lecture')

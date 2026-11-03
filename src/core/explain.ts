@@ -1,13 +1,11 @@
 /**
- * §10.2 — Explication de verdict.
+ * §10.2 — verdict explanation.
  *
- * Un verdict sans chaîne de calcul est un oracle, et un oracle n'enseigne rien et ne se
- * conteste pas. Trois niveaux : le résultat, le facteur dominant chiffré avec son levier,
- * puis la chaîne complète — chaque étape avec sa formule et chaque constante avec sa source.
- *
- * Le facteur dominant est CALCULÉ, pas rédigé : c'est la variable de plus forte dérivée
- * logarithmique de la sortie. L'explication ne peut donc pas diverger du calcul, ce qu'un
- * guide rédigé à la main ne peut pas garantir.
+ * Verdict without computation chain = oracle: teaches nothing, can't be contested. 3 levels:
+ * result, dominant factor priced with its lever, full chain (formula per step, source per
+ * constant). Dominant factor COMPUTED, not written: variable of highest logarithmic derivative
+ * of the output → explanation can't diverge from computation, which a hand-written guide
+ * can't guarantee.
  */
 
 import type { ConstantRef } from '../registry/constants.ts'
@@ -22,11 +20,11 @@ import type { VerdictDetectabilite } from './detectability.ts'
 import type { Traced } from './traced.ts'
 import { libelleEntree } from '../registry/libelles.ts'
 
-/** Pas relatif de la dérivée numérique : assez petit pour la pente, assez grand pour le bruit. */
+/** Relative step of numerical derivative: small enough for slope, large enough for noise. */
 const PAS_RELATIF = 1 / 1000
 
 // ---------------------------------------------------------------------------
-// N3 — chaîne de calcul
+// N3 — computation chain
 // ---------------------------------------------------------------------------
 
 export interface EtapeChaine {
@@ -45,10 +43,7 @@ export interface EtapeSource {
   readonly trace: Traced<number | null>
 }
 
-/**
- * La chaîne complète, dérivée des résultats tracés eux-mêmes : aucune étape n'est réécrite
- * à la main, donc aucune ne peut mentir sur ce qui a été calculé.
- */
+/** Full chain derived from the traced results themselves: no hand-rewritten step, none can lie. */
 export function chaineCalcul(etapes: readonly EtapeSource[]): readonly EtapeChaine[] {
   return etapes.map(({ libelle, trace }) => ({
     libelle,
@@ -63,23 +58,22 @@ export function chaineCalcul(etapes: readonly EtapeSource[]): readonly EtapeChai
 }
 
 // ---------------------------------------------------------------------------
-// N2 — facteur dominant
+// N2 — dominant factor
 // ---------------------------------------------------------------------------
 
 /**
- * Générique sur la forme du point `P` : chaque appelant décrit ses propres entrées avec une
- * interface nommée (T-0078) plutôt que de les recevoir en `Record` non typé. `sensibilites`
- * perturbe ces entrées une à une sans connaître leurs noms à l'avance — c'est ce qui reste
- * générique, et c'est la seule capacité que `P extends Record<string, number>` doit garder.
+ * Generic over point shape `P`: each caller describes inputs with a named interface (T-0078),
+ * not an untyped `Record`. `sensibilites` perturbs inputs one by one without knowing names in
+ * advance — the only capability `P extends Record<string, number>` must keep.
  */
 export type Sortie<P extends Readonly<Record<string, number>> = Readonly<Record<string, number>>> = (
   variables: P,
 ) => number
 
 /**
- * Sensibilité logarithmique | ∂ln(sortie) / ∂ln(variable) | de chaque entrée, par différence
- * centrée. La valeur absolue du rapport garde le calcul valide pour les variables comme les
- * magnitudes, où le logarithme direct n'aurait pas de sens.
+ * Logarithmic sensitivity | ∂ln(output) / ∂ln(variable) | of each input, centred difference.
+ * Absolute value of the ratio stays valid for variables like magnitudes, where direct logarithm
+ * is meaningless.
  */
 export function sensibilites<P extends Readonly<Record<string, number>>>(
   sortie: Sortie<P>,
@@ -93,9 +87,8 @@ export function sensibilites<P extends Readonly<Record<string, number>>>(
       resultat[nom] = 0
       continue
     }
-    // La perturbation ne touche qu'une clé déjà présente dans `point` : la forme reste celle
-    // de `P`, seule sa valeur change. `as P` reste ici, au cœur du moteur générique — pas
-    // chez l'appelant, où c'est justement ce que T-0078 retire.
+    // Perturbation touches only a key already in `point`: shape stays `P`, value changes.
+    // `as P` stays in the generic engine core, not at the caller (T-0078 removes it).
     const haut = sortie({ ...point, [nom]: valeur + pas } as P)
     const bas = sortie({ ...point, [nom]: valeur - pas } as P)
     const derivee = (haut - bas) / (2 * pas)
@@ -106,8 +99,8 @@ export function sensibilites<P extends Readonly<Record<string, number>>>(
 }
 
 /**
- * Les variables qui décident. Deux sensibilités trop proches sont présentées conjointement :
- * désigner l'une des deux serait arbitraire, donc faux.
+ * Deciding variables. 2 close sensitivities presented jointly: naming one = arbitrary, hence
+ * false.
  */
 export function facteursDominants(
   sensibilite: Readonly<Record<string, number>>,
@@ -123,21 +116,21 @@ export function facteursDominants(
 }
 
 // ---------------------------------------------------------------------------
-// Leviers
+// Levers
 // ---------------------------------------------------------------------------
 
 export interface ContexteLeviers {
   readonly verdict?: VerdictDetectabilite | null
   readonly typeObjet?: TypeObjet
   /**
-   * Vrai quand l'utilisateur a ouvert la fiche d'une cible précise : changer de cible n'est
-   * alors pas un levier sur CE verdict.
+   * True when user opened a specific cible's fiche: changing cible isn't a lever on THIS
+   * verdict.
    */
   readonly cibleImposee?: boolean
   readonly cadrageRefuse?: boolean
   readonly luneLevee?: boolean
   readonly hauteurFaible?: boolean
-  /** Noms des variables dominantes, tels que rendus par `facteursDominants`. */
+  /** Dominant variable names, as rendered by `facteursDominants`. */
   readonly facteurs?: readonly string[]
 }
 
@@ -164,21 +157,21 @@ function applicable(code: CodeLevier, c: ContexteLeviers): boolean {
   }
 }
 
-/** Leviers applicables, du moins cher au plus cher. L'achat n'arrive jamais en premier. */
+/** Applicable levers, cheapest first. Purchase never comes first. */
 export function leviers(contexte: ContexteLeviers): readonly LevierCatalogue[] {
   return CATALOGUE_LEVIERS.filter((l) => applicable(l.code, contexte))
 }
 
 // ---------------------------------------------------------------------------
-// Explication complète
+// Full explanation
 // ---------------------------------------------------------------------------
 
 export interface Explication {
-  /** N1 — une ligne, le résultat. */
+  /** N1 — one line, the result. */
   readonly n1: string
-  /** N2 — la variable qui décide, chiffrée, plus le levier. */
+  /** N2 — the deciding variable, priced, plus lever. */
   readonly n2: string
-  /** N3 — la chaîne complète, formule et constante par étape. */
+  /** N3 — full chain, formula and constant per step. */
   readonly n3: readonly EtapeChaine[]
   readonly facteurs: readonly string[]
   readonly sensibilites: Readonly<Record<string, number>>
@@ -194,10 +187,7 @@ export interface EntreeExplication<P extends Readonly<Record<string, number>> = 
   readonly contexte: ContexteLeviers
 }
 
-/**
- * Une explication est produite pour TOUT verdict, favorable ou non : la chaîne de calcul
- * d'un « oui » se déplie exactement comme celle d'un « non ».
- */
+/** An explanation for EVERY verdict, favourable or not: a "yes" chain unfolds like a "no". */
 export function explication<P extends Readonly<Record<string, number>>>(entree: EntreeExplication<P>): Explication {
   const sens = sensibilites(entree.sortie, entree.point)
   const facteurs = facteursDominants(sens)

@@ -1,11 +1,7 @@
 /**
- * §6.4 → §8.3 — la sélection de cibles : ce que le plan de nuit reçoit en entrée.
- *
- * Deux choses sont vérifiées ici, et elles tiennent seules le contrat du magasin : le geste
- * d'ajout est réversible et n'écrase rien d'autre, et ce qui revient de la base est VALIDÉ —
- * un enregistrement retouché ne doit pas traverser la chaîne de calcul.
- *
- * Aucune éphéméride ici : le magasin ne connaît que des désignations.
+ * §6.4 → §8.3 — target selection = night-plan input.
+ * Store contract: toggle reversible, overwrites nothing else; DB reads VALIDATED (tampered
+ * record must not enter calc chain). No ephemeris: store knows only désignations.
  */
 
 import 'fake-indexeddb/auto'
@@ -43,8 +39,7 @@ describe('magasin des cibles choisies', () => {
     basculeChoixCible('M45')
     const lu = ciblesChoisies()
     expect(Object.isFrozen(lu)).toBe(true)
-    // Le magasin remplace l'ensemble à chaque geste plutôt que de le muter : deux lectures
-    // séparées par un ajout ne peuvent pas désigner le même objet.
+    // Whole set replaced per gesture, no mutation: two reads around an add cannot alias.
     basculeChoixCible('M33')
     expect(ciblesChoisies()).not.toBe(lu)
   })
@@ -68,8 +63,8 @@ describe('§12.3 — la sélection enregistrée', () => {
 
   it('ne grave rien tant que la relecture du démarrage n’a pas abouti', async () => {
     await ecritCiblesChoisies(['M45'])
-    // Sans hydratation, le magasin change à l'écran mais laisse la base intacte : sinon le
-    // premier rendu, forcément vide, effacerait la sélection de la veille.
+    // Without hydration store changes on screen but DB stays intact; else first (empty)
+    // render wipes yesterday's selection.
     basculeChoixCible('M31')
     expect([...(await litCiblesChoisies())]).toStrictEqual(['M45'])
   })
@@ -77,7 +72,7 @@ describe('§12.3 — la sélection enregistrée', () => {
   it('grave une fois la relecture faite', async () => {
     poseCiblesChoisies([])
     basculeChoixCible('M31')
-    // L'écriture est lancée sans être attendue : le clic ne dépend pas de la base.
+    // Write fired, not awaited: click does not depend on DB.
     await new Promise((resolu) => setTimeout(resolu, 0))
     expect([...(await litCiblesChoisies())]).toStrictEqual(['M31'])
   })

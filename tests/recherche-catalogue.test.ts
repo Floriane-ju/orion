@@ -1,9 +1,7 @@
 /**
- * T-0052 — chercher un objet du catalogue par son nom.
- *
- * Le catalogue est forgé ici : ce qui est vérifié est la règle de recherche — quoi se
- * cherche, dans quel ordre les réponses viennent — pas le contenu d'OpenNGC. Le seul point
- * qui touche le vrai catalogue est la portée : elle ne s'arrête pas au plafond de rendu.
+ * T-0052 — search a catalogue object by name.
+ * Forged catalogue: checks search rule (what is searched, answer order), not OpenNGC content. Only
+ * real-catalogue point: scope doesn't stop at the render cap.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -65,7 +63,7 @@ describe('chercheCatalogue — l’ordre des réponses', () => {
   })
 
   it('à rang égal, le plus brillant d’abord', () => {
-    // Trois préfixes « M » : l'ordre ne peut venir que de la magnitude.
+    // Three "M" prefixes: order can only come from magnitude.
     const catalogue = [M31, M45]
     expect(designations(chercheCatalogue(catalogue, 'M', 10))).toEqual(['M45', 'M31'])
   })
@@ -97,12 +95,10 @@ describe('chercheCatalogue — la portée n’est pas le rendu', () => {
 })
 
 /**
- * T-0281 — ici, et ici seulement, le VRAI catalogue.
- *
- * Ce que le ticket reproche n'est pas une règle de tri, c'est un écart entre ce que
- * l'utilisateur tape et ce que les amonts écrivent : « NGC 224 » contre « NGC0224 »,
- * « andromède » contre « Andromeda Galaxy ». Un catalogue forgé ne peut pas le montrer —
- * il porterait déjà l'orthographe qu'on veut vérifier.
+ * T-0281 — here, and only here, the REAL catalogue.
+ * Ticket's complaint = gap between what user types and what upstreams write: "NGC 224" vs
+ * "NGC0224", "andromède" vs "Andromeda Galaxy". A forged catalogue can't show it: it would
+ * already carry the spelling under test.
  */
 const REEL: readonly ObjetCielProfond[] = [
   ...decodeObjets({
@@ -145,9 +141,7 @@ describe('T-0281 — §6.4 : les noms français atteignent leur objet', () => {
     expect(trouves).toContain('NGC6992')
   })
 
-  /**
-   * Une clé fautive ne casse rien : elle rend un nom introuvable en silence. Le test la nomme.
-   */
+  /** Faulty key breaks nothing: silently yields an unfindable name. Test names it. */
   it('ne nomme aucun objet absent du catalogue', () => {
     const connues = new Set(REEL.map((o) => o.designation))
     expect(Object.keys(NOMS_FR).filter((d) => !connues.has(d))).toEqual([])

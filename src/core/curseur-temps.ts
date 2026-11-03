@@ -1,14 +1,10 @@
 /**
- * §3.2 — Curseur temporel et plafond de vitesse.
+ * §3.2 — time cursor and speed cap.
  *
- * Le plafond de défilement est dérivé de la LISIBILITÉ, pas de la puissance machine. Un
- * réglage de vitesse fixe produit une animation fluide en vue large et illisible en vue
- * serrée : c'est l'erreur classique des planétariums grand public. Ici, le curseur de
- * vitesse est couplé au zoom.
- *
- * Le chiffre qui condamne le temps réel comme ANIMATION : à 32 px/°, ×1 donne 0,13 px/s.
- * D'où deux vitesses nommées — ×150 et ×1500 — plutôt qu'un curseur continu à régler ; le
- * temps réel reste le mode de lecture, il n'est simplement jamais un défilement.
+ * Cap derives from LISIBILITÉ, not machine power. Fixed speed = smooth in wide view, unreadable
+ * in tight view (classic planétarium error) → speed cursor coupled to zoom.
+ * Real time condemned as ANIMATION: at 32 px/°, ×1 = 0,13 px/s. Hence 2 named speeds — ×150,
+ * ×1500 — not a continuous cursor; real time stays the playback mode, never a scroll.
  */
 
 import { K } from '../registry/constants.ts'
@@ -34,7 +30,7 @@ export function vitesseEcran(facteurVitesse: number, pxParDeg: number): Traced<n
   })
 }
 
-/** facteur_max = 600 × 3600 / (15,041 × px_par_degre) — recalculé à chaque zoom. */
+/** facteur_max = 600 × 3600 / (15,041 × px_par_degre) — recomputed at each zoom. */
 export function facteurMax(pxParDeg: number): Traced<number> {
   return trace({
     value: (K('V_ECRAN_REPLIEMENT_PX_S') * S_PAR_H) / (K('ROTATION_CIEL_DEG_H') * pxParDeg),
@@ -54,21 +50,18 @@ export function etatLisibilite(vEcranPxS: number): EtatLisibilite {
 }
 
 export interface ReglageVitesse {
-  /** Facteur retenu, borné par `facteurMax`. */
+  /** Retained factor, bounded by `facteurMax`. */
   readonly facteur: number
   readonly facteurMax: Traced<number>
   readonly vEcran: Traced<number>
   readonly etat: EtatLisibilite
   readonly pxParDegre: number
-  /** Vrai quand le facteur demandé a été ramené sous le plafond. */
+  /** True when the requested factor was brought under the cap. */
   readonly ajuste: boolean
   readonly message?: string
 }
 
-/**
- * Applique le plafond de lisibilité au facteur demandé. L'ajustement est SIGNALÉ : l'app
- * ne laisse jamais l'image se replier en silence, et elle ne corrige jamais sans le dire.
- */
+/** Applies lisibilité cap to requested factor. Adjustment is SIGNALLED: never corrects silently. */
 export function reglageVitesse(
   facteurDemande: number,
   largeurPx: number,
@@ -100,8 +93,8 @@ export function reglageVitesse(
     }
   }
 
-  // Reste atteignable en vue très large, où le plafond est haut mais la densité de pixels
-  // par degré si faible que même la vitesse rapide ne montre rien.
+  // Stays reachable in very wide view: cap high but px/° so low even the fast speed shows
+  // nothing.
   if (etat === 'IMPERCEPTIBLE' && facteur !== 0) {
     return {
       ...base,

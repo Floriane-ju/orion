@@ -1,18 +1,16 @@
 /**
- * §8.2 — Créneau d'observation par cible.
+ * §8.2 — observation créneau per cible.
  *
- * L'intervalle où une cible est simultanément assez haute, hors relief et dans la fenêtre
- * nocturne. Trois exigences produit sont câblées ici :
+ * Interval where a cible is simultaneously high enough, clear of relief, inside the nocturnal
+ * window. 3 product rules:
+ *   1. A DISCARDED CIBLE NAMES ITS CAUSE. `causeExclusion` isn't technical data: unexplained
+ *      rejection = first source of distrust.
+ *   2. RELIEF NAMED AS SUCH: cible behind a ridge isn't "too low"; the mask says so.
+ *   3. A GERMAN EQUATORIAL MOUNT SPLITS THE CRÉNEAU AT THE MERIDIAN: tube hits pier →
+ *      interruption mandatory, sensor orientation flips 180°.
  *
- *   1. UNE CIBLE ÉCARTÉE NOMME SA CAUSE. `causeExclusion` n'est pas une donnée technique :
- *      une cible rejetée sans motif est la première source de méfiance envers l'application.
- *   2. LE RELIEF EST NOMMÉ COMME TEL. Une cible bloquée par une crête n'est pas « trop
- *      basse » : elle est derrière le relief, et le masque le dit.
- *   3. UNE MONTURE ÉQUATORIALE ALLEMANDE SCINDE LE CRÉNEAU AU MÉRIDIEN. Le tube heurte le
- *      pied : l'interruption est obligatoire, et l'orientation du capteur bascule de 180°.
- *
- * Les coordonnées du catalogue sont J2000 : la précession déplace une cible de moins d'un
- * demi-degré sur la durée de vie du catalogue, sans effet sur un créneau au quart d'heure.
+ * Catalogue coordinates J2000: precession moves a cible < 0,5° over catalogue lifetime, no
+ * effect on a quarter-hour créneau.
  */
 
 import { Horizon } from 'astronomy-engine'
@@ -42,13 +40,13 @@ export interface Intervalle {
 
 export interface SousCreneau extends Intervalle {
   readonly dureeMin: number
-  /** Vrai pour la portion suivant le retournement au méridien d'une monture GEM. */
+  /** True for the portion after a GEM meridian flip. */
   readonly apresRetournement: boolean
 }
 
 export interface EntreeCreneau {
   readonly site: Site
-  /** Ascension droite en heures et déclinaison en degrés, coordonnées du catalogue. */
+  /** Right ascension in hours, déclinaison in degrees, catalogue coordinates. */
   readonly adH: number
   readonly decDeg: number
   readonly fenetre: Intervalle
@@ -58,15 +56,11 @@ export interface EntreeCreneau {
 }
 
 /**
- * T-0268 — la hauteur de `masseAirMin` et l'instant qui la porte, dans le MÊME objet.
- *
- * Les deux se lisaient séparément — `masseAirMin` d'un côté, `heureCulmination` de l'autre —
- * et ne décrivent pas le même événement : l'heure sort de la fenêtre entière, la hauteur des
- * seuls échantillons que le seuil et le relief laissent passer. Un écran qui les assemblait
- * annonçait une hauteur à une heure où la cible ne l'atteint pas.
- *
- * `instant` est `null` quand aucun échantillon ne passe : la hauteur vaut alors la culmination
- * géométrique, que cette nuit-là ne voit pas. Il n'y a pas d'heure à nommer, et c'est dit ainsi.
+ * T-0268 — hauteur of `masseAirMin` and the instant carrying it, in the SAME object. Read
+ * separately (`masseAirMin` vs `heureCulmination`) they describe different events: time from
+ * whole window, hauteur from samples passing threshold + relief only → screen announced a
+ * hauteur at a time the cible doesn't reach. `instant` `null` when no sample passes: hauteur =
+ * geometric culmination, unseen that night; no time to name, and it says so.
  */
 export interface PlusHautDuCreneau {
   readonly altitudeDeg: number
@@ -79,19 +73,18 @@ export interface CreneauCible {
   readonly creneaux: readonly SousCreneau[]
   readonly dureeTotaleMin: Traced<number>
   readonly masseAirMin: Traced<number | null>
-  /** T-0268 — la hauteur que `masseAirMin` chiffre, avec l'instant auquel elle est atteinte. */
+  /** T-0268 — hauteur priced by `masseAirMin`, with the instant it is reached. */
   readonly plusHaut: PlusHautDuCreneau
   /**
-   * §7.6 — la masse d'air moyenne sur le créneau, celle qui dose l'extinction du flux. La
-   * masse d'air minimale ci-dessus est le meilleur instant de la nuit ; c'est la moyenne
-   * qui chiffre ce que la capture paiera réellement.
+   * §7.6 — mean masse d'air over créneau, the one dosing flux extinction. `masseAirMin` = night's
+   * best instant; the mean prices what capture pays.
    */
   readonly masseAirMoyenne: Traced<number | null>
   readonly circumpolaire: boolean
   readonly retournementMeridien: boolean
   readonly causeExclusion?: CauseExclusion
   readonly message: string
-  /** Latitude sous laquelle la cible deviendrait accessible, quand la hauteur l'exclut. */
+  /** Latitude below which the cible would become accessible, when hauteur excludes it. */
   readonly latitudeAccessibleDeg?: number
 }
 
@@ -120,10 +113,7 @@ function dureeMinutes(debut: Date, fin: Date): number {
   return (fin.getTime() - debut.getTime()) / MS_PAR_MINUTE
 }
 
-/**
- * Découpe la suite d'échantillons visibles en intervalles contigus, puis scinde au méridien
- * quand la monture impose un retournement.
- */
+/** Splits visible-sample sequence into contiguous intervals, then at meridian when mount flips. */
 function assembleCreneaux(
   visibles: readonly Echantillon[],
   culmination: Date | null,
@@ -170,20 +160,16 @@ function assembleCreneaux(
 }
 
 /**
- * §7.6 — masse d'air moyenne des échantillons du créneau.
- *
- * La moyenne, et non la masse d'air de la culmination : une cible passe une partie de son
- * créneau plus bas, et l'extinction se paie sur toute la durée de capture. Prendre la
- * culmination annoncerait le meilleur cas comme s'il valait pour la nuit entière.
- *
- * `null` dès qu'un échantillon sort du domaine de l'approximation plane : une moyenne dont
- * une partie des termes est fausse est fausse, et rien n'est extrapolé (§7.6, borne dure).
+ * §7.6 — mean masse d'air of créneau samples. Mean, not culmination: a cible spends part of its
+ * créneau lower, extinction is paid over whole capture; culmination announces best case as valid
+ * all night. `null` once a sample leaves the plane-approximation domain: mean with false terms
+ * is false, nothing extrapolated (§7.6 hard bound).
  */
 function masseAirMoyenneCreneau(visibles: readonly Echantillon[]): Traced<number | null> {
   const altitudes = visibles.map((e) => e.altitudeDeg)
   const altMin = altitudes.length === 0 ? 0 : Math.min(...altitudes)
-  // Les deux hauteurs extrêmes entrent dans la trace : une moyenne sans les bornes qui la
-  // produisent est un nombre orphelin, et §7.6 exige la hauteur à côté de la masse d'air.
+  // Both extreme hauteurs enter the trace: mean without bounds = orphan number, §7.6 requires
+  // hauteur next to masse d'air.
   const inputs = {
     n_echantillons: visibles.length,
     alt_min_deg: altMin,
@@ -244,8 +230,8 @@ export function creneauCible(entree: EntreeCreneau): CreneauCible {
   )
   const creneaux = assembleCreneaux(visibles, heureCulmination, retournementMeridien)
   const dureeTotale = creneaux.reduce((somme, c) => somme + c.dureeMin, 0)
-  // T-0268 — l'échantillon le plus haut du créneau est gardé ENTIER, hauteur et instant
-  // ensemble : les dissocier laissait un appelant apparier cette hauteur à une autre heure.
+  // T-0268 — highest créneau sample kept WHOLE (hauteur + instant): split, a caller could pair
+  // that hauteur with another time.
   const culminantVisible = visibles.reduce<Echantillon | null>(
     (meilleur, e) => (meilleur === null || e.altitudeDeg > meilleur.altitudeDeg ? e : meilleur),
     null,

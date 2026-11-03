@@ -1,37 +1,33 @@
 /**
- * Annexe B — formulaire complet.
- *
- * Chaque formule est déclarée ici une seule fois, avec son expression littérale telle
- * qu'écrite dans le PRD. Les moteurs citent l'identifiant dans leur résultat tracé, ce qui
- * rend §10.2 « explication de verdict » dérivable au lieu d'être réécrite à la main.
+ * Annexe B — full formulary.
+ * Each formula declared once, literal PRD expression. Moteurs cite the id in their traced result →
+ * §10.2 explanation derived, not hand-written.
  */
 
 export interface FormulaEntry {
   readonly expression: string
   readonly unite: string
   readonly section: string
-  /** Précision de lecture, quand l'expression seule ne suffit pas. */
+  /** Reading precision when expression alone isn't enough. */
   readonly note?: string
   /**
-   * T-0341 — calculée par un moteur dont la sortie n'est pas une valeur tracée (un score, un
-   * rendu, une géométrie de scène) : l'entrée documente le calcul, §10.2 ne la déplie pas.
-   * Absent, la formule DOIT être citée par un `trace()` — `tests/registre-cite.test.ts` y veille.
+   * T-0341: computed by a moteur whose output isn't a traced value (score, render, scene
+   * geometry); documents the calcul, §10.2 doesn't unfold it.
+   * Absent: MUST be cited by a `trace()` — `tests/registre-cite.test.ts` checks.
    */
   readonly documentaire?: true
 }
 
 export const FORMULES = Object.freeze({
   // Optique et cadrage — §5.1, §6.1, §6.2
-  // L'arctangente est utilisée partout, sans condition de bascule : l'approximation linéaire
-  // donne 205,7° à 10 mm sur plein format.
+  // Arctangent everywhere, no switch: linear approx gives 205,7° at 10 mm full frame.
   FOV: {
     expression: 'FOV_deg = 2 × atan( dimension_capteur_mm / (2 × focale_mm) )',
     unite: '°',
     section: '5.1',
   },
-  // Objectif fisheye, projection équidistante R = f·θ : le champ est linéaire en d / f.
-  // L'arctangente de §5.1 est la loi d'un rectilinéaire ; l'appliquer à un fisheye projetterait
-  // en équidistante un champ de rectilinéaire (T-0218).
+  // Fisheye equidistant R = f·θ: field linear in d / f. §5.1 arctangent = rectilinear law; on a
+  // fisheye it would project a rectilinear field as equidistant (T-0218).
   FOV_FISHEYE: {
     expression: 'FOV_deg = min( dimension_capteur_mm / focale_mm × 180/π , CHAMP_MAX_FISHEYE_DEG )',
     unite: '°',
@@ -57,13 +53,10 @@ export const FORMULES = Object.freeze({
     unite: '—',
     section: '6.2',
   },
-  // φ est l’angle du grand axe de la cible dans le repère du cadre, roulis du boîtier compris
-  // (§3.5). u et v sont la boîte englobante de l’ELLIPSE (§6.3), pas d’un rectangle : une cible
-  // ronde resterait sinon grossie d’un facteur √2 à 45°, alors qu’un disque n’a pas
-  // d’orientation. La corde du rectangle est écartée pour la raison inverse — elle donnerait à
-  // 45° plus de marge qu’un grand axe aligné sur la grande dimension. À φ = 90° l’expression se
-  // réduit exactement à REMPLISSAGE, ce qui préserve la calibration de la table de cadrage
-  // (§6.2).
+  // φ = cible major-axis angle in cadre frame, boîtier roulis incl. (§3.5). u, v = bounding box of
+  // the ELLIPSE (§6.3), not a rectangle: else round cible inflated ×√2 at 45° (disc has no
+  // orientation). Rectangle chord rejected: at 45° more margin than major axis on long side.
+  // φ = 90° → exactly REMPLISSAGE, keeps cadrage table calibration (§6.2).
   REMPLISSAGE_ORIENTE: {
     expression:
       'u = √( maj²·cos²φ + min²·sin²φ ) · v = √( maj²·sin²φ + min²·cos²φ ) · ' +
@@ -81,9 +74,8 @@ export const FORMULES = Object.freeze({
     unite: '—',
     section: '6.2',
   },
-  // Le PRD écrit « taille / (2 × 0,42) / 2 » et annonce 4 200 mm pour M84 : les deux ne
-  // concordent pas. La focale visant 42 % du champ est retenue, et la plage affichée couvre
-  // toute la fenêtre C-05 — sa borne basse est le 4 200 mm du PRD.
+  // PRD "taille / (2 × 0,42) / 2" announces 4 200 mm for M84: inconsistent. Retained: focale aiming
+  // 42 % of field; displayed range covers whole C-05 window, lower bound = PRD's 4 200 mm.
   FOCALE_IDEALE: {
     expression:
       'focale_ideale_mm = capteur_H_mm / ( 2 × tan( (taille_objet_deg / remplissage_cible) / 2 ) )',
@@ -92,7 +84,7 @@ export const FORMULES = Object.freeze({
   },
 
   // Détectabilité — §6.3
-  // Le facteur 2827,4 du PRD est ce produit, calculé plutôt qu’écrit en dur.
+  // PRD factor 2827,4 = this product, computed not hardcoded.
   AIRE_ELLIPSE: {
     documentaire: true,
     expression: "aire_arcsec2 = (π / 4) × 3600 × a'_arcmin × b'_arcmin",
@@ -134,8 +126,8 @@ export const FORMULES = Object.freeze({
     section: '6.3',
     note: 'Un instrument agrandit l’objet sans le rendre plus lumineux.',
   },
-  // Tables Blackwell / Clark embarquées. Au-delà de la plus grande taille tabulée, la sommation
-  // spatiale est complète : le seuil plafonne, il n’est pas extrapolé.
+  // Embedded Blackwell / Clark tables. Past largest tabulated size spatial summation is complete:
+  // threshold caps, never extrapolated.
   SEUIL_CONTRASTE: {
     documentaire: true,
     expression: 'seuil_ΔSB = table_de_contraste( taille_apparente_arcmin )',
@@ -367,7 +359,7 @@ export const FORMULES = Object.freeze({
     section: '8.1',
     note: 'Une Lune couchée ne gêne pas, quelle que soit sa phase.',
   },
-  // Masse d’air du modèle de Krisciunas & Schaefer, valide jusqu’à l’horizon.
+  // Krisciunas & Schaefer airmass model, valid down to horizon.
   MASSE_AIR_KS: {
     documentaire: true,
     expression: 'X(Z) = ( 1 − 0,96 × sin²(Z) )^(−1/2)',
@@ -382,19 +374,17 @@ export const FORMULES = Object.freeze({
     section: '8.1',
     note: 'Une nuit de Lune reste utilisable : poses plus courtes, temps total plus long.',
   },
-  // Fond de ciel peint — extension de rendu de §3.3 (T-0096)
-  // La luminance d’écran est proportionnelle à la brillance physique du ciel : une seule
-  // constante libre, l’exposition. Le rapport entre deux fonds de ciel n’est donc jamais
-  // choisi, il est celui des brillances.
+  // Fond de ciel peint — render extension of §3.3 (T-0096)
+  // Screen luminance ∝ physical sky brightness: one free constant, exposure. Ratio between fonds
+  // de ciel = brightness ratio, never chosen.
   LUMINANCE_FOND_CIEL: {
     documentaire: true,
     expression: 'Y_ecran = K_exposition × B(sb) · (R,V,B)_lin = Y_ecran × (chroma_R, chroma_V, chroma_B)',
     unite: '—',
     section: '3.3',
   },
-  // van Rhijn (1921) : la couche émissive est vue sous une épaisseur croissante quand la visée
-  // baisse. Le terme d’extinction n’est pas décoratif — van Rhijn seul donnerait ×6 à
-  // l’horizon, valeur non observée ; avec l’extinction, ×3,2.
+  // van Rhijn (1921): emissive layer seen through growing thickness as aim lowers. Extinction term
+  // needed: van Rhijn alone gives ×6 at horizon (unobserved), with it ×3,2.
   HALO_HORIZON: {
     documentaire: true,
     expression:
@@ -403,8 +393,8 @@ export const FORMULES = Object.freeze({
     unite: '—',
     section: '3.3',
   },
-  // Les brillances s’additionnent en nanolamberts, jamais en magnitudes : c’est déjà la règle
-  // de ΔSB_lune (§8.1). Le rendu réemploie ce moteur, il ne le réécrit pas.
+  // Brightnesses add in nanolamberts, never magnitudes (as ΔSB_lune, §8.1). Render reuses that
+  // moteur.
   SB_EFFECTIF_RENDU: {
     documentaire: true,
     expression: 'B_total = B_site × facteur(h) + B_lune(ρ, h_lune, α) · sb_effectif = B⁻¹(B_total)',
@@ -535,8 +525,8 @@ export const FORMULES = Object.freeze({
     section: '3.3',
     note: 'En vue réaliste, seules les étoiles visibles depuis ce ciel sont affichées.',
   },
-  // Une seule implémentation : le mode ne change que la fonction radiale R. Deux bases de code
-  // feraient diverger le cadre du planétarium et la prévisualisation.
+  // One implementation: mode only changes radial R. Two code bases → planétarium cadre and
+  // preview diverge.
   PROJECTION_RADIALE: {
     documentaire: true,
     expression:
@@ -545,9 +535,8 @@ export const FORMULES = Object.freeze({
     unite: 'px',
     section: '3.3',
   },
-  // Précession générale autour du pôle de l’écliptique. Ni nutation, ni termes planétaires du
-  // développement IAU 2006 : à l’échelle de lecture d’un planétarium, l’écart reste très
-  // inférieur au pixel sur le domaine des séries.
+  // General precession around ecliptic pole. No nutation or IAU 2006 planetary terms: error ≪ 1 px
+  // at planétarium scale over series domain.
   PRECESSION_MATRICE: {
     documentaire: true,
     expression:
@@ -555,8 +544,8 @@ export const FORMULES = Object.freeze({
     unite: '—',
     section: '3.1',
   },
-  // Interpolation linéaire entre deux échantillons d’éphémérides. Les étoiles ne sont JAMAIS
-  // interpolées : seule la matrice de rotation du ciel change.
+  // Linear interpolation between two ephemeris samples. Stars NEVER interpolated: only the sky
+  // rotation matrix changes.
   INTERPOLATION_CORPS: {
     expression: 'pos(t) = pos(t₀) + ( pos(t₁) − pos(t₀) ) × (t − t₀) / (t₁ − t₀)',
     unite: '°',
@@ -572,7 +561,7 @@ export const FORMULES = Object.freeze({
     unite: '—',
     section: '3.2',
   },
-  // Sert à désigner le facteur dominant d’un verdict.
+  // Dominant factor of a verdict.
   SENSIBILITE: {
     documentaire: true,
     expression: 'sensibilite = | ∂ln(sortie) / ∂ln(variable) |',
@@ -581,20 +570,19 @@ export const FORMULES = Object.freeze({
   },
 
   // Fond de ciel — §2.2
-  // Interpolation autorisée entre deux lignes ; extrapolation interdite hors [1 ; 9].
+  // Interpolation between two rows; extrapolation forbidden outside [1 ; 9].
   INTERPOLATION_BORTLE: {
     expression: 'SB(b) = SB(⌊b⌋) + (b − ⌊b⌋) × ( SB(⌈b⌉) − SB(⌊b⌋) )',
     unite: 'mag/arcsec²',
     section: '2.2',
   },
-  // Utilisée quand un SQM mesuré prévaut sur le Bortle. Hors du domaine de la table, aucune
-  // valeur n’est produite.
+  // For measured SQM overriding Bortle. Outside table domain: no value.
   INVERSION_BORTLE: {
     expression: 'm_lim_oeil = interpolation de la colonne « magnitude limite » à SB donnée',
     unite: 'mag',
     section: '2.2',
   },
-  // Une mesure prévaut toujours sur une estimation : ce n’est pas un calcul, c’est une donnée.
+  // Measurement always overrides estimate: a datum, not a calcul.
   MESURE_SQM: {
     expression: 'SB_ciel = sqm_mesure',
     unite: 'mag/arcsec²',

@@ -1,41 +1,35 @@
 /**
- * Domaines de saisie — colonne « plage valide » des tableaux Entrées / Sorties du PRD
- * (§4.1, §5.1, §5.2).
- *
- * Ils vivent à côté du registre §2.1 pour la même raison que lui : ce sont des valeurs
- * déclarées par le PRD, pas des résultats de formule. Les moteurs les citent au lieu de
- * réécrire des bornes en dur, et un refus de saisie nomme toujours le champ fautif.
+ * Input domains — « plage valide » column of PRD Entrées / Sorties tables (§4.1, §5.1, §5.2).
+ * Beside §2.1 registry for same reason: PRD-declared values, not formula results. Engines cite
+ * them instead of hardcoding bounds; a refusal always names the faulty field.
  */
 
 import { nombreLibre } from './ecriture.ts'
 
 export interface DomaineSaisie {
-  /** Libellé du champ tel qu'il apparaît à l'utilisateur, cité dans le message de refus. */
+  /** Field label as user sees it, cited in refusals. */
   readonly champ: string
   readonly min: number
   readonly max: number
   readonly unite: string
   readonly section: string
-  /**
-   * T-0335 — le cran d'un curseur qui parcourt ce domaine. Absent pour un champ qui ne se tape
-   * qu'au clavier : un pas n'y aurait rien à régler.
-   */
+  /** T-0335 — slider step for this domain; absent for keyboard-only field (nothing to tune). */
   readonly pas?: number
 }
 
-/** Générique pour que le type garde ce qui est déclaré : un domaine qui porte un `pas` le dit. */
+/** Generic so the type keeps what is declared: a domain with `pas` says so. */
 function domaine<D extends DomaineSaisie>(d: D): Readonly<D> {
   return Object.freeze(d)
 }
 
 export const DOMAINES = Object.freeze({
-  // §3.2 — curseur temporel. T-0360 : ni mouvements propres (§3.4) ni séries d'éphémérides
-  // (§3.1) ne posent question sur ces deux siècles, et l'app n'affiche rien au-delà.
+  // §3.2 — time slider. T-0360: over these 2 centuries neither proper motions (§3.4) nor
+  // ephemeris series (§3.1) are in question; app shows nothing beyond.
   annee_affichee: domaine({ champ: 'l’année affichée', min: 1900, max: 2100, unite: 'an', section: '3.2' }),
 
   // §4.1 — profil Lieu
-  // Les pas du lieu sont ceux du glisser de la carte « Site » : un centième de degré (~1 km)
-  // pour une coordonnée, dix mètres d'altitude — le cran qu'un relevé à la main distingue.
+  // Lieu steps = « Site » map drag: 0.01° (~1 km) per coordinate, 10 m altitude (what a hand
+  // survey distinguishes).
   latitude_deg: domaine({ champ: 'la latitude', min: -90, max: 90, pas: 0.01, unite: '°', section: '4.1' }),
   longitude_deg: domaine({ champ: 'la longitude', min: -180, max: 180, pas: 0.01, unite: '°', section: '4.1' }),
   altitude_m: domaine({ champ: 'l’altitude', min: -400, max: 6000, pas: 10, unite: 'm', section: '4.1' }),
@@ -48,7 +42,7 @@ export const DOMAINES = Object.freeze({
     unite: '°',
     section: '4.1',
   }),
-  // L'azimut se referme sur lui-même : 360° est accepté et vaut 0°, pas une saisie fautive.
+  // Azimuth wraps: 360° accepted = 0°, not a faulty input.
   azimut_masque_deg: domaine({
     champ: 'l’azimut du masque',
     min: 0,
@@ -59,8 +53,8 @@ export const DOMAINES = Object.freeze({
 
   // §5.1 — profil optique et capteur
   focale_mm: domaine({ champ: 'la focale', min: 8, max: 4000, unite: 'mm', section: '5.1' }),
-  // T-0404 — le dixième : le cran que portent les ouvertures gravées (f/4,5, f/5,6, f/6,3), et
-  // celui auquel le plancher d'un zoom s'arrondit vers le plus fermé.
+  // T-0404 — tenth: engraved-aperture step (f/4,5, f/5,6, f/6,3), where a zoom's floor rounds
+  // toward the more closed.
   ouverture_N: domaine({ champ: 'l’ouverture', min: 0.95, max: 32, pas: 0.1, unite: 'f/N', section: '5.1' }),
   capteur_mm: domaine({
     champ: 'la dimension de capteur',
@@ -77,10 +71,9 @@ export const DOMAINES = Object.freeze({
     unite: 'Mpx',
     section: '5.1',
   }),
-  // T-0202 — la borne haute était à 15 e⁻ et refusait des courbes réelles : un Canon EOS RP ou
-  // 6D Mark II lit 36,5 e⁻ à ISO 100. Un capteur ISO-variant paie cher son gain de base, et la
-  // pose optimale varie comme le carré de cette valeur : l'écarter serait la fausser d'un
-  // facteur cinquante. Source : Photons to Photos.
+  // T-0202 — upper bound was 15 e⁻, refused real curves: Canon EOS RP / 6D Mark II reads 36,5 e⁻
+  // at ISO 100. ISO-variant sensor pays dearly for base gain; optimal pose ∝ square: dropping it
+  // would skew pose ×50. Source: Photons to Photos.
   read_noise_e: domaine({ champ: 'le bruit de lecture', min: 0.5, max: 40, unite: 'e⁻', section: '5.1' }),
   seuil_double_gain_iso: domaine({
     champ: 'le seuil de double gain',
@@ -123,16 +116,15 @@ export const DOMAINES = Object.freeze({
   // §5.2 — profil Suivi
   t_max_suivi_s: domaine({ champ: 'la pose maximale de suivi', min: 1, max: 240, unite: 's', section: '5.2' }),
 
-  // §7.2 — pose unitaire de l'aperçu. La borne haute est le plafond sans autoguidage (C-07) :
-  // au-delà, aucune monture de ce produit ne tient la pose.
+  // §7.2 — preview pose unitaire. Upper bound = no-autoguiding cap (C-07): no mount of this
+  // product holds the pose beyond.
   t_pose_s: domaine({ champ: 'la pose unitaire', min: 1, max: 240, pas: 1, unite: 's', section: '7.2' }),
 
   // §9.1 — déclinaison de la zone visée
   dec_deg: domaine({ champ: 'la déclinaison', min: -90, max: 90, unite: '°', section: '9.1' }),
 
-  // §9.3 — T-0374 : temps total de prise de vue, la seule saisie du Panorama. Il part d'une
-  // seconde, comme la pose unitaire : en deçà de la pose max du cadre, il EST la pose d'une
-  // photo unique. La borne haute est celle du filé de §9.3, huit heures.
+  // §9.3 — T-0374: total shooting time, Panorama's only input. Starts at 1 s like pose unitaire:
+  // below cadre's pose max it IS a single photo's pose. Upper bound = §9.3 filé's, 8 h.
   duree_prise_vue_s: domaine({
     champ: 'le temps de prise de vue',
     min: 1,
@@ -142,14 +134,14 @@ export const DOMAINES = Object.freeze({
     section: '9.3',
   }),
 
-  // §8.3 — poids de scoring C-15. Le domaine porte le poids BRUT, avant normalisation :
-  // seule la somme des cinq vaut 1, aucun poids pris isolément n'est contraint au-delà.
+  // §8.3 — C-15 scoring weights. Domain = RAW weight, pre-normalisation: only the sum of the
+  // five equals 1, no weight alone is constrained further.
   poids_scoring: domaine({ champ: 'un poids de scoring', min: 0, max: 1, unite: '—', section: '8.3' }),
 })
 
 export type DomaineId = keyof typeof DOMAINES
 
-/** Saisie refusée : le champ fautif est nommé, jamais corrigé EN SILENCE (§5.1). */
+/** Refused input: faulty field named, never corrected SILENTLY (§5.1). */
 export class SaisieRefuseeError extends Error {
   readonly champ: DomaineId
 
@@ -161,24 +153,23 @@ export class SaisieRefuseeError extends Error {
 }
 
 /**
- * T-0274 — le TEXTE tapé devient le NOMBRE que le domaine confronte.
- *
- * La virgule est l'écriture décimale française, et la seule que propose le clavier numérique
- * d'une tablette réglée en français : la refuser bloquait la pose maximale et la liste des
- * cibles sur une saisie correcte. Le texte affiché n'est pas réécrit, seule la valeur lue.
+ * T-0274 — typed TEXT becomes the NUMBER the domain checks.
+ * Comma = French decimal notation, the only one a French-locale tablet numeric keypad offers:
+ * refusing it blocked pose maximale and target list on a correct input. Displayed text not
+ * rewritten, only the value read.
  */
 export function nombreDeTexte(texte: string): number {
-  // Un champ vide n'est pas un zéro : `Number('')` vaut 0, et 0° est un lieu, pas un vide.
+  // Empty field ≠ zero: `Number('')` is 0, and 0° is a place, not a blank.
   const nettoye = texte.trim()
   return nettoye === '' ? Number.NaN : Number(nettoye.replaceAll(',', '.'))
 }
 
-/** Le format attendu est NOMMÉ : un refus muet laisse retaper la même chose (T-0274). */
+/** Expected format NAMED: a mute refusal lets user retype the same thing (T-0274). */
 function refusIllisible(d: DomaineSaisie): string {
   return `Saisie refusée : ${d.champ} doit être un nombre — chiffres, point ou virgule décimale.`
 }
 
-/** Retourne la valeur si elle est dans le domaine, lève en la nommant sinon. */
+/** Returns value if in domain, else throws naming it. */
 export function valide(champ: DomaineId, valeur: number): number {
   const d = DOMAINES[champ]
   if (!Number.isFinite(valeur)) {
@@ -195,25 +186,21 @@ export function valide(champ: DomaineId, valeur: number): number {
 }
 
 /**
- * Ce que devient une saisie une fois confrontée à son domaine (T-0208).
- *
- * La frontière de SAISIE ne refuse pas comme la frontière de DONNÉES : un fichier importé
- * qu'on refuse peut être corrigé ailleurs, une valeur tapée à l'écran doit produire quelque
- * chose tout de suite. Elle est donc ramenée dans son domaine, et la correction est DITE —
- * c'est ce qui la distingue d'un silence.
+ * What an input becomes once checked against its domain (T-0208).
+ * INPUT boundary ≠ DATA boundary: a refused imported file can be fixed elsewhere, a typed value
+ * must produce something now. So it is clamped and the correction is SAID (≠ silence).
  */
 export interface Bornage {
   readonly valeur: number
-  /** `null` quand la saisie était déjà dans le domaine. */
+  /** `null` if input was already in domain. */
   readonly refus: string | null
 }
 
 /**
- * La valeur ramenée dans son domaine, et la cause quand elle a dû l'être (§4.1, §5.1).
- *
- * Une valeur non finie n'est PAS bornée : un champ vidé le temps d'être retapé n'est pas une
- * latitude de −90°, et l'inventer écrirait un lieu que personne n'a saisi. Le refus remonte,
- * et c'est au dernier calcul valable de tenir l'écran (T-0149).
+ * Value clamped into its domain, plus the cause if it had to be (§4.1, §5.1).
+ * Non-finite NOT clamped: a field cleared while retyping isn't a −90° latitude, clamping would
+ * write a place nobody entered. Refusal propagates; last valid computation holds the screen
+ * (T-0149).
  */
 export function borne(champ: DomaineId, valeur: number): Bornage {
   const d = DOMAINES[champ]

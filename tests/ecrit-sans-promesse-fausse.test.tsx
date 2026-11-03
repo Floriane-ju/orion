@@ -1,15 +1,11 @@
 /**
- * T-0278 — aucune phrase ne décrit un comportement que le produit n'a pas.
- *
- * Les cinq textes qui ont motivé ce ticket disaient tous quelque chose de vérifiable, et tous
- * étaient faux : une pause du transport que le mode nuit ne fait pas (T-0136), un catalogue à
- * charger qui n'existe pas (hors MVP, §12.2), un tiret que la liste n'affiche jamais, un filtre
- * annoncé à l'envers de ce qu'il coupe, et une région « Matériel » disparue avec T-0197.
- *
- * Une phrase fausse ne casse rien : elle survit à toutes les suites. Celle-ci est donc une
- * LISTE NOIRE — chaque entrée porte la raison pour laquelle le texte est faux, et son retour,
- * même reformulé ailleurs, refait échouer la suite. Elle s'examine sur le texte LU, tags
- * retirés : un nom de prop (`gaiaCharge`) n'est pas une promesse faite à l'utilisateur.
+ * T-0278 — no sentence describes behaviour the product lacks. Five motivating texts, all
+ * verifiable and false: transport pause night mode doesn't do (T-0136), a catalogue to load
+ * that doesn't exist (hors MVP, §12.2), a dash the list never shows, a filter announced
+ * inverted vs what it cuts, a "Matériel" region gone with T-0197. A false sentence breaks
+ * nothing, survives every suite → BLACKLIST: each entry carries why the text is false; its
+ * return, even reworded elsewhere, fails the suite. Checked on READ text, tags stripped: a
+ * prop name (`gaiaCharge`) promises nothing.
  */
 
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -57,11 +53,9 @@ const INTERDITS: readonly Interdit[] = [
 ]
 
 /**
- * Le texte que l'utilisateur LIT : les attributs et les noms de classes n'en font pas partie.
- *
- * Le registre de constantes en sort, comme les colonnes `verbatim` sortent du filet de T-0275 :
- * c'est l'inventaire de §12.5, qui décrit des constantes et leur source — dont C-26, dérivée
- * d'un paquet que le MVP ne livre pas. Il ne promet aucun geste, il documente une valeur.
+ * Text user READS: attributes and class names excluded. Constants registry excluded, like
+ * `verbatim` columns in T-0275's net: §12.5 inventory describes constants and sources — incl.
+ * C-26, derived from a pack the MVP doesn't ship. Promises no gesture, documents a value.
  */
 function texteLu(html: string): string {
   return html
@@ -128,7 +122,7 @@ describe('T-0278 — la liste dit ce que son filtre fait réellement', () => {
   it('nomme les deux bornes de taille et le nombre d’objets écartés comme trop petits', () => {
     majCatalogue({ photographiablesSeules: true })
     const texte = ecran()
-    // Les deux bornes, dans l'ordre où le filtre les applique : « de X’ à Y’ ».
+    // Both bounds, in the order the filter applies them: "de X’ à Y’".
     expect(texte).toMatch(/de\s+\d+’\s+à\s+\d+’/)
     expect(texte).toMatch(/écarté?s?\s+comme\s+trop\s+petits?/)
   })

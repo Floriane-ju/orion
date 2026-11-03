@@ -1,15 +1,13 @@
 /**
- * §3.4 — Mise en géométrie des trois couches de repérage.
+ * §3.4 — geometry of the 3 repérage layers.
  *
- * LE PIÈGE DES FRONTIÈRES. Elles sont définies le long de méridiens et de parallèles de
- * l'époque B1875, pas J2000. Sans précession, l'erreur atteint 1,75° à J2000 et 2,11° en
- * 2026 : largement visible. Elles sont donc ramenées ici en J2000 une fois pour toutes,
- * puis précessées vers l'époque affichée par la matrice unique de l'image (§3.1) — le même
- * chemin que les étoiles, ce qui interdit toute divergence entre les deux couches.
+ * FRONTIÈRES TRAP: defined along meridians/parallels of epoch B1875, not J2000. Without
+ * precession error reaches 1,75° at J2000, 2,11° in 2026: clearly visible. So brought to J2000
+ * once, then precessed to displayed epoch by the image's single matrix (§3.1) — same path as
+ * stars, no divergence between layers.
  *
- * Une arête de frontière n'est pas un segment droit : elle suit un méridien ou un
- * parallèle. Elle est subdivisée avant transformation, faute de quoi un parallèle traversant
- * un demi-ciel se tracerait comme une corde.
+ * A frontière edge follows a meridian or parallel, not a straight segment: subdivided before
+ * transformation, else a parallel crossing half the sky would be drawn as a chord.
  */
 
 import { K } from '../registry/constants.ts'
@@ -27,12 +25,12 @@ import { DEG, applique, transpose, versVecteur, type Mat3, type Vec3 } from './m
 import { trace, type Traced } from './traced.ts'
 import { ecartCourt, TOUR_DEG } from './unites.ts'
 
-/** B1875 → J2000 : l'inverse de la précession J2000 → B1875, donc sa transposée. */
+/** B1875 → J2000: inverse of J2000 → B1875 precession, i.e. its transpose. */
 export function matriceB1875VersJ2000(): Mat3 {
   return transpose(matricePrecession(K('EPOQUE_FRONTIERES_IAU')))
 }
 
-/** Longueur angulaire d'une arête, le long du méridien ou du parallèle qu'elle suit. */
+/** Angular length of an edge, along the meridian or parallel it follows. */
 export function longueurAreteDeg(arete: AreteFrontiere): number {
   if (arete.type === 'MERIDIEN') return Math.abs(arete.dec2Deg - arete.dec1Deg)
   const cos = Math.cos(((arete.dec1Deg + arete.dec2Deg) / 2) * DEG)
@@ -40,8 +38,8 @@ export function longueurAreteDeg(arete: AreteFrontiere): number {
 }
 
 /**
- * Polyligne d'une arête, en J2000. La subdivision se fait AVANT la transformation, dans
- * l'époque où l'arête est droite.
+ * Edge polyline, J2000. Subdivision happens BEFORE transformation, in the epoch where the edge
+ * is straight.
  */
 export function polyligneFrontiere(arete: AreteFrontiere, matrice: Mat3): readonly Vec3[] {
   const pas = Math.max(1, Math.ceil(longueurAreteDeg(arete) / K('SUBDIVISION_FRONTIERE_DEG')))
@@ -58,11 +56,11 @@ export function polyligneFrontiere(arete: AreteFrontiere, matrice: Mat3): readon
 
 export interface CoucheFrontieres {
   readonly polylignes: readonly (readonly Vec3[])[]
-  /** Code IAU des deux constellations séparées, dans l'ordre des polylignes. */
+  /** IAU codes of the two separated constellations, in polyline order. */
   readonly codes: readonly (readonly [string, string])[]
 }
 
-/** Toutes les frontières, en J2000, subdivisées. Calculé une fois au chargement du paquet. */
+/** All frontières, J2000, subdivided. Computed once at pack load. */
 export function coucheFrontieres(paquet: PaquetConstellations): CoucheFrontieres {
   const matrice = matriceB1875VersJ2000()
   const polylignes: (readonly Vec3[])[] = []
@@ -74,7 +72,7 @@ export function coucheFrontieres(paquet: PaquetConstellations): CoucheFrontieres
   return { polylignes, codes }
 }
 
-/** Écart introduit par la précession entre l'époque des frontières et l'époque affichée. */
+/** Offset introduced by precession between frontières epoch and displayed epoch. */
 export function ecartFrontieresDeg(anneeEpoque: number): Traced<number> {
   const annees = anneeEpoque - K('EPOQUE_FRONTIERES_IAU')
   return trace({
@@ -90,18 +88,18 @@ export interface SegmentVec {
   readonly a: Vec3
   readonly b: Vec3
   /**
-   * T-0376 — magnitude de l'étoile à chaque bout, `null` si le paquet ne la nomme pas. Le
-   * trait s'arrête avant le disque, et le disque dépend de la magnitude.
+   * T-0376 — star magnitude at each end, `null` if pack doesn't name it. Stroke stops before
+   * the disc, and the disc depends on magnitude.
    */
   readonly magA: number | null
   readonly magB: number | null
 }
 
 /**
- * Appariement par position, même raison et même tolérance que `nomEtoile` (§8.4) : les
- * segments et les étoiles nommées sortent de la même ligne HYG.
- * ponytail: balayage linéaire, une fois au chargement ; un sommet d'étoile non nommée reste
- * `null` et prend la marge du plancher.
+ * Match by position, same reason/tolerance as `nomEtoile` (§8.4): segments and named stars come
+ * from the same HYG line.
+ * ponytail: linear scan, once at load; upgrade to an index if load time shows it. Unnamed-star
+ * vertex stays `null`, takes the floor margin.
  */
 function magnitudeEn(nommees: readonly EtoileNommee[], adDeg: number, decDeg: number): number | null {
   const tolerance = K('TOLERANCE_APPARIEMENT_ETOILE_DEG')
@@ -129,7 +127,7 @@ export interface CoucheTraces {
   readonly code: string
   readonly nom: string
   readonly segments: readonly SegmentVec[]
-  /** Barycentre des sommets, en J2000 : c'est là que se pose le label (§3.4). */
+  /** Vertices barycentre, J2000: where the label sits (§3.4). */
   readonly centre: Vec3 | null
 }
 
@@ -175,19 +173,16 @@ export interface EtoileTrace {
 }
 
 /**
- * Les étoiles du catalogue qui portent les sommets des tracés, une par sommet distinct.
- *
- * Un trait qui aboutit dans le vide se lit comme une erreur : la magnitude limite asservie au
- * zoom (§3.3) éteint les étoiles faibles d'un astérisme — Quadrant mural, Cintre — alors que
- * le trait reste. Le rendu les peint donc quelle que soit la limite. L'appariement se fait
- * dans l'index, par la même tolérance que `magnitudeEn` : sommets et catalogue sortent de la
- * même ligne HYG. Un sommet sans étoile dans le paquet chargé est écarté — on ne dessine pas
- * une étoile dont on ignore l'éclat.
+ * Catalogue stars carrying trace vertices, one per distinct vertex. A stroke ending in the void
+ * reads as an error: zoom-bound magnitude limite (§3.3) switches off faint asterism stars
+ * (Quadrant mural, Cintre) while the stroke stays → render paints them whatever the limit.
+ * Match in the index, same tolerance as `magnitudeEn` (same HYG line). Vertex with no star in
+ * loaded pack dropped — no star of unknown brightness drawn.
  */
 export function etoilesDesTraces(couches: readonly CoucheTraces[], index: IndexCiel): readonly EtoileTrace[] {
   const tolerance = K('TOLERANCE_APPARIEMENT_ETOILE_DEG')
-  // Corde plutôt que cosinus : l'index range ses directions en float32, et un cosinus proche
-  // de 1 perd à cette précision bien plus que la tolérance elle-même.
+  // Chord, not cosine: index stores float32 directions; cosine near 1 loses far more at that
+  // precision than the tolerance.
   const cordeMaxCarree = (tolerance * DEG) ** 2
   const vus = new Set<string>()
   const etoiles: EtoileTrace[] = []
@@ -213,8 +208,8 @@ export function etoilesDesTraces(couches: readonly CoucheTraces[], index: IndexC
 }
 
 /**
- * §3.4 — « l'app indique qu'un astérisme n'est pas une constellation ». La phrase est ici
- * plutôt que dans un composant : c'est une règle métier, pas une décoration.
+ * §3.4 — "app states an astérisme isn't a constellation". Sentence lives here, not in a
+ * component: business rule, not decoration.
  */
 export const RAPPEL_ASTERISME =
   'motifs de repérage — un astérisme n’est pas une constellation'

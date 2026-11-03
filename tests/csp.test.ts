@@ -2,15 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { CSP_DEVELOPPEMENT, CSP_PRODUCTION, politiqueDeSecurite } from '../vite.config.ts'
 import { ORIGINES_TIERS } from '../src/registry/origines.ts'
 
-/** Les valeurs d'une directive, la directive elle-même exclue. */
+/** Directive values, directive itself excluded. */
 function directive(politique: string, nom: string): readonly string[] {
   const trouvee = politique.split('; ').find((d) => d.startsWith(`${nom} `))
   expect(trouvee, `directive ${nom} absente`).toBeDefined()
   return trouvee!.split(' ').slice(1)
 }
 
-// La politique est injectée à la construction : le risque réel n'est pas qu'elle soit fausse,
-// c'est qu'un assouplissement de développement parte en production (§13.3).
+// Policy injected at build: real risk = dev loosening shipping to prod, not a wrong policy (§13.3).
 function metaInjectee(serveur: unknown): Record<string, string | boolean | undefined> {
   const plugin = politiqueDeSecurite()
   const hook = plugin.transformIndexHtml
@@ -23,13 +22,10 @@ function metaInjectee(serveur: unknown): Record<string, string | boolean | undef
 }
 
 /**
- * §4.1, §6.4, §13.1 — les origines tierces : imagerie d'objet et relief du terrain.
- *
- * La liste du registre est la garantie de confidentialité de §13.1 : elle énumère les tiers
- * joints et ce qui leur est transmis. Si la politique et la liste divergent, l'une des deux
- * ment — soit le document promet un confinement que le navigateur n'applique pas, soit une
- * origine est joignable sans avoir été déclarée. Ces tests refusent la divergence dans les
- * deux sens.
+ * §4.1, §6.4, §13.1 — third-party origins: object imagery, terrain relief. Registry list =
+ * §13.1 privacy guarantee (reachable third parties + what is sent). Policy/list diverging =
+ * one lies (confinement promised but not enforced, or origin reachable but undeclared).
+ * Both directions refused.
  */
 describe('origines tierces (§4.1, §6.4, §13.1)', () => {
   it('ouvre connect-src à exactement les origines du registre, et à rien d’autre', () => {
@@ -39,8 +35,7 @@ describe('origines tierces (§4.1, §6.4, §13.1)', () => {
   })
 
   it('refuse une origine déclarée au registre mais absente de la politique', () => {
-    // Le sens qui compte : une origine ajoutée au registre sans l'être ici serait une
-    // requête que le code émet et que la politique bloque, sans que rien ne le dise.
+    // Direction that matters: origin in registry, not here = request emitted, blocked silently.
     for (const { origine } of ORIGINES_TIERS) {
       expect(CSP_PRODUCTION, origine).toContain(origine)
       expect(CSP_DEVELOPPEMENT, origine).toContain(origine)
@@ -62,8 +57,7 @@ describe('origines tierces (§4.1, §6.4, §13.1)', () => {
   })
 
   it('nomme, pour chaque origine, ce qui lui est transmis', () => {
-    // Sans cette phrase, §13.1 énumère des hôtes sans dire ce qui en sort : la liste ne
-    // vaudrait plus comme garantie.
+    // Without this phrase §13.1 lists hosts without saying what leaves: no longer a guarantee.
     for (const { origine, transmis } of ORIGINES_TIERS) {
       expect(transmis, origine).not.toBe('')
     }

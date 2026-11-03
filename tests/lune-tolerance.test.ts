@@ -1,13 +1,9 @@
 /**
- * T-0382 — la Lune décide de la possibilité ET de la facilité (§6.3, §8.1, §8.3).
- *
- * Ce que ce fichier interdit de régresser : une galaxie notée « idéale » sous une pleine Lune
- * levée toute la nuit. §8.1 : « FENÊTRE UTILE = nuit_noire ∩ (Lune sous l'horizon OU tolérance
- * du type d'objet) » — une tolérance FAIBLE ne se photographie que Lune couchée, dès que la
- * Lune gêne vraiment.
- *
- * Aucune éphéméride écrite : les nuits de pleine et de nouvelle Lune sont CHERCHÉES à
- * l'exécution, et les seuils viennent du registre.
+ * T-0382 — Moon decides possibility AND facilité (§6.3, §8.1, §8.3).
+ * Guards: galaxy rated "ideal" under a full Moon up all night.
+ * §8.1: "FENÊTRE UTILE = nuit_noire ∩ (Lune sous l'horizon OU tolérance du type d'objet)" —
+ * LOW tolerance shot only with Moon set, once Moon really disturbs.
+ * No ephemeris: full/new Moon nuits SEARCHED at runtime, thresholds from registry.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -39,7 +35,7 @@ const OPTIQUE = profilOptique({ focaleMm: 120, ouvertureN: 2.8, ...CAPTEUR })
 const ZERO = pointZeroSysteme(BOITIER_REFERENCE)
 const ISO = isoRecommande(BOITIER_REFERENCE)
 
-/** M31 telle que le catalogue la décrit : grande, haute en automne depuis le site de référence. */
+/** M31 as catalogue describes it: large, high in autumn from reference site. */
 const GALAXIE: ObjetCielProfond = {
   designation: 'NGC224',
   nomsCommuns: 'Andromède',
@@ -54,7 +50,7 @@ const GALAXIE: ObjetCielProfond = {
   surfBr: null,
 }
 
-/** La même géométrie, tolérance FORTE : seule la tolérance diffère. */
+/** Same geometry, HIGH tolerance: only tolerance differs. */
 const EMISSION: ObjetCielProfond = { ...GALAXIE, designation: 'EMISSION_TEST', type: 'EMISSION' }
 
 function contexte(jour: Date): ContexteSession {
@@ -92,7 +88,7 @@ function evalue(c: ContexteSession, objet: ObjetCielProfond) {
 
 const MS_JOUR = 86_400_000
 
-/** Les nuits de septembre à décembre 2026, classées par ce que la Lune y fait. */
+/** Nuits Sep-Dec 2026, classified by what the Moon does there. */
 function nuits() {
   const pleines: ContexteSession[] = []
   const partielles: ContexteSession[] = []
@@ -161,7 +157,7 @@ describe('T-0382 — une galaxie ne se photographie pas sous une Lune gênante',
       const dansLaFenetreUtile = r.creneau.creneaux.every(
         (sc) => sc.debut.getTime() >= debut!.getTime() && sc.fin.getTime() <= fin!.getTime(),
       )
-      // Hors de la fenêtre utile, la Lune ne peut être que sous le seuil de gêne.
+      // Outside fenêtre utile the Moon can only be under gêne threshold.
       if (!dansLaFenetreUtile) {
         expect(r.deltaSbLuneMag.value).toBeLessThanOrEqual(K('SEUIL_GENE_LUNE_DELTA_SB_MAG'))
       } else retenues += 1
@@ -194,8 +190,8 @@ describe('T-0382 — S_lune dépend de la tolérance du type (§8.3)', () => {
 
 describe('T-0382 — une cible écartée par la Lune propose sa prochaine nuit sans Lune', () => {
   /**
-   * La nuit qui CONTIENT l'instant rendu : 18 h avant tombe avant le coucher du Soleil de cette
-   * nuit-là (fin du crépuscule au plus tôt) et après le lever de la précédente, en automne.
+   * The nuit that CONTAINS the rendered instant: 18 h before = before that nuit's sunset
+   * (earliest twilight end) and after previous sunrise, in autumn.
    */
   const MS_DIX_HUIT_HEURES = 18 * 3_600_000
 

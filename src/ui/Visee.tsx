@@ -1,19 +1,11 @@
 /**
- * §11.3, T-0153 — la phrase qui dit où pointe la scène : la visée, le cap, le champ.
- *
- * Elle tenait le centre d'une barre basse qui portait aussi le lieu et la légende. La barre
- * est démontée : la phrase et la légende montent dans la barre haute, le lieu devient la carte
- * « Site » posée sur la scène. La phrase se lit toujours sans un clic.
- *
- * T-0163 — elle ne date plus l'image : le panneau du temps porte le même instant, réglable.
- * La phrase ne garde que ce qui lui appartient — la visée, le cap, le champ — et ses cinq
- * nombres se tirent à l'horizontale.
- *
- * T-0411 — la barre haute porte maintenant le temps : la phrase descend en bas à gauche de la
- * scène, à la place de la frise qui est montée dans la barre.
- *
- * T-0414 — le temps est descendu en bas au centre : la phrase remonte en haut à droite de la
- * scène, contre le panneau de séance.
+ * §11.3, T-0153 — sentence saying where scène points: visée, cap, champ.
+ * Held centre of a bottom bar also carrying lieu + legend. Bar unmounted: sentence + legend →
+ * top bar, lieu → "Site" card on scène. Sentence still read without a click.
+ * T-0163 — no longer dates image (time panel carries same instant, settable); keeps visée, cap,
+ * champ; its 5 numbers drag horizontally.
+ * T-0411 — top bar carries time: sentence → bottom-left of scène, where frise was.
+ * T-0414 — time → bottom-centre: sentence → top-right of scène, against séance panel.
  */
 
 import { useEffect, useMemo, useRef } from 'react'
@@ -34,9 +26,8 @@ import { TOUR_DEG, ramene } from '../core/unites.ts'
 
 
 /**
- * T-0163 — ce qu'un cran de glisser ajoute à chaque lecture. C'est le pas du GESTE, pas celui
- * du modèle : une visée se pointe au dixième de degré, un cap se prend au degré. Les deux
- * angles de visée gardent le pas le plus fin — ce sont eux qu'on règle sur une cible.
+ * T-0163 — what one drag notch adds to each reading. GESTURE step, not model's: visée to 0.1°,
+ * cap to the degree. Both visée angles keep finest step — set on a cible.
  */
 const PAS_VISEE: Readonly<Record<ChampVisee, number>> = Object.freeze({
   AD: 0.1,
@@ -48,9 +39,9 @@ const PAS_VISEE: Readonly<Record<ChampVisee, number>> = Object.freeze({
 })
 
 /**
- * T-0153 — un composant à part, et non une ligne de plus dans la barre : le magasin de scène
- * republie son instant deux fois par seconde, et s'y abonner depuis `BarreHaut` ferait rendre
- * ses tiroirs au même rythme (T-0056). Ici l'abonnement ne coûte que cette phrase.
+ * T-0153 — separate component, not one more bar line: scène store republishes instant 2×/s,
+ * subscribing from `BarreHaut` would render its tiroirs at that rate (T-0056). Here it costs
+ * only this sentence.
  */
 export function Visee(props: { readonly site: Site; readonly gaiaCharge: boolean }) {
   const { vue, msAffiche } = useScene()
@@ -61,9 +52,8 @@ export function Visee(props: { readonly site: Site; readonly gaiaCharge: boolean
   const cadre = useHauteurPubliee()
 
   /**
-   * Les cinq nombres de la phrase sont des ENTRÉES de la scène. Trois le sont directement ;
-   * l'AD et la δ passent par la réciproque de la visée, qui rend le pointage horizontal de la
-   * direction équatoriale demandée à l'instant affiché.
+   * The 5 numbers are scène INPUTS. 3 direct; AD and δ go through visée reciprocal: horizontal
+   * pointage of the requested equatorial direction at displayed instant.
    */
   function regle(champ: ChampVisee, valeur: number): void {
     const [ad, dec] = [segments[0]!.valeurDeg, segments[1]!.valeurDeg]
@@ -72,11 +62,11 @@ export function Visee(props: { readonly site: Site; readonly gaiaCharge: boolean
     if (champ === 'AZIMUT') return majVue({ azimutDeg: ramene(valeur, TOUR_DEG) })
     if (champ === 'HAUTEUR') return majVue({ hauteurDeg: valeur })
     if (champ === 'ROTATION') return majVue({ rotationCadreDeg: valeur })
-    // Le plafond est reposé par le magasin ; le plancher, lui, dépend du paquet chargé.
+    // Cap reset by store; floor depends on loaded paquet.
     majVue({ fovDeg: valeur })
   }
 
-  /** L'azimut et l'AD se referment sur eux-mêmes : les borner arrêterait le geste au nord. */
+  /** Azimut and AD wrap: bounding them would stop the gesture at north. */
   function encadrement(champ: ChampVisee): { readonly min?: number; readonly max?: number } {
     if (champ === 'DEC' || champ === 'HAUTEUR') {
       return { min: HAUTEUR_MIN_DEG, max: HAUTEUR_MAX_DEG }
@@ -87,17 +77,16 @@ export function Visee(props: { readonly site: Site; readonly gaiaCharge: boolean
   }
 
   /**
-   * La largeur d'un champ est celle de sa valeur la plus longue, lue aux deux bouts de sa
-   * course : un champ qui change de taille sous le doigt décale ses voisins pendant qu'on les
-   * vise. L'AD et l'azimut n'ont pas de borne — ils font le tour —, leur course est le tour.
+   * Field width = longest value's, read at both ends of its travel: resizing under the finger
+   * shifts neighbours while aimed at. AD and azimut unbounded (wrap) → travel = full turn.
    */
   function largeur(champ: ChampVisee): number {
     const { min = 0, max = TOUR_DEG } = encadrement(champ)
     return Math.max(courtVisee(champ, min).length, courtVisee(champ, max).length)
   }
 
-  // Six champs à préfixe plutôt qu'une phrase : chacun se tire ou se tape, et le préfixe dit
-  // ce qu'il règle. La phrase complète reste celle du canevas (`ligneVisee`), qui l'annonce.
+  // Six prefixed fields, not a sentence: each dragged or typed, prefix says what it sets.
+  // Full sentence stays canvas's (`ligneVisee`), which announces it.
   const compteur = (segment: SegmentVisee) => (
     <Compteur
       key={segment.champ}
@@ -112,8 +101,8 @@ export function Visee(props: { readonly site: Site; readonly gaiaCharge: boolean
     />
   )
 
-  // T-0163 — la phrase ne date plus l'image : la barre porte le même instant, et deux
-  // horloges à l'écran se contredisent à la seconde près.
+  // T-0163 — sentence no longer dates image: bar carries same instant, two clocks contradict to
+  // the second.
   return (
     <div ref={cadre} className="coque-visee">
       {segments.map(compteur)}
@@ -122,10 +111,9 @@ export function Visee(props: { readonly site: Site; readonly gaiaCharge: boolean
 }
 
 /**
- * T-0414 — les cartes du matériel partent sous la visée : les deux partagent le haut droit de
- * la scène, et la visée a une hauteur que la feuille ne connaît pas — sous une fenêtre étroite,
- * ses champs passent à la ligne. Elle la publie donc sur la racine, où la colonne la lit ;
- * démontée, elle ne réserve plus rien.
+ * T-0414 — matériel cards go under visée: both share scène top-right, visée has a height the
+ * stylesheet doesn't know (narrow window wraps fields). Publishes it on root, where column reads
+ * it; unmounted, reserves nothing.
  */
 function useHauteurPubliee() {
   const cadre = useRef<HTMLDivElement | null>(null)

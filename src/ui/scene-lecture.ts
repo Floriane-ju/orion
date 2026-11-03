@@ -1,16 +1,11 @@
 /**
- * §3.4 — la phrase qui date l'image : où pointe la scène, sur quel champ, à quel instant.
- *
- * T-0068 — le canevas doit dire à une technologie d'assistance ce qu'il montre en ce moment,
- * et le menu d'information affiche déjà exactement cela. Composée deux fois, la phrase
- * dériverait — un `toFixed` retouché d'un côté, et le nom accessible ne décrit plus la même
- * vue que la lecture affichée. Elle se compose donc ici, une fois, pour les deux.
- *
- * T-0163 — la barre basse ne lit plus cette phrase, elle la RÈGLE : chacun de ses cinq
- * nombres est un compteur glissant. La phrase se décrit donc en segments — le littéral qui
- * précède, la valeur, ce qu'elle règle — et `ligneVisee` n'en est plus que la concaténation.
- * C'est la seule façon de garder « une phrase, deux endroits » quand l'un des deux endroits
- * l'entrecoupe de balises.
+ * §3.4 — sentence dating the image: where scène points, which champ, which instant.
+ * T-0068 — canvas must tell assistive tech what it shows; info menu shows the same. Composed
+ * twice → drift (`toFixed` edited on one side → accessible name describes another vue); composed
+ * once here.
+ * T-0163 — bottom bar SETS the sentence (5 numbers = sliding counters), no longer reads it.
+ * Sentence = segments (preceding literal, value, what it sets); `ligneVisee` = their
+ * concatenation: only way to keep "one sentence, two places" when one interleaves tags.
  */
 
 import type { Mat3 } from '../core/mat3.ts'
@@ -20,23 +15,22 @@ import { projecteur } from '../core/projection.ts'
 import { vuePlanetarium, type VueScene } from './scene-etat.ts'
 import { dateHeure } from './horaire.ts'
 
-/** §3.3 — la direction visée, ramenée en J2000 : le centre du canevas, projeté à l'envers. */
+/** §3.3 — aimed direction back in J2000: canvas centre, projected in reverse. */
 export function viseeJ2000(
   vue: VueScene,
   matriceCiel: Mat3,
 ): { readonly longitudeDeg: number; readonly latitudeDeg: number } {
-  // T-0258 — le centre de visée, pas le milieu du canevas : la phrase doit nommer le point que
-  // l'image met sous les yeux, sinon elle date une direction qui se trouve ailleurs à l'écran.
+  // T-0258 — visée centre, not canvas middle: sentence must name the point the image puts in
+  // front of the eyes, else it dates a direction elsewhere on screen.
   const p = projecteur(vuePlanetarium(vue), matriceCiel)
   return versSpherique(p.inverse(p.centreXPx, p.centreYPx))
 }
 
 /**
- * La réciproque : où pointer la vue pour viser cette direction J2000, à cet instant.
- *
- * `matriceCiel` va de J2000 au repère horizontal du site, et le vecteur central de la matrice
- * de vue Y VAUT exactement `versVecteur(azimut, hauteur)` — la sphérique de la direction
- * tournée EST donc le pointage, sans passer par la projection ni par l'écran.
+ * Reciprocal: where to point vue to aim at this J2000 direction at this instant. `matriceCiel`
+ * J2000 → site horizontal frame; central vector of vue matrix Y EQUALS
+ * `versVecteur(azimut, hauteur)` — spherical of rotated direction IS the pointage, no
+ * projection, no screen.
  */
 export function viseeVersVue(
   longitudeDeg: number,
@@ -49,25 +43,25 @@ export function viseeVersVue(
   return { azimutDeg: horizontal.longitudeDeg, hauteurDeg: horizontal.latitudeDeg }
 }
 
-/** Ce que règle un segment de la phrase — l'ordre des cinq est celui de la lecture. */
+/** What a sentence segment sets — order of the 5 is reading order. */
 export type ChampVisee = 'AD' | 'DEC' | 'AZIMUT' | 'HAUTEUR' | 'FOV' | 'ROTATION'
 
 export interface SegmentVisee {
   readonly champ: ChampVisee
-  /** Nom accessible du compteur : la phrase le porte en clair, le compteur seul non. */
+  /** Counter accessible name: the sentence carries it in clear, a counter alone doesn't. */
   readonly libelle: string
   readonly valeurDeg: number
-  /** La valeur telle qu'elle s'écrit, unité comprise. */
+  /** Value as written, unit included. */
   readonly texte: string
-  /** Le littéral qui la précède dans la phrase, ponctuation et espaces compris. */
+  /** Literal preceding it in the sentence, punctuation and spaces included. */
   readonly avant: string
-  /** Ce que le champ de la barre haute porte en tête : la phrase y cède la place aux champs. */
+  /** First thing the top-bar field carries: sentence yields to fields there. */
   readonly prefixe: string
-  /** La valeur dans son champ, sans ce que le préfixe dit déjà. */
+  /** Value in its field, minus what the prefix already says. */
   readonly court: string
 }
 
-/** Décimales de chaque lecture : une visée se pointe au centième, un champ au dixième. */
+/** Decimals per reading: visée to 0.01, champ to 0.1. */
 const DECIMALES_VISEE = 2
 const DECIMALES_CHAMP = 1
 const DECIMALES_POINTAGE = 0
@@ -81,7 +75,7 @@ const DECIMALES_COURT: Readonly<Record<ChampVisee, number>> = Object.freeze({
   ROTATION: DECIMALES_POINTAGE,
 })
 
-/** La valeur d'un champ de la barre haute, telle qu'elle s'y écrit. */
+/** Top-bar field value, as written there. */
 export function courtVisee(champ: ChampVisee, valeurDeg: number): string {
   return `${degres(valeurDeg, DECIMALES_COURT[champ])}`
 }
@@ -147,9 +141,8 @@ export function segmentsVisee(vue: VueScene, matriceCiel: Mat3): readonly Segmen
 }
 
 /**
- * Le séparateur appartient à l'ENCHAÎNEMENT, pas au premier segment : la barre basse n'affiche
- * plus l'instant — le transport le porte à deux centimètres de là — et la suite des segments
- * doit pouvoir s'y lire seule, sans un « · » orphelin en tête.
+ * Separator belongs to CHAINING, not the first segment: bottom bar no longer shows the instant
+ * (transport carries it 2 cm away); segments must read alone, no orphan "·" first.
  */
 const SEPARATEUR = ' · '
 

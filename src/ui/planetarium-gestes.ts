@@ -1,11 +1,9 @@
 /**
- * §3.6 — les gestes que la scène accepte : glisser pour promener la visée, molette et pincement
- * pour le champ, défilement à deux doigts pour promener aussi — et, depuis T-0069, les
- * touches, qui rejouent les mêmes gestes dans les mêmes bornes.
- *
- * Le zoom est posé à la main, hors de React : `onWheel` attache un écouteur passif, où
- * `preventDefault()` reste sans effet — le navigateur zoomerait alors toute la page par-dessus
- * le champ de la scène. Safari ajoute ses `gesture*`, qui zooment la page de leur côté.
+ * §3.6 — gestures the scène accepts: drag pans the aim, wheel + pinch set champ, two-finger
+ * scroll pans too; since T-0069 keys replay the same gestures in the same bounds.
+ * Zoom set by hand, outside React: `onWheel` attaches a passive listener where
+ * `preventDefault()` has no effect → browser would zoom the whole page over the scène champ.
+ * Safari adds its `gesture*`, zooming the page its own way.
  */
 
 import { useEffect, useRef, type RefObject } from 'react'
@@ -18,61 +16,58 @@ import { cibleSousLeCurseur, type CibleEcran, type SurvolEcran } from './dessine
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { encadre, ramene, TOUR_DEG } from '../core/unites.ts'
 
-/** Un cran de zoom — molette ou touche. Le pincement, lui, est continu : voir `deltaY`. */
+/** One zoom notch — wheel or key. Pinch is continuous: see `deltaY`. */
 const FACTEUR_ZOOM_CRAN = K('FACTEUR_ZOOM_CRAN')
-/** Pincement au pavé : `deltaY` en pixels vers un facteur de champ, par l'exponentielle. */
+/** Trackpad pinch: `deltaY` in pixels → champ factor, via exponential. */
 const SENSIBILITE_PINCEMENT = 0.01
-/** `WheelEvent.DOM_DELTA_PIXEL` : delta en pixels, le cas du pavé et des molettes sur macOS. */
+/** `WheelEvent.DOM_DELTA_PIXEL`: pixel delta, trackpad and macOS wheels. */
 const DOM_DELTA_PIXEL = 0
-/** Un cran de molette vaut ±120 en `wheelDeltaY`, hérité de Windows et repris partout. */
+/** One wheel notch = ±120 in `wheelDeltaY`, inherited from Windows, kept everywhere. */
 const CRAN_WHEEL_DELTA = 120
 /**
- * Le plancher, en pixels, d'un cran de molette — mesuré à 12–13 px sur une molette libre. Un pavé
- * démarre plus doucement, 1 à 3 px sur ses premiers événements : en dessous de ce plancher, un
- * `wheel` ambigu se lit comme un début de rafale de pavé, pas comme un cran.
+ * Pixel floor of a wheel notch — measured 12–13 px on a free wheel. Trackpad starts softer,
+ * 1-3 px on first events: below the floor an ambiguous `wheel` = trackpad burst start.
  */
 const SEUIL_CRAN_PX = 10
 /**
- * Combien de temps un pavé reconnu garde la main sur les `wheel` ambigus. La rafale entretient
- * elle-même cette mémoire : le délai n'a qu'à couvrir l'écart entre deux de ses événements
- * — 15 ms mesurés — pas la durée du geste. Court exprès, pour que reprendre la souris rezoome.
+ * How long a recognised trackpad keeps control of ambiguous `wheel`s. Burst refreshes it
+ * itself: delay only covers the gap between its events (15 ms measured), not gesture
+ * duration. Short on purpose: picking the mouse back up zooms again.
  */
 const MEMOIRE_PAVE_MS = 400
-/** T-0069 — pas d'une touche fléchée, en fraction du champ affiché (§3.3, registre). */
+/** T-0069 — arrow-key step, fraction of displayed champ (§3.3, registre). */
 const PAS_VISEE_FRACTION = K('PAS_VISEE_CLAVIER_FRACTION')
-/** Les bornes du pointage, partagées avec les compteurs de la barre basse (T-0163). */
+/** Pointage bounds, shared with the bottom-bar counters (T-0163). */
 export const HAUTEUR_MIN_DEG = -90
 export const HAUTEUR_MAX_DEG = 90
 
 /**
- * Le facteur appliqué au champ pour un `wheel`. La molette avance par crans : facteur fixe. Le
- * pincement au pavé est continu — Chrome et Firefox le traduisent en `wheel` à `ctrlKey` — et son
- * amplitude est dans `deltaY` : l'exponentielle en fait un facteur multiplicatif continu, où deux
- * demi-gestes valent exactement le geste entier.
+ * Champ factor for a `wheel`. Wheel = notches: fixed factor. Trackpad pinch is continuous
+ * (Chrome and Firefox translate it to `wheel` with `ctrlKey`), amplitude in `deltaY`:
+ * exponential → continuous multiplicative factor, two half-gestures = the whole.
  */
 export function facteurZoom(deltaY: number, pincement: boolean): number {
   if (pincement) return Math.exp(deltaY * SENSIBILITE_PINCEMENT)
   return deltaY > 0 ? FACTEUR_ZOOM_CRAN : 1 / FACTEUR_ZOOM_CRAN
 }
 
-/** Le champ ramené dans les bornes de §3.3 — les mêmes pour la molette et pour les touches. */
+/** Champ brought within §3.3 bounds — same for wheel and keys. */
 export function fovBorne(fovDeg: number, bornes: BornesZoom): number {
   return encadre(fovDeg, bornes.fovMinDeg, bornes.fovMaxDeg)
 }
 
 /**
- * §6.4, T-0283 — le champ où le cadre du matériel se juge : quelques cadres de large, dans
- * les bornes du zoom. Huit crans de molette menaient à 93°, une vingtaine à 30° : le geste
- * « Cadrer » y va d'un coup.
+ * §6.4, T-0283 — champ where the matériel cadre is judged: a few cadres wide, within zoom
+ * bounds. 8 wheel notches reached 93°, ~20 reached 30°: "Cadrer" jumps there at once.
  */
 export function champPourCadrer(fovLDeg: number, bornes: BornesZoom): number {
   return fovBorne(fovLDeg * K('CHAMP_CADRER_FACTEUR'), bornes)
 }
 
-/** Ce qu'un `wheel` doit déclencher sur la scène. */
+/** What a `wheel` must trigger on the scène. */
 export type SourceGeste = 'PINCEMENT' | 'MOLETTE' | 'DEFILEMENT'
 
-/** Ce qu'un `wheel` porte, indépendamment du geste qui l'a produit. */
+/** What a `wheel` carries, independent of the producing gesture. */
 interface DeltasMolette {
   readonly ctrlKey: boolean
   readonly deltaMode: number
@@ -82,9 +77,8 @@ interface DeltasMolette {
 }
 
 /**
- * La marque d'un pavé, sans ambiguïté : le pincement, que le navigateur signale par `ctrlKey`, le
- * doigt qui dérive de côté, ou des deltas fractionnaires. Une molette, même à haute résolution,
- * ne fait rien de tout cela — ses crans sont entiers et strictement verticaux.
+ * Unambiguous trackpad mark: pinch (browser flags `ctrlKey`), sideways-drifting finger, or
+ * fractional deltas. A wheel, even high-res, does none: integer, strictly vertical notches.
  */
 export function signaturePave(e: DeltasMolette): boolean {
   if (e.ctrlKey) return true
@@ -93,52 +87,50 @@ export function signaturePave(e: DeltasMolette): boolean {
 }
 
 /**
- * Un `wheel` sur macOS peut venir de trois gestes qui ne doivent pas faire la même chose : le
- * pincement zoome, le défilement à deux doigts promène la visée, la molette zoome. Aucun
- * navigateur ne dit lequel c'est ; il faut le déduire de signaux, du plus sûr au moins sûr.
- *
- * Reste un cas indécidable : un delta entier, strictement vertical — une molette à haute
- * résolution en produit autant que la phase d'inertie d'un pavé. Deux indices le tranchent :
- * l'amplitude, un cran pesant plus qu'un début de rafale, et `paveRecent`, vrai tant que le pavé
- * vient de se signaler. Hors de ces deux cas on zoome, ce qu'on attend d'une souris.
+ * A macOS `wheel` can come from three gestures that must not do the same: pinch zooms,
+ * two-finger scroll pans the aim, wheel zooms. No browser says which → deduce from signals,
+ * surest first.
+ * One undecidable case: integer, strictly vertical delta (a high-res wheel produces as many as
+ * a trackpad's inertia phase). Two hints: amplitude (a notch outweighs a burst start) and
+ * `paveRecent`, true while the trackpad just signalled itself. Otherwise zoom, as for a mouse.
  */
 export function sourceMolette(e: DeltasMolette, paveRecent = false): SourceGeste {
-  // Le pincement au pavé, seul geste que le navigateur signale lui-même — par `ctrlKey`.
+  // Trackpad pinch, only gesture the browser flags itself — via `ctrlKey`.
   if (e.ctrlKey) return 'PINCEMENT'
-  // Un delta en lignes plutôt qu'en pixels : Firefox ne le fait que pour une vraie molette.
+  // Line delta, not pixel: Firefox does it only for a real wheel.
   if (e.deltaMode !== DOM_DELTA_PIXEL) return 'MOLETTE'
-  // Un pavé reconnu, ou un événement sans amplitude verticale : rien à zoomer.
+  // Recognised trackpad, or event without vertical amplitude: nothing to zoom.
   if (signaturePave(e) || e.deltaY === 0) return 'DEFILEMENT'
-  // WebKit et Blink : un cran de molette vaut un multiple de 120 en `wheelDeltaY`.
+  // WebKit and Blink: a wheel notch is a multiple of 120 in `wheelDeltaY`.
   if (e.wheelDeltaY !== undefined && e.wheelDeltaY % CRAN_WHEEL_DELTA === 0) return 'MOLETTE'
   if (Math.abs(e.deltaY) < SEUIL_CRAN_PX) return 'DEFILEMENT'
   return paveRecent ? 'DEFILEMENT' : 'MOLETTE'
 }
 
 /**
- * `wheelDeltaY` est déprécié et absent des types du DOM, mais reste le seul signal fiable pour
- * distinguer un cran de molette d'un défilement au pavé dans WebKit et Blink.
+ * `wheelDeltaY`: deprecated, absent from DOM types, but the only reliable signal telling a
+ * wheel notch from trackpad scroll in WebKit and Blink.
  */
 interface EvenementMolette extends WheelEvent {
   readonly wheelDeltaY?: number
 }
 
 /**
- * Safari macOS émet ces événements non standard pour le pincement au pavé, en plus — ou à la
- * place — du `wheel` à `ctrlKey`. Ils sont absents des types du DOM : on les déclare ici.
+ * Safari macOS non-standard events for trackpad pinch, in addition to or instead of `wheel`
+ * with `ctrlKey`. Absent from DOM types: declared here.
  */
 interface EvenementGeste extends Event {
   readonly scale: number
 }
 
-/** Un tour complet ramené dans 0–360°, la plage de §3.5 comme celle de l'azimut. */
+/** A full turn brought into 0–360°, §3.5's range as the azimuth's. */
 const tourBorne = (deg: number): number => ramene(deg, TOUR_DEG)
 
 function hauteurBornee(deg: number): number {
   return encadre(deg, HAUTEUR_MIN_DEG, HAUTEUR_MAX_DEG)
 }
 
-/** La boîte du canevas, réduite à ce dont la rotation a besoin — testable sans DOM. */
+/** Canvas box, reduced to what rotation needs — testable without DOM. */
 export interface BoiteCanevas {
   readonly top: number
   readonly left: number
@@ -156,14 +148,11 @@ function angleAutourDuCentre(boite: BoiteCanevas, clientX: number, clientY: numb
 }
 
 /**
- * §3.5 — le roulis du boîtier après un glisser autour du centre du canevas, borné à 0–360°.
- *
- * L'écart d'angle du pointeur se RETRANCHE du roulis : l'axe des ordonnées de l'écran descend
- * là où celui de la vue monte, si bien qu'un roulis croissant fait tourner le cadre dans le
- * sens antihoraire à l'écran. Sans ce signe, le cadre partirait à l'envers du geste.
- *
- * Le geste est continu et sans plafond : deux demi-gestes valent le geste entier, et un tour
- * complet ramène le cadre où il était.
+ * §3.5 — boîtier roll after a drag around the canvas centre, bounded 0–360°.
+ * Pointer angle gap is SUBTRACTED from roll: screen y goes down where the view's goes up, so
+ * growing roll turns the cadre counter-clockwise on screen; without this sign the cadre would
+ * go against the gesture.
+ * Continuous, uncapped: two half-gestures = the whole, a full turn returns the cadre.
  */
 export function roulisApresGlisser(
   roulisDeg: number,
@@ -177,18 +166,15 @@ export function roulisApresGlisser(
   return tourBorne(roulisDeg - ecart)
 }
 
-/**
- * Le glisser à la souris : promener la visée, tourner le cadre avec Maj, et un clic sans
- * déplacement désigne une cible.
- */
+/** Mouse drag: pan the aim, Shift rotates the cadre; click without movement designates a target. */
 export function usePointageSouris(entree: {
   readonly largeurPx: number
   readonly fovDeg: number
   readonly actions: ActionsScene
   readonly cibles: RefObject<readonly CibleEcran[]>
   /**
-   * T-0085 — ce que le curseur désigne, écrit hors de React : la boucle de rendu le lit par
-   * image. Passer par un état réactif rendrait React à chaque mouvement de souris.
+   * T-0085 — what the cursor designates, written outside React: render loop reads it per
+   * frame. Reactive state would render React on every mouse move.
    */
   readonly survol: RefObject<SurvolEcran | null>
   readonly surSelectionObjet: (objet: ObjetCielProfond) => void
@@ -196,7 +182,7 @@ export function usePointageSouris(entree: {
   const glisse = useRef<{ x: number; y: number } | null>(null)
   const { largeurPx, fovDeg, actions, cibles, survol, surSelectionObjet } = entree
 
-  /** Coordonnées du pointeur dans la définition de rendu, où vivent les cibles. */
+  /** Pointer coordinates in the render definition, where targets live. */
   function pointCanevas(e: React.PointerEvent<HTMLCanvasElement>): { x: number; y: number } {
     const rect = e.currentTarget.getBoundingClientRect()
     const echelle = largeurPx / rect.width
@@ -212,11 +198,10 @@ export function usePointageSouris(entree: {
     onPointerMove(e: React.PointerEvent<HTMLCanvasElement>): void {
       const depart = glisse.current
       if (depart === null) {
-        // T-0085 — hors glisser, le curseur révèle le nom que le seuil de zoom a masqué.
-        // T-0109 — on ne range QUE la cible : c'est la scène qui la nomme et la place, avec
-        // les fonctions des labels peints. Composer le texte ici en ferait un second
-        // vocabulaire, désaccordé de celui du dessin — c'est le bogue d'origine. Le survol
-        // ne touche ni à l'onglet ni à l'état de la scène.
+        // T-0085 — outside drag, cursor reveals the name the zoom threshold hid.
+        // T-0109 — store ONLY the target: scène names and places it with the painted labels'
+        // functions. Composing text here made a second vocabulary, out of tune with the drawing
+        // (the original bug). Hover touches neither tab nor scène state.
         const point = pointCanevas(e)
         const cible = cibleSousLeCurseur(cibles.current, point.x, point.y)
         survol.current = cible === null ? null : { cible }
@@ -225,8 +210,8 @@ export function usePointageSouris(entree: {
       survol.current = null
       const rect = e.currentTarget.getBoundingClientRect()
 
-      // §3.5 — Maj enfoncée, le geste tourne le BOÎTIER, pas la visée : un geste continu, dans
-      // les bornes 0–360°. Le pointage reste le glisser nu, qui est le geste de tous les jours.
+      // §3.5 — Shift held: gesture rotates the BOÎTIER, not the aim; continuous, 0–360°.
+      // Pointage stays bare drag, the everyday gesture.
       if (e.shiftKey) {
         const arrivee = { x: e.clientX, y: e.clientY }
         actions.majVue((v) => ({
@@ -257,13 +242,13 @@ export function usePointageSouris(entree: {
       if (depart === null) return
       if (Math.hypot(e.clientX - depart.x, e.clientY - depart.y) > 0) return
       const point = pointCanevas(e)
-      // Sans rayon : le pointeur garde la tolérance au pixel de `cibleSousLeCurseur`.
+      // No radius: pointer keeps `cibleSousLeCurseur`'s pixel tolerance.
       choisitCible(cibles.current, point.x, point.y, surSelectionObjet)
     },
   }
 }
 
-/** Molette, pincement et défilement à deux doigts, posés hors de React sur le canevas. */
+/** Wheel, pinch and two-finger scroll, set outside React on the canvas. */
 export function useGestesZoom(
   canevas: RefObject<HTMLCanvasElement | null>,
   gaiaCharge: boolean,
@@ -272,13 +257,13 @@ export function useGestesZoom(
     const brut = canevas.current
     if (brut === null) return
     const cible: HTMLCanvasElement = brut
-    // Les bornes sont relues à chaque geste, pas capturées : le plafond dépend de la
-    // projection courante (T-0095), et la projection change sans démonter l'écouteur.
+    // Bounds re-read per gesture, not captured: cap depends on current projection (T-0095),
+    // which changes without unmounting the listener.
     const borne = (v: VueScene, fov: number): number => fovBorne(fov, bornesZoom(gaiaCharge, v.mode))
 
-    // Le dernier instant où le pavé s'est signalé. La rafale entretient cette date d'elle-même :
-    // tant qu'elle dure, ses événements ambigus restent du défilement, inertie comprise. Une
-    // mémoire qui expire, et non un drapeau définitif : sinon reprendre la souris ne rezoome plus.
+    // Last instant the trackpad signalled itself. Burst refreshes it: while it lasts, its
+    // ambiguous events stay scrolling, inertia included. Expiring memory, not a permanent
+    // flag, else picking the mouse back up would not zoom again.
     let dernierPaveMs = Number.NEGATIVE_INFINITY
 
     function surMolette(e: WheelEvent): void {
@@ -288,8 +273,8 @@ export function useGestesZoom(
       const source = sourceMolette(molette, e.timeStamp - dernierPaveMs < MEMOIRE_PAVE_MS)
       if (source !== 'MOLETTE') dernierPaveMs = e.timeStamp
       if (source === 'DEFILEMENT') {
-        // Deux doigts sur le pavé promènent le ciel comme le ferait un glisser : le ciel suit les
-        // doigts, donc le signe des deltas s'inverse. Le champ est lu dans l'état, pas capturé.
+        // Two fingers on the trackpad pan the sky as a drag: sky follows the fingers → delta
+        // signs invert. Champ read from state, not captured.
         const largeurCss = cible.getBoundingClientRect().width
         majVue((v) => {
           const degresParPixel = v.fovDeg / largeurCss
@@ -303,7 +288,7 @@ export function useGestesZoom(
       majVue((v) => ({ fovDeg: borne(v, v.fovDeg * facteurZoom(e.deltaY, source === 'PINCEMENT')) }))
     }
 
-    // Safari : `scale` est cumulée depuis le début du geste, on n'en garde que la variation.
+    // Safari: `scale` accumulates from gesture start, keep only the variation.
     let echelleGeste = 1
     function surGesteDebut(e: Event): void {
       e.preventDefault()
@@ -336,11 +321,9 @@ export function useGestesZoom(
 
 
 /**
- * §3.4 — ce qu'un choix de cible fait, quel que soit ce qui l'a déclenché.
- *
- * T-0069 — le clic et la touche Entrée passent par ici : c'est ce qui garantit que « le choix
- * est le même dans les deux cas ». Seule la tolérance de désignation diffère, parce qu'un
- * pointeur vise au pixel et pas une touche.
+ * §3.4 — what choosing a target does, whatever triggered it.
+ * T-0069 — click and Enter go through here: "the choice is the same in both cases".
+ * Only designation tolerance differs: a pointer aims at the pixel, a key does not.
  */
 export function choisitCible(
   cibles: readonly CibleEcran[],
@@ -352,11 +335,11 @@ export function choisitCible(
   const cible = cibleSousLeCurseur(cibles, xPx, yPx, rayonPx)
   const decrite = cible === null ? null : decritCible(cible)
   majLectures({ selection: decrite })
-  // §3.4 — un objet du ciel profond ouvre sa fiche : le geste ne s'arrête pas sur un nom.
+  // §3.4 — a ciel profond object opens its fiche: gesture does not stop at a name.
   if (decrite?.objet != null) surSelectionObjet(decrite.objet)
 }
 
-/** Le geste que porte une touche. Rien d'autre n'est intercepté : Tab et Échap doivent passer. */
+/** Gesture a key carries. Nothing else intercepted: Tab and Escape must pass. */
 export type CommandeClavier =
   | 'VISEE_GAUCHE'
   | 'VISEE_DROITE'
@@ -376,8 +359,8 @@ export function commandeClavier(touche: string): CommandeClavier | null {
       return 'VISEE_HAUT'
     case 'ArrowDown':
       return 'VISEE_BAS'
-    // `=` et `_` sont les touches non majuscules de `+` et `-` : les exiger avec Maj ferait
-    // du zoom un geste à deux mains sur un clavier français comme sur un clavier anglais.
+    // `=` and `_` are the unshifted keys of `+` and `-`: requiring Shift would make zoom a
+    // two-handed gesture on French and English keyboards alike.
     case '+':
     case '=':
       return 'ZOOM_AVANT'
@@ -393,13 +376,10 @@ export function commandeClavier(touche: string): CommandeClavier | null {
 }
 
 /**
- * §3.3 / §3.5 — la vue après une touche, dans les bornes du glisser et de la molette.
- *
- * Le pas de visée est une FRACTION DU CHAMP, pas un nombre de degrés : à 5° de champ, un pas
- * fixe de plusieurs degrés ferait sauter la visée d'un bout à l'autre de l'image. C'est la
- * même règle que le glisser, où le déplacement vaut `fov / largeur` par pixel.
- *
- * Fonction pure : c'est elle qui se teste, le gestionnaire ne fait que la brancher.
+ * §3.3 / §3.5 — view after a key, within drag and wheel bounds.
+ * Aim step = FRACTION OF CHAMP, not degrees: at 5° champ a fixed multi-degree step would jump
+ * the aim across the image. Same rule as drag (`fov / largeur` per pixel).
+ * Pure function: what gets tested, handler only wires it.
  */
 export function viseeApresCommande(
   vue: VueScene,
@@ -416,8 +396,7 @@ export function viseeApresCommande(
       return { hauteurDeg: hauteurBornee(vue.hauteurDeg + pasDeg) }
     case 'VISEE_BAS':
       return { hauteurDeg: hauteurBornee(vue.hauteurDeg - pasDeg) }
-    // Un cran de touche vaut un cran de molette : `facteurZoom` reste la seule source du
-    // facteur, et `fovBorne` les seules bornes (T-0030).
+    // Key notch = wheel notch: `facteurZoom` sole factor source, `fovBorne` sole bounds (T-0030).
     case 'ZOOM_AVANT':
       return { fovDeg: fovBorne(vue.fovDeg * facteurZoom(-1, false), bornes) }
     case 'ZOOM_ARRIERE':
@@ -426,24 +405,21 @@ export function viseeApresCommande(
 }
 
 /**
- * T-0069 — les raccourcis énoncés, une fois, pour les deux endroits qui les annoncent : la
- * description du canevas et le panneau Explorer. Les chiffres viennent du registre, sinon la
- * phrase promettrait un pas que le code n'applique pas.
+ * T-0069 — shortcuts stated once, for the two places announcing them: canvas description and
+ * Explorer panel. Figures from the registry, else the sentence promises an unapplied step.
  */
 export const RACCOURCIS_CLAVIER =
   '← ↑ ↓ → déplacer la vue · + − zoomer · Entrée choisir l’objet au centre · N mode nuit'
 
 /**
- * T-0069 — WCAG 2.1.1 : le pilotage de la scène au clavier, dans les bornes du pointeur.
- *
- * Chaque appui n'écrit que l'azimut, la hauteur ou le champ : la boucle de rendu relit la vue
- * à chaque image, et son plafond d'images borne le travail quel que soit le rythme des touches
- * (T-0117). Rien à reporter, donc rien à replanifier par touche.
+ * T-0069 — WCAG 2.1.1: keyboard driving of the scène, within pointer bounds.
+ * Each press writes only azimuth, height or champ: render loop re-reads the view per frame,
+ * its frame cap bounds work whatever the key rate (T-0117). Nothing to defer or reschedule.
  */
 export function usePilotageClavier(entree: {
   readonly largeurPx: number
   readonly hauteurPx: number
-  /** T-0258 — « l'objet au centre » est celui qu'on voit au centre, pas celui du milieu du canevas. */
+  /** T-0258 — "object at centre" = the one seen at centre, not the canvas middle one. */
   readonly decalageCentreXPx: number
   readonly gaiaCharge: boolean
   readonly cibles: RefObject<readonly CibleEcran[]>
@@ -455,8 +431,7 @@ export function usePilotageClavier(entree: {
     onKeyDown(e: React.KeyboardEvent<HTMLCanvasElement>): void {
       const commande = commandeClavier(e.key)
       if (commande === null) return
-      // Les flèches feraient défiler la page et l'Espace la ferait sauter d'un écran : le
-      // geste appartient à la scène tant qu'elle a le focus.
+      // Arrows would scroll the page, Space jump a screen: gesture belongs to a focused scène.
       e.preventDefault()
       if (commande === 'CHOISIR') {
         choisitCible(

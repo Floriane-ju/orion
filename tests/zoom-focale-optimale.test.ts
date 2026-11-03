@@ -1,9 +1,8 @@
 /**
- * T-0407 — sous un zoom, chaque cible est évaluée à sa focale optimale, et la liste et le plan
- * l'évaluent à la MÊME : sinon la liste dirait photographiable ce que le plan écarte.
- *
- * Aucune pose n'est écrite en dur : le test compare des sorties de moteur entre elles. Le
- * contexte à une focale est reconstruit par `profilOptique`, comme la chaîne le fait.
+ * T-0407 — under a zoom, each target evaluated at its optimal focale; list and plan evaluate at
+ * the SAME one, else list says photographiable what plan drops.
+ * No pose hardcoded: engine outputs compared with each other. Context at a focale rebuilt by
+ * `profilOptique`, as the chain does.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -62,10 +61,10 @@ function contexteA(focaleMm: number): ContexteSession {
   }
 }
 
-/** Le contexte de base : le zoom réglé à son grand-angle. */
+/** Base context: zoom at wide end. */
 const BASE = contexteA(ZOOM.focaleMinMm)
 
-/** Mémoïsé par focale, comme la chaîne : des cibles à la même focale partagent leur contexte. */
+/** Memoised per focale, as the chain: targets at same focale share context. */
 function resolveur(): ContexteDe {
   const parFocale = new Map<number, ContexteSession>()
   return (objet) => {
@@ -79,7 +78,7 @@ function resolveur(): ContexteDe {
   }
 }
 
-/** Petite au grand-angle, cadrable au télé : elle n'existe que par la plage du zoom. */
+/** Small at wide end, framable at tele: exists only through the zoom range. */
 const PETITE: ObjetCielProfond = {
   designation: 'PETITE',
   nomsCommuns: '',
@@ -141,7 +140,7 @@ describe('T-0407 — le plan évalue la cible à la focale de la liste', () => {
 describe('T-0436 — chaque cible choisit l’objectif du parc', () => {
   const COURT: Objectif = { ...ZOOM, id: 'court', nom: '100', focaleMinMm: 100, focaleMaxMm: 100 }
   const LONG: Objectif = { ...ZOOM, id: 'long', nom: '400', focaleMinMm: 400, focaleMaxMm: 400 }
-  /** Le résolveur de la chaîne, réduit à l'essentiel : objectif optimal, puis sa focale. */
+  /** Chain resolver, stripped down: optimal lens, then its focale. */
   const contexteDe: ContexteDe = (objet) => {
     const choix = objectifOptimal([COURT, LONG], objet.majAxArcmin!, CAPTEUR.capteurHMm)!
     return { ...contexteA(choix.focaleMm), objectifNom: choix.objectif.nom }

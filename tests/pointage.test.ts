@@ -1,9 +1,7 @@
 /**
- * §8.4 — Cheminement d'étoiles et carte de pointage.
- *
- * Le mode est choisi par le champ, jamais par une préférence : au-delà de 8°, le cadre
- * contient toujours plusieurs étoiles brillantes et une seule étape suffit. Et l'orientation
- * est une sortie à part entière — deux pointages à deux heures ne donnent pas le même schéma.
+ * §8.4 — star cheminement + pointage map.
+ * Mode chosen by field, never preference: beyond 8° frame always holds several bright stars → one
+ * step suffices. Orientation = full output: two pointages at two times → different schemas.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -16,7 +14,7 @@ import { SITE_REFERENCE } from './fixtures.ts'
 
 const DATE = new Date('2026-08-14T22:30:00Z')
 
-/** Cible arbitraire du Cygne, et un semis d'étoiles autour d'elle. */
+/** Arbitrary Cygnus target + star seed. */
 const AD_CIBLE_H = 20.75
 const DEC_CIBLE_DEG = 31
 
@@ -24,7 +22,7 @@ function etoile(adH: number, decDeg: number, magV: number): Etoile {
   return { adDeg: adH * 15, decDeg, magV, bv: 0 }
 }
 
-/** Deneb, Sadr, Gienah et quelques étoiles faibles, positions approchées. */
+/** Deneb, Sadr, Gienah + faint stars, approximate positions. */
 const CIEL: readonly Etoile[] = [
   etoile(20.69, 45.28, 1.25),
   etoile(20.37, 40.26, 2.23),
@@ -36,8 +34,8 @@ const CIEL: readonly Etoile[] = [
 ]
 
 /**
- * Le paquet §3.4 ne nomme qu'une partie du semis : c'est le cas réel, et c'est ce qui permet
- * de vérifier que la ligne sans nom le dit au lieu de rester vide.
+ * §3.4 pack names only part of the seed (real case): checks the nameless line says so instead of
+ * staying empty.
  */
 function nommee(etoile: Etoile, designation: string, nomPropre: string): EtoileNommee {
   return {
@@ -126,7 +124,7 @@ describe('cheminement §8.4', () => {
     expect(carte.sauts.length).toBeGreaterThan(0)
     expect(carte.sauts.length).toBeLessThanOrEqual(5)
     expect(carte.sauts[0]!.magV).toBeLessThanOrEqual(3.5)
-    // Recouvrement garanti : chaque saut reste sous 0,7 × le champ de chercheur.
+    // Guaranteed overlap: each hop < 0.7 × finder field.
     for (const saut of carte.sauts) expect(saut.distanceDeg).toBeLessThanOrEqual(0.7 * 6)
   })
 
@@ -135,7 +133,7 @@ describe('cheminement §8.4', () => {
       ...COMMUN,
       fovHDeg: 2,
       fovLDeg: 3,
-      // Chercheur minuscule : aucun saut n'est possible sous la contrainte déclarée.
+      // Tiny finder: no hop possible.
       fovChercheurDeg: 0.2,
     })
     expect(carte.sauts).toStrictEqual([])
@@ -145,12 +143,10 @@ describe('cheminement §8.4', () => {
 })
 
 /**
- * T-0287 — LE SCHÉMA TOURNE POUR DE BON.
- *
- * Le message annonçait « Schéma tourné de −59° » sur un dessin dont rien ne bougeait. Ce qui
- * se vérifie ici n'est pas une position attendue — elle serait une éphéméride recopiée — mais
- * la PROPRIÉTÉ : entre deux heures, les positions rendues se déduisent l'une de l'autre par
- * une rotation, et cette rotation vaut l'écart des angles parallactiques.
+ * T-0287 — THE SCHEMA REALLY ROTATES.
+ * Message said "Schéma tourné de −59°" while nothing moved. Checks the PROPERTY (expected position
+ * = copied ephemeris): between two times, rendered positions relate by a rotation = parallactic
+ * angle gap.
  */
 describe('T-0287 — le schéma rendu est orienté zénith en haut §8.4', () => {
   const CADRE = { fovHDeg: 11.38, fovLDeg: 17.02 }
@@ -163,7 +159,7 @@ describe('T-0287 — le schéma rendu est orienté zénith en haut §8.4', () =>
       (tard.angleOrientationDeg.value - tot.angleOrientationDeg.value) * (Math.PI / 180)
     expect(Math.abs(ecart)).toBeGreaterThan(0)
 
-    // Rotation horaire de `ecart` dans un repère `y` vers le haut.
+    // Clockwise by `ecart`, y-up frame.
     for (const [i, a] of tot.ancrages.entries()) {
       const b = tard.ancrages[i]!
       expect(b.adH).toBe(a.adH)
@@ -175,9 +171,8 @@ describe('T-0287 — le schéma rendu est orienté zénith en haut §8.4', () =>
   it('amène le zénith en haut : un ancrage au zénith de la cible s’y trouve', () => {
     const carte = cartePointage({ ...COMMUN, ...CADRE })
     const q = carte.angleOrientationDeg.value * (Math.PI / 180)
-    // Le zénith est à l'angle de position `q`, compté du nord vers l'est : ses composantes
-    // valent donc `sin q` vers l'est et `cos q` vers le nord.
-    // Le quart du plus petit côté garde l'étoile dans le cadre quel que soit `q`.
+    // Zenith at position angle `q`, north through east: `sin q` east, `cos q` north. A quarter of
+    // the smaller side keeps the star in frame for any `q`.
     const rayon = Math.min(CADRE.fovLDeg, CADRE.fovHDeg) / 4
     const estDeg = Math.sin(q) * rayon
     const nordDeg = Math.cos(q) * rayon
@@ -208,7 +203,7 @@ describe('T-0287 — le schéma rendu est orienté zénith en haut §8.4', () =>
   })
 
   it('garde tout ancrage du cadre dans le disque, quelle que soit la rotation', () => {
-    // Le rayon est la demi-diagonale : un ancrage de coin tombe au bord, jamais au-delà.
+    // Radius = half-diagonal: corner anchor lands on edge, never beyond.
     for (const heures of [0, 2, 5, 9]) {
       const carte = cartePointage({
         ...COMMUN,
@@ -232,9 +227,8 @@ describe('T-0287 — le schéma rendu est orienté zénith en haut §8.4', () =>
 })
 
 /**
- * T-0287 — « depuis une étoile de magnitude 3,4 » ne dit pas LAQUELLE. Le catalogue binaire
- * de §12.2 ne porte pas de nom ; le paquet §3.4 en porte un pour cinq cent quarante-six
- * étoiles, et c'est de là que vient celui-ci.
+ * T-0287 — "from a magnitude 3.4 star" doesn't say WHICH. §12.2 binary catalogue has no name;
+ * §3.4 pack names 546 stars, this one's source.
  */
 describe('T-0287 — les repères portent un nom §8.4', () => {
   const CADRE = { fovHDeg: 11.38, fovLDeg: 17.02 }
@@ -287,8 +281,7 @@ describe('orientation du champ §8.4', () => {
 
 describe('séparation angulaire', () => {
   it('est nulle sur soi-même et symétrique', () => {
-    // L'arc-cosinus perd de la précision près de zéro : l'écart résiduel est de l'ordre de
-    // la milliseconde d'arc, sans effet à l'échelle d'un cadre de pointage.
+    // acos imprecise near zero: ~1 mas residual, irrelevant at pointage scale.
     expect(separationEquatorialeDeg(5, 10, 5, 10)).toBeCloseTo(0, 5)
     expect(separationEquatorialeDeg(5, 10, 6, 20)).toBeCloseTo(
       separationEquatorialeDeg(6, 20, 5, 10),

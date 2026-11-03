@@ -1,8 +1,7 @@
 /**
- * T-0336 — les réductions d'angle, le bornage et les séparations n'ont qu'une écriture.
- *
- * Ce sont des propriétés, pas des valeurs recopiées : une réduction reste dans son tour, un
- * écart court ne dépasse jamais le demi-tour, deux formes de la séparation s'accordent.
+ * T-0336 — angle reductions, clamping, separations have a single implementation.
+ * Properties, not copied values: reduction stays within its turn, short gap ≤ half turn, two
+ * separation forms agree.
  */
 
 import { describe, expect, it } from 'vitest'

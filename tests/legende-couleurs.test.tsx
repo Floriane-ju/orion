@@ -1,9 +1,7 @@
 /**
- * T-0196 — §6.3, §11.1 : la légende est dérivée de la table des apparences, pas recopiée.
- *
- * Le test ne compare aucune couleur écrite à la main — ce serait recopier ce qu'on prétend
- * vérifier. Il contrôle la RELATION : autant de lignes que de teintes distinctes, chaque type
- * nommé une fois, et la teinte peinte est celle que `apparence-objets` rend pour ce type.
+ * T-0196 — §6.3, §11.1: légende derived from appearance table, not copied.
+ * Checks the RELATION, not hand-written colours: rows = distinct hues, each type named once,
+ * painted hue = what `apparence-objets` returns for that type.
  */
 
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -15,7 +13,7 @@ import type { TypeObjet } from '../src/data/deepsky.ts'
 
 const TYPES = Object.keys(APPARENCE_OBJET) as readonly TypeObjet[]
 
-/** Les deux témoins de la section « forme » n'appartiennent à aucune famille. */
+/** The two "forme" section witnesses belong to no family. */
 const TEMOINS_DE_FORME = 2
 
 function teintesDistinctes(): number {
@@ -49,7 +47,7 @@ describe('T-0196 — la légende des couleurs du ciel profond', () => {
 
   it('ne laisse pas la couleur porter seule : les témoins sont décoratifs', () => {
     const html = renderToStaticMarkup(<LegendeCouleurs modeNuit={false} />)
-    // T-0325 — plus un : le chevron de l'accordéon qui porte la légende, décoratif lui aussi.
+    // T-0325 — one more: accordion chevron carrying the légende, decorative too.
     const CHEVRON_ACCORDEON = 1
     expect(html.match(/aria-hidden="true"/g) ?? []).toHaveLength(
       teintesDistinctes() + TEMOINS_DE_FORME + CHEVRON_ACCORDEON,
@@ -57,23 +55,22 @@ describe('T-0196 — la légende des couleurs du ciel profond', () => {
     expect(html).not.toContain('aria-label')
   })
 
-  // La coque interdit la couleur en ligne (voir `mode-nuit.test.tsx`) : deux sources de teinte
-  // pour un même objet finiraient par diverger. La légende peint donc par feuille.
+  // Shell forbids inline colour (`mode-nuit.test.tsx`): 2 hue sources for one object would
+  // diverge. Légende paints via stylesheet.
   it('n’écrit aucune couleur dans un attribut de style', () => {
     const html = renderToStaticMarkup(<LegendeCouleurs modeNuit={true} />)
     expect(html).not.toMatch(/style="[^"]*(?:color|background)[^"]*"/)
   })
 
   /**
-   * La scène pique d'une croix l'objet dont le catalogue ignore les DIMENSIONS, quel que soit
-   * son type (`dessine-ciel.ts` : `geometrieMarqueur` rendant `null`). La légende doit énoncer
-   * cette règle-là, et non laisser croire que la croix désigne un type.
+   * Scène draws a cross on objects with no catalogue DIMENSIONS, any type (`dessine-ciel.ts`:
+   * `geometrieMarqueur` → `null`). Légende must state that rule, not suggest a type.
    */
   it('énonce la croix comme une règle de forme, pas comme un type', () => {
     const html = renderToStaticMarkup(<LegendeCouleurs modeNuit={false} />)
     expect(html).toContain('Forme')
     expect(html).toContain('taille inconnue')
-    // Une croix par ligne indéterminée, plus celle de la section « forme ».
+    // One cross per indeterminate row + the "forme" section's.
     const indeterminees = LIGNES_LEGENDE.filter((l) => l.croix)
     expect(indeterminees).toHaveLength(1)
     expect(indeterminees[0]!.types).toStrictEqual(['INCONNU', 'AUTRE'])
@@ -81,8 +78,8 @@ describe('T-0196 — la légende des couleurs du ciel profond', () => {
   })
 
   /**
-   * Le fourre-tout portait le vert des galaxies, au contour près : deux disques que l'œil ne
-   * sépare pas, et une légende qui promettait une distinction absente de la scène.
+   * Catch-all carried galaxies' green, outline aside: 2 discs indistinguishable, légende
+   * promising a distinction absent from scène.
    */
   it('donne aux types indéterminés une teinte qui n’est celle d’aucune famille', () => {
     for (const indetermine of ['INCONNU', 'AUTRE'] as const) {

@@ -1,15 +1,10 @@
 /**
- * §9 + §11.2 — l'intention de séance : ce qu'on veut faire, tenu une seule fois.
- *
- * Trois choses doivent traverser l'écran de part en part :
- *
- *   1. un clic sur un objet DANS LA SCÈNE doit ouvrir sa fiche, garnie ;
- *   2. les réglages du filé se règlent au panneau mais se dessinent dans le cadre ;
- *   3. passer en Panorama fige le temps de la scène — un filé est une composition fixe.
- *
- * Aucun de ces trois chemins ne remonte à un ancêtre commun autre que l'application. Comme
- * pour [[scene-etat]], l'état vit donc dans le module : un magasin externe se lit aussi bien
- * en rendu serveur que dans le navigateur, et se teste sans DOM.
+ * §9 + §11.2 — séance intention held once. Three things cross the whole screen:
+ *   1. click on object IN THE SCÈNE opens its fiche, filled;
+ *   2. filé settings set in panel, drawn in cadre;
+ *   3. Panorama freezes scène time (filé = fixed composition).
+ * None goes up to a common ancestor but app. As [[scene-etat]]: module state; external store
+ * reads in SSR + browser, tests without DOM.
  */
 
 import { useCallback, useSyncExternalStore } from 'react'
@@ -33,55 +28,46 @@ import {
 } from '../data/stockage-local.ts'
 
 /**
- * T-0179 — le seul commutateur de premier rang (§11.3) : il décide de ce que la scène peint et
- * de ce que le panneau de droite porte. C'est l'ancienne case « Peindre le filé sur toute la
- * scène » promue en état nommé — un état de cette portée ne se règle pas au troisième niveau
- * d'un panneau.
- *
- * Le plan de nuit y entre en troisième position : il se lit en longueur comme la liste, et
- * la scène reste celle du ciel profond — seul le panneau change.
+ * T-0179 — the only first-rank switch (§11.3): decides what scène paints + what right panel
+ * carries. Was checkbox "Peindre le filé sur toute la scène", promoted to named state.
+ * Plan de nuit third: read lengthwise like the list; scène stays ciel profond, only panel changes.
  */
 export type ModeInterface = 'CIEL_PROFOND' | 'PANORAMA' | 'PLAN'
 
 /**
- * T-0182 — les deux états du panneau en Ciel profond. Ce n'est pas un onglet : on parcourt
- * pour choisir, puis on lit ce qu'on a choisi. Les deux prennent la même place, l'un après
- * l'autre, et le retour ramène la liste telle qu'elle était.
+ * T-0182 — the two Ciel profond panel states. Not a tab: browse to choose, then read the
+ * choice. Same place, one after the other; back returns the list as it was.
  */
 export type VueCibles = 'LISTE' | 'FICHE'
 
 /**
- * Réglages de §9.2 à §9.4. Ils pilotent le panneau ET l'aperçu peint dans le cadre.
- *
- * T-0374 — une seule saisie, le temps de prise de vue. La pose et l'intervalle s'en déduisent
- * avec la pose max du cadre (`planPanorama`) : deux curseurs et un champ pour une intention.
+ * §9.2–§9.4 settings. Drive the panel AND the preview painted in cadre.
+ * T-0374 — one saisie, temps de prise de vue; pose + interval derive from it with cadre pose
+ * max (`planPanorama`): two sliders + a field for one intention was too many.
  */
 export interface ReglagesFile {
   readonly dureeTotaleS: number
-  /** T-0142 — §9.1 peinte DANS le cadre du capteur, qu'elle masque, plutôt qu'au panneau. */
+  /** T-0142 — §9.1 painted INSIDE the sensor cadre, masking it, rather than in panel. */
   readonly poseDansCadre: boolean
 }
 
 /**
- * Ce que la dernière passe de filé a effectivement tracé. `null` tant qu'aucune n'a eu lieu.
- *
- * T-0154 — seul l'effectif du catalogue réel subsiste : c'est lui qui dit si le cadre offre un
- * repère brillant pour un pointage manuel. Le semis et les arcs tronqués ne se comptaient que
- * pour une phrase de panneau, et la phrase est partie.
+ * What the last filé pass traced; `null` until one ran.
+ * T-0154 — only real-catalogue effectif remains: tells if cadre offers a bright repère for
+ * manual pointage. Semis + truncated arcs counted only for a panel sentence, now gone.
  */
 export interface RenduFile {
   readonly reelles: number
 }
 
 /**
- * T-0362 — ce que la fiche règle pour la cible lue : objectif de qualité, mode permissif,
- * explication dépliée. Tenus ici plutôt que dans la fiche pour survivre au
- * rechargement ; remis au défaut quand on ouvre une AUTRE cible, comme quand la fiche les
- * tenait — une fiche neuve s'ouvre sur l'objectif que le plan alloue (T-0268).
+ * T-0362 — what fiche sets for the read cible: objectif de qualité, permissive mode, unfolded
+ * explication. Held here to survive reload; reset when ANOTHER cible opens, as when fiche held
+ * them — new fiche opens on the objectif plan allocates (T-0268).
  */
 export interface ReglagesFiche {
   readonly snrCible: number
-  /** §7.2 — mode permissif C-03 = 3, désactivé par défaut : il se choisit, il ne se subit pas. */
+  /** §7.2 — permissive mode C-03 = 3, off by default: chosen, not suffered. */
   readonly permissif: boolean
   readonly explicationDepliee: boolean
 }
@@ -94,19 +80,18 @@ export interface EtatSeance {
   readonly fiche: ReglagesFiche
   readonly renduFile: RenduFile | null
   /**
-   * §9.1 — pose max du cadre visé, publiée par le panneau qui la chiffre. Elle décide si le
-   * temps de prise de vue tient en une photo : la scène et la profondeur la lisent ici.
-   * `null` tant que le panneau ne l'a pas chiffrée. Recomptée, jamais persistée.
+   * §9.1 — pose max of aimed cadre, published by the panel that computes it. Decides if temps de
+   * prise de vue fits one photo; scène + depth read it. `null` until computed. Never persisted.
    */
   readonly poseMaxCadreS: number | null
   /**
-   * La carte de la liste sous le pointeur : la scène y pose le cadre que la cible obtiendrait.
-   * Un geste, pas une intention — jamais persisté.
+   * List card under pointer: scène draws the cadre the cible would get. Gesture, not
+   * intention — never persisted.
    */
   readonly survolee: ObjetCielProfond | null
   /**
-   * T-0408 — la focale essayée sur la bague de la fiche. Tenue ici et non dans la fiche : la
-   * scène peint le cadre qu'elle donne. Un essai, pas un réglage — jamais persisté.
+   * T-0408 — focale tried on fiche's ring. Here, not in fiche: scène paints the cadre it gives.
+   * Trial, not setting — never persisted.
    */
   readonly essaiZoom: EssaiZoom | null
 }
@@ -133,9 +118,8 @@ const ETAT_INITIAL: EtatSeance = {
 const CLE_STOCKAGE = 'orion.seance'
 
 /**
- * La cible ne se range que par sa désignation : l'objet vient du catalogue, qui se charge
- * APRÈS le premier rendu. Elle attend ici que `relieCible` la retrouve ; d'ici là le panneau
- * montre la liste, puisqu'une fiche sans cible n'existe pas.
+ * Cible stored by designation only: object comes from catalogue, loaded AFTER first render.
+ * Waits for `relieCible` to find it; meanwhile panel shows list (fiche without cible can't exist).
  */
 let designationARelire: string | null = null
 
@@ -177,7 +161,7 @@ const VUES_CIBLES: readonly VueCibles[] = Object.freeze(['LISTE', 'FICHE'])
 let etat: EtatSeance = restaure(ETAT_INITIAL)
 const { abonne, notifie } = creeAbonnes()
 
-/** Le rendu du filé n'en est pas : il se recompte à la première passe. */
+/** Filé render isn't one: recounted at first pass. */
 function seancePersistee(courant: EtatSeance): unknown {
   return {
     cible: courant.cible?.designation ?? designationARelire,
@@ -200,18 +184,16 @@ function pose(suivant: EtatSeance): void {
 }
 
 /**
- * §3.4 — un objet cliqué dans la scène ouvre sa fiche. Le geste ne se termine pas sur une
- * boîte de dialogue au milieu du ciel : la fiche prend la place de la liste, garnie.
- *
- * T-0113 puis T-0182 — la fiche est passée d'un onglet à une carte, puis de la carte au
- * panneau. Le contrat ne bouge pas et c'est lui qui compte : cliquer un objet DOIT le faire
- * lire sans autre geste. Une ligne du catalogue passe par ici aussi — un seul chemin, deux
- * entrées, sans quoi les deux se mettraient à diverger.
+ * §3.4 — object clicked in scène opens its fiche. Gesture mustn't end on a dialog in mid-sky:
+ * fiche replaces list, filled.
+ * T-0113 then T-0182 — fiche went tab → card → panel. Contract kept: clicking an object MUST
+ * get it read with no other gesture. Catalogue row goes through here too — one path, two
+ * entries, else they diverge.
  */
 export function ouvreCible(cible: ObjetCielProfond): void {
   designationARelire = null
   const autre = etat.cible?.designation !== cible.designation
-  // La liste se démonte sous le pointeur sans émettre de sortie : le survol s'oublie ici.
+  // List unmounts under pointer without emitting exit: hover forgotten here.
   pose({
     ...etat,
     cible,
@@ -222,9 +204,8 @@ export function ouvreCible(cible: ObjetCielProfond): void {
 }
 
 /**
- * T-0362 — la cible gardée au dernier passage, retrouvée dans le catalogue qui vient d'arriver.
- * Sans geste : la fiche se rouvre telle qu'on l'a quittée, réglages compris. Une désignation
- * disparue du catalogue est oubliée.
+ * T-0362 — cible kept from last visit, found in the just-arrived catalogue. No gesture: fiche
+ * reopens as left, settings included. Designation gone from catalogue → forgotten.
  */
 export function relieCible(catalogue: readonly ObjetCielProfond[]): void {
   if (designationARelire === null || catalogue.length === 0) return
@@ -234,7 +215,7 @@ export function relieCible(catalogue: readonly ObjetCielProfond[]): void {
   if (cible !== undefined) pose({ ...etat, cible })
 }
 
-/** Survoler une carte de la liste ; `null` quand le pointeur la quitte. */
+/** Hover a list card; `null` when pointer leaves. */
 export function survoleCible(objet: ObjetCielProfond | null): void {
   if (etat.survolee === objet) return
   pose({ ...etat, survolee: objet })
@@ -248,15 +229,15 @@ export function majFiche(retouche: Partial<ReglagesFiche>): void {
   pose({ ...etat, fiche: { ...etat.fiche, ...retouche } })
 }
 
-/** Le retour de la fiche : la cible reste désignée, c'est la LECTURE qui change. */
+/** Fiche back: cible stays designated, what changes is the READING. */
 export function montreListeCibles(): void {
   pose({ ...etat, vueCibles: 'LISTE' })
 }
 
 /**
- * Ce que le temps de prise de vue prescrit au cadre visé : une photo, ou un filé découpé en
- * poses. Le mode ne se choisit pas, il se déduit — un menu à côté du curseur pouvait le
- * contredire. Une seule source pour la passe qui peint, le panneau qui chiffre et la profondeur.
+ * What temps de prise de vue prescribes for aimed cadre: one photo, or filé cut into poses.
+ * Mode deduced, not chosen — a menu beside the slider could contradict it. Single source for
+ * painting pass, computing panel, depth.
  */
 export function planDeSeance(courant: Pick<EtatSeance, 'file' | 'poseMaxCadreS'>): PlanPanorama {
   return planPanorama(courant.file.dureeTotaleS, courant.poseMaxCadreS)
@@ -266,23 +247,20 @@ export function majFile(retouche: Partial<ReglagesFile>): void {
   pose({ ...etat, file: { ...etat.file, ...retouche } })
 }
 
-/** T-0374 — n'écrit que si la valeur change : le panneau la republie à chaque rendu. */
+/** T-0374 — writes only if value changes: panel republishes every render. */
 export function posePoseMaxCadre(poseMaxCadreS: number | null): void {
   if (poseMaxCadreS !== etat.poseMaxCadreS) pose({ ...etat, poseMaxCadreS })
 }
 
-/** `null` quand le filé s'éteint : des compteurs périmés mentiraient sur ce qui est tracé. */
+/** `null` when filé switches off: stale counters would lie about what is traced. */
 export function poseRenduFile(rendu: RenduFile | null): void {
   pose({ ...etat, renduFile: rendu })
 }
 
 /**
- * T-0116 — la passe de filé se peint par image ; ses compteurs, non.
- *
- * `poseRenduFile` écrit dans le magasin, donc déclenche un rendu React. Publiés à chaque
- * peinture, ils en feraient trente par seconde — le défaut de T-0056. La boucle appelle donc
- * ce publicateur au rythme du diagnostic, et il ne laisse passer que ce qui a CHANGÉ : un filé
- * stable, ou éteint, ne coûte alors plus aucun rendu.
+ * T-0116 — filé pass painted per frame, its counters not. `poseRenduFile` writes to store →
+ * React render; published every paint = 30/s (T-0056's bug). Loop calls this publisher at
+ * diagnostic rate; only what CHANGED passes: stable or off filé costs no render.
  */
 export function publicateurRenduFile(
   publie: (rendu: RenduFile | null) => void,
@@ -299,18 +277,16 @@ export function publicateurRenduFile(
 }
 
 /**
- * §9.3 — passer en Panorama fige le temps. La vue animée reste le §3 : un filé est une
- * composition fixe, et faire défiler l'heure sous des arcs déjà accumulés ne veut rien dire.
- *
- * Revenir en Ciel profond ne dégèle rien : rendre le temps à l'horloge système est un geste du
- * transport de la barre basse (§3.2), pas un effet de bord du mode.
+ * §9.3 — Panorama freezes time. Animated vue stays §3: filé = fixed composition; scrolling
+ * hours under accumulated arcs is meaningless. Back to Ciel profond thaws nothing: giving time
+ * back to system clock = bottom-bar transport gesture (§3.2), not a mode side effect.
  */
 export function poseMode(mode: ModeInterface): void {
   pose({ ...etat, mode, survolee: null })
   if (mode === 'PANORAMA') majTemps({ modeTemps: 'FIGE' })
 }
 
-/** Remet la séance dans son état de départ. Réservé aux tests. */
+/** Resets séance to start state. Tests only. */
 export function reinitialiseSeance(): void {
   designationARelire = null
   pose(ETAT_INITIAL)
@@ -321,13 +297,11 @@ export function useSeance(): EtatSeance {
 }
 
 /**
- * T-0398 — s'abonner à une tranche de la séance plutôt qu'à sa totalité, comme
- * `useTrancheScene` (T-0056) le fait pour la scène.
- *
- * En Panorama, la pose max suit la déclinaison visée et se republie à chaque mouvement :
- * chaque abonné à `useSeance` se re-rendait avec elle, la racine de l'application comprise.
- * Le sélecteur doit être défini au niveau du module et rendre une valeur comparable par
- * `Object.is` — c'est ce que `useSyncExternalStore` compare pour sauter un rendu.
+ * T-0398 — subscribe to a séance slice, not the whole, like `useTrancheScene` (T-0056) for
+ * scène. In Panorama pose max follows aimed déclinaison, republishes per move: each `useSeance`
+ * subscriber re-rendered, app root included.
+ * Selector: module-level, `Object.is`-comparable return (what `useSyncExternalStore` compares
+ * to skip a render).
  */
 export function useTrancheSeance<T>(selecteur: (etat: EtatSeance) => T): T {
   const lit = useCallback(() => selecteur(etatSeance()), [selecteur])

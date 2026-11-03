@@ -1,9 +1,4 @@
-/**
- * §4.1 — Conséquences site-dépendantes, calculées à la validation du site.
- *
- * L'application annonce à la validation quelle part du ciel austral est hors de portée
- * depuis ce site. Information structurante que rien d'autre ne donne.
- */
+/** §4.1 — site-dependent consequences at site validation: austral sky out of reach. */
 
 import { K } from '../registry/constants.ts'
 import { DOMAINES, SaisieRefuseeError, valide } from '../registry/domains.ts'
@@ -13,11 +8,11 @@ import { DEG } from './mat3.ts'
 import { QUART_TOUR_DEG as ANGLE_DROIT_DEG, ramene, TOUR_DEG } from './unites.ts'
 
 export interface SeuilsSite {
-  /** Déclinaison au-delà de laquelle une cible est circumpolaire. */
+  /** Dec above which target is circumpolar. */
   readonly decCircumpolaire: Traced<number>
-  /** Déclinaison en dessous de laquelle une cible n'atteint jamais le seuil d'imagerie. */
+  /** Dec below which target never reaches imaging height threshold. */
   readonly decMinImagerie: Traced<number>
-  /** Déclinaison en dessous de laquelle une cible n'atteint jamais le seuil visuel. */
+  /** Dec below which target never reaches visual height threshold. */
   readonly decMinVisuel: Traced<number>
 }
 
@@ -43,36 +38,33 @@ export function seuilsDeclinaison(latitudeDeg: number): SeuilsSite {
   }
 }
 
-/** Une valeur d'obstruction par degré d'azimut, de 0 à 359 (§4.1). */
+/** One obstruction value per azimuth degree, 0..359 (§4.1). */
 export const NB_AZIMUTS = 360
 
 export interface MasqueHorizon {
-  /** Altitude d'obstruction en degrés, indexée par l'azimut entier. */
+  /** Obstruction deg, by integer azimuth. */
   readonly altitudesDeg: readonly number[]
-  /** Vrai quand le masque est le repli plat, faute de donnée de relief. */
+  /** True = flat fallback (no relief data). */
   readonly estHypothese: boolean
   readonly flags?: readonly Flag[]
   readonly note?: string
   /**
-   * T-0395 — les courbes de niveau visibles du terrain, en polylignes `[az, h, az, h, …]`
-   * séparées par une paire de NaN (T-0397). Elles se dessinent sur le sol et n'entrent dans
-   * aucun calcul : le masque reste `altitudesDeg`.
+   * T-0395 — terrain contour polylines `[az, h, az, h, …]`, NaN pair (T-0397) as separator.
+   * Drawing only; mask stays `altitudesDeg`.
    */
   readonly courbesDeg?: Float32Array
-  /** T-0438 — les lignes de silhouette du relief, au même format ; dessin seul, comme les courbes. */
+  /** T-0438 — relief silhouettes, same format; drawing only. */
   readonly silhouettesDeg?: Float32Array
   /**
-   * T-0438 — la crête au pas fin (`PAS_AZIMUT_CRETE_DEG`), pour le dessin seul : au degré, un
-   * relief lointain se dessinait en triangles, et ses courbes de niveau débordaient du sol.
-   * Les créneaux, eux, restent sur `altitudesDeg`.
+   * T-0438 — ridge at `PAS_AZIMUT_CRETE_DEG`, drawing only (1° drew distant relief as triangles,
+   * contours overflowed ground). Créneaux stay on `altitudesDeg`.
    */
   readonly creteDeg?: Float32Array
 }
 
 /**
- * Repli d'un site sans donnée de relief : horizon plat à 0°, marqué [HYP] (§4.1).
- * L'hypothèse est annoncée — un site au pied des Alpes n'a pas d'horizon plat, et une
- * recommandation calculée sur cette base serait fausse la moitié du temps.
+ * Fallback without relief data: flat 0° horizon, [HYP] (§4.1).
+ * Announced: a flat horizon at the foot of the Alps would skew recommendations.
  */
 export function masquePlat(cause?: string): MasqueHorizon {
   const invitation = 'Horizon supposé plat.'
@@ -84,7 +76,7 @@ export function masquePlat(cause?: string): MasqueHorizon {
   })
 }
 
-/** Masque construit sur un profil d'altitude réel : ce n'est plus une hypothèse (§4.1). */
+/** Mask from a real altitude profile: not [HYP] (§4.1). */
 export function masqueDepuisRelief(altitudesDeg: readonly number[], note?: string): MasqueHorizon {
   if (altitudesDeg.length !== NB_AZIMUTS) {
     throw new SaisieRefuseeError(
@@ -104,19 +96,15 @@ export function masqueDepuisRelief(altitudesDeg: readonly number[], note?: strin
   })
 }
 
-/** Un couple saisi à la main : dans cet azimut, le relief monte jusqu'à cette hauteur (§4.1). */
+/** Hand-entered azimuth → height pair (§4.1). */
 export interface PointMasque {
   readonly azimutDeg: number
   readonly altitudeDeg: number
 }
 
 /**
- * Masque édité à la main, azimut par azimut (§4.1 — « édition manuelle par-dessus »).
- *
- * Personne ne saisit 360 valeurs : on relève quelques crêtes, et les azimuts intermédiaires
- * s'interpolent linéairement d'un point au suivant, en refermant le cercle entre le dernier
- * et le premier. Deux relevés dans le même azimut gardent le plus haut : c'est le relief qui
- * cache, pas la moyenne des deux.
+ * Hand-edited mask (§4.1 « édition manuelle par-dessus »): few ridges entered, other azimuths
+ * interpolate linearly, circle closes last→first. Same azimuth twice → keep higher (relief hides).
  */
 export function masqueDepuisPoints(points: readonly PointMasque[]): MasqueHorizon {
   if (points.length === 0) return masquePlat()
@@ -138,7 +126,7 @@ export function masqueDepuisPoints(points: readonly PointMasque[]): MasqueHorizo
     const avant = releves[((rangApres === -1 ? 0 : rangApres) - 1 + releves.length) % releves.length]
     if (apres === undefined || avant === undefined) return 0
     if (apres.azimut === azimut) return apres.altitude
-    // Un relevé unique couvre tout le tour : la portée vaut alors le cercle entier.
+    // Single reading: span = full circle.
     const portee = (apres.azimut - avant.azimut + NB_AZIMUTS) % NB_AZIMUTS || NB_AZIMUTS
     const ecart = (azimut - avant.azimut + NB_AZIMUTS) % NB_AZIMUTS
     return avant.altitude + ((apres.altitude - avant.altitude) * ecart) / portee
@@ -154,11 +142,8 @@ export function masqueDepuisPoints(points: readonly PointMasque[]): MasqueHorizo
 
 
 /**
- * Obstruction à un azimut quelconque : l'azimut se referme sur lui-même.
- *
- * T-0359 — linéaire d'un degré entier au suivant, et non au degré le plus proche : arrondi, le
- * masque était un escalier de 360 marches, que le sol dessinait telles quelles. L'interpolation
- * n'abaisse aucun sommet — elle ne passe que par les valeurs relevées.
+ * Obstruction at any azimuth (wraps).
+ * T-0359 — linear between integer degrees, not nearest (360-step staircase); never lowers a peak.
  */
 export function obstructionDeg(masque: MasqueHorizon, azimutDeg: number): number {
   const a = ramene(azimutDeg, NB_AZIMUTS)
@@ -168,7 +153,7 @@ export function obstructionDeg(masque: MasqueHorizon, azimutDeg: number): number
   return avant + (apres - avant) * (a - i)
 }
 
-/** T-0438 — l'obstruction DESSINÉE : la crête fine quand le relief la porte, le masque sinon. */
+/** T-0438 — DRAWN obstruction: fine ridge if any, else mask. */
 export function obstructionDessinDeg(masque: MasqueHorizon, azimutDeg: number): number {
   const crete = masque.creteDeg
   if (crete === undefined || crete.length === 0) return obstructionDeg(masque, azimutDeg)
@@ -180,7 +165,7 @@ export function obstructionDessinDeg(masque: MasqueHorizon, azimutDeg: number): 
   return avant + (apres - avant) * (a - i)
 }
 
-/** Hauteur atteinte par une cible à sa culmination, depuis ce site. */
+/** Culmination height from this site. */
 export function altitudeCulmination(latitudeDeg: number, decDeg: number): Traced<number> {
   return trace({
     value: ANGLE_DROIT_DEG - Math.abs(latitudeDeg - decDeg),
@@ -190,30 +175,22 @@ export function altitudeCulmination(latitudeDeg: number, decDeg: number): Traced
 }
 
 /**
- * Latitude au-dessous de laquelle une déclinaison atteint enfin le seuil de hauteur donné.
- *
- * Le seuil est atteint dès que | latitude − δ | < 90° − seuil : la borne haute de cet
- * intervalle est la seule qui intéresse un observateur de l'hémisphère nord, et c'est elle
- * qu'annoncent §8.2 et §3.7 quand une cible australe reste hors de portée.
+ * Latitude below which a declination reaches the height threshold.
+ * Reached iff |latitude − δ| < 90° − seuil; only the upper bound matters to northern observers;
+ * §8.2, §3.7 announce it when a southern target stays out of reach.
  */
 export function latitudeAccessibleDeg(decDeg: number, seuilHauteurDeg: number): number {
   return decDeg + (ANGLE_DROIT_DEG - seuilHauteurDeg)
 }
 
-/**
- * Masse d'air sans trace : appelée par échantillon sur un créneau entier, là où produire un
- * résultat tracé par minute d'observation n'apporterait rien et coûterait tout.
- */
+/** Untraced masse d'air for per-sample use over a créneau: traced per minute adds only cost. */
 export function masseAirBrute(hauteurDeg: number): number {
   return 1 / Math.sin(hauteurDeg * DEG)
 }
 
 /**
- * Masse d'air. La formule cesse d'être valide sous environ 15° de hauteur.
- *
- * `null` en entrée n'est pas une erreur : une cible dont l'instant d'évaluation sort du
- * domaine des séries n'a pas de hauteur, et la sortie le dit au lieu de supposer le
- * zénith (§7.6).
+ * Masse d'air. Formula invalid below ~15° height.
+ * `null` input = evaluation instant outside series domain (no height): says so, not zenith (§7.6).
  */
 export function masseAir(hauteurDeg: number | null): Traced<number | null> {
   if (hauteurDeg === null || hauteurDeg <= 0) {

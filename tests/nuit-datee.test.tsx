@@ -1,12 +1,8 @@
 /**
- * §8.1 et §4.1 — T-0267 : après minuit, la nuit planifiée reste celle qu'on observe.
- *
- * Le jour civil de l'instant datait la nuit. À 00:30, au milieu de la séance, le plan
- * basculait sur la nuit suivante — créneaux, budget et aide au pointage compris. Le jour
- * d'observation court d'un midi au suivant : ces cas fixent la bascule et ce qu'elle nomme.
- *
- * Aucune éphéméride recopiée : le coucher du Soleil est calculé, et seul le JOUR sur lequel
- * il tombe est vérifié.
+ * §8.1, §4.1 — T-0267: after midnight, planned nuit stays the observed one.
+ * Civil day of the instant dated the nuit: at 00:30 mid-séance plan flipped to next nuit
+ * (créneaux, budget, pointage aid). Observation day runs noon → noon: cases pin the flip and
+ * what it names. No ephemeris copied: sunset computed, only its DAY checked.
  */
 
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -24,7 +20,7 @@ import { useSaisieLieu } from '../src/ui/app-saisie.ts'
 import { SITE_REFERENCE } from './fixtures.ts'
 
 
-/** Le 18 septembre 2026, en heure locale — le jour civil que l'instant traverse. */
+/** 18 Sep 2026, local time: the civil day the instant crosses. */
 const LENDEMAIN = { annee: 2026, mois: 8, jour: 18 } as const
 
 function le18a(heures: number, minutes: number): Date {
@@ -43,8 +39,8 @@ describe('datation de la nuit §8.1', () => {
   })
 
   it('date la nuit sur le calendrier LOCAL, pas sur la tranche UTC', () => {
-    // Piège A1 — `toISOString()` désigne la veille à l'ouest de Greenwich, le lendemain à
-    // l'est. C'est la nuit qu'on observe qui compte, pas celle du méridien de référence.
+    // Trap A1 — `toISOString()` names the day before west of Greenwich, after east. Observed
+    // nuit matters, not the reference meridian's.
     const soir = new Date(2026, 6, 15, 22, 30)
     expect(nuitDeLInstant(soir)).toBe('2026-07-15')
     expect(nuitDeLInstant(soir)).toBe(soir.toLocaleDateString('sv-SE'))
@@ -76,7 +72,7 @@ describe('le nom d’une nuit porte ses deux dates', () => {
   })
 })
 
-/** Le seul état que `useSaisieLieu` tire de l'horloge : ce que l'application ouvre. */
+/** Only state `useSaisieLieu` takes from the clock: app's opening value. */
 function NuitAuDemarrage() {
   return <>{useSaisieLieu(null).nuitIso}</>
 }

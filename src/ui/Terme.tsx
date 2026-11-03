@@ -1,13 +1,9 @@
 /**
- * §10.1 — Glossaire contextuel, rendu au contact du terme.
- *
- * L'interface ne rend jamais un libellé littéral : elle rend une clé du glossaire. C'est ce
- * qui tient la règle « aucun terme affiché ne peut être absent du glossaire » — un libellé
- * sans entrée ne compile pas, et le compilateur nomme la clé manquante.
- *
- * Une seule surface d'explication : tout sort au survol. T-0386 — la bulle d'un terme porte
- * tout ce que son entrée écrit : glose, explication, conséquence. Celle d'une valeur tracée
- * est composée par `TracedValue`, qui la passe entière (`bulle`).
+ * §10.1 — Glossaire contextuel, rendered on contact with the term. UI never renders a literal
+ * label, only a glossaire key: holds "no displayed term absent from glossaire" — label without
+ * entry doesn't compile, compiler names the key.
+ * One explanation surface: all on hover. T-0386 — bulle carries all its entry writes (glose,
+ * explication, conséquence). Tracée value's bulle composed by `TracedValue`, passed whole.
  */
 
 import type { ReactNode } from 'react'
@@ -18,18 +14,18 @@ import { GLOSSAIRE } from '../registry/glossaire.ts'
 interface EtiquetteProps {
   readonly cle: TermeGlossaire
   /**
-   * Précision calculée au contact, ajoutée sous l'entrée du glossaire — ex. l'ISO retenu et
-   * sa justification. T-0386 : elle ne remplace plus la glose, qui disparaissait avec elle.
+   * Precision computed on contact, added under glossaire entry (e.g. retained ISO + why).
+   * T-0386: no longer replaces glose (it vanished with it).
    */
   readonly precision?: ReactNode
-  /** Contenu complet de la bulle, qui remplace glose, explication et conséquence. */
+  /** Full bulle content; replaces glose, explication, conséquence. */
   readonly bulle?: ReactNode
 }
 
-/** Une lettre grecque est un symbole : δ en capitale, Δ, désigne un écart (T-0276). */
+/** Greek letter = symbol: capital δ, Δ = écart (T-0276). */
 const SYMBOLE_GREC = /([α-ωµ]+)/u
 
-/** Le libellé, ses symboles soustraits aux capitales du micro-libellé. */
+/** Label with symbols removed from micro-label capitals. */
 function libelleProtege(libelle: string) {
   return libelle
     .split(SYMBOLE_GREC)
@@ -44,10 +40,10 @@ function libelleProtege(libelle: string) {
     )
 }
 
-/** Libellé d'un terme, glose au survol — le pointillé sous le mot annonce qu'il y a une aide. */
+/** Term label, glose on hover — dotted underline signals help exists. */
 export function Etiquette({ cle, precision, bulle }: EtiquetteProps) {
   const entree = GLOSSAIRE[cle]
-  // Une précision fournie passe outre `sansBulle` : sans bulle, elle serait perdue.
+  // A given précision overrides `sansBulle`: without bulle it would be lost.
   const lignes = [
     ...(entree.sansBulle === true ? [] : [entree.glose, entree.explication, entree.consequence]),
     precision,

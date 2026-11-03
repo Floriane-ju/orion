@@ -1,9 +1,7 @@
 /**
- * §4.1 — le relief du site, demandé quand les coordonnées se posent, et le masque qu'il donne.
- *
- * Il n'y a pas de geste « valider le site » : la latitude se tape chiffre par chiffre, et
- * chaque état intermédiaire est un lieu. La demande attend donc le repos de la saisie, sauf au
- * montage, où le site vient du rechargement et où le cache répond sans réseau.
+ * §4.1 — site relief, requested once coordinates settle, + resulting masque.
+ * No "validate site" gesture: latitude typed digit by digit, every intermediate state is a lieu.
+ * Request waits for input rest, except at mount (reloaded site; cache answers offline).
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -14,9 +12,8 @@ import { nombre, nombreLibre } from '../registry/ecriture.ts'
 import { DOMAINES } from '../registry/domains.ts'
 
 /**
- * Le dernier relief résolu, ou null avant le tout premier. Pendant qu'un nouveau site se
- * charge, celui de l'ancien reste celui des calculs : il se remplace en moins d'une seconde.
- * `enCharge` dit qu'il n'est plus celui du lieu saisi — le planétarium l'aplatit (T-0369).
+ * Last resolved relief, null before the first. During new site load, old relief stays the one
+ * computed with (<1 s swap). `enCharge` = no longer typed lieu's → planétarium flattens (T-0369).
  */
 export function useReliefSite(
   latDeg: number,
@@ -28,7 +25,7 @@ export function useReliefSite(
   } | null>(null)
   const lieu = `${latDeg},${lonDeg}`
   const monte = useRef(false)
-  // Un relief refusé hors réseau, ou par un service muet, se redemande au retour du réseau.
+  // Relief refused offline / by mute service: re-requested when network returns.
   const [retours, surRetours] = useState(0)
   useEffect(() => {
     const relance = () => surRetours((n) => n + 1)
@@ -55,8 +52,8 @@ export function useReliefSite(
 }
 
 /**
- * Le masque que le relief donne : réel, ou le repli plat [HYP] avec sa cause. Avant le premier
- * relief résolu, le repli plat n'a pas de note : un chargement n'est pas une indisponibilité.
+ * Masque from relief: real, or flat fallback [HYP] with cause. Before first relief, flat
+ * fallback has no note: loading ≠ unavailable.
  */
 export function masqueDuRelief(relief: ReliefSite | null): MasqueHorizon {
   if (relief === null) {
@@ -79,9 +76,9 @@ export function masqueDuRelief(relief: ReliefSite | null): MasqueHorizon {
 }
 
 /**
- * T-0365 — l'altitude à écrire dans le champ après un clic sur la carte : le sol du modèle,
- * au mètre. Null sans relief, ou hors du domaine de saisie (mer Morte, sommets) : écrire une
- * valeur bornée mentirait, écrire la vraie ferait refuser la saisie — le champ garde la sienne.
+ * T-0365 — altitude to write in field after map click: model ground, to the metre. Null without
+ * relief or outside saisie domain (mer Morte, summits): clamped value lies, true one refused →
+ * field keeps its own.
  */
 export function altitudeDuRelief(relief: ReliefSite): string | null {
   if (relief.etat !== 'RELIEF') return null

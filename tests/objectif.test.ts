@@ -1,9 +1,7 @@
 /**
- * T-0404 — §5.1 parc d'objectifs : le plancher d'ouverture d'un zoom, les plages de réglage
- * qu'un objectif impose, et l'objectif du parc qu'une cible écartée réclame (§6.1).
- *
- * Aucune ouverture intermédiaire n'est recopiée : le plancher se vérifie à ses deux bouts, par
- * sa monotonie et par la formule d'interpolation réécrite à partir des entrées.
+ * T-0404 — §5.1 parc d'objectifs: zoom aperture floor, adjustment ranges a lens imposes, parc
+ * lens claimed by a discarded target (§6.1). No intermediate aperture copied: floor checked at
+ * both ends, by monotonicity, and by the interpolation formula rewritten from the entries.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -75,7 +73,7 @@ describe('§5.1 — plancher d’ouverture d’un zoom', () => {
       expect(arrondi).toBeGreaterThanOrEqual(exact)
       expect(arrondi - exact).toBeLessThan(pas)
     }
-    // Une valeur déjà au pas ne monte pas d'un cran sous l'effet du flottant.
+    // Value already on step doesn't go up a notch from float error.
     expect(plancherAuPas(1.1)).toBe(1.1)
     expect(plancherAuPas(5.6)).toBe(5.6)
   })
@@ -150,7 +148,7 @@ describe('§6.1 — l’objectif du parc qui cadrerait une cible écartée', () 
 describe('T-0407 — la focale optimale d’une cible sous un zoom', () => {
   const zoom = objectif()
   const capteurHMm = 15.6
-  /** La taille qu'un champ à cette focale cadre au remplissage visé : la formule, à l'envers. */
+  /** Size a field at this focale frames at target fill: formula inverted. */
   const tailleCadreeA = (focaleMm: number): number =>
     fovDeg(capteurHMm, focaleMm).value * K('REMPLISSAGE_ZOOM_OPTIMAL') * ARCMIN_PAR_DEG
 
@@ -215,8 +213,8 @@ describe('T-0436 — l’objectif optimal du parc pour une cible', () => {
   })
 
   it('sans plage qui l’atteigne, le plus proche en rapport de focales', () => {
-    // 60 mm : 55 est à ×1,09, 70 à ×1,17 — l'écart absolu (5 contre 10 mm) dirait la même chose,
-    // pas à 62 mm où seul le rapport départage (55 : ×1,127 ; 70 : ×1,129).
+    // 60 mm: 55 = ×1,09, 70 = ×1,17; absolute gap (5 vs 10 mm) would say the same, not at
+    // 62 mm where only the ratio decides (55: ×1,127; 70: ×1,129).
     expect(objectifOptimal([transStd, tele], tailleCadreeA(60), capteurHMm)?.objectif.id).toBe('trans')
     const f = Math.sqrt(55 * 70) + 0.1
     expect(objectifOptimal([transStd, tele], tailleCadreeA(f), capteurHMm)?.objectif.id).toBe('tele')
@@ -224,7 +222,7 @@ describe('T-0436 — l’objectif optimal du parc pour une cible', () => {
 
   it('à cadrage égal au mm, la plus grande ouverture au plancher', () => {
     expect(objectifOptimal([transStd, fixe50], tailleCadreeA(50), capteurHMm)?.objectif.id).toBe('f50')
-    // Le zoom atteint 50,3 mm exactement, mais se règle à 50 comme le fixe.
+    // Zoom reaches 50,3 mm exactly but sets to 50 like the prime.
     expect(objectifOptimal([transStd, fixe50], tailleCadreeA(50.3), capteurHMm)?.objectif.id).toBe('f50')
   })
 

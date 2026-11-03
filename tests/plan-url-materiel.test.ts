@@ -1,7 +1,6 @@
 /**
- * T-0431 — le matériel et les poids de scoring voyagent dans l'URL avec le plan : ce sont eux
- * qui fixent la pose, le cadrage et l'ordre des cibles. Sans eux, le même lien donnait un autre
- * plan sur l'autre appareil.
+ * T-0431 — matériel + poids de scoring travel in URL with plan: they fix pose, cadrage, target
+ * order. Without them same link gave a different plan on another device.
  */
 
 import { describe, expect, it } from 'vitest'

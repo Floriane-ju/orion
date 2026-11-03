@@ -1,11 +1,7 @@
 /**
- * §9.2 — Prévisualisation de champ à étoiles fixes.
- *
- * Ce qui est vérifié ici est ce qui distingue une prévisualisation d'une carte : les étoiles
- * brillantes sont aux positions réelles du catalogue, le fond au-delà du seuil est généré et
- * déclaré comme tel, sa densité suit la latitude galactique, la bande de la Voie lactée
- * s'efface avec le fond de ciel du site, et le même cadre régénéré deux fois donne exactement
- * le même rendu.
+ * §9.2 — fixed-star field preview ≠ map: bright stars at real catalogue positions; background past
+ * threshold generated + declared; density follows galactic latitude; Voie lactée fades with site
+ * fond de ciel; same frame twice → identical render.
  */
 
 import { createElement } from 'react'
@@ -44,7 +40,7 @@ const SECONDES_PAR_MINUTE = 60
 const LARGEUR = 800
 const HAUTEUR = 600
 const AXE_POLE = axePoleDeDate(epoqueAnnee(DATE))
-/** Le semis complet est produit une fois pour tout le fichier : il ne dépend d'aucun réglage. */
+/** Full seed, built once per file. */
 const SEMIS = semisGeneratif()
 const INDEX_SEMIS = construitIndex(SEMIS)
 
@@ -53,11 +49,10 @@ interface Appel {
   readonly args: readonly unknown[]
 }
 
-/** Contexte 2D instrumenté : il enregistre, il ne peint pas. */
-/** `Path2D` n'existe pas hors navigateur : la passe n'en attend que `moveTo` et `arc`. */
+/** Instrumented 2D context: records, doesn't paint. */
+/** `Path2D` absent outside browsers: pass only needs `moveTo` + `arc`. */
 class Path2DEspion {
   readonly arcs: unknown[][] = []
-  /** Sommets d'une polyligne : `moveTo` ouvre, `lineTo` prolonge. */
   readonly sommets: unknown[][] = []
   moveTo(...args: unknown[]): void {
     this.sommets.push(args)
@@ -71,24 +66,21 @@ class Path2DEspion {
 }
 ;(globalThis as unknown as { Path2D: unknown }).Path2D = Path2DEspion
 
-/** Les disques d'étoiles sont les arcs déposés dans les `Path2D` remplis par la passe (T-0119). */
+/** Star discs = arcs in filled `Path2D`s (T-0119). */
 function arcsDeDisques(ctx: { appels: Appel[] }): unknown[][] {
   return ctx.appels
     .filter((a) => a.nom === 'fill' && a.args[0] instanceof Path2DEspion)
     .flatMap((a) => (a.args[0] as Path2DEspion).arcs)
 }
 
-/** Les traces sont les sommets déposés dans les `Path2D` TRACÉS, largeur de trait par chemin. */
+/** Traces = vertices in STROKED `Path2D`s. */
 function traces(ctx: { appels: Appel[] }): Path2DEspion[] {
   return ctx.appels
     .filter((a) => a.nom === 'stroke' && a.args[0] instanceof Path2DEspion)
     .map((a) => a.args[0] as Path2DEspion)
 }
 
-/**
- * Opacités appliquées, lues dans les couleurs : depuis T-0119 l'opacité est DANS la couleur, pour
- * qu'une étoile puisse rejoindre un chemin partagé au lieu d'exiger son propre ordre de tracé.
- */
+/** Opacities read from colours: since T-0119 opacity is IN the colour (stars share a path). */
 function opacites(ctx: { couleurs: string[] }): number[] {
   return ctx.couleurs.map((c) => {
     const trouve = /\/ ([\d.]+)\)$/.exec(c)
@@ -109,7 +101,6 @@ function contexteEspion() {
   return {
     appels,
     couleurs,
-    /** Opacités successivement appliquées : c'est la brillance de rendu de chaque étoile. */
     alphas,
     set globalAlpha(v: number) {
       alpha = v
@@ -154,7 +145,7 @@ const VUE: Vue = {
   rotationDeg: 0,
 }
 
-/** Setup grand angle de référence : 10 mm f/2,8 sous un ciel Bortle 4,5. */
+/** Reference wide-angle: 10 mm f/2.8, Bortle 4.5. */
 const PROFONDEUR: EntreeProfondeur = {
   tPoseS: 25,
   dMm: 10 / 2.8,
@@ -163,7 +154,7 @@ const PROFONDEUR: EntreeProfondeur = {
   readNoiseE: 1.5,
 }
 
-/** Le setup grand angle de référence de §9.3, en props du panneau. */
+/** §9.3 reference setup as panel props. */
 const PROPS_PANNEAU: PanneauFileProps = {
   site: SITE,
   focaleMm: 10,
@@ -178,12 +169,12 @@ const PROPS_PANNEAU: PanneauFileProps = {
 }
 
 const CIEL = cielInstantane(SITE, DATE)
-/** T-0115 — le cercle exact n'existe qu'en stéréographique : c'est là que le rejet s'applique. */
+/** T-0115 — exact circle exists only in stereographic: where rejection applies. */
 const VUE_PLANETARIUM: Vue = { ...VUE, mode: 'MODE_PLANETARIUM', fovDeg: 180 }
 const PROJECTEUR = projecteur(VUE, CIEL.matrice)
 const PROJECTEUR_PLANETARIUM = projecteur(VUE_PLANETARIUM, CIEL.matrice)
 
-/** Étoile placée exactement au centre du cadre, pour vérifier la position rendue. */
+/** Star at frame centre: checks rendered position. */
 function etoileAuCentre(magV = 2): Etoile {
   const centre = PROJECTEUR.inverse(LARGEUR / 2, HAUTEUR / 2)
   const lon = (Math.atan2(centre.y, centre.x) * 180) / Math.PI
@@ -215,7 +206,7 @@ function rend(options: Partial<EntreeDessinChamp> = {}) {
 
 describe('§9.2 — coordonnées galactiques', () => {
   it('place le centre galactique et le pôle nord galactique où ils sont', () => {
-    // Sagittarius A*, J2000 : 266,405° / −28,936°.
+    // Sagittarius A*, J2000: 266.405° / −28.936°.
     expect(latitudeGalactiqueDeg(versVecteur(266.405, -28.936))).toBeCloseTo(0, 1)
     expect(
       latitudeGalactiqueDeg(
@@ -226,7 +217,7 @@ describe('§9.2 — coordonnées galactiques', () => {
 
   it('module la densité par la latitude galactique', () => {
     expect(densite(0)).toBeCloseTo(1, 6)
-    // À une échelle de décroissance, il ne reste que 1/e de la densité du plan.
+    // One decay scale away: 1/e of plane density.
     expect(densite(K('ECHELLE_LATITUDE_GALACTIQUE_DEG'))).toBeCloseTo(1 / Math.E, 6)
     expect(densite(-60)).toBeLessThan(densite(-10))
   })
@@ -242,7 +233,7 @@ describe('§9.2 — semis génératif', () => {
     const loin = semis.filter(
       (e) => Math.abs(latitudeGalactiqueDeg(versVecteur(e.adDeg, e.decDeg))) > 40,
     ).length
-    // Sans cette modulation, la bande de la Voie lactée n'apparaîtrait pas.
+    // Without modulation no Voie lactée band.
     expect(proche).toBeGreaterThan(loin)
   })
 
@@ -263,7 +254,7 @@ describe('§9.2 — semis génératif', () => {
 
 describe('§9.2 — les trois couches', () => {
   it('trace l’étoile réelle à la position exacte du catalogue', () => {
-    // Avec suivi, rien ne file : l'étoile est un disque centré sur sa position de catalogue.
+    // Suivi: no trail, star = disc at catalogue position.
     const { ctx, sortie } = rend({ suiviActif: true })
     expect(sortie.etoilesReelles).toBe(1)
     const centre = arcsDeDisques(ctx).find(
@@ -293,7 +284,7 @@ describe('§9.2 — modulation par les paramètres de capture', () => {
       tPoseS,
       dMm,
       zpSys: K('ZP_SYS_GENERIQUE'),
-      // Flux de fond de ciel approché par la même loi que §7.1, à pitch et ouverture fixés.
+      // Fond de ciel flux ≈ §7.1 law, fixed pitch + aperture.
       eCielPxS: K('BASE_MAGNITUDE') ** (-(sbCiel - K('ZP_SYS_GENERIQUE')) / K('POGSON')) * (5.12 / 2.8) ** 2,
       readNoiseE: 1.5,
     }).value
@@ -310,9 +301,8 @@ describe('§9.2 — modulation par les paramètres de capture', () => {
     expect(profondeur(25, 21, 20)).toBeGreaterThan(profondeur(25, 21, 3.57))
   })
 
-  // Un arc natif dont l'angle de fin frôle celui du départ, le raster du navigateur le normalise
-  // parfois du mauvais côté : boucles et traits parasites. Sous la flèche tolérée, la corde EST
-  // l'arc, et elle ne laisse rien à normaliser.
+  // Native arc with end angle ≈ start may be mis-normalised by browser raster (loops, stray
+  // strokes); under tolerated sagitta the chord IS the arc.
   it('trace en cordes les arcs courts d’une pose brève, jamais en arc natif', () => {
     const { ctx } = rend({
       projecteur: projecteur(VUE_PLANETARIUM, CIEL.matrice),
@@ -335,7 +325,7 @@ describe('§9.2 — modulation par les paramètres de capture', () => {
   it('assombrit les coins et laisse le centre intact', () => {
     expect(vignettageDiaph(0).value).toBe(0)
     expect(vignettageDiaph(1).value).toBeCloseTo(K('VIGNETTAGE_COINS_DIAPH'), 6)
-    // Loi en carré du rayon relatif : à mi-champ, le quart de l'atténuation des coins.
+    // Squared relative radius law: mid-field = ¼ corner attenuation.
     expect(vignettageDiaph(0.5).value).toBeCloseTo(K('VIGNETTAGE_COINS_DIAPH') / 4, 6)
   })
 })
@@ -343,10 +333,10 @@ describe('§9.2 — modulation par les paramètres de capture', () => {
 describe('§9 — le panneau du filé', () => {
   it('compose les quatre features sur un seul pointage', () => {
     const html = renderToStaticMarkup(createElement(PanneauFile, PROPS_PANNEAU))
-    // T-0142 — la carte de pose se lit dans le cadre : le panneau n'en porte que la bascule.
+    // T-0142 — pose map reads in the frame; panel carries only the toggle.
     expect(html).toContain('Afficher la pose maximale dans le cadre')
     expect(html).not.toContain('carte-pose')
-    // T-0374 — une seule saisie, le temps de prise de vue, et ce qu'elle prescrit.
+    // T-0374 — one input: shooting time, + what it prescribes.
     expect(html.match(/role="slider"/g)).toHaveLength(1)
     expect(html).toContain('Temps de prise de vue')
     expect(html).toContain('max étoiles comme des points')
@@ -355,33 +345,29 @@ describe('§9 — le panneau du filé', () => {
     expect(html).toContain('<h2>Temps de prise de vue</h2>')
     expect(html).toContain('Longueur d’arc')
     expect(html).toContain('Séquence de filé')
-    // T-0174 — la règle des 500 ne s'affiche plus : un repère qu'aucun calcul ne retient
-    // n'a pas sa place à côté des valeurs qui décident.
+    // T-0174 — règle des 500 gone: a reference no calculation uses doesn't sit beside deciding
+    // values.
     expect(html).not.toContain('Règle des 500')
-    // Le rappel batterie remplace le budget chiffré : une durée, pas un nombre de batteries.
+    // Rappel batterie replaces numeric budget: duration, not battery count.
     expect(html).toContain('Attention à la batterie')
   })
 })
 
 describe('§9.3 — T-0119, le filé plafonne la surface peinte', () => {
-  /** Longue durée : c'est elle qui distingue un plafond de surface d'un plafond d'effectif. */
+  /** Long duration: separates surface cap from headcount cap. */
   const FILE_LONG = { dureeS: K('DUREE_FILE_SPECTACULAIRE_MIN') * 60, magLimite: K('SEMIS_MAG_MAX') }
 
   /**
-   * La cible est une CONSIGNE, pas une borne dure : le plafond l'atteint par une estimation —
-   * densité moyenne du ciel, largeur de trait plancher, recouvrements non comptés. Ce qui doit
-   * être vrai est que la couverture reste du même ordre que la consigne, quelle que soit la
-   * scène. Ce facteur est la marge dans laquelle l'estimation doit tenir.
+   * Target = GUIDELINE: cap reaches it by estimate (mean density, floor stroke width, overlaps
+   * uncounted). Must hold: coverage same order as target; factor = estimate margin.
    */
   const MARGE_CIBLE = 2
 
   it('borne la surface peinte, pas l’effectif : le plafond ramène la couverture à la consigne', () => {
-    // Le critère de T-0119. Sans plafond la passe peint plusieurs fois le canevas ; avec, elle
-    // revient à l'ordre de la consigne — et c'est vrai d'un filé long, là où un budget d'étoiles
-    // lâchait.
-    // T-0400 — un ciel de site très noir : le fond compté sur toute la pose unitaire éteint les
-    // traces faibles, et sous le ciel de référence la passe ne déborde plus assez le canevas
-    // pour que le plafond ait à mordre. Ici, il le doit.
+    // T-0119: without cap the pass paints canvas several times; with it, back to target order (also
+    // long filé, where star-count budget failed). T-0400 — very dark sky: background over whole
+    // pose unitaire dims faint traces; under reference sky pass no longer overflows enough for cap
+    // to bite. Here it must.
     const noir = { ...FILE_LONG, profondeur: { ...PROFONDEUR, eCielPxS: PROFONDEUR.eCielPxS / 10 } }
     const sansPlafond = rend({ ...noir, couvertureMax: null })
     expect(sansPlafond.sortie.couverturePeinte).toBeGreaterThan(1)
@@ -392,8 +378,8 @@ describe('§9.3 — T-0119, le filé plafonne la surface peinte', () => {
   })
 
   it('tient la même surface peinte quelle que soit la durée du filé', () => {
-    // L'invariance que le budget d'étoiles de T-0118 ne tenait pas : à effectif plafonné, la
-    // surface peinte croît avec la durée, donc l'image se referme sur elle-même au filé long.
+    // T-0118 star budget failed this invariance: capped headcount → painted area grows with
+    // duration → image closes on itself.
     const cible = K('COUVERTURE_TRACES_MAX')
     const durees = [K('DUREE_FILE_LISIBLE_MIN'), K('DUREE_FILE_SPECTACULAIRE_MIN'), 480]
     for (const dureeMin of durees) {
@@ -403,10 +389,8 @@ describe('§9.3 — T-0119, le filé plafonne la surface peinte', () => {
   })
 
   it('tient la même surface peinte quelle que soit l’inclinaison de la visée', () => {
-    // Le pôle est le cas qui piège : la trace du CENTRE y est minuscule, cos δ tendant vers zéro,
-    // alors que le champ contient tout le reste du ciel. Un plafond qui lit la longueur d'arc au
-    // centre du champ s'y effondre — 1 241 % de couverture mesurés — et la même scène visée près
-    // de l'horizon reste, elle, correctement plafonnée.
+    // Pole trap: CENTRE trace tiny there (cos δ → 0) while field holds rest of sky; cap reading arc
+    // length at centre collapses (1 241 % coverage measured), same scene near horizon stays capped.
     const cible = K('COUVERTURE_TRACES_MAX')
     const visee = (hauteurDeg: number, azimutDeg: number) =>
       rend({
@@ -414,7 +398,7 @@ describe('§9.3 — T-0119, le filé plafonne la surface peinte', () => {
         couvertureMax: cible,
         projecteur: projecteur({ ...VUE_PLANETARIUM, hauteurDeg, azimutDeg }, CIEL.matrice),
       }).sortie.couverturePeinte
-    // Pôle céleste au centre, puis l'équateur céleste à l'est, puis une visée intermédiaire.
+    // Pole at centre, equator to east, intermediate aim.
     for (const [hauteurDeg, azimutDeg] of [
       [SITE.latitudeDeg, 0],
       [10, 90],
@@ -425,14 +409,14 @@ describe('§9.3 — T-0119, le filé plafonne la surface peinte', () => {
   })
 
   it('lit moins d’étoiles plafonné qu’à profondeur pleine', () => {
-    // C'est `etoilesVisitees` que le plafond vise : ce qui est LU, donc ce qui est payé.
+    // `etoilesVisitees` = what cap targets: READ, hence paid.
     const sansPlafond = rend({ ...FILE_LONG, couvertureMax: null })
     const plafonne = rend({ ...FILE_LONG, couvertureMax: K('COUVERTURE_TRACES_MAX') })
     expect(plafonne.sortie.etoilesVisitees).toBeLessThan(sansPlafond.sortie.etoilesVisitees)
   })
 
   it('écarte le semis avant le catalogue réel : le ciel reconnaissable part en dernier', () => {
-    // L'ordre de dépense. Un plafond serré coupe tout le semis et garde encore le catalogue.
+    // Spend order: tight cap cuts whole seed, keeps catalogue.
     const serre = rend({ ...FILE_LONG, couvertureMax: 1e-6 })
     expect(serre.sortie.etoilesGenerees).toBe(0)
     const large = rend({ ...FILE_LONG, couvertureMax: null })
@@ -440,9 +424,8 @@ describe('§9.3 — T-0119, le filé plafonne la surface peinte', () => {
   })
 
   it('borne aussi ce que la passe LIT, pas seulement ce qu’elle peint', () => {
-    // Deuxième plafond, deuxième grandeur. Un filé court peint peu par trace : la couverture
-    // seule en autorise des dizaines de milliers, et le coût repart. Le plafond de coût borne
-    // l'effectif lu, quelle que soit la couverture que l'image aurait tolérée.
+    // 2nd cap, 2nd quantity: short filé paints little per trace → coverage allows tens of
+    // thousands, cost runs away; cost cap bounds headcount read regardless.
     const bref = rend({
       magLimite: K('SEMIS_MAG_MAX'),
       dureeS: K('DUREE_FILE_LISIBLE_MIN'),
@@ -453,9 +436,8 @@ describe('§9.3 — T-0119, le filé plafonne la surface peinte', () => {
   })
 
   it('borne l’aperçu de champ par le coût seul, jamais par la couverture', () => {
-    // §9.2 — l'aperçu de pose montre des POINTS : rien ne se recouvre, aucune longueur ne se lit,
-    // donc aucune couverture à borner. Ce qui coûtait était de LIRE le catalogue à pleine
-    // profondeur, et c'est cela seul que le plafond d'effectif retire.
+    // §9.2 — pose preview shows POINTS: no overlap/length → no coverage to bound; cost = READING
+    // catalogue at full depth, only headcount cap removes it.
     const sansPlafond = rend({ magLimite: K('SEMIS_MAG_MAX'), effectifMax: null })
     const champ = rend({
       magLimite: K('SEMIS_MAG_MAX'),
@@ -463,12 +445,12 @@ describe('§9.3 — T-0119, le filé plafonne la surface peinte', () => {
     })
     expect(sansPlafond.sortie.etoilesVisitees).toBeGreaterThan(K('EFFECTIF_CIEL_MAX_APERCU'))
     expect(champ.sortie.etoilesVisitees).toBeLessThanOrEqual(K('EFFECTIF_CIEL_MAX_APERCU'))
-    // La couverture, elle, n'a jamais mordu : les points ne remplissent pas le canevas.
+    // Coverage never bit: points don't fill canvas.
     expect(sansPlafond.sortie.couverturePeinte).toBeLessThan(K('COUVERTURE_TRACES_MAX'))
   })
 
   it('ne plafonne rien du tout sans aucune consigne', () => {
-    // Les deux à `null` : le cas de référence du banc, celui qui doit reproduire l'image d'avant.
+    // Both `null`: bench reference, must reproduce earlier image.
     const sansConsigne = rend({ ...FILE_LONG, couvertureMax: null, effectifMax: null })
     const plafonne = rend({ ...FILE_LONG, couvertureMax: K('COUVERTURE_TRACES_MAX') })
     expect(sansConsigne.sortie.etoilesVisitees).toBeGreaterThan(K('EFFECTIF_CIEL_MAX_APERCU'))
@@ -484,8 +466,8 @@ describe('§9.3 — T-0119, le filé plafonne la surface peinte', () => {
   it('retire la logistique de séquence quand le temps tient en une photo', () => {
     const html = () => renderToStaticMarkup(createElement(PanneauFile, PROPS_PANNEAU))
     try {
-      // §9.4, T-0374 — sous la pose max du cadre, le temps de prise de vue ne décrit qu'une
-      // photo : il n'y a rien à cadencer. La section est ABSENTE, pas affichée à une pose.
+      // §9.4, T-0374 — below frame pose max, shooting time = single photo: nothing to pace; section
+      // ABSENT.
       majFile({ dureeTotaleS: DOMAINES.duree_prise_vue_s.min })
       expect(html()).not.toContain('Séquence de filé')
 
@@ -499,10 +481,9 @@ describe('§9.3 — T-0119, le filé plafonne la surface peinte', () => {
   it('avertit des étoiles étirées entre la pose max et un filé lisible, pas avant ni après', () => {
     const html = () => renderToStaticMarkup(createElement(PanneauFile, PROPS_PANNEAU))
     try {
-      // Une photo unique : étoiles ponctuelles, rien à signaler.
       majFile({ dureeTotaleS: DOMAINES.duree_prise_vue_s.min })
       expect(html()).not.toContain('étoiles étirées')
-      // Au-delà de la pose max, sous le filé lisible : ni points, ni arcs.
+      // Beyond pose max, under readable filé: neither points nor arcs.
       majFile({ dureeTotaleS: (K('DUREE_FILE_LISIBLE_MIN') * SECONDES_PAR_MINUTE) / 2 })
       expect(html()).toContain('étoiles étirées')
       majFile({ dureeTotaleS: K('DUREE_FILE_LISIBLE_MIN') * SECONDES_PAR_MINUTE })
@@ -514,8 +495,8 @@ describe('§9.3 — T-0119, le filé plafonne la surface peinte', () => {
 
   it('bascule de la photo au filé à la pose max du cadre', () => {
     try {
-      // Le mode ne se choisit pas : le temps et la pose max le décident. Une photo unique pose
-      // tout le temps de prise de vue ; au-delà, la pose est celle du filé, C-36 haut.
+      // Time + pose max decide mode. Single photo poses whole shooting time; beyond, pose = filé's
+      // (C-36 high).
       const poseMax = K('T_POSE_FILE_MAX_S') * 2
       posePoseMaxCadre(poseMax)
       majFile({ dureeTotaleS: poseMax })
@@ -535,7 +516,7 @@ describe('§9.3 — T-0119, le filé plafonne la surface peinte', () => {
 })
 
 describe('§9.3 — un arc hors du canevas n’est pas peint', () => {
-  /** Balayage échantillonné très finement : aucun point ne doit tomber dans le canevas. */
+  /** Very fine sweep: no point may fall inside canvas. */
   const aucunPointVisible = (
     cercle: { xPx: number; yPx: number; rayonPx: number; debutRad: number; balayageRad: number },
     margePx: number,
@@ -558,9 +539,8 @@ describe('§9.3 — un arc hors du canevas n’est pas peint', () => {
   }
 
   it('ne rejette que des arcs dont aucun point ne touche le canevas', () => {
-    // Le rejet se fonde sur la boîte englobante, donc sur une PREUVE ; ce test le confronte à
-    // un échantillonnage dense du balayage. Un seul point visible dans un arc rejeté serait
-    // une trace effacée à l'écran.
+    // Rejection rests on bounding box = PROOF; dense sweep confronts it. Visible point in rejected
+    // arc = trace erased.
     let rejetes = 0
     let gardes = 0
     for (const etoile of SEMIS.slice(0, 4000)) {
@@ -575,14 +555,13 @@ describe('§9.3 — un arc hors du canevas n’est pas peint', () => {
         gardes++
       }
     }
-    // Le test ne vaut que s'il a effectivement rejeté et gardé des arcs.
+    // Valid only if it actually rejected and kept arcs.
     expect(rejetes).toBeGreaterThan(0)
     expect(gardes).toBeGreaterThan(0)
   })
 
   it('ne rejette jamais une polyligne : elle se borne déjà elle-même', () => {
-    // En projection rectilinéaire l'arc n'est pas un cercle : il rompt son tracé au bord du
-    // canevas, et n'a donc pas de boîte à tester.
+    // Rectilinear: arc ≠ circle, breaks path at canvas edge → no box to test.
     const arc = arcEtoile(PROJECTEUR, versVecteur(0, 80), 480, AXE_POLE)
     expect(arc.cercle).toBeNull()
     expect(arc.boite).toBeNull()
@@ -598,7 +577,7 @@ describe('§9.3 — le balayage est découpé sur le bord du canevas', () => {
     x <= VUE_PLANETARIUM.largeurPx + marge &&
     y <= VUE_PLANETARIUM.hauteurPx + marge
 
-  /** Tous les cercles exacts d'un échantillon d'étoiles, en projection stéréographique. */
+  /** All exact circles of a star sample, stereographic projection. */
   const cercles = () => {
     const sortie = []
     for (const etoile of SEMIS.slice(0, 800)) {
@@ -614,10 +593,9 @@ describe('§9.3 — le balayage est découpé sur le bord du canevas', () => {
   }
 
   it('garde tout ce qui est visible : aucune trace n’est effacée', () => {
-    // Le sens du test : pour chaque point du balayage qui tombe DANS le canevas, une portion
-    // gardée doit le couvrir. Un point visible non couvert serait une trace disparue.
-    // Le comptage est cumulé et vérifié une fois : un `expect` par échantillon coûterait des
-    // millions d'appels et ferait expirer le test au lieu de le faire échouer.
+    // Each sweep point INSIDE canvas must be covered by a kept portion; uncovered visible point =
+    // vanished trace.
+    // Count accumulated, checked once: `expect` per sample = millions of calls → timeout.
     const pas = 600
     let visibles = 0
     let manques = 0
@@ -650,7 +628,7 @@ describe('§9.3 — le balayage est découpé sur le bord du canevas', () => {
           const a = p.debutRad + (p.balayageRad * i) / pas
           const x = c.xPx + c.rayonPx * Math.cos(a)
           const y = c.yPx + c.rayonPx * Math.sin(a)
-          // Le découpage est exact aux franchissements ; entre eux, un point gardé est dedans.
+          // Clipping exact at crossings; between them a kept point is inside.
           if (!dedans(x, y, MARGE)) fautifs++
           verifies++
         }
@@ -668,7 +646,7 @@ describe('§9.3 — le balayage est découpé sur le bord du canevas', () => {
         const debut = (p.debutRad - c.debutRad) / (c.balayageRad < 0 ? -1 : 1)
         expect(debut).toBeGreaterThanOrEqual(-1e-9)
         expect(debut + Math.abs(p.balayageRad)).toBeLessThanOrEqual(Math.abs(c.balayageRad) + 1e-9)
-        // Même sens de rotation que le balayage : une portion inversée tracerait à l'envers.
+        // Same sense as sweep: reversed portion traces backwards.
         expect(Math.sign(p.balayageRad)).toBe(Math.sign(c.balayageRad))
         expect(debut).toBeGreaterThan(avanceePrecedente)
         avanceePrecedente = debut
@@ -677,7 +655,7 @@ describe('§9.3 — le balayage est découpé sur le bord du canevas', () => {
   })
 
   it('rend le balayage entier, en un seul ordre, quand le cercle tient dans le canevas', () => {
-    // Un petit cercle au centre du canevas : rien à découper.
+    // Small circle at canvas centre: nothing to clip.
     const c = {
       xPx: VUE_PLANETARIUM.largeurPx / 2,
       yPx: VUE_PLANETARIUM.hauteurPx / 2,
@@ -699,9 +677,8 @@ describe('§9.3 — le balayage est découpé sur le bord du canevas', () => {
 
 describe('§9.3 — une trace est moins brillante qu’un point', () => {
   it('pâlit la trace d’une même étoile quand la focale étale son flux sur plus de pixels', () => {
-    // Une seule étoile de magnitude 5, deux heures de filé, même ciel : au grand angle chaque
-    // pixel la voit sept secondes, au téléobjectif moins d'une seconde. T-0400 — le fond, lui,
-    // s'accumule sur toute la pose unitaire : une magnitude 7 ne s'y détache plus.
+    // One magnitude-5 star, 2 h filé, same sky: wide-angle pixel sees it 7 s, tele <1 s.
+    // T-0400 — background accumulates over whole pose unitaire: magnitude 7 no longer stands out.
     const seule = (tacheArcsec: number) =>
       rend({
         dureeS: 7200,
@@ -717,22 +694,21 @@ describe('§9.3 — une trace est moins brillante qu’un point', () => {
   })
 
   it('étire l’affichage en racine du rapport signal sur bruit, saturation comprise', () => {
-    // Une étoile très au-dessus du seuil sature le rendu.
+    // A star far above threshold saturates the render.
     expect(opaciteEtoile(2, 10)).toBe(1)
-    // Au seuil de détection, la trace est visible mais faible.
+    // At detection threshold: trace visible but faint.
     expect(opaciteEtoile(10, 10)).toBeCloseTo(
       Math.sqrt(K('SNR_DETECTION_PREVISU') / K('SNR_RENDU_SATURATION')),
       6,
     )
-    // Une magnitude sous le seuil : deux fois et demie plus pâle encore.
+    // Magnitude below threshold: 2.5× fainter still.
     expect(opaciteEtoile(11, 10)).toBeLessThan(opaciteEtoile(10, 10))
   })
 })
 
 /**
- * T-0116 — la passe ne peint plus son propre fond. Le planétarium a déjà peint le vrai fond de
- * ciel du site — pollution lumineuse, halo d'horizon, halo lunaire, crépuscule (§3.7) — et un
- * aplat par-dessus l'effacerait. Ce que la passe ajoute, ce sont les traces, rien d'autre.
+ * T-0116 — pass no longer paints its background: planetarium already painted real fond de ciel
+ * (pollution, horizon/lunar halo, crépuscule §3.7); a flat fill would erase it. Traces only.
  */
 describe('T-0116 — la passe de filé n’a pas de fond à elle', () => {
   it('ne remplit aucune surface pleine', () => {
@@ -741,10 +717,9 @@ describe('T-0116 — la passe de filé n’a pas de fond à elle', () => {
   })
 
   it('ne peint aucune bande galactique : celle du planétarium reste la seule', () => {
-    // La bande se peignait en polygones remplis — un remplissage du chemin COURANT, et un
-    // `fillRect` pour le fond. Depuis T-0119 les étoiles remplissent un `Path2D` partagé, et leur
-    // couleur porte l'opacité : c'est donc la FORME de l'ordre qui distingue les deux, pas la
-    // couleur. Aucun remplissage sans chemin nommé ne sort plus de la passe.
+    // Band used to paint filled polygons (fill of CURRENT path) + `fillRect` background. Since
+    // T-0119 stars fill a shared `Path2D`, colour carries opacity: FORM of the order tells them
+    // apart. No fill without a named path.
     const { ctx } = rend()
     const surfaces = ctx.appels.filter(
       (a) => a.nom === 'fillRect' || (a.nom === 'fill' && !(a.args[0] instanceof Path2DEspion)),
@@ -754,8 +729,8 @@ describe('T-0116 — la passe de filé n’a pas de fond à elle', () => {
 })
 
 describe('T-0401 — la circumpolaire garde plus d’étoiles sous le plafond de couverture', () => {
-  // Une trace balaie un arc en cos δ : près du pôle elle peint peu. La coupure unique de T-0119,
-  // taillée pour l'équateur céleste, y vidait le ciel.
+  // Trace sweeps an arc in cos δ: near pole it paints little; T-0119's single cutoff (cut for
+  // equator) emptied the sky there.
   const effectif = INDEX_SEMIS.nombreEtoiles / 100
   const derniere = (table: Float64Array) => table[table.length - 1]!
   const equateur = (table: Float64Array) => table[table.length / 2]!

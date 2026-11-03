@@ -1,11 +1,9 @@
 /**
- * §3 / T-0355 — la scène survit au rechargement : pointage, champ, projection, instant,
- * couches et vue réaliste se relisent tels qu'on les a laissés.
- *
- * État d'interface, donc `stockage-local.ts` : lu avant le premier rendu, jamais exporté. Ce
- * module ne rend que des champs de la bonne forme, et le magasin ne reprend que ceux qu'il
- * connaît. Les bornes métier (plafond du champ selon la projection) restent appliquées par
- * `majVue`, seul passage obligé.
+ * §3 / T-0355 — scene survives reload: pointage, champ, projection, instant, layers, réaliste
+ * view reread as left.
+ * UI state → `stockage-local.ts`: read before first render, never exported. Returns only
+ * well-shaped fields; store takes only known ones. Business bounds (field cap per projection)
+ * still applied by `majVue`, the mandatory gateway.
  */
 
 import type { ModeProjection } from '../core/projection.ts'
@@ -36,7 +34,7 @@ export interface ScenePersistee {
     readonly facteur?: number
     readonly decalageMs?: number
   }
-  /** L'instant affiché au moment de quitter. */
+  /** Instant displayed on leaving. */
   readonly ms?: number
   readonly rendu?: {
     readonly couches?: Readonly<Record<string, boolean>>
@@ -50,8 +48,8 @@ const MODES_PROJECTION: readonly string[] = Object.freeze([
   'MODE_CADRE',
   'MODE_FISHEYE',
 ])
-// T-0411 — le défilement n'a plus de commande : restauré, il ferait filer le ciel sans rien
-// pour l'arrêter. Il est écarté à la relecture, et la scène repart sur son défaut.
+// T-0411 — scrolling lost its command: restored, it would run the sky with no stop. Dropped on
+// reread; scene restarts at default.
 const MODES_TEMPS: readonly string[] = Object.freeze(['MAINTENANT', 'FIGE'])
 
 function litVue(vue: Brut): NonNullable<ScenePersistee['vue']> {
@@ -94,7 +92,7 @@ export function ecritScenePersistee(scene: ScenePersistee): void {
   ecritLocal(CLE_STOCKAGE, scene)
 }
 
-/** La scène s'écrit au départ de la page : elle change deux fois par seconde. */
+/** Written at page exit: scene changes 2/s. */
 export function gardeSceneAuDepart(instantane: () => ScenePersistee): void {
   gardeAuDepart(CLE_STOCKAGE, instantane)
 }

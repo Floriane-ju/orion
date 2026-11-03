@@ -1,15 +1,10 @@
 /**
- * Livrable vérifiable du Lot 2 : pour une cible et un setup, l'écran produit un verdict
- * dépliable jusqu'à sa formule, une pose avec sa plage utile, une durée d'intégration et un
- * plan de calibration — ce dernier vit désormais dans le plan de nuit.
- *
- * Le rendu statique suffit : rien n'est à cliquer pour que la chaîne §6 → §7 → §10.2
- * produise ses sorties. T-0156 — la fiche n'a plus de cible par défaut : c'est le magasin de
- * séance qui en désigne une, comme le ferait un clic sur la scène.
- *
- * L'instant affiché est figé sur une Lune sous l'horizon : elle n'ajoute alors rien au fond
- * de ciel (§8.1), et la chaîne se vérifie sous le ciel noir du site plutôt que sous la phase
- * du jour où les tests tournent. La position de la Lune, elle, reste calculée.
+ * Lot 2 verifiable deliverable: for a cible + setup, screen produces a verdict unfoldable to its
+ * formula, a pose with plage utile, an intégration duration, a calibration plan (now in plan de
+ * nuit). Static render suffices: nothing to click for the §6 → §7 → §10.2 chain to output.
+ * T-0156 — fiche has no default cible: séance store designates one, as a scène click would.
+ * Displayed instant frozen on Lune below horizon: adds nothing to fond de ciel (§8.1) → chain
+ * verified under site's black sky, not the test-run day's phase. Lune position still computed.
  */
 
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -46,9 +41,8 @@ import { heure } from '../src/ui/horaire.ts'
 import { LIBELLE_LOT_CALIBRATION } from '../src/registry/libelles.ts'
 
 /**
- * La chaîne de référence de §6.3 : magnitude intégrée 5,7, grand axe 71’, petit axe 42’,
- * angle de position 23°. Circumpolaire depuis le site de l'Annexe A, pour que sa hauteur de
- * culmination ne dépende pas du jour où la suite tourne.
+ * §6.3 reference chain: integrated magnitude 5.7, major axis 71’, minor 42’, position angle 23°.
+ * Circumpolar from Annexe A site → culmination hauteur independent of run day.
  */
 const CIBLE_REFERENCE = objetForge('CIBLE_REFERENCE', 85, {
   vMag: 5.7,
@@ -57,21 +51,16 @@ const CIBLE_REFERENCE = objetForge('CIBLE_REFERENCE', 85, {
   posAngDeg: 23,
 })
 
-/** 12 janvier 2026, 1 h UTC : la Lune est sous l'horizon depuis le site de l'Annexe A. */
+/** 12 January 2026, 1 h UTC: Lune below horizon from Annexe A site. */
 const INSTANT_SANS_LUNE = Date.UTC(2026, 0, 12, 1)
 
 /**
- * L'HORLOGE SYSTÈME EST FIGÉE, ET PAS SEULEMENT CELLE DE LA SCÈNE.
- *
- * `vaA` fixe l'instant AFFICHÉ ; la NUIT PLANIFIÉE, elle, part d'aujourd'hui
- * (`nuitDeLInstant(new Date())`, `app-saisie.ts`). Or la fiche évalue la Lune au milieu du
- * créneau de la cible sur cette nuit-là (T-0268), pas à l'instant affiché : sans horloge
- * figée, la gêne lunaire — donc le contraste et la pose — changeait avec le jour où la suite
- * tournait. Le test était vert le jour de son écriture et rouge trois semaines plus tard, sur
- * un code intact.
- *
- * Seul `Date` est simulé : les minuteurs ne sont pas en cause, et les simuler ferait attendre
- * des rendus qui n'arrivent jamais.
+ * SYSTEM CLOCK FROZEN, not only scène's. `vaA` fixes the DISPLAYED instant; the PLANNED NUIT
+ * starts from today (`nuitDeLInstant(new Date())`, `app-saisie.ts`). Fiche evaluates Lune at
+ * cible's créneau midpoint on that nuit (T-0268), not at displayed instant: unfrozen, gêne
+ * lunaire (hence contraste, pose) varied with run day → green on writing day, red 3 weeks later,
+ * code intact. Only `Date` mocked: timers not involved, mocking them would await renders that
+ * never come.
  */
 vi.useFakeTimers({ toFake: ['Date'] })
 vi.setSystemTime(INSTANT_SANS_LUNE)
@@ -79,16 +68,16 @@ afterAll(() => {
   vi.useRealTimers()
 })
 
-// T-0182 — la fiche vit dans le panneau de droite, à la place de la liste. `ouvreCible` l'y
-// met : c'est elle que ce fichier interroge.
+// T-0182 — fiche lives in right panel, replacing list. `ouvreCible` puts it there; this file
+// queries it.
 vaA(INSTANT_SANS_LUNE)
 ouvreCible(CIBLE_REFERENCE)
 const ecran = renderToStaticMarkup(<App />)
 
 describe('fiche de cible — écran par défaut, M33 depuis le site de l’Annexe A', () => {
   it('affiche la pose unitaire retenue, et la monture qui la bride', () => {
-    // Le profil par défaut est sans suivi : c'est la NPF, 2,10 s, qui plafonne la pose. La
-    // carte annonce cette pose-là, pas l'optimum que le suivi ne tiendrait pas.
+    // Default profil has no suivi: NPF, 2.10 s caps the pose. Card announces that pose, not the
+    // optimum suivi wouldn't hold.
     expect(ecran).toMatch(/Pose unitaire.*?2,1 s/s)
     expect(ecran).toMatch(/La monture limite la pose/)
   })
@@ -97,7 +86,7 @@ describe('fiche de cible — écran par défaut, M33 depuis le site de l’Annex
     expect(ecran).not.toContain(LIBELLE_LOT_CALIBRATION.FLATS)
     expect(ecran).not.toContain(LIBELLE_LOT_CALIBRATION.DARKS)
     expect(ecran).not.toContain(LIBELLE_LOT_CALIBRATION.OFFSETS)
-    // Le point zéro système reste une lecture : aucun champ de saisie ne le vise.
+    // Système point zéro stays a reading: no saisie field targets it.
     expect(ecran).not.toMatch(/<input[^>]*(zp|calibr)/i)
   })
 
@@ -107,9 +96,9 @@ describe('fiche de cible — écran par défaut, M33 depuis le site de l’Annex
 })
 
 
-// --- T-0046 / T-0048 — le choix de la cible, et ce que la fiche en fait ------------------
+// --- T-0046 / T-0048 — cible choice, and what fiche does with it ------------------------
 
-/** Annexe A. Depuis 44,84° N, δ = +85° ne se couche jamais et δ = −85° ne se lève jamais. */
+/** Annexe A. From 44.84° N, δ = +85° never sets and δ = −85° never rises. */
 const SITE: Site = { latitudeDeg: 44.84, longitudeDeg: -0.58, altitudeM: 20 }
 const CAPTEUR = capteurEffectif(BOITIER_REFERENCE, 'FULL_FRAME')
 const OPTIQUE = profilOptique({ focaleMm: 120, ouvertureN: 2.8, ...CAPTEUR })
@@ -167,8 +156,8 @@ describe('T-0128 — la fiche décrit la cible, elle ne la choisit plus', () => 
   const rendu = ficheDe(AU_DESSUS)
 
   it('ne porte plus ni liste des visibles, ni filtre de type, ni bouton « Voir »', () => {
-    // Les trois ont rejoint le panneau « Toutes les cibles » : les garder ici rendrait le
-    // catalogue accessible par deux chemins, ce que T-0128 supprime.
+    // All 3 joined "Toutes les cibles" panel: keeping them here = catalogue reachable by two
+    // paths, which T-0128 removes.
     expect(rendu).not.toContain('Cibles visibles')
     expect(rendu).not.toContain('Type listé')
     expect(rendu).not.toContain('>Voir<')
@@ -190,8 +179,8 @@ describe('T-0158 — « À propos », et des dimensions qui ne meublent pas', ()
   })
 
   it('n’affiche pas la ligne d’une dimension absente du catalogue', () => {
-    // AU_DESSUS n'a pas d'angle de position : une ligne « [DONNÉE MANQUANTE] » de plus
-    // n'apprendrait rien de la cible.
+    // AU_DESSUS has no position angle: one more "[DONNÉE MANQUANTE]" line teaches nothing about
+    // the cible.
     const rendu = ficheDe(AU_DESSUS)
     expect(rendu).toContain('Dimensions')
     expect(rendu).not.toContain('Angle de position')
@@ -223,7 +212,7 @@ describe('T-0158 — « À propos », et des dimensions qui ne meublent pas', ()
     for (const attendu of ['M 45', 'Pléiades', 'amas ouvert', 'Créneau d’observation']) {
       expect(resume, attendu).toContain(attendu)
     }
-    // La désignation et le type sont dits en tête : la carte suivante ne les redit pas.
+    // Désignation and type said up top: next card doesn't repeat them.
     expect(rendu).not.toContain('Désignation')
     expect(rendu).not.toContain('Type d’objet')
   })
@@ -280,9 +269,9 @@ describe('T-0158 — « À propos », et des dimensions qui ne meublent pas', ()
       expect(photo, libelle).toContain(libelle)
     }
     expect(photo).toContain(degres(35))
-    // T-0384 — la région « Détectabilité » est partie.
+    // T-0384 — "Détectabilité" region gone.
     expect(rendu).not.toContain('<h2>Détectabilité</h2>')
-    // T-0381 — la carte photo résume le cadrage : la rubrique « Cadrage de la cible » est partie.
+    // T-0381 — photo card summarizes cadrage: "Cadrage de la cible" section gone.
     expect(rendu).not.toContain('Cadrage de la cible')
   })
 
@@ -298,7 +287,7 @@ describe('T-0158 — « À propos », et des dimensions qui ne meublent pas', ()
     const rendu = ficheDe(
       objetForge('SANS_FORME', 85, { majAxArcmin: null, minAxArcmin: null, posAngDeg: null }),
     )
-    // Les verdicts en aval nomment aussi ce qui leur manque : on ne juge que la section.
+    // Downstream verdicts also name what they lack: only the section is judged.
     const debut = rendu.indexOf('Magnitude intégrée')
     const aPropos = rendu.slice(debut, rendu.indexOf('</section>', debut))
     expect(aPropos).not.toContain('Dimensions')
@@ -306,9 +295,9 @@ describe('T-0158 — « À propos », et des dimensions qui ne meublent pas', ()
   })
 
   it('retire la taille dans le cadre quand le catalogue ne donne pas les dimensions', () => {
-    // Sans grand axe, §6.2 n'a aucune entrée : remplissage, diamètre en pixels et focale
-    // nécessaire décriraient la taille nulle qu'on aurait substituée, pas la cible. Le reste
-    // de la fiche, lui, ne dépend pas des dimensions et reste dû.
+    // Without major axis §6.2 has no input: remplissage, pixel diameter, needed focale would
+    // describe the substituted null size, not the cible. Rest of fiche independent of
+    // dimensions, still due.
     const rendu = ficheDe(objetForge('SANS_DIMENSIONS', 85, { majAxArcmin: null, minAxArcmin: null }))
     expect(rendu).not.toContain('Taille dans le cadre')
     expect(rendu).not.toContain('focale')
@@ -316,8 +305,8 @@ describe('T-0158 — « À propos », et des dimensions qui ne meublent pas', ()
   })
 
   it('retire la pose unitaire faute de donnée source', () => {
-    // §6.3 — sans magnitude, la pose n'est pas chiffrable : la ligne disparaît plutôt que
-    // d'exposer le point zéro et le fond de ciel du setup comme s'ils décrivaient cette cible.
+    // §6.3 — without magnitude pose isn't chiffrable: line disappears rather than exposing setup's
+    // point zéro and fond de ciel as if describing this cible.
     const rendu = ficheDe(objetForge('SANS_MAGNITUDE', 85, { vMag: null }))
     expect(rendu).not.toContain('Pose unitaire')
     expect(ficheDe(AU_DESSUS)).toContain('Pose unitaire')
@@ -353,7 +342,7 @@ describe('T-0046 — « Voir » amène la cible au centre, et ne touche à rien 
     expect(ligne).toBeDefined()
     expect(ligne!.hauteurDeg).toBeGreaterThan(0)
 
-    // Le geste du bouton, tel qu'il est câblé dans le panneau des cibles.
+    // Button gesture, as wired in the cibles panel.
     majVue({ azimutDeg: ligne!.azimutDeg, hauteurDeg: ligne!.hauteurDeg })
 
     const apres = etatScene().vue
@@ -366,7 +355,7 @@ describe('T-0046 — « Voir » amène la cible au centre, et ne touche à rien 
 })
 
 
-// --- T-0156 — la cible vient du catalogue, et de nulle part ailleurs -------------------
+// --- T-0156 — cible comes from catalogue, nowhere else -----------------------------------
 
 const GLOBULAIRE = objetForge('GLOB', 85, { type: 'AMAS_GLOB', vMag: 7 })
 
@@ -387,7 +376,7 @@ describe('T-0156 — la cible ne se saisit plus du tout', () => {
 
   it('ne porte plus ni champ de cible, ni le bouton qui rouvrait la saisie', () => {
     expect(rendu).not.toContain('Cible personnalisée')
-    // Les seules saisies qui subsistent sont les deux interrupteurs de §7.2 et §7.5.
+    // Only remaining saisies are the two §7.2 and §7.5 switches.
     expect(rendu).not.toMatch(/<input(?![^>]*type="checkbox")/i)
     expect(rendu).not.toMatch(/readonly/i)
     expect(rendu).not.toMatch(/disabled/i)
@@ -399,16 +388,16 @@ describe('T-0156 — la cible ne se saisit plus du tout', () => {
   })
 
   /**
-   * T-0228 — la provenance ne se relit plus à chaque cible : elle est la même pour toutes, et
-   * n'arbitre rien. Elle vit dans le tiroir « info », que `coque.test.tsx` vérifie.
+   * T-0228 — provenance no longer reread per cible: same for all, arbitrates nothing. Lives in
+   * "info" tiroir, checked by `coque.test.tsx`.
    */
   it('T-0228 — ne renvoie plus à OpenNGC au contact des valeurs', () => {
     expect(rendu).not.toContain('Valeurs du catalogue OpenNGC.')
   })
 
   it('nomme ce que le catalogue ne porte pas plutôt que de laisser un champ vide', () => {
-    // L'objet forgé n'a pas de magnitude : §6.3 le dit, et rien ne permet de le saisir.
-    // T-0158 — les dimensions, elles, s'effacent au lieu de meubler.
+    // Forged object has no magnitude: §6.3 says so, nothing allows entering one.
+    // T-0158 — dimensions, on the other hand, disappear rather than pad.
     expect(ficheDe(objetForge('SANS_MAG', 85, { vMag: null }))).toContain('[DONNÉE MANQUANTE]')
   })
 })
@@ -417,7 +406,7 @@ describe('T-0156 — sans cible désignée, il n’y a pas de fiche', () => {
   it('n’affiche aucun verdict de démonstration', () => {
     reinitialiseSeance()
     const sansCible = renderToStaticMarkup(<App />)
-    // T-0182 — le panneau rend la liste : une fiche sans cible désignée n'existe plus.
+    // T-0182 — panel renders the list: a fiche without designated cible no longer exists.
     expect(sansCible).toContain('Ne montrer que les objets photographiables')
     expect(sansCible).not.toContain('Taille dans le cadre')
     ouvreCible(CIBLE_REFERENCE)
@@ -440,11 +429,9 @@ describe('§8.3 — la fiche nomme un écart d’allocation que le calcul seul n
 })
 
 /**
- * §8.3 — le geste qui compose le plan de nuit, tel qu'il se lit.
- *
- * Deux choses seulement, et ce sont celles qui cassent en silence : l'état est porté par
- * `aria-pressed` — donc annoncé, et rempli par la police plutôt que par la seule teinte
- * (§11.1) — et le libellé dit ce que le clic FERA, pas où on en est.
+ * §8.3 — gesture composing plan de nuit, as read. Two silent breakers only: state carried by
+ * `aria-pressed` (announced, filled by font not tint alone, §11.1), and label says what click
+ * WILL do, not where things stand.
  */
 describe('ajouter une cible au plan de nuit §8.3', () => {
   function bouton(designation: string): string {
@@ -480,8 +467,8 @@ describe('ajouter une cible au plan de nuit §8.3', () => {
   })
 
   it('n’est pas offert sur une cible dont la nuit n’annonce aucune pose', () => {
-    // L'écran par défaut n'a pas encore de catalogue vérifié : aucune cible n'y porte de
-    // pose, donc aucune n'est photographiable, donc le geste n'est proposé nulle part.
+    // Default screen has no verified catalogue yet: no cible carries a pose → none photographable
+    // → gesture offered nowhere.
     expect(ecran).not.toContain('aria-pressed="false"><span class="icone" aria-hidden="true">photo_camera')
   })
 })

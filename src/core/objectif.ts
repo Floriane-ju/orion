@@ -1,18 +1,12 @@
 /**
- * §5.1 — Parc d'objectifs ; §6.1 — l'objectif du parc qui cadrerait une cible écartée.
- *
- * Un objectif ne se décrit pas par UNE focale et UNE ouverture mais par ce qu'il permet : une
- * plage de focales, et l'ouverture la plus grande à chacun de ses bouts. Une focale fixe est
- * le cas `focaleMinMm === focaleMaxMm`, pas un type à part.
- *
- * Entre les deux bouts d'un zoom à ouverture variable, le plancher s'interpole LINÉAIREMENT
- * en focale. Aucun fabricant ne publie la courbe ; la linéaire colle aux zooms courants
- * (18-55 f/3,5-5,6 à 35 mm : f/4,46, pour f/4,5 affiché par le boîtier), la logarithmique
- * s'en écarte (f/4,75). Le plancher s'arrondit ensuite au pas du domaine VERS LE PLUS FERMÉ :
- * annoncer f/4,4 là où l'objectif ne descend qu'à f/4,5 promettrait un signal qu'il ne donne pas.
- *
- * Les moteurs n'en savent rien : ils reçoivent toujours une focale et une ouverture. Ce
- * module ne fait que borner le réglage du moment.
+ * §5.1 — objectif park; §6.1 — park lens that would frame a cible écartée.
+ * Objectif = what it allows: focal range + widest aperture at each end. Fixed focal =
+ * `focaleMinMm === focaleMaxMm`, not a separate type.
+ * Variable-aperture zoom: floor interpolates LINEARLY in focal between ends. No maker publishes
+ * the curve; linear fits common zooms (18-55 f/3.5-5.6 at 35 mm: f/4.46, body shows f/4.5),
+ * logarithmic deviates (f/4.75). Floor rounds to domain step TOWARD THE NARROWER aperture:
+ * announcing f/4.4 where lens stops at f/4.5 promises signal it can't give.
+ * Engines ignore this: always receive a focal and aperture. Module only bounds the current setting.
  */
 
 import { K } from '../registry/constants.ts'
@@ -26,9 +20,9 @@ export interface Objectif {
   readonly nom: string
   readonly focaleMinMm: number
   readonly focaleMaxMm: number
-  /** Ouverture la plus grande (plus petit N) à `focaleMinMm`. */
+  /** Widest aperture (smallest N) at `focaleMinMm`. */
   readonly ouvertureGrandAngleN: number
-  /** Ouverture la plus grande à `focaleMaxMm` ; égale à la précédente sur un zoom constant. */
+  /** Widest aperture at `focaleMaxMm`; equals previous on constant-aperture zoom. */
   readonly ouvertureTeleN: number
   readonly typeObjectif: TypeObjectif
 }
@@ -38,7 +32,7 @@ export interface Plage {
   readonly max: number
 }
 
-/** L'ouverture la plus grande que l'objectif permet à cette focale, sans arrondi. */
+/** Widest aperture lens allows at this focal, unrounded. */
 export function ouverturePlancher(objectif: Objectif, focaleMm: number): number {
   const { focaleMinMm: fMin, focaleMaxMm: fMax } = objectif
   const nGa = objectif.ouvertureGrandAngleN
@@ -48,10 +42,9 @@ export function ouverturePlancher(objectif: Objectif, focaleMm: number): number 
 }
 
 /**
- * Le plancher au cran du domaine, arrondi vers le plus fermé. Un quotient à un ulp près d'un
- * cran entier EST ce cran : 1,1 × 10 vaut 11,000000000000002 en flottant, et un plafond nu
- * ferait monter d'un cran une ouverture déjà au pas. Diviser par un entier, plutôt que
- * multiplier par le pas, rend 4,5 et non 4,500000000000001.
+ * Floor at domain step, rounded toward narrower. Quotient within 1 ulp of a whole step IS that
+ * step: 1.1 × 10 = 11.000000000000002 in float, bare ceil would bump an on-step aperture. Divide
+ * by an integer, don't multiply by step: gives 4.5 not 4.500000000000001.
  */
 export function plancherAuPas(n: number): number {
   const cransParUnite = Math.round(1 / DOMAINES.ouverture_N.pas)
@@ -61,7 +54,7 @@ export function plancherAuPas(n: number): number {
   return crans / cransParUnite
 }
 
-/** Ce que l'objectif laisse régler : sa plage de focales, et l'ouverture au-delà du plancher. */
+/** What lens lets you set: focal range, aperture beyond floor. */
 export function plagesReglage(
   objectif: Objectif,
   focaleMm: number,
@@ -75,10 +68,7 @@ export function plagesReglage(
   }
 }
 
-/**
- * Un objectif saisi ou importé : chaque nombre dans son domaine, et les bouts dans l'ordre.
- * Le refus nomme le champ — une plage inversée se corrige en lisant le message, pas en devinant.
- */
+/** Entered or imported lens: each number in domain, ends ordered. Refusal names the field. */
 export function valideObjectif(objectif: Objectif): Objectif {
   if (objectif.nom.trim() === '') throw new Error('Saisie refusée : le nom de l’objectif est vide.')
   valide('focale_mm', objectif.focaleMinMm)
@@ -102,11 +92,9 @@ export function valideObjectif(objectif: Objectif): Objectif {
 }
 
 /**
- * §6.1 — l'objectif du parc dont la plage croise la focale requise, réglé au plus près d'elle.
- *
- * Rectilinéaire seulement, comme `focaleRequise` : la règle de cadrage ne décrit pas un
- * fisheye. Entre deux candidats, celui qu'on règle le plus près de la focale requise — le
- * plus éloigné risquerait de faire passer la cible de l'autre côté de la fenêtre de cadrage.
+ * §6.1 — park lens whose range crosses the required focal, set closest to it.
+ * Rectilinear only, like `focaleRequise`: cadrage rule doesn't describe a fisheye. Among
+ * candidates, closest-set wins (farther could push cible across the cadrage window).
  */
 export function objectifPour(
   parc: readonly Objectif[],
@@ -127,15 +115,15 @@ export function objectifPour(
   )
 }
 
-/** Un zoom, au sens où la focale optimale d'une cible a un sens : une plage à parcourir. */
+/** A zoom: a range to traverse, so a target's optimal focal makes sense. */
 export function estZoom(objectif: Objectif | null): objectif is Objectif {
   return objectif !== null && objectif.focaleMaxMm > objectif.focaleMinMm
 }
 
 /**
- * T-0407 — la focale de la plage où le grand axe remplit `REMPLISSAGE_ZOOM_OPTIMAL` du petit
- * côté, ou le bout le plus proche. Non orienté, comme `bornesTailleCadre` : la liste ne
- * connaît pas le roulis du boîtier, et deux conventions y donneraient deux focales.
+ * T-0407 — focal in range where major axis fills `REMPLISSAGE_ZOOM_OPTIMAL` of short side, else
+ * nearest end. Unoriented like `bornesTailleCadre`: list ignores boîtier roll, two conventions =
+ * two focals.
  */
 export function focaleOptimale(
   objectif: Objectif,
@@ -144,15 +132,14 @@ export function focaleOptimale(
 ): number {
   const champDeg = tailleMajArcmin / ARCMIN_PAR_DEG / K('REMPLISSAGE_ZOOM_OPTIMAL')
   const f = focalePourChamp(capteurHMm, champDeg)
-  // ponytail: au mm — une bague de zoom ne se règle pas plus finement, et des focales
-  // groupées au mm partagent leur contexte d'évaluation.
+  // ponytail: whole mm — a zoom ring can't be set finer, and focals grouped by mm share their
+  // evaluation context.
   return Math.round(Math.min(Math.max(f, objectif.focaleMinMm), objectif.focaleMaxMm))
 }
 
 /**
- * T-0407 — l'ouverture qu'on aurait à une autre focale de la plage, même règle que la saisie
- * (`surFocale`) : au plancher, elle suit le plancher ; fermée, elle est gardée tant que
- * l'objectif le permet.
+ * T-0407 — aperture at another focal of the range, same rule as input (`surFocale`): at floor,
+ * follows floor; stopped down, kept while lens allows.
  */
 export function ouvertureA(
   objectif: Objectif,
@@ -165,26 +152,24 @@ export function ouvertureA(
   return ouvertureN <= plancherCourant ? plancher : Math.max(ouvertureN, plancher)
 }
 
-/** T-0436 — ce que la règle de cadrage décrit : un fisheye n'a pas de focale de cadrage. */
+/** T-0436 — what cadrage rule describes: a fisheye has no cadrage focal. */
 function rectilineaires(parc: readonly Objectif[]): readonly Objectif[] {
   return parc.filter((o) => o.typeObjectif === 'RECTILINEAIRE')
 }
 
 /**
- * T-0436 — la liste choisit l'objectif dès qu'il y a un choix à faire : un zoom monté (T-0407),
- * ou au moins deux rectilinéaires au parc. Un fixe seul n'a rien à choisir.
+ * T-0436 — list picks the lens when there's a choice: mounted zoom (T-0407) or ≥ 2 rectilinear in
+ * park. A lone fixed has nothing to choose.
  */
 export function autoParc(parc: readonly Objectif[], monte: Objectif | null): boolean {
   return estZoom(monte) || rectilineaires(parc).length >= 2
 }
 
 /**
- * T-0436 — l'objectif du parc qui cadre le mieux la cible, réglé à sa focale optimale.
- *
- * D'abord le cadrage : l'écart à la focale visée se mesure en RAPPORT (|ln f/f*|), car le
- * remplissage suit f — 10 mm de trop à 20 mm ne sont pas 10 mm de trop à 200. Puis, à cadrage
- * égal, la plus grande ouverture au plancher : sur un objet étendu, le signal par pixel suit
- * 1/N². Puis l'ordre du parc, pour un choix stable.
+ * T-0436 — park lens framing the target best, set to its optimal focal.
+ * 1) cadrage: gap to target focal as RATIO (|ln f/f*|), fill follows f (10 mm too many at 20 mm ≠
+ * at 200). 2) tie: widest aperture at floor (extended object: signal/px ∝ 1/N²). 3) park order,
+ * stable pick.
  */
 export function objectifOptimal(
   parc: readonly Objectif[],
@@ -194,8 +179,7 @@ export function objectifOptimal(
   const fVisee = focalePourChamp(capteurHMm, tailleMajArcmin / ARCMIN_PAR_DEG / K('REMPLISSAGE_ZOOM_OPTIMAL'))
   const candidats = rectilineaires(parc).map((objectif) => {
     const focaleMm = focaleOptimale(objectif, tailleMajArcmin, capteurHMm)
-    // L'écart se lit sur la focale RÉGLÉE, au mm : un fixe de 50 et un zoom réglé à 50 cadrent
-    // pareil, et c'est l'ouverture qui doit les départager.
+    // Gap on SET focal, mm: fixed 50 and zoom set to 50 frame alike; aperture breaks the tie.
     return {
       objectif,
       focaleMm,

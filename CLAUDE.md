@@ -56,6 +56,10 @@ pnpm bench:file       # banc de mesure du filé incrusté
 - **Bornes de saisie** : citer `DOMAINES` (`src/registry/domains.ts`), jamais réécrire un min/max.
 - **En-tête de fichier** : commentaire qui nomme la section du PRD implémentée et la raison de la
   décision, pas la paraphrase du code.
+- **Commentaires** : écrits pour un agent, pas pour un humain — anglais télégraphique, une idée
+  par ligne, ≤ 100 colonnes. Termes métier du PRD et identifiants en français, verbatim (lien
+  `grep` avec `prd.md`). Garder `§x.y`, `T-xxxx`, sources, unités, pièges, invariants ; jamais
+  de récit historique ni de paraphrase du code (T-0443).
 - **Nommage** : vocabulaire métier en français (`creneaux`, `cadre`, `visibles`, `pose`), termes
   techniques et mathématiques en anglais (`ephem`, `mat3`, `projection`, `optics`).
 - **Immutabilité** : `Object.freeze` + `readonly` sur les tables du registre et les structures

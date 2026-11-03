@@ -1,32 +1,22 @@
 /**
- * T-0296 — ce que le démarrage tient sur le fil principal, chiffré, et la tâche longue qu'il
- * n'a plus le droit de produire.
+ * T-0296 — main-thread startup cost, and the long task it must no longer produce.
+ * Run: `pnpm bench:demarrage`. Exit != 0 above threshold.
  *
- * L'audit de T-0255 annonçait deux blocages au navigateur : 150 à 182 ms pour décoder les
- * 83 479 étoiles puis en construire l'index (CPU ×4, tablette), 235 à 248 ms à CPU ×6 sur
- * téléphone. Un chiffre pris au navigateur ne se rejoue pas ; ce banc mesure hors navigateur
- * les ÉTAGES que `useCatalogues` enchaîne, dans l'ordre où il les enchaîne, et vérifie que le
- * découpage de `core/tranches.ts` tient ce qu'il promet.
+ * Replays off-browser the ÉTAGES `useCatalogues` chains in order (T-0255 audit: 150-182 ms
+ * decode 83 479 stars + index at CPU ×4 tablet; 235-248 ms at ×6 phone). Checks `core/tranches.ts`
+ * slicing keeps its promise.
  *
- * CE QUE LE BRIDAGE FAIT, ET CE QU'IL NE FAIT PAS. Une tranche est bornée en TEMPS D'HORLOGE :
- * sous bridage ×4 elle accomplit quatre fois moins de travail, elle ne dure pas quatre fois
- * plus longtemps. Seul le DÉPASSEMENT s'allonge — la part travaillée après le dernier point de
- * coupe, avant que le budget soit constaté. La tâche la plus longue attendue à CPU ×N vaut
- * donc `TRANCHE_MS + dépassement × N`, et c'est elle qu'on compare au seuil de tâche longue.
+ * Throttling: tranche bounded in WALL-CLOCK time → at ×4 does 4× less work, not 4× longer. Only
+ * DÉPASSEMENT stretches (work after last cut point, before budget noticed).
+ * Longest task at CPU ×N = `TRANCHE_MS + dépassement × N`, vs long-task threshold.
  *
- * LE DÉPASSEMENT EST MAJORÉ, PAS SEULEMENT CONSTATÉ. Sur une machine rapide, un étage court
- * tient dans une seule tranche et ne dépasse donc jamais ; sous bridage il se découperait, et
- * la mesure d'ici serait optimiste. Le banc retient donc le plus grand des deux : le
- * dépassement observé, et le temps d'un morceau entre deux points de coupe — ce qu'une tranche
- * peut travailler au pire avant que le budget soit constaté.
+ * Dépassement = upper bound: fast machine fits a short étage in one tranche (no overshoot) but
+ * throttled it would be cut → observed optimistic. Keep max(observed, time of one chunk between
+ * cut points = worst case before budget noticed).
  *
- * CE QUE CE BANC NE MESURE PAS : la lecture IndexedDB, le rendu React et la peinture restent
- * au navigateur. C'est la même limite que `bench-frappe.ts`, et elle est acceptable ici parce
- * que les tâches incriminées sont du calcul pur — décoder, ranger, trier, projeter. Le paquet
- * de constellations n'y figure pas non plus : 1,1 ms de décodage, moins de sept sous le
- * bridage du téléphone — le découper coûterait plus que ce qu'il tient.
- *
- * Usage : `pnpm bench:demarrage`. Sortie non nulle au-delà du seuil.
+ * Not measured: IndexedDB read, React render, paint (browser only; same limit as
+ * `bench-frappe.ts`; incriminated tasks are pure compute). Constellations pack omitted: 1,1 ms
+ * decode, < 7 ms throttled phone → slicing costs more than it saves.
  */
 
 import { decodeEtoilesPas, type Etoile } from '../src/data/catalog.ts'
@@ -37,7 +27,7 @@ import { B, BUDGETS } from '../src/registry/budgets.ts'
 import { lit } from './bench-commun.ts'
 
 
-/** Les deux classes de machine que T-0255 a mesurées au navigateur. */
+/** The two machine classes T-0255 measured in browser. */
 const BRIDAGES: readonly number[] = [B('BRIDAGE_CPU'), 6]
 
 interface Etage {
@@ -49,10 +39,8 @@ interface Etage {
 const etages: Etage[] = []
 
 /**
- * Joue un étage comme l'application le joue — tranché — et retient sa mesure.
- *
- * Un premier passage échauffe : une médiane n'a pas de sens sur un étage joué une seule fois
- * au démarrage, mais un JIT froid mesurerait la compilation plutôt que le décodage.
+ * Play one étage as the app does (sliced), keep its measure. 1st pass warms up: cold JIT =
+ * compilation, not decoding.
  */
 async function etage<T>(
   nom: string,
@@ -69,9 +57,8 @@ async function etage<T>(
 }
 
 /**
- * Le dépassement à retenir : le plus grand entre celui qu'on a vu et celui qu'un morceau entre
- * deux points de coupe peut produire. Un étage qui tient dans une seule tranche ici se
- * découperait sous bridage, et son dépassement observé — nul — ne dirait rien.
+ * Dépassement to retain: max(observed, what one chunk between cut points can produce).
+ * Single-tranche étage would be cut when throttled; observed 0 says nothing.
  */
 function depassementMs(etage: Etage): number {
   const parMorceau =
@@ -79,7 +66,7 @@ function depassementMs(etage: Etage): number {
   return Math.max(etage.tranchage.depassementMs, parMorceau)
 }
 
-/** La tâche la plus longue attendue sous bridage : budget d'horloge, dépassement bridé. */
+/** Longest expected task under throttling: wall-clock budget + throttled dépassement. */
 function tacheLaPlusLongueMs(etage: Etage, bridage: number): number {
   return B('TRANCHE_MS') + depassementMs(etage) * bridage
 }
@@ -100,7 +87,7 @@ console.log(
     `${BUDGETS.TACHE_LONGUE_MS.source}.\n`,
 )
 
-// L'ordre est celui de `useCatalogues` : les étoiles et leur index d'abord, la liste ensuite.
+// order of `useCatalogues`: stars + index first, list after
 const etoiles: readonly Etoile[] = await etage(
   'décodage des étoiles (HYG)',
   (e: Etoile[]) => e.length,

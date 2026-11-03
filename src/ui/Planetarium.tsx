@@ -1,20 +1,14 @@
 /**
- * §3 — La scène : pipeline à deux horloges, moteur unifié, trois couches de tracés,
- * superposition du cadre matériel et aperçu du filé de §9 peint dans ce cadre.
- *
- * Ce n'est pas une vue décorative : c'est le point d'entrée vers les moteurs. Un clic sur un
- * objet du ciel profond ouvre l'onglet Cible garni (§6.2 / §6.3 / §7), et le cadre superposé
- * montre ce que le matériel déclaré capturerait vraiment — arcs compris.
- *
- * Depuis le lot 6, la scène ne porte plus ses réglages : ils sont dans le panneau droit, à
- * hauteur d'œil de l'image qu'ils modifient. Depuis T-0038 elle ne porte plus non plus ses
- * lectures ; depuis T-0153 il n'en reste qu'une, la phrase qui date l'image, au centre de la
- * barre basse. Ce composant publie dans le magasin de scène ce qu'il est seul à savoir —
- * l'objet cliqué, l'attente d'une passe de filé.
- *
- * Ne reste ici que le canevas et l'assemblage : la boucle de rendu est dans
- * `planetarium-boucle.ts`, l'aperçu du filé dans `planetarium-panorama.ts`, les
- * gestes dans `planetarium-gestes.ts`.
+ * §3 — the scène: two-clock pipeline, unified engine, three tracé layers, matériel cadre
+ * overlay and §9 filé preview painted in that cadre.
+ * Not decorative: entry point to the engines. Click on a ciel profond object opens the filled
+ * Cible tab (§6.2 / §6.3 / §7); the overlaid cadre shows what the declared matériel would
+ * really capture — arcs included.
+ * Since lot 6 settings are in the right panel, eye-level with the image they change. Since
+ * T-0038 no readings; since T-0153 one remains: the sentence dating the image, bottom-bar
+ * centre. Publishes to the scène store what it alone knows: clicked object, pending filé pass.
+ * Only canvas + assembly remain: render loop `planetarium-boucle.ts`, filé preview
+ * `planetarium-panorama.ts`, gestures `planetarium-gestes.ts`.
  */
 
 import { useEffect, useMemo, useRef } from 'react'
@@ -73,8 +67,8 @@ export {
 } from './planetarium-gestes.ts'
 
 /**
- * T-0068 — la description associée au canevas. Un identifiant plutôt qu'un `aria-label` long :
- * le nom dit CE QUE C'EST, la description dit CE QU'ON Y VOIT EN CE MOMENT.
+ * T-0068 — description tied to the canvas. An id, not a long `aria-label`: name says WHAT IT
+ * IS, description says WHAT IS SEEN NOW.
  */
 const ID_DESCRIPTION = 'planetarium-description'
 export type { MaterielFile } from './planetarium-materiel.ts'
@@ -86,59 +80,51 @@ import {
   type MaterielFile,
 } from './planetarium-materiel.ts'
 
-/** T-0297 — ce que la scène dit tant que le catalogue d'étoiles est en route. */
+/** T-0297 — what the scène says while the star catalogue loads. */
 export const ETOILES_EN_CHARGE = 'Chargement des étoiles…'
 
 export interface PlanetariumProps {
   readonly site: Site
-  /** §4.1 — relief relevé du site : c'est lui que la couche Sol masque, pas un horizon plat. */
+  /** §4.1 — surveyed site relief: what the Sol layer masks, not a flat horizon. */
   readonly masque: MasqueHorizon
-  /** T-0369 — le relief du lieu saisi se charge : la couche Sol s'aplatit en l'attendant. */
+  /** T-0369 — entered lieu's relief loading: Sol layer flattens meanwhile. */
   readonly horizonEnAttente: boolean
-  /** T-0297 — le catalogue d'étoiles n'est pas encore décodé : la scène le dit. */
+  /** T-0297 — star catalogue not decoded yet: scène says so. */
   readonly etoilesEnCharge?: boolean
   readonly etoiles: readonly Etoile[]
-  /** Index de sélection du catalogue, construit une fois par l'application. */
+  /** Catalogue selection index, built once by the app. */
   readonly index: IndexCiel
   readonly objets: readonly ObjetCielProfond[]
-  /**
-   * §6.4 — les désignations que les filtres du panneau des cibles retiennent. Les autres
-   * marqueurs s'estompent. `null` : aucun filtre actif, la scène est entière.
-   */
+  /** §6.4 — designations kept by targets-panel filters; other markers dim. `null` = no filter. */
   readonly enAvant: ReadonlySet<string> | null
-  /**
-   * Les cibles que le plan de la nuit photographie, `null` tant qu'il n'est pas calculé. Sur
-   * « Mon plan », elles seules restent en pleine lumière, chacune réticulée.
-   */
+  /** Targets the night plan photographs, `null` until computed. "Mon plan": only they stay lit. */
   readonly ciblesPlan: readonly ObjetCielProfond[] | null
   readonly constellations: PaquetConstellations
-  /** Profils de cadre à superposer (§3.5). Vide : l'app demande le profil, sans en inventer. */
+  /** Cadre profiles to overlay (§3.5). Empty: app asks for the profile, invents none. */
   readonly profils: readonly ProfilCadre[]
   /**
-   * Sous un zoom, la scène peint les cadres des deux bouts de la bague, et celui que la cible
-   * ouverte ou survolée obtiendrait. `null` hors zoom : le cadre du réglage suffit.
+   * Under a zoom, scène paints the cadres of both ring ends + the one the open or hovered
+   * target would get. `null` outside zoom: the setting's cadre suffices.
    */
   readonly zoom: Zoom | null
   readonly gaiaCharge: boolean
   /**
-   * §3.7 — fond de ciel du site (§2.2). C'est lui qui décide du contraste de la bande de la
-   * Voie lactée : la scène montre le ciel de CE site, pas une carte de référence idéale.
+   * §3.7 — site fond de ciel (§2.2). Sets Voie lactée band contrast: scène shows THIS site's
+   * sky, not an ideal reference map.
    */
   readonly sbCiel: number
-  /** §11.1 — aucune animation non sollicitée en mode nuit. */
+  /** §11.1 — no unrequested animation in mode nuit. */
   readonly modeNuit: boolean
-  /** Absent : la scène ne peut pas incruster le filé, faute de matériel chiffrable. */
+  /** Absent: scène cannot inlay the filé, no quantifiable matériel. */
   readonly file?: MaterielFile
   readonly surSelectionObjet: (objet: ObjetCielProfond) => void
 }
 
 /**
- * T-0040 — la définition de rendu suit la boîte, sinon l'image s'y loge en laissant des
- * bandes. C'est la taille CSS qui est observée, jamais les attributs du canevas : les
- * réécrire ne change pas la boîte, donc l'observation ne se rappelle pas elle-même.
- *
- * T-0258 — la même mesure donne le centre de visée. Les deux vont ensemble : le décalage
- * s'exprime en pixels de rendu, donc dans la définition que cette passe vient de calculer.
+ * T-0040 — render definition follows the box, else bands around the image. CSS size observed,
+ * never canvas attributes: rewriting them does not change the box → no self re-trigger.
+ * T-0258 — same measure gives the aim centre, together: offset is in render pixels, hence in
+ * the definition just computed.
  */
 function useResolutionSuitLaBoite(canevas: React.RefObject<HTMLCanvasElement | null>): void {
   useEffect(() => {
@@ -146,8 +132,8 @@ function useResolutionSuitLaBoite(canevas: React.RefObject<HTMLCanvasElement | n
     if (cible === null || typeof ResizeObserver === 'undefined') return
     const bordures = [...document.querySelectorAll(BORDURES_SCENE.join(', '))]
     const mesure = (): void => {
-      // `getBoundingClientRect` et non le `contentRect` de l'entrée : le décalage compare des
-      // boîtes entre elles, il lui faut le même repère pour les trois.
+      // `getBoundingClientRect`, not the entry's `contentRect`: offset compares boxes, needs one
+      // reference frame for all three.
       const boite = cible.getBoundingClientRect()
       if (boite.width === 0 || boite.height === 0) return
       const resolution = resolutionRendu(boite.width, boite.height, window.devicePixelRatio || 1)
@@ -162,8 +148,8 @@ function useResolutionSuitLaBoite(canevas: React.RefObject<HTMLCanvasElement | n
     }
     const observateur = new ResizeObserver(mesure)
     observateur.observe(cible)
-    // Les bordures sont observées aussi : sous le repli elles quittent le flanc de la scène,
-    // et c'est leur taille qui change alors, pas celle du canevas.
+    // Borders observed too: under fold they leave the scène flank and their size changes, not
+    // the canvas's.
     for (const bordure of bordures) observateur.observe(bordure)
     return () => {
       observateur.disconnect()
@@ -173,21 +159,20 @@ function useResolutionSuitLaBoite(canevas: React.RefObject<HTMLCanvasElement | n
 
 export function Planetarium(props: PlanetariumProps) {
   const canevas = useRef<HTMLCanvasElement>(null)
-  // T-0085 — le survol vit hors de React : il change à chaque mouvement de souris, et la
-  // boucle est seule à le lire. Le passer par l'état rendrait la scène soixante fois par
-  // seconde pour un label transitoire.
+  // T-0085 — hover lives outside React: changes per mouse move, only the loop reads it. Via
+  // state: scène rendered 60×/s for a transient label.
   const survol = useRef<SurvolEcran | null>(null)
 
-  // Pointage, temps et couches sont ceux de la scène, réglés depuis le panneau droit.
-  // T-0248 — par tranches, et l'instant à la minute : la boucle publie deux fois par seconde,
-  // et chaque rendu de ce composant repeint le canevas. La Lune et le crépuscule ne bougent
-  // pas d'un pixel en une minute ; le ciel, lui, tourne dans la boucle à l'instant exact.
+  // Pointage, time, layers are the scène's, set from the right panel.
+  // T-0248 — by slices, instant at the minute: loop publishes 2×/s, each render of this
+  // component repaints the canvas. Moon and twilight move no pixel in a minute; sky rotates in
+  // the loop at the exact instant.
   const pointage = useTrancheScene(vueScene)
   const temps = useTrancheScene(tempsScene)
   const rendu = useTrancheScene(renduScene)
   const minuteScene = useTrancheScene(minuteAffichee)
-  // T-0394 — pendant un trajet, la minute que le trajet traverse, image par image : le magasin
-  // ne la publie qu'à sa cadence ordinaire.
+  // T-0394 — during a trajet, the minute the trajet crosses, per frame: store publishes only
+  // at its ordinary cadence.
   const trajetMs = useInstantTrajet()
   const minute = trajetMs === null ? minuteScene : Math.floor(trajetMs / MS_PAR_MINUTE)
   const actions = ACTIONS_SCENE
@@ -206,9 +191,9 @@ export function Planetarium(props: PlanetariumProps) {
   const frontieres = useMemo(() => coucheFrontieres(props.constellations), [props.constellations])
 
   const dateAffichee = useMemo(() => new Date(minute * MS_PAR_MINUTE), [minute])
-  // T-0100 — la Lune de l'instant affiché : le halo est centré sur ELLE, donc sur le même
-  // état que le corps dessiné. §12.5 — un instant hors du domaine des séries n'éteint pas la
-  // scène : la Lune sort du calcul, le reste continue.
+  // T-0100 — Moon of the displayed instant: halo centred on IT, same state as the drawn body.
+  // §12.5 — instant outside the series domain does not blank the scène: Moon drops out of the
+  // calc, rest continues.
   const lune = useMemo((): LuneEcran | null => {
     try {
       const etat = etatLune(props.site, dateAffichee)
@@ -226,16 +211,12 @@ export function Planetarium(props: PlanetariumProps) {
   }, [props.site, dateAffichee])
 
   /**
-   * T-0099 — dépression du Soleil sous l'horizon à l'instant affiché, en degrés. C'est elle,
-   * et non l'heure légale, qui décide de la clarté du fond : le curseur de temps traverse le
-   * crépuscule à chaque séance.
-   *
-   * La hauteur est celle corrigée de la réfraction, comme partout ailleurs dans l'app. La
-   * table de Patat 2006 est ajustée sur une dépression géométrique, mais elle commence à 5°
-   * sous l'horizon — là où la réfraction ne corrige plus rien.
-   *
-   * §12.5 — un instant hors du domaine des séries n'éteint pas la scène : le crépuscule sort
-   * du calcul, le reste continue. Même règle que la Lune juste au-dessus.
+   * T-0099 — Sun depression below horizon at displayed instant, degrees. It, not legal time,
+   * decides background clarity: the time cursor crosses twilight in every séance.
+   * Height refraction-corrected, as everywhere. Patat 2006 table is fitted on geometric
+   * depression but starts at 5° below the horizon, where refraction corrects nothing.
+   * §12.5 — instant outside the series domain: twilight drops out of the calc, rest continues
+   * (same rule as the Moon above).
    */
   const soleil = useMemo((): SoleilEcran | null => {
     try {
@@ -246,11 +227,11 @@ export function Planetarium(props: PlanetariumProps) {
     }
   }, [props.site, dateAffichee])
   const depressionSolaireDeg = soleil === null ? null : -soleil.altitudeDeg
-  // De jour, vue réaliste, aucune étoile : le ciel bleu les efface toutes. La table Bortle,
-  // bornée à son bord clair, en laisserait passer jusqu'à la magnitude 4.
+  // By day, vue réaliste, no star: blue sky erases all. Bortle table, bounded at its bright
+  // edge, would let through up to magnitude 4.
   const jour = rendu.vueRealiste && soleil !== null && soleil.altitudeDeg > 0
-  // De jour, les repères du ciel nocturne n'ont plus rien à relier : ils se retirent avec
-  // les étoiles. Le réglage des couches, lui, n'est pas touché et revient à la nuit.
+  // By day, night-sky reference marks have nothing to link: withdrawn with the stars. Layer
+  // setting untouched, returns at night.
   const couchesScene = useMemo(
     () =>
       jour
@@ -266,9 +247,9 @@ export function Planetarium(props: PlanetariumProps) {
   )
 
   /**
-   * T-0098, T-0100 — le fond de ciel EFFECTIF dans la direction visée : celui du site, majoré
-   * du halo d'horizon et de la Lune. C'est lui qui plafonne la magnitude limite en vue
-   * réaliste, sans quoi une pleine Lune montrerait autant d'étoiles qu'une nuit noire.
+   * T-0098, T-0100 — EFFECTIVE fond de ciel in the aimed direction: site's + horizon halo +
+   * Moon. Caps limiting magnitude in vue réaliste; else a full Moon would show as many stars
+   * as a dark night.
    */
   const sbEffectif = useMemo(
     () =>
@@ -294,9 +275,9 @@ export function Planetarium(props: PlanetariumProps) {
   )
 
   /**
-   * T-0099 — fond de ciel du site au zénith, crépuscule compris. La scène en part pour TOUTES
-   * ses couches : teinte du fond, paliers de halo, contraste de la bande. Vue réaliste
-   * décochée, c'est le fond du site nu — la scène est alors celle d'avant T-0097, au pixel près.
+   * T-0099 — site fond de ciel at zenith, twilight included. Scène starts from it for ALL
+   * layers: background tint, halo steps, band contrast. Vue réaliste unticked = bare site fond,
+   * scène pixel-identical to pre-T-0097.
    */
   const sbCielScene = useMemo(
     () =>
@@ -314,8 +295,8 @@ export function Planetarium(props: PlanetariumProps) {
     () => reglageVitesse(temps.facteur, largeurPx, fovDeg),
     [temps.facteur, largeurPx, fovDeg],
   )
-  // T-0116 — le filé se peint dans la boucle, sur toute la scène : ce hook ne fournit plus que
-  // ce qu'il tient du matériel et du panneau. La vue, le fond et le pôle viennent de l'image.
+  // T-0116 — filé painted in the loop, across the scène: hook supplies only what it holds from
+  // matériel and panel. View, background, pole come from the frame.
   const parametresFile = useParametresFile({
     mode,
     seance,
@@ -324,7 +305,7 @@ export function Planetarium(props: PlanetariumProps) {
 
   useResolutionSuitLaBoite(canevas)
 
-  // En Panorama, le filé et sa carte de pose se chiffrent au réglage de la bague : son cadre seul.
+  // Panorama: filé and its pose map are quantified at the ring setting: its cadre alone.
   const profilsAffiches = useMemo(
     () => (mode === 'PANORAMA' ? props.profils : profilsScene(props.zoom, props.profils)),
     [mode, props.zoom, props.profils],
@@ -337,7 +318,7 @@ export function Planetarium(props: PlanetariumProps) {
     return objet === null || profil === null ? null : { objet, profil }
   }, [mode, seance.vueCibles, seance.cible, seance.survolee, seance.essaiZoom, props.zoom, props.profils])
 
-  // État mutable lu par la boucle de rendu, réécrit à chaque rendu React.
+  // Mutable state read by the render loop, rewritten each React render.
   const etatBoucle = useRef<EtatBoucle>(null!)
   etatBoucle.current = {
     site: props.site,
@@ -370,10 +351,10 @@ export function Planetarium(props: PlanetariumProps) {
     modeTemps: temps.modeTemps,
     facteur: reglage.facteur,
     decalageMs: temps.decalageMs,
-    // T-0137 — le mode nuit ne change que les couleurs : il ne coupe pas le défilement, qui
-    // se règle sous le ciel comme en préparation. T-0072 : `prefers-reduced-motion` n'ajoute
-    // rien ici non plus — le défilement n'est jamais l'état de départ (§3.2, `MAINTENANT`),
-    // il ne peut donc pas s'imposer, et le couper d'office retirerait un mode demandé.
+    // T-0137 — mode nuit changes only colours: does not cut scrolling, set under the sky as in
+    // prep. T-0072: `prefers-reduced-motion` adds nothing either — scrolling is never the start
+    // state (§3.2, `MAINTENANT`), cannot impose itself; cutting it by default would remove a
+    // requested mode.
     anime: temps.modeTemps === 'DEFILEMENT',
   }
 
@@ -387,7 +368,7 @@ export function Planetarium(props: PlanetariumProps) {
     surSelectionObjet: props.surSelectionObjet,
   })
   useGestesZoom(canevas, props.gaiaCharge)
-  // T-0069 — WCAG 2.1.1 : les mêmes gestes, au clavier, dans les mêmes bornes.
+  // T-0069 — WCAG 2.1.1: same gestures by keyboard, same bounds.
   const clavier = usePilotageClavier({
     largeurPx,
     hauteurPx,
@@ -404,10 +385,9 @@ export function Planetarium(props: PlanetariumProps) {
         className="planetarium"
         width={largeurPx}
         height={hauteurPx}
-        /* T-0068 / T-0069 — `application` et non `img` : la scène se pilote au clavier, et
-           une technologie d'assistance doit lui laisser passer les flèches plutôt que de les
-           garder pour son propre parcours. Sans rôle, un canevas n'est qu'une boîte de pixels
-           qui n'existe pas pour elle. */
+        /* T-0068 / T-0069 — `application`, not `img`: scène driven by keyboard, assistive tech
+           must let arrows through instead of keeping them for its own traversal. Without a
+           role a canvas is a pixel box that does not exist for it. */
         role="application"
         tabIndex={0}
         aria-label="Planétarium — le ciel du site à l’instant affiché"
@@ -418,12 +398,11 @@ export function Planetarium(props: PlanetariumProps) {
         onPointerUp={souris.onPointerUp}
         onPointerLeave={souris.onPointerLeave}
       />
-      {/* T-0068 — ce que la vue montre en ce moment, dans les mots exacts de la lecture
-          affichée à la barre basse : `ligneVisee` est la seule à composer la phrase.
-          Hors flux visuel — la colonne centrale ne réserve aucune hauteur sous le canevas
-          (T-0040) — mais présente dans l'arbre d'accessibilité. */}
+      {/* T-0068 — what the view shows now, in the exact words of the bottom-bar reading
+          (`ligneVisee` alone composes the sentence). Out of visual flow — central column
+          reserves no height under the canvas (T-0040) — but in the accessibility tree. */}
       <DescriptionScene site={props.site} />
-      {/* T-0297 — un ciel sans étoile ressemble à un ciel couvert : il faut dire qu'elles arrivent. */}
+      {/* T-0297 — a starless sky looks overcast: must say they are coming. */}
       {props.etoilesEnCharge === true && (
         <p className="etat scene-attente" role="status">
           {ETOILES_EN_CHARGE}
@@ -434,9 +413,9 @@ export function Planetarium(props: PlanetariumProps) {
 }
 
 /**
- * T-0248 — la description suit l'instant exact, comme la phrase de la barre basse dont elle
- * emprunte les mots. Composant à part : ses rendus deux fois par seconde ne touchent ni le
- * planétarium ni son état de boucle, donc ne repeignent pas le canevas.
+ * T-0248 — description follows the exact instant, like the bottom-bar sentence whose words it
+ * borrows. Separate component: its 2×/s renders touch neither the planetarium nor its loop
+ * state, so do not repaint the canvas.
  */
 function DescriptionScene({ site }: { readonly site: Site }) {
   const { vue, msAffiche } = useScene()

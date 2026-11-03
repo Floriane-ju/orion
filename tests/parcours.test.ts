@@ -1,13 +1,9 @@
 /**
- * §8.4 / T-0324 — le cadrage qui montre un parcours de pointage en entier.
- *
- * Ce n'est pas un test d'apparence : c'est la vérification que la calotte rendue CONTIENT le
- * trajet, et que le champ qu'on en tire la fait tenir à l'écran. Un champ trop étroit sort une
- * étape du canevas — et c'est justement celle qu'on cherchait —, un champ trop large réduit le
- * cadre matériel à un point et lui retire ce qu'il a à dire sur la distance restante.
- *
- * Aucune coordonnée n'est attendue en dur : chaque assertion se recalcule depuis les mêmes
- * séparations angulaires et la même projection que le moteur, jamais depuis un nombre recopié.
+ * §8.4 / T-0324 — framing shows a whole pointage route.
+ * Rendered calotte CONTAINS the route; derived field fits on screen.
+ * Too narrow: a step (the one sought) leaves canvas. Too wide: cadre matériel shrinks to a point,
+ * loses remaining-distance info.
+ * No hardcoded coords: assertions recomputed from engine separations + projection.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -28,7 +24,7 @@ import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
 const DATE = new Date('2026-08-15T22:00:00Z')
 const DEG_PAR_HEURE = 15
-/** Un canevas large, comme la scène de §3.2 : c'est lui qui rend le piège du champ vertical réel. */
+/** Wide §3.2-like canvas: exposes vertical-field trap. */
 const LARGEUR = 1920
 const HAUTEUR = 1080
 
@@ -36,7 +32,7 @@ function etape(ordre: number, adH: number, decDeg: number): EtapeParcours {
   return { ordre, adH, decDeg, nom: '' }
 }
 
-/** Le rayon qu'il faudrait au champ pour contenir tous les points depuis le centre rendu. */
+/** Radius needed to contain all points from rendered centre. */
 function rayonNecessaireDeg(
   centre: { readonly adDeg: number; readonly decDeg: number },
   etapes: readonly EtapeParcours[],
@@ -55,8 +51,7 @@ function rayonNecessaireDeg(
 }
 
 /**
- * Le trajet tel que la scène le peindrait : chaque point projeté sur le canevas, exactement
- * comme `dessineParcours` le fera. C'est la seule assertion qui prouve qu'il TIENT.
+ * Route as the scene paints it (`dessineParcours` projection). Only assertion proving it fits.
  */
 function pointsEcran(
   etapes: readonly EtapeParcours[],
@@ -84,7 +79,7 @@ function pointsEcran(
     ...etapes.map((e) => [e.adH, e.decDeg] as const),
     [adCibleH, decCibleDeg] as const,
   ]
-  // Le même chemin que la passe de dessin : équatorial J2000, jamais alt/az (piège B3).
+  // Draw-pass path: equatorial J2000, never alt/az (trap B3).
   return tous.map(([adH, decDeg]) => {
     const point = proj.projette(versVecteur(adH * DEG_PAR_HEURE, decDeg))
     if (point === null) throw new Error('le trajet n’est pas projetable dans ce cadrage')
@@ -110,8 +105,8 @@ describe('§8.4 — la calotte rendue contient le trajet', () => {
 
 describe('§8.4 — le centre est une direction, pas une moyenne d’angles', () => {
   it('ne part pas à l’opposé du trajet quand il traverse 24 h → 0 h', () => {
-    // Un cheminement circumpolaire traverse l'origine de l'ascension droite. Une moyenne
-    // arithmétique tomberait vers 12 h — à l'opposé du ciel — et sortirait tout le trajet.
+    // Circumpolar route crosses RA origin: arithmetic mean ≈ 12 h (opposite sky) → route leaves
+    // view.
     const etapes = [etape(1, 23.6, 72), etape(2, 23.9, 73), etape(3, 0.3, 74)]
     const cadrage = cadrageParcours(etapes, 0.7, 74.5)
     expect(cadrage.rayonDeg).toBeLessThan(separationEquatorialeDeg(23.6, 72, 0.7, 74.5))
@@ -127,9 +122,8 @@ describe('§8.4 — le centre est une direction, pas une moyenne d’angles', ()
 })
 
 /**
- * Le piège E2 du domaine : un capteur — un canevas ici — a DEUX dimensions. `fovDeg` est le
- * champ horizontal, et le canevas de §3.2 est deux fois plus large que haut. Un champ
- * dimensionné sur la largeur sort par le haut tout trajet à dominante verticale.
+ * Trap E2: a sensor (canvas) has TWO dimensions. `fovDeg` = horizontal; §3.2 canvas 2× wider than
+ * tall → width-sized field pushes vertical-dominant routes out the top.
  */
 describe('§3.3 — le champ fait tenir le trajet sur le bord le plus proche', () => {
   it('garde un trajet à dominante verticale dans le canevas', () => {
@@ -157,7 +151,7 @@ describe('§3.3 — le champ fait tenir le trajet sur le bord le plus proche', (
     const marges = pointsEcran(etapes, 20, 48).map(({ yPx }) =>
       Math.min(yPx, HAUTEUR - yPx),
     )
-    // La marge est ce qui sépare « le trajet tient » de « le trajet touche les bords ».
+    // Margin: "fits" ≠ "touches edges".
     expect(Math.min(...marges)).toBeGreaterThan(0)
   })
 })
@@ -183,12 +177,11 @@ describe('§8.4 — le mode carte directe n’a qu’une étape, et se cadre qua
 })
 
 /**
- * §8.4 — quelles étoiles forment le trajet. Le PRD tranche : « → une seule étape de pointage »
- * en carte directe, un graphe de sauts en cheminement. Les deux tableaux de `CartePointage`
- * sont exclusifs, mais rien dans le type ne l'impose — d'où ces cas.
+ * §8.4 — stars forming the route: 1 pointage step in carte directe, hop graph in cheminement.
+ * `CartePointage`'s two arrays are exclusive; the type doesn't enforce it.
  */
 describe('§8.4 — le trajet prend les sauts, ou l’ancrage principal, jamais les deux', () => {
-  /** Les champs de position et d'écart ne servent pas au trajet : seuls AD, δ, nom et rang comptent. */
+  /** Route uses only AD, δ, nom, rang. */
   function ancrage(adH: number, decDeg: number, nom: string, principal: boolean): Ancrage {
     return {
       adH,
@@ -252,7 +245,6 @@ describe('§8.4 — le trajet prend les sauts, ou l’ancrage principal, jamais 
   })
 
   it('sort bien un trajet de la carte que le moteur produit vraiment', () => {
-    // Pas une carte fabriquée : celle que §8.4 calcule pour un vrai champ et un vrai ciel.
     const etoiles = Array.from({ length: 12 }, (_, i) => ({
       adDeg: 314.75 + ((i % 4) - 1.5),
       decDeg: 44.52 + (Math.floor(i / 4) - 1),

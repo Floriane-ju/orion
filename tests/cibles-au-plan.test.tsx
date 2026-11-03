@@ -1,13 +1,8 @@
 /**
- * §6.4 → §8.3 — le geste d'ajout au plan, là où il se rencontre : la ligne de la liste.
- *
- * Ce qui est vérifié ici n'est pas le dessin du bouton — `cible.test.tsx` s'en charge — mais
- * sa CONDITION. Un bouton offert sur une cible que la nuit ne permet pas promettrait une
- * étape qui n'arriverait jamais ; un bouton absent d'une cible photographiable rendrait le
- * plan incomposable depuis la liste. Les deux cassent en silence.
- *
- * Aucune valeur d'éphéméride n'est écrite : les états viennent de `etatsCibles`, le même
- * moteur que le plan, et le test compare ce que la liste MONTRE à ce que le moteur DIT.
+ * §6.4 → §8.3 — add-to-plan gesture on list row; tests its CONDITION, not button drawing
+ * (`cible.test.tsx`). Button on a night-forbidden target = broken promise; missing on a
+ * photographable one = plan not composable. Both silent.
+ * No ephemeris value: compares what the list SHOWS to `etatsCibles` (same engine as plan).
  */
 
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -26,7 +21,7 @@ import { objetNebuleuse as objet, SITE_REFERENCE as SITE } from './fixtures.ts'
 
 const NUIT = fenetreNocturne(SITE, new Date('2026-08-14T12:00:00Z'))
 
-/** Setup ciel profond de l'Annexe A : 120 mm f/2,8 sur plein format. */
+/** Annexe A deep-sky setup: 120 mm f/2,8 full frame. */
 const CONTEXTE: ContexteSession = {
   site: SITE,
   nuit: NUIT,
@@ -51,7 +46,7 @@ const CONTEXTE: ContexteSession = {
   typeMonture: 'TRACKER',
 }
 
-/** Une cible que ce setup photographie, et une que son cadre ne tient pas. */
+/** One target this setup photographs, one its cadre cannot hold. */
 const CADRABLE = objet({
   designation: 'NGC7000',
   nomsCommuns: 'Amérique du Nord',
@@ -67,8 +62,7 @@ const CATALOGUE = [CADRABLE, TROP_GRANDE]
 const ETATS = etatsCibles(CONTEXTE, CATALOGUE)
 
 function liste(): string {
-  // La portée par défaut ne montre que les photographiables : la cible refusée en sortirait,
-  // et ce test veut voir les deux lignes côte à côte.
+  // Default scope = photographables only; refused target would vanish, test needs both rows.
   majCatalogue({ photographiablesSeules: false })
   vaA(NUIT.debutReference!.getTime())
   return renderToStaticMarkup(
@@ -84,7 +78,7 @@ function liste(): string {
   )
 }
 
-/** Le fragment de la ligne d'une cible, jusqu'à la fin de son `<li>`. */
+/** Row fragment of a target, up to the end of its `<li>`. */
 function ligne(html: string, designation: string): string {
   const debut = html.indexOf(designation)
   expect(debut, designation).toBeGreaterThan(-1)
@@ -110,7 +104,7 @@ describe('§8.3 — ajouter au plan depuis la liste', () => {
   it('ne l’offre pas sur une cible que le cadre refuse', () => {
     const refusee = ligne(liste(), TROP_GRANDE.designation)
     expect(refusee).not.toContain('cible-photographier')
-    // La ligne existe toujours, et elle dit pourquoi : §6.4 n'efface aucun objet.
+    // Row stays and states why: §6.4 erases no object.
     expect(refusee).toContain(TROP_GRANDE.designation)
   })
 

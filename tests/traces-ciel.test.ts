@@ -1,7 +1,7 @@
 /**
- * §3.3 — un segment de figure qui passe derrière l'observateur ne se trace pas en travers de
- * l'écran. Ses deux sommets peuvent rester projetables (portée de plusieurs diagonales) alors
- * que l'arc qui les joint frôle l'antipode : la corde droite traversait alors tout le ciel.
+ * §3.3 — a figure segment passing behind observer isn't drawn across screen. Both vertices may
+ * stay projectable (range of several diagonals) while the joining arc grazes antipode: straight
+ * chord then crossed the whole sky.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -59,7 +59,7 @@ describe('traceSegments', () => {
   it('ne trace pas un segment dont l’arc passe par l’antipode de la visée', () => {
     const c = couche([180, 10], [180, -10])
     const seg = c.segments[0]!
-    // Prémisse : les deux sommets sont projetables, seule la corde est fausse.
+    // Premise: both vertices projectable, only the chord is wrong.
     expect(proj.projetteEn(seg.a.x, seg.a.y, seg.a.z, pointEcran())).toBe(true)
     expect(proj.projetteEn(seg.b.x, seg.b.y, seg.b.z, pointEcran())).toBe(true)
     const { ctx, traits } = ctxEspion()
@@ -100,7 +100,7 @@ describe('T-0376 — le trait s’arrête avant l’étoile', () => {
     const ecartB = Math.hypot(fin![0] - b.xPx, fin![1] - b.yPx)
     expect(ecartA).toBeCloseTo(rayonEtoileCielPx(magBrillante) * K('MARGE_FIGURE_RAYONS'), 6)
     expect(ecartB).toBeCloseTo(rayonEtoileCielPx(magFaible) * K('MARGE_FIGURE_RAYONS'), 6)
-    // Hors du disque, des deux côtés : c'est ce que la marge doit garantir.
+    // Outside the disc, both sides: what the margin must guarantee.
     expect(ecartA).toBeGreaterThan(rayonEtoileCielPx(magBrillante))
     expect(ecartB).toBeGreaterThan(rayonEtoileCielPx(magFaible))
   })

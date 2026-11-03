@@ -1,13 +1,9 @@
 /**
- * T-0431 — partager le plan de la nuit : un clic copie le lien qui le rouvre sur un autre
- * appareil, avec sa nuit, son lieu, son matériel, ses poids et ses cibles.
- *
- * Posé au-dessus du mode nuit, sur le flanc gauche du ciel (§11.1) : c'est un geste qu'on fait
- * en partant, le téléphone déjà en main.
- *
- * Le compte rendu vaut pour CE lien : il s'efface dès que le plan change, sans jamais dire
- * « copié » d'un lien qui n'est plus celui du plan affiché, et sinon au bout d'un bref délai
- * pour que le bouton redevienne celui du partage.
+ * T-0431 — share the night plan: one click copies the link reopening it on another device (night,
+ * lieu, matériel, weights, cibles).
+ * Above mode nuit, left flank of sky (§11.1): a gesture made on leaving, phone in hand.
+ * Feedback valid for THIS link: cleared when plan changes (never "copié" for a stale link), else
+ * after a short delay → button is the share button again.
  */
 
 import { useEffect, useState } from 'react'
@@ -17,7 +13,7 @@ import { useCiblesChoisies } from './cibles-choisies.ts'
 import { ecritPlanUrl, lienDuPlan, type PlanAEcrire } from './plan-url.ts'
 
 interface Copie {
-  /** Le plan copié, en query string : l'adresse complète ne se lit qu'au clic, dans le navigateur. */
+  /** Copied plan as query string: full address is read at click, in browser. */
   readonly recherche: string
   readonly reussie: boolean
 }
@@ -63,8 +59,8 @@ export function BoutonPartage({ plan }: BoutonPartageProps) {
         place="droite"
         onClick={() => void copier()}
       />
-      {/* La bulle change de phrase, mais un changement de nom ne s'annonce pas : la région vive,
-          elle, le dit au lecteur d'écran. */}
+      {/* Bulle changes sentence but a name change isn't announced; live region tells the screen
+          reader. */}
       <p className="annonce-lecteur" role="status">
         {annonce}
       </p>

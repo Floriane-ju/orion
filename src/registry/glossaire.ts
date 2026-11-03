@@ -1,42 +1,31 @@
 /**
- * §10.1 — Glossaire contextuel.
- *
- * Le glossaire est indexé sur l'INTERFACE, pas sur un lexique : un terme n'y entre que s'il
- * apparaît dans une sortie de moteur, et aucun terme affiché ne peut en être absent.
- *
- * Cette seconde moitié de la règle est tenue par le typage plutôt que par une convention :
- * l'interface ne rend jamais un libellé littéral, elle rend une clé de ce fichier. Un terme
- * ajouté à l'écran sans définition ne compile pas, et le compilateur nomme la clé manquante.
- * C'est ce qui empêche la dérive documentaire.
- *
- * Le glossaire s'étend lot par lot, avec les moteurs qui produisent les termes. Les entrées
- * présentes ici sont celles du contrat d'entrée : §4 lieu, §5.1 optique, §5.2 suivi.
+ * §10.1 — contextual glossaire.
+ * Indexed on the INTERFACE, not a lexicon: a term enters only if a moteur output shows it, and no
+ * displayed term may be missing. Latter enforced by typing: UI renders a key of this file, never a
+ * literal label; undefined screen term = compile error naming the key. Prevents doc drift.
+ * Grows with the moteurs producing terms. Now: input contract (§4 lieu, §5.1 optique, §5.2 suivi).
  */
 
 export interface EntreeGlossaire {
-  /** Libellé affiché dans l'interface. C'est lui qui est rendu, jamais une chaîne littérale. */
+  /** UI label; what renders, never a literal string. */
   readonly libelle: string
   /**
-   * Glose courte, une phrase au plus, visible au survol. Absente, le libellé s'affiche sans
-   * bulle : une glose qu'aucune surface ne montre n'est pas écrite (T-0386).
+   * One-sentence gloss on hover. Absent: label without bulle (unwritten if no surface shows it,
+   * T-0386).
    */
   readonly glose?: string
-  /**
-   * Vrai si le libellé seul s'affiche sans bulle, alors que la glose sert ailleurs — dans la
-   * bulle d'une valeur tracée.
-   */
+  /** True: label alone without bulle while gloss serves elsewhere (traced-value bulle). */
   readonly sansBulle?: boolean
   /**
-   * Une à quatre phrases, facultatives. `{cle}` y est remplacé par l'entrée tracée de même
-   * clé (`TracedValue`), là où une valeur de l'utilisateur éclaire la phrase.
+   * 1-4 optional sentences. `{cle}` replaced by the traced entry of same key (`TracedValue`) where
+   * a user value lights the sentence.
    */
   readonly explication?: string
-  /** Ce que ça change pour l'utilisateur, en une phrase actionnable — facultatif. */
+  /** Consequence for the user, one actionable sentence; optional. */
   readonly consequence?: string
   /**
-   * Ce que la bulle d'une valeur tracée ajoute à la glose. Absent : la glose seule. Le reste
-   * — explication, conséquence, formule, entrées, constantes — se lit dans la rubrique
-   * « Calcul » de la modale info (`CalculsAffiches`).
+   * What a traced-value bulle adds to the gloss. Absent: gloss alone. Rest (explanation,
+   * consequence, formula, inputs, constants) is in info modal "Calcul" (`CalculsAffiches`).
    */
   readonly bulle?: readonly ('explication' | 'consequence')[]
   readonly sections: readonly string[]

@@ -1,10 +1,7 @@
 /**
- * §3.3 — Moteur de rendu unifié.
- *
- * Le critère central du PRD n'est pas une image mais une propriété d'architecture : le même
- * pointage doit coïncider en MODE_PLANETARIUM et en MODE_CADRE, sans divergence
- * systématique. Une seule implémentation de la projection le garantit ; deux bases de code
- * le trahiraient, et le défaut serait invisible en développement.
+ * §3.3 — unified render engine. PRD central criterion = architecture property: same pointage
+ * coincides in MODE_PLANETARIUM and MODE_CADRE. One projection implementation guarantees it; two
+ * codebases would betray it, invisibly in dev.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -50,9 +47,8 @@ function vue(mode: Vue['mode'], fovDeg: number): Vue {
 }
 
 /**
- * Vue centrée sur l'axe x : le centre de visée est alors (1, 0, 0), et une direction à
- * l'angle θ du centre et à l'angle de position φ s'écrit sans passer par la machinerie
- * testée — le test ne se valide pas lui-même.
+ * View centred on x axis: aim (1, 0, 0); direction at angle θ, position angle φ, written without
+ * the tested machinery.
  */
 function vueCentree(mode: Vue['mode'], fovDeg: number): Vue {
   return { ...vue(mode, fovDeg), azimutDeg: 0, hauteurDeg: 0, rotationDeg: 0 }
@@ -64,7 +60,7 @@ function directionA(thetaDeg: number, phiDeg: number) {
   return { x: Math.cos(t), y: Math.sin(t) * Math.cos(p), z: Math.sin(t) * Math.sin(p) }
 }
 
-/** Distance de corde : `acos` perd la moitié de ses chiffres près de zéro. */
+/** Chord distance: `acos` loses half its digits near zero. */
 function corde(a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) {
   return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z)
 }
@@ -80,10 +76,8 @@ describe('projection unifiée §3.3', () => {
   })
 
   /**
-   * T-0065 — `projetteEn` existe pour que les boucles chaudes n'allouent rien ; `projette`
-   * n'en est que l'emballage. Ce test est la garantie que §3.3 tient encore : deux formes
-   * de la même projection, un seul résultat, y compris hors du domaine projetable et au
-   * point singulier du fisheye.
+   * T-0065 — `projetteEn` allocates nothing for hot loops; `projette` wraps it. Guards §3.3: same
+   * result from both, incl. outside projectable domain and at fisheye singular point.
    */
   it('donne le même résultat en place et en allouant, dans les trois modes', () => {
     const out = pointEcran()
@@ -100,7 +94,7 @@ describe('projection unifiée §3.3', () => {
           expect(out.yPx, `${mode} ${lon}/${lat}`).toBe(attendu.yPx)
         }
       }
-      // Le centre de visée : c'est là que le fisheye prend sa branche singulière.
+      // Aim centre: fisheye singular branch.
       const centre = versVecteur(180, 40)
       const attendu = p.projette(centre)!
       p.projetteEn(centre.x, centre.y, centre.z, out)
@@ -122,15 +116,14 @@ describe('projection unifiée §3.3', () => {
         expect(a).not.toBeNull()
         expect(b).not.toBeNull()
 
-        // Même rayon depuis le centre du canevas : la direction est identique, seule la
-        // distance radiale diffère — c'est la déformation de projection, pas un décalage.
+        // Same radius from canvas centre: same direction, only radial distance differs →
+        // distortion.
         const angleA = Math.atan2(a!.yPx - HAUTEUR / 2, a!.xPx - LARGEUR / 2)
         const angleB = Math.atan2(b!.yPx - HAUTEUR / 2, b!.xPx - LARGEUR / 2)
         expect(angleA).toBeCloseTo(angleB, 9)
 
-        // L'angle au centre de visée se relit dans le rayon projeté, par la réciproque de
-        // §3.3 : c'est ce que le point portait avant T-0111, et la propriété reste vérifiée
-        // là où elle se démontre — sur ce que la projection produit réellement.
+        // Angle at aim centre re-read from projected radius via §3.3 inverse (what the point
+        // carried before T-0111): checks what projection produces.
         for (const [p, point] of [
           [planetarium, a!],
           [cadre, b!],
@@ -144,12 +137,10 @@ describe('projection unifiée §3.3', () => {
             Math.hypot(b!.xPx - LARGEUR / 2, b!.yPx - HAUTEUR / 2),
         )
       }
-      // Le rapport ne dépend que de θ, jamais de l'azimut : aucune divergence privilégiant
-      // une direction du champ.
+      // Ratio depends on θ only, never azimuth.
       for (const rapport of rapports) expect(rapport).toBeCloseTo(rapports[0]!, 9)
-      // Les deux modes cadrent le même champ : ils coïncident exactement au bord, et
-      // s'écartent de moins de 2 % au centre. C'est la déformation de projection, admise
-      // par le PRD, et elle ne dépend que de θ.
+      // Both modes frame same field: coincide at edge, differ <2 % at centre (PRD-accepted
+      // distortion, θ only).
       if (thetaDeg === 15) expect(rapports[0]!).toBeCloseTo(1, 9)
       else expect(Math.abs(rapports[0]! - 1)).toBeLessThan(0.02)
     }
@@ -165,8 +156,7 @@ describe('projection unifiée §3.3', () => {
         expect(Number.isFinite(point.yPx), `${lon}/${lat}`).toBe(true)
       }
     }
-    // Le point diamétralement opposé au centre n'est pas projetable : il est écarté, pas
-    // renvoyé à l'infini.
+    // Antipodal point not projectable: discarded, not sent to infinity.
     expect(p.projette(versVecteur(0, -40))).toBeNull()
   })
 
@@ -223,11 +213,9 @@ describe('profondeur asservie au zoom §3.3', () => {
   })
 
   /**
-   * T-0100 — non-régression du bug corrigé : un fond de ciel HORS TABLE ne suspend plus le
-   * plafond. Sous la Lune, `sb_effectif` descend sous la dernière ligne de la table ; la
-   * version fautive rendait alors la magnitude du zoom, donc PLUS d'étoiles qu'un ciel de
-   * banlieue. Le plafond se pose au-delà du bord de table — T-0357 : au seuil de Schaefer,
-   * sous la magnitude du bord —, et le déclare.
+   * T-0100 — regression: fond de ciel OFF-TABLE no longer suspends the cap. Under Moon
+   * `sb_effectif` fell below table's last row; faulty version returned zoom magnitude → MORE stars
+   * than suburban sky. Cap sits beyond table edge (T-0357: at Schaefer threshold) and declares it.
    */
   it('plafonne encore quand le fond de ciel sort de la table Bortle', () => {
     const horsTableClair = SB_PLAFOND_TABLE - 1
@@ -237,7 +225,7 @@ describe('profondeur asservie au zoom §3.3', () => {
     expect(sousLaLune.note).toMatch(/plus clair que Bortle 9/)
     expect(sousLaLune.flags).toContain('HORS_DOMAINE')
 
-    // L'autre bord : un SQM plus sombre que la table ne fait pas tomber le plafond non plus.
+    // Other edge: SQM darker than table doesn't drop the cap either.
     const horsTableSombre = magnitudeRendue(5, SB_PLANCHER_NATUREL + 1, true)
     expect(horsTableSombre.value).toBeCloseTo(M_LIM_OEIL_PLAFOND, 9)
   })
@@ -265,37 +253,34 @@ describe('profondeur asservie au zoom §3.3', () => {
     expect(fovMaxSelonMode('MODE_CADRE')).toBe(K('FOV_MAX_GNOMONIQUE_DEG'))
     expect(fovMaxSelonMode('MODE_PLANETARIUM')).toBe(K('FOV_MAX_STEREOGRAPHIQUE_DEG'))
     expect(fovMaxSelonMode('MODE_FISHEYE')).toBe(K('FOV_MAX_EQUIDISTANTE_DEG'))
-    // Stéréographique et équidistante passent 180° : ni 2·tan(θ/2) ni θ ne divergent. La
-    // gnomonique, seule, reste dessous (T-0220).
+    // Stereographic + equidistant pass 180° (neither 2·tan(θ/2) nor θ diverges); gnomonic alone
+    // stays below (T-0220).
     expect(fovMaxSelonMode('MODE_PLANETARIUM')).toBeGreaterThan(K('FOV_MAX_DEG'))
     expect(fovMaxSelonMode('MODE_FISHEYE')).toBeGreaterThan(K('FOV_MAX_DEG'))
     expect(fovMaxSelonMode('MODE_CADRE')).toBeLessThan(K('FOV_MAX_DEG'))
-    // Le plancher lié au catalogue et le plafond lié à la projection sont indépendants : le
-    // paquet Gaia ne change pas ce que tan(θ) fait au bord du champ.
+    // Catalogue-bound floor ⊥ projection-bound cap: Gaia pack doesn't change tan(θ) at field edge.
     expect(bornesZoom(true, 'MODE_CADRE').fovMaxDeg).toBe(K('FOV_MAX_GNOMONIQUE_DEG'))
     expect(bornesZoom(false, 'MODE_CADRE').fovMaxDeg).toBe(K('FOV_MAX_GNOMONIQUE_DEG'))
   })
 
   it('garde une échelle utilisable au plafond gnomonique, là où 180° effondre la scène', () => {
-    // R(θ) = tan(θ) et l'échelle vaut (largeur / 2) / R(fov / 2). Au plafond elle est du même
-    // ordre que la demi-largeur du canevas ; à 180° elle s'annule à la précision machine et
-    // toutes les étoiles tombent sur le pixel central — rien ne plante, tout disparaît.
+    // R(θ) = tan(θ), scale = (width / 2) / R(fov / 2). At cap: same order as canvas half-width; at
+    // 180° → machine zero, all stars on centre pixel (nothing crashes, everything disappears).
     const auPlafond = echelleProjection(vue('MODE_CADRE', K('FOV_MAX_GNOMONIQUE_DEG')))
     const a180 = echelleProjection(vue('MODE_CADRE', K('FOV_MAX_DEG')))
     expect(auPlafond).toBeGreaterThan(1)
     expect(a180).toBeLessThan(auPlafond * 1e-9)
-    // Les deux projections que le plafond de §3.3 conserve gardent, elles, une échelle du même
-    // ordre de grandeur : ni 2·tan(θ/2) ni θ ne divergent à 90°.
+    // Both projections kept by §3.3 cap keep a same-order scale: neither 2·tan(θ/2) nor θ diverges
+    // at 90°.
     for (const mode of ['MODE_PLANETARIUM', 'MODE_FISHEYE'] as const) {
       expect(echelleProjection(vue(mode, K('FOV_MAX_DEG')))).toBeGreaterThan(auPlafond * 1e-9)
     }
   })
 
   it('couvre le coin du canevas, à tout champ et dans les trois modes', () => {
-    // Le rayon de calotte sert à ÉCARTER : s'il sous-estime le champ, il efface de la
-    // géométrie visible. Le coin du canevas est le point le plus éloigné du centre de visée —
-    // sa séparation angulaire réelle doit tenir dans le rayon annoncé, y compris là où
-    // l'approximation petit-angle (fov / 2) × diagonale se trompait le plus : au grand champ.
+    // Calotte radius is used to DISCARD: underestimating erases visible geometry. Canvas corner =
+    // farthest from aim centre; true angular separation must fit announced radius, incl. where
+    // small-angle (fov / 2) × diagonal erred most: wide field.
     for (const mode of ['MODE_PLANETARIUM', 'MODE_CADRE', 'MODE_FISHEYE'] as const) {
       for (const part of [0.02, 0.25, 0.6, 1]) {
         const v = vue(mode, fovMaxSelonMode(mode) * part)
@@ -304,15 +289,14 @@ describe('profondeur asservie au zoom §3.3', () => {
         const coin = separationDeg(centre, p.inverse(0, 0))
         const rayon = rayonChampDeg(v)
         expect(rayon).toBeCloseTo(coin, 6)
-        // Une calotte reste une calotte : jamais plus que le ciel entier.
+        // A calotte stays a calotte: ≤ whole sky.
         expect(rayon).toBeLessThan(K('FOV_MAX_DEG'))
       }
     }
   })
 
   it('borne l’équidistante à l’antipode, même quand le canevas le dépasse (T-0220)', () => {
-    // Canevas portrait : au plafond, le coin est à plus de 180° du centre en R = θ. Au-delà
-    // du cercle antipodal il n'y a plus de ciel — ni la calotte ni un clic ne le passent.
+    // Portrait canvas: at cap, corner >180° from centre in R = θ. Beyond antipodal circle no sky.
     const portrait: Vue = {
       ...vue('MODE_FISHEYE', K('FOV_MAX_EQUIDISTANTE_DEG')),
       largeurPx: HAUTEUR,
@@ -327,23 +311,22 @@ describe('profondeur asservie au zoom §3.3', () => {
   it('refuse en équidistante un point voisin de l’antipode, pour ne pas tirer de corde (T-0220)', () => {
     const p = projecteur(vueCentree('MODE_FISHEYE', K('FOV_MAX_EQUIDISTANTE_DEG')), IDENTITE)
     const marge = K('MARGE_ANTIPODE_EQUIDISTANTE_DEG')
-    // Centre de visée en (1, 0, 0) : l'antipode est (−1, 0, 0), à la longitude 180°.
+    // Aim (1, 0, 0): antipode (−1, 0, 0), longitude 180°.
     expect(p.projette(versVecteur(180 - 2 * marge, 0))).not.toBeNull()
     expect(p.projette(versVecteur(180 - marge / 2, 0))).toBeNull()
     expect(p.projette(versVecteur(180 + marge / 2, 0))).toBeNull()
   })
 
   it('voit au-delà de l’hémisphère au plafond stéréographique', () => {
-    // Le plafond de la calotte valait FOV_MAX_DEG / 2 = 90° : au plafond stéréographique le
-    // coin est plus loin que cela, et tout ce qui s'y trouve était écarté de la sélection.
+    // Calotte cap was FOV_MAX_DEG / 2 = 90°: at stereographic cap corner is farther, all there was
+    // discarded.
     const auPlafond = rayonChampDeg(vue('MODE_PLANETARIUM', K('FOV_MAX_STEREOGRAPHIQUE_DEG')))
     expect(auPlafond).toBeGreaterThan(K('FOV_MAX_DEG') / 2)
   })
 
   it('refuse un point projeté hors de portée, singularité comprise', () => {
-    // Près de l'antipode de la visée, le facteur radial diverge : le point est « projetable »
-    // au sens de la formule, mais à des dizaines de milliers de pixels. Deux voisins d'une
-    // polyligne y tombent de part et d'autre du canevas, et la corde traverse l'image.
+    // Near aim antipode radial factor diverges: "projectable" per formula, tens of thousands of px
+    // away; polyline neighbours land either side of canvas, chord crosses image.
     const vue: Vue = {
       mode: 'MODE_PLANETARIUM',
       fovDeg: 60,
@@ -360,14 +343,13 @@ describe('profondeur asservie au zoom §3.3', () => {
     const dansLeChamp = proj.projette(versVecteur(0, 0))
     expect(dansLeChamp).not.toBeNull()
 
-    // Juste hors du champ affiché : toujours projeté, c'est ce qui permet aux polylignes de
-    // sortir proprement de l'image.
+    // Just outside field: still projected, lets polylines exit cleanly.
     const horsChamp = proj.projette(versVecteur(vue.fovDeg, 0))
     expect(horsChamp).not.toBeNull()
     expect(Math.hypot(horsChamp!.xPx - vue.largeurPx / 2, horsChamp!.yPx - vue.hauteurPx / 2))
       .toBeGreaterThan(vue.largeurPx / 2)
 
-    // À un degré de l'antipode : refusé.
+    // One degree from antipode: refused.
     expect(proj.projette(versVecteur(179, 0))).toBeNull()
   })
 
@@ -379,11 +361,9 @@ describe('profondeur asservie au zoom §3.3', () => {
 })
 
 /**
- * T-0258 — le centre de visée sort de sous les cartes.
- *
- * Le canevas couvre toute la coque, mais le rail de la vue et le panneau de séance s'y posent en
- * permanence. Le pointage doit tomber au milieu de ce qui RESTE visible, sinon on change la
- * focale sans jamais voir le cadre qu'elle produit (§11.3).
+ * T-0258 — aim centre moves out from under the cards. Canvas covers whole shell but view rail +
+ * session panel sit on it: pointage must land mid-VISIBLE area, else focale changes without ever
+ * seeing the resulting cadre (§11.3).
  */
 describe('T-0258 — le centre de visée décalé', () => {
   const DECALAGE_PX = -154
@@ -394,8 +374,7 @@ describe('T-0258 — le centre de visée décalé', () => {
 
   it('pose la direction visée au centre décalé, pas au milieu du canevas', () => {
     const proj = projecteur(vueDecalee(), IDENTITE)
-    // `vueCentree` vise l'axe x : c'est la direction que le pointage nomme, écrite sans passer
-    // par la projection testée.
+    // `vueCentree` aims at x axis: direction pointage names, written without the tested projection.
     const visee = proj.projette({ x: 1, y: 0, z: 0 })
     expect(visee).not.toBeNull()
     expect(visee!.xPx).toBeCloseTo(LARGEUR / 2 + DECALAGE_PX, 9)
@@ -417,16 +396,15 @@ describe('T-0258 — le centre de visée décalé', () => {
   })
 
   it('élargit la calotte de sélection jusqu’au bord devenu le plus lointain', () => {
-    // Le centre décalé n'est plus à égale distance des deux bords : garder la demi-largeur
-    // rejetterait sur une calotte trop petite et effacerait la géométrie du bord opposé (T-0110).
+    // Shifted centre not equidistant from the two edges: half-width would reject on too small a
+    // calotte, erasing opposite edge geometry (T-0110).
     const droit = vueCentree('MODE_PLANETARIUM', 60)
     const decale = vueDecalee()
     expect(rayonChampDeg(decale)).toBeGreaterThan(rayonChampDeg(droit))
 
     const proj = projecteur(decale, IDENTITE)
-    // Le coin le plus éloigné du centre décalé : à droite, puisque le centre est parti à gauche.
-    // La calotte lui est TANGENTE — c'est sa définition : elle couvre le canevas sans le
-    // déborder, et le coin opposé y tient donc aussi.
+    // Farthest corner from shifted centre: right. Calotte TANGENT to it (covers canvas without
+    // overflow) → opposite corner fits too.
     const centre = proj.inverse(proj.centreXPx, proj.centreYPx)
     expect(separationDeg(proj.inverse(LARGEUR, 0), centre)).toBeCloseTo(rayonChampDeg(decale), 9)
     expect(separationDeg(proj.inverse(0, HAUTEUR), centre)).toBeLessThan(rayonChampDeg(decale))

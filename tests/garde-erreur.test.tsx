@@ -1,15 +1,10 @@
 /**
- * T-0210 — l'écran noir n'est plus une issue possible.
+ * T-0210 — black screen impossible. No error boundary: a render throw unmounted the whole
+ * React tree → blank page (456° latitude did it).
+ * T-0279 — cause (English library sentence) → console, not screen.
  *
- * L'application se montait sans aucune frontière d'erreur : une levée en rendu démontait
- * l'arbre React entier, et la page devenait vide sans rien dire. C'est ce qu'une latitude de
- * 456° produisait.
- *
- * T-0279 — la cause, phrase anglaise de bibliothèque, part à la console et non à l'écran.
- *
- * La classe elle-même ne se rend pas ici : React n'active pas les frontières d'erreur au rendu
- * serveur, et c'est le seul rendu dont ce projet dispose (`environment: 'node'`). Ses deux
- * moitiés se vérifient séparément — la bascule, et l'écran de repli.
+ * Class not rendered: React doesn't activate error boundaries in server rendering (project's
+ * only renderer, `environment: 'node'`). Two halves checked apart: the switch, the fallback.
  */
 
 import { renderToStaticMarkup } from 'react-dom/server'

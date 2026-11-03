@@ -1,10 +1,7 @@
 /**
- * §3.3, §6.2, §11.1 — le marqueur d'un objet du ciel profond : sa taille, son orientation, sa
- * couleur.
- *
- * La taille attendue est CALCULÉE sur place avec `echelleProjection` et `rayonProjete`, jamais
- * recopiée : un nombre en dur ici ne vérifierait plus la formule de projection, il vérifierait
- * qu'on a bien recopié le nombre.
+ * §3.3, §6.2, §11.1 — deep-sky object marker: size, orientation, colour.
+ * Expected size COMPUTED with `echelleProjection` + `rayonProjete`, never copied (a hardcoded
+ * number verifies the copy, not the formula).
  */
 
 import { describe, expect, it } from 'vitest'
@@ -51,7 +48,7 @@ function vue(modifs: Partial<Vue> = {}): Vue {
   }
 }
 
-/** Un objet posé pile au centre du champ : c'est là que la projection est la plus simple. */
+/** Object at field centre: simplest projection case. */
 function objetAuCentre(v: Vue, dims: Partial<ObjetCielProfond> = {}): ObjetCielProfond {
   const centre = versSpherique(projecteur(v, MATRICE).inverse(v.largeurPx / 2, v.hauteurPx / 2))
   return {
@@ -79,7 +76,7 @@ function geometrieAuCentre(v: Vue, dims: Partial<ObjetCielProfond> = {}) {
   )
 }
 
-/** Le demi-axe attendu : R(θ) × échelle, la formule de §3.3 et rien d'autre. */
+/** Expected semi-axis: R(θ) × scale, §3.3 formula only. */
 function demiAxeAttenduPx(v: Vue, axeArcmin: number): number {
   const theta = (axeArcmin / 2 / ARCMIN_PAR_DEG) * DEG
   return echelleProjection(v) * rayonProjete(v.mode, theta)
@@ -104,7 +101,7 @@ describe('taille du marqueur d’objet §6.2', () => {
   it('grandit quand on zoome, dans le rapport des champs', () => {
     const large = geometrieAuCentre(vue({ fovDeg: 60 }))!
     const serre = geometrieAuCentre(vue({ fovDeg: 30 }))!
-    // Sous le degré, R(θ) est quasi linéaire : le rapport des tailles est celui des champs.
+    // Under 1°, R(θ) ~ linear: size ratio = field ratio.
     expect(serre.demiGrandPx / large.demiGrandPx).toBeCloseTo(2, 1)
   })
 
@@ -119,7 +116,7 @@ describe('taille du marqueur d’objet §6.2', () => {
   })
 
   it('remonte au plancher de lisibilité sans écraser l’aplatissement', () => {
-    // 0,2′ de grand axe à 60° de champ : quelques centièmes de pixel.
+    // 0,2′ major axis at 60° field: few hundredths of a pixel.
     const geo = geometrieAuCentre(vue(), { majAxArcmin: 0.2, minAxArcmin: 0.1 })!
     expect(geo.demiGrandPx).toBeCloseTo(MARQUEUR_OBJET_PX, 6)
     expect(geo.demiPetitPx / geo.demiGrandPx).toBeCloseTo(0.1 / 0.2, 2)
@@ -127,7 +124,7 @@ describe('taille du marqueur d’objet §6.2', () => {
 })
 
 describe('orientation du marqueur §6.2', () => {
-  /** L'écart d'angle entre deux directions non orientées : une ellipse est symétrique. */
+  /** Gap between two undirected directions (ellipse is symmetric). */
   function ecartRad(a: number, b: number): number {
     const brut = Math.abs(a - b) % Math.PI
     return Math.min(brut, Math.PI - brut)
@@ -166,8 +163,8 @@ describe('apparence par type §3.3, §11.1', () => {
   })
 
   it('donne à chaque type un dégradé qui se voit : cœur plus clair que bord', () => {
-    // Un radiant plus sombre que son bord se peint noir sur noir : l'ellipse perd sa forme,
-    // et la forme est ce que le marqueur a à dire.
+    // Radiant darker than its edge paints black on black: ellipse loses shape, which is the
+    // marker's message.
     for (const type of TYPES_OBJET) {
       const apparence = APPARENCE_OBJET[type]
       const clarte = (o: readonly [number, number, number]) =>

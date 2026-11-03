@@ -1,17 +1,12 @@
 /**
- * T-0210 — §12.5 : le dernier repli de la matrice de dégradation, celui qui n'était pas là.
- *
- * L'application se montait nue (`main.tsx`), sans aucune frontière d'erreur : n'importe quelle
- * levée pendant un rendu démontait l'arbre React entier, et l'écran devenait noir SANS RIEN
- * DIRE. C'est ce qui a rendu une latitude de 456° catastrophique plutôt que gênante.
- *
- * T-0208 ferme ce chemin-là en bornant la saisie ; celui-ci ferme la classe. Une bibliothèque
- * qui lève, un moteur qui déborde, un champ ajouté demain sans borne : l'écran le dit et
- * la page tient.
- *
- * T-0279 — la cause ne s'affiche plus : c'est une phrase anglaise de bibliothèque (`astronomy-engine`
- * lève des CHAÎNES), illisible pour qui observe. Elle part à la console avec la pile du composant ;
- * l'écran dit ce qui reste vrai et ce qu'on peut faire.
+ * T-0210 — §12.5: last fallback of the dégradation matrix, the one missing.
+ * App mounted bare (`main.tsx`), no error boundary: any render throw unmounted whole React tree,
+ * screen black SAYING NOTHING (made a 456° latitude catastrophic, not annoying). T-0208 closes
+ * that path by bounding input; this closes the class: throwing library, overflowing engine,
+ * tomorrow's unbounded field → screen says so, page holds.
+ * T-0279 — cause no longer displayed: English library sentence (`astronomy-engine` throws
+ * STRINGS), unreadable to observers. To console with component stack; screen says what remains
+ * true and what can be done.
  */
 
 import { Component, type ErrorInfo, type ReactNode } from 'react'
@@ -29,9 +24,8 @@ export class GardeErreur extends Component<{ readonly children: ReactNode }, Eta
   }
 
   /**
-   * La trace du composant fautif n'existe que dans `info` : sans elle, le message seul ne dit
-   * pas OÙ chercher. Elle part à la console et pas à l'écran — c'est une donnée de débogage,
-   * pas une phrase à lire (§12.4 : aucune télémétrie, rien n'est envoyé nulle part).
+   * Faulty component trace exists only in `info`: message alone doesn't say WHERE to look. To
+   * console not screen — debug data, not a sentence to read (§12.4: no telemetry, nothing sent).
    */
   override componentDidCatch(erreur: unknown, info: ErrorInfo): void {
     console.error('Orion — rendu interrompu', erreur, info.componentStack)
@@ -43,9 +37,9 @@ export class GardeErreur extends Component<{ readonly children: ReactNode }, Eta
 }
 
 /**
- * L'écran de repli, séparé de la garde qui le déclenche : une frontière d'erreur React ne
- * s'active pas au rendu serveur, et c'est le seul rendu dont ce projet dispose (`environment:
- * 'node'`). Séparé, il se vérifie ; fondu dans la classe, il ne serait jamais rendu par un test.
+ * Fallback screen, separate from the guard: React error boundary doesn't activate in server
+ * render, the only render this project has (`environment: 'node'`). Separate, it can be verified;
+ * fused in the class, a test would never render it.
  */
 export function EcranInterrompu() {
   return (

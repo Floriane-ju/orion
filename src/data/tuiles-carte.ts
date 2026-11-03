@@ -1,13 +1,9 @@
 /**
- * §4.1, §12.5, §13.1 — les tuiles OSM de la carte du site (T-0363).
- *
- * Un échec ne lève jamais et ne s'affiche pas : sous une tuile manquante, le fond embarqué
- * reste. Hors réseau, aucune requête n'est émise — c'est la ligne « Carte de choix du lieu »
- * de la matrice §12.5, et la dernière phrase du bloc des tiers de §13.1.
- *
- * Les tuiles vivent en mémoire, pas en IndexedDB : on ne les revoit que le temps de choisir
- * un lieu, et OSM interdit le pré-téléchargement.
- * ponytail: cache mémoire seul, IndexedDB si revenir sur la carte après rechargement le justifie.
+ * §4.1, §12.5, §13.1 — OSM tiles of the site map (T-0363).
+ * Failure never throws nor shows: embedded background stays under a missing tile. Offline: no
+ * request — §12.5 line « Carte de choix du lieu », last sentence of §13.1's third-party block.
+ * Tiles in memory, not IndexedDB: seen only while choosing a place, OSM forbids prefetching.
+ * ponytail: memory cache only; upgrade to IndexedDB if returning to map after reload justifies.
  */
 
 import { ramene } from '../core/unites.ts'
@@ -17,10 +13,7 @@ import { modeReseauCourant } from './degradation.ts'
 export type ChargeTuileCarte<T> = (z: number, x: number, y: number) => Promise<T>
 
 export interface CacheTuiles<T> {
-  /**
-   * La tuile si elle est chargée, sinon `null` — et la demande part, une seule fois, avec
-   * `surPrete` appelé à son arrivée pour redessiner.
-   */
+  /** Tile if loaded, else `null` + one request; `surPrete` called on arrival to redraw. */
   demande(z: number, x: number, y: number, surPrete: () => void): T | null
   taille(): number
 }
@@ -29,7 +22,7 @@ export function cleTuile(z: number, x: number, y: number): string {
   return `${z}/${x}/${y}`
 }
 
-/** La tuile qui se peint à cette place : la colonne se referme, la rangée s'arrête au monde. */
+/** Tile at this place: column wraps, row stops at world edge. */
 export function tuileVisible(z: number, x: number, y: number): { x: number; y: number } | null {
   const nb = 2 ** z
   if (y < 0 || y >= nb) return null
@@ -37,7 +30,7 @@ export function tuileVisible(z: number, x: number, y: number): { x: number; y: n
 }
 
 export function cacheTuiles<T>(charge: ChargeTuileCarte<T>, plafond: number): CacheTuiles<T> {
-  // Une `Map` garde l'ordre d'insertion : réinsérer à la lecture en fait un LRU.
+  // `Map` keeps insertion order: reinserting on read = LRU.
   const pretes = new Map<string, T>()
   const enVol = new Set<string>()
   return {
@@ -59,7 +52,7 @@ export function cacheTuiles<T>(charge: ChargeTuileCarte<T>, plafond: number): Ca
           surPrete()
         })
         .catch(() => {
-          // Le fond embarqué reste sous la tuile manquante ; elle se redemandera au prochain rendu.
+          // Embedded background stays under missing tile; re-requested at next render.
         })
         .finally(() => enVol.delete(cle))
       return null
@@ -68,7 +61,7 @@ export function cacheTuiles<T>(charge: ChargeTuileCarte<T>, plafond: number): Ca
   }
 }
 
-/** Une tuile téléchargée et décodée par le navigateur lui-même, peinte ensuite par `drawImage`. */
+/** Tile downloaded + decoded by browser, painted by `drawImage`. */
 export const chargeTuileOsm: ChargeTuileCarte<ImageBitmap> = async (z, x, y) => {
   const reponse = await fetch(urlTuileCarte(z, x, y), {
     signal: AbortSignal.timeout(C('DELAI_MAX_TUILE_CARTE_MS')),
@@ -79,5 +72,5 @@ export const chargeTuileOsm: ChargeTuileCarte<ImageBitmap> = async (z, x, y) => 
   return createImageBitmap(corps)
 }
 
-/** Le cache partagé de l'application : il survit au repli de la carte « Site ». */
+/** App-shared cache: survives collapse of the « Site » map. */
 export const TUILES_OSM = cacheTuiles(chargeTuileOsm, C('TUILES_CARTE_CACHE_MAX'))

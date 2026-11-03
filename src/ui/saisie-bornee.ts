@@ -1,14 +1,9 @@
 /**
- * T-0208 — §4.1 et §5.1 : la frontière entre le TEXTE tapé à l'écran et le NOMBRE qu'un
- * moteur reçoit.
- *
- * Elle existe parce qu'elle manquait : la saisie du lieu descendait dans la chaîne de calcul
- * par un `Number()` nu, et une latitude de 456° atteignait `astronomy-engine`, qui lève une
- * chaîne de caractères — pas une `Error`. Une levée en rendu démonte l'arbre React : l'écran
- * devenait noir.
- *
- * Le texte saisi n'est pas corrigé, seulement la valeur consommée. Réécrire le champ à la
- * frappe empêcherait de taper « 45.6 », dont « 456 » est un état transitoire légitime.
+ * T-0208 — §4.1, §5.1: boundary typed TEXT → NUMBER an engine receives.
+ * Lieu saisie went down chain via bare `Number()`: latitude 456° reached `astronomy-engine`,
+ * which throws a string (not `Error`); render throw unmounts React tree → black screen.
+ * Only the consumed value is corrected, not typed text: rewriting per keystroke would block
+ * "45.6" ("456" is a legit transient).
  */
 
 import { borne, DOMAINES, nombreDeTexte, type Bornage, type DomaineId } from '../registry/domains.ts'
@@ -16,16 +11,15 @@ import { nombreLibre } from '../registry/ecriture.ts'
 import type { Plage } from '../core/objectif.ts'
 
 /**
- * La lecture du texte — champ vide, virgule décimale — appartient au registre (T-0274).
- *
- * T-0404 — `plage` resserre le domaine sans le remplacer : celle de l'objectif monté. La
- * valeur y est ramenée comme dans le domaine, et la cause nomme l'objectif, pas le registre.
+ * Text reading (empty field, decimal comma) lives in registry (T-0274).
+ * T-0404 — `plage` narrows domain, never replaces it: mounted objectif's. Clamped as in domain,
+ * cause names the objectif, not registry.
  */
 export function nombreSaisi(champ: DomaineId, texte: string, plage?: Plage): Bornage {
   const valeur = nombreDeTexte(texte)
   const bornage = borne(champ, valeur)
-  // La plage d'un objectif tient dans le domaine (`valideObjectif`) : c'est elle qui borne, y
-  // compris une saisie que le domaine aurait ramenée ailleurs — 5 000 mm sur un 18-55 donne 55.
+  // Objectif plage fits inside domain (`valideObjectif`): it bounds even input the domain would
+  // have moved elsewhere — 5 000 mm on 18-55 gives 55.
   if (plage === undefined || !Number.isFinite(valeur)) return bornage
   if (valeur >= plage.min && valeur <= plage.max) return bornage
   const d = DOMAINES[champ]
@@ -40,8 +34,7 @@ export function nombreSaisi(champ: DomaineId, texte: string, plage?: Plage): Bor
 }
 
 /**
- * Un champ optionnel : vide, la grandeur est déclarée inconnue (§2.3) et rien n'est refusé.
- * Renseignée hors plage, elle est bornée comme les autres.
+ * Optional field: empty → grandeur unknown (§2.3), nothing refused. Out of range → clamped.
  */
 export function nombreSiRenseigne(
   champ: DomaineId,

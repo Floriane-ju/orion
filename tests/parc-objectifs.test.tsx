@@ -1,9 +1,7 @@
 /**
- * T-0404 — §5.1 parc d'objectifs, côté saisie : le réglage borné par l'objectif monté, le
- * plancher d'ouverture qui suit la focale, la saisie d'un objectif, la carte Optique, et la
- * phrase §6.1 qui nomme l'objectif du parc.
- *
- * Les plafonds attendus se relisent dans le moteur (`plagesReglage`) au lieu d'être recopiés.
+ * T-0404 — §5.1 parc d'objectifs, input side: adjustment bounded by mounted lens, aperture
+ * floor following focale, lens entry, Optique card, §6.1 phrase naming the parc lens.
+ * Expected caps re-read from engine (`plagesReglage`), not copied.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -192,7 +190,7 @@ describe('T-0404 — la carte Optique', () => {
   it('sous une focale fixe, la focale ne se saisit plus', () => {
     const html = rendu({ objectifId: FIXE.id, focale: '135', ouverture: '2' })
     expect(html).not.toContain('placeholder="135 à 135"')
-    // Le fisheye reste réglable : il s'écrit dans l'objectif coché.
+    // Fisheye stays adjustable: written into checked lens.
   })
 
   it('le calcul reçoit le réglage borné, pas la frappe', () => {
@@ -233,7 +231,7 @@ describe('T-0404 — l’optique de départ est un objectif du parc', () => {
     const [o] = objectifs
     expect(o?.focaleMinMm).toBe(o?.focaleMaxMm)
     expect(o?.nom).toBe(o === undefined ? '' : caracteristiques(o))
-    // Rééditable en zoom : la saisie qui en sort se complète d'une focale max.
+    // Re-editable as zoom: entry completes with a max focale.
     const zoom = o === undefined ? null : objectifDeSaisie({ ...saisieDe(o), focaleMax: '200' }, o.id, o.typeObjectif)
     expect(zoom?.focaleMaxMm).toBe(200)
   })
@@ -290,7 +288,7 @@ describe('T-0406 — la modale d’ajout d’un objectif', () => {
   it('est une modale nommée, sans <dialog>, qui n’ajoute rien de vide', () => {
     const html = renderToStaticMarkup(<ModaleObjectif surValide={rien} surFermeture={rien} />)
     expect(html).toMatch(/role="dialog"[^>]*aria-modal="true"/)
-    // Un clic hors des champs garde le focus dans la modale : Échap y reste entendu.
+    // Click outside fields keeps focus in modal: Échap still heard.
     expect(html).toMatch(/role="dialog"[^>]*tabindex="-1"/)
     expect(html).not.toContain('<dialog')
     expect(html).toContain('Ajouter un objectif')

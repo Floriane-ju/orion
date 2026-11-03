@@ -1,27 +1,16 @@
 /**
- * T-0270 — §5.1 : un `useMemo` de la chaîne de calcul ne doit jamais lire une entrée absente
- * de ses dépendances.
- *
- * Le défaut se voyait sur « Objectif fisheye » : la case change `materiel.typeObjectif`, que
- * `evalueMateriel` lit, mais que la liste de dépendances ne nommait pas — le champ et la
- * projection du cadre restaient ceux de l'objectif rectilinéaire tant qu'aucun autre champ du
- * matériel n'était touché.
- *
- * La vérification ne recopie pas la liste attendue : elle ESPIONNE les lectures réelles avec
- * un `Proxy`, puis les confronte aux dépendances lues dans la source. Une entrée ajoutée
- * demain au fond d'un moteur est donc couverte sans que ce test soit retouché — c'est ce que
- * la directive `eslint-disable` posée sur ces `useMemo` laisse croire sans le faire, faute de
- * linter dans le dépôt (T-0060).
- *
- * L'espion ne voit que les accès de premier niveau sur l'objet de saisie (`materiel.boitier`
- * oui, `materiel.boitier.tailleRawMo` non) : c'est exactement la maille d'une liste de
- * dépendances React, donc la seule qui ait un sens ici.
- *
- * T-0291 — les moteurs reçoivent maintenant DEUX entrées : la saisie, pour ce qui n'est pas
- * un nombre, et ses grandeurs bornées, pour ce qui en est un. L'espion porte donc sur les
- * deux, et une discipline s'ajoute : aucune dépendance de la chaîne ne nomme plus un champ
- * TEXTE qui a une grandeur bornée. C'est la régression qui coûtait 480 ms par caractère sans
- * effet — « 45.5 » puis « 45.50 » ne sont pas la même chaîne, mais sont la même latitude.
+ * T-0270 — §5.1: a calcul-chain `useMemo` never reads an input absent from its dependencies.
+ * Defect seen on "Objectif fisheye": checkbox changes `materiel.typeObjectif`, read by
+ * `evalueMateriel` but not in deps → champ and cadre projection stayed rectilinear until another
+ * matériel field was touched.
+ * No copied expected list: a `Proxy` SPIES real reads, compared to deps read from source. Input
+ * added deep in an engine tomorrow is covered untouched — which `eslint-disable` on these
+ * `useMemo` implies but doesn't deliver (no linter in repo, T-0060).
+ * Spy sees only first-level accesses on saisie object (`materiel.boitier` yes,
+ * `materiel.boitier.tailleRawMo` no) = React deps granularity.
+ * T-0291 — engines take TWO inputs: saisie (non-numbers) + its bounded grandeurs (numbers). Spy
+ * covers both; rule added: no chain dependency names a TEXT field that has a bounded grandeur.
+ * Regression cost 480 ms per character for nothing: "45.5" ≠ "45.50" as strings, same latitude.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -101,7 +90,7 @@ const SITE = {
   altitudeM: Number(DEFAUT.altitude),
 }
 
-/** Les champs de `saisie` réellement lus pendant `usage`, accès de premier niveau. */
+/** `saisie` fields actually read during `usage`, first-level accesses. */
 function champsLus<T extends object>(saisie: T, usage: (espion: T) => unknown): string[] {
   const lus = new Set<string>()
   usage(
@@ -115,7 +104,7 @@ function champsLus<T extends object>(saisie: T, usage: (espion: T) => unknown): 
   return [...lus].sort()
 }
 
-/** L'appel `useMemo(…)` qui contient `marqueur`, parenthèses appariées. */
+/** The `useMemo(…)` call containing `marqueur`, parentheses matched. */
 function appelUseMemo(marqueur: string): string {
   const marque = SOURCE.indexOf(marqueur)
   expect(marque, marqueur).toBeGreaterThan(-1)
@@ -128,7 +117,7 @@ function appelUseMemo(marqueur: string): string {
   throw new Error(`Appel useMemo non refermé autour de ${marqueur}`)
 }
 
-/** Les champs de `objet` nommés dans la liste de dépendances de ce `useMemo`. */
+/** `objet` fields named in this `useMemo`'s dependency list. */
 function champsDeclares(marqueur: string, objet: string): string[] {
   const noms = [
     ...dependances(marqueur).matchAll(new RegExp(String.raw`\b${objet}\.(\w+)`, 'gu')),
@@ -136,7 +125,7 @@ function champsDeclares(marqueur: string, objet: string): string[] {
   return [...new Set(noms)].sort()
 }
 
-/** Le texte de la liste de dépendances de ce `useMemo`, crochets compris. */
+/** Text of this `useMemo`'s dependency list, brackets included. */
 function dependances(marqueur: string): string {
   const appel = appelUseMemo(marqueur)
   return appel.slice(appel.lastIndexOf('['))
@@ -177,8 +166,8 @@ describe('T-0270 — aucune entrée lue hors des dépendances (§5.1)', () => {
   })
 
   /**
-   * Le site se construit d'un littéral, pas d'un appel : rien à espionner, mais la même
-   * exigence — les trois grandeurs qu'il recopie sont les trois dont il dépend.
+   * Site built from a literal, not a call: nothing to spy, same requirement — the 3 grandeurs
+   * it copies = the 3 it depends on.
    */
   it('le site : `siteSaisi` déclare les trois grandeurs qu’il recopie', () => {
     expect(champsDeclares('latitudeDeg: lieuBorne.latitudeDeg', 'lieuBorne')).toEqual([
@@ -189,11 +178,9 @@ describe('T-0270 — aucune entrée lue hors des dépendances (§5.1)', () => {
   })
 
   /**
-   * Le symptôme du ticket, au niveau du moteur : si cocher la case ne changeait déjà rien ici,
-   * la liste de dépendances ne serait pas le sujet.
-   *
-   * L'échantillonnage, lui, ne bouge pas — `echApx` vaut pitch/focale, la projection n'y entre
-   * pas (§5.1). Ce que la case change est le CHAMP et le mode de projection du cadre.
+   * Ticket symptom, engine level: if ticking checkbox already changed nothing here, deps list
+   * wouldn't be the subject. Échantillonnage doesn't move (`echApx` = pitch/focale, projection
+   * not in it, §5.1); checkbox changes cadre CHAMP + projection mode.
    */
   it('cocher « Objectif fisheye » change le champ et la projection du cadre', () => {
     const saisieFisheye = materiel({ typeObjectif: 'FISHEYE' })
@@ -209,10 +196,8 @@ describe('T-0270 — aucune entrée lue hors des dépendances (§5.1)', () => {
 })
 
 /**
- * T-0291 — la mémoïsation porte sur les NOMBRES, jamais sur le texte tapé.
- *
- * Ces huit champs ont tous une grandeur bornée, et c'est elle qui décide : une dépendance qui
- * nommerait de nouveau le texte ferait repayer toute la nuit pour un zéro final.
+ * T-0291 — memoization on NUMBERS, never typed text. These 8 fields all have a bounded grandeur:
+ * a dependency naming the text again would repay the whole nuit for a trailing zero.
  */
 describe('T-0291 — aucune dépendance ne porte sur une chaîne saisie', () => {
   const MEMOS = [
@@ -222,7 +207,7 @@ describe('T-0291 — aucune dépendance ne porte sur une chaîne saisie', () => 
     'profilsDeCadre(calcul, materiel)',
   ] as const
 
-  /** Les champs texte de la saisie dont une grandeur bornée existe. */
+  /** Saisie text fields that have a bounded grandeur. */
   const TEXTES = /\b(?:lieu|materiel)\.(latitude|longitude|altitude|bortle|sqm|focale|ouverture|iso)\b/gu
 
   it.each(MEMOS)('les dépendances de « %s » sont des nombres', (marqueur) => {

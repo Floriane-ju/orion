@@ -1,9 +1,7 @@
 /**
- * §4.1 — les seuils de déclinaison du site, dans la modale « info ».
- *
- * Ils sont une propriété de la latitude, pas une saisie : sous les champs de la carte Site,
- * ils se relisaient à chaque réglage sans jamais se régler. Ici, ils se consultent quand on
- * se demande pourquoi une cible basse n'est jamais proposée.
+ * §4.1 — site déclinaison thresholds, in "info" modal. Property of latitude, not saisie: under
+ * Site card fields they were reread per setting without being set. Here: for "why is a low cible
+ * never proposed?".
  */
 
 import type { SeuilsSite } from '../core/site.ts'

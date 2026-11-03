@@ -1,21 +1,15 @@
 /**
- * §11.3 — le rail de la vue : ce qui commande CE QU'ON VOIT, posé sur la scène même.
- *
- * T-0213 — c'était la carte « Vue », repliée au démarrage. Ses neuf commandes se règlent EN
- * regardant le ciel : déplier une carte pour éteindre une couche, puis la replier pour revoir
- * ce qu'on vient de changer, c'est deux gestes pour un seul réglage — et sur le terrain, deux
- * gestes gantés dans le noir. Le rail les rend d'un clic, sans rien masquer de la scène qu'il
- * commande.
- *
- * TOUJOURS MONTÉ, donc jamais abonné à tout. La carte s'abonnait au magasin entier
- * (`useScene`), ce que son démontage rendait sans conséquence ; ici l'instant republié deux
- * fois par seconde rendrait le rail au même rythme (T-0056). Trois tranches, trois sélecteurs
- * définis au niveau du module — c'est le contrat de `useTrancheScene`.
- *
- * LES NOTES SONT DANS LES BULLES. La carte portait sept notes sous ses cases ; elles suivent
- * le contrôle qu'elles expliquent, au survol comme au focus clavier. Chaque bouton garde un
- * `aria-label` court : la bulle le DÉCRIT, elle ne le nomme pas — un nom accessible de trente
- * mots ne se laisse pas parcourir.
+ * §11.3 — view rail: what controls WHAT IS SEEN, laid over the scène itself.
+ * T-0213 — was the "Vue" card, folded at start. Its nine controls are set WHILE looking at the
+ * sky: unfold a card to switch a layer off, fold it to see the result = two gestures per
+ * setting (gloved, in the dark). Rail = one click, hides nothing of the scène.
+ * ALWAYS MOUNTED → never subscribed to everything. The card subscribed to the whole store
+ * (`useScene`), harmless since it unmounted; here the instant republished 2×/s would render
+ * the rail at that rate (T-0056). Three slices, three module-level selectors — the
+ * `useTrancheScene` contract.
+ * NOTES LIVE IN THE BUBBLES (follow the control they explain, hover + keyboard focus). Each
+ * button keeps a short `aria-label`: bubble DESCRIBES, does not name — a 30-word accessible
+ * name cannot be skimmed.
  */
 
 import {
@@ -43,42 +37,38 @@ import {
 import { modeSeance, useTrancheSeance } from './seance-etat.ts'
 
 export interface RailVueProps {
-  /** §5.1 — la projection de l'objectif déclaré au panneau matériel, pas un réglage de rendu. */
+  /** §5.1 — projection of the objectif declared in the matériel panel, not a render setting. */
   readonly modeObjectif: ModeProjection
   readonly gaiaCharge: boolean
-  /** Époque de l'instant affiché : elle chiffre l'écart de précession des frontières B1875. */
+  /** Epoch of the displayed instant: quantifies the B1875 boundaries' precession gap. */
   readonly epoqueAnnee: number
-  /** §4.1 — relief du site : la couche Sol masque ce relief, et le déclare quand il est supposé. */
+  /** §4.1 — site relief: Sol layer masks it, and says so when it is assumed. */
   readonly masque: MasqueHorizon
-  /** Les cartes Site, Boîtier et Optique, posées en boutons sous les calques. */
+  /** Site, Boîtier and Optique cards, as buttons under the calques. */
   readonly reglages: ReactNode
 }
 
-/** Sélecteurs définis au niveau du module — `useTrancheScene` exige une identité stable. */
+/** Module-level selectors — `useTrancheScene` needs a stable identity. */
 function modeScene(etat: EtatScene): ModeProjection {
   return etat.vue.mode
 }
 function couchesScene(etat: EtatScene): CouchesActives {
   return etat.rendu.couches
 }
-/** T-0324 — la cible du parcours, `null` quand il n'y en a pas : la bulle la nomme. */
+/** T-0324 — parcours target, `null` when none: the bubble names it. */
 function cibleParcours(etat: EtatScene): string | null {
   return etat.rendu.parcours?.designation ?? null
 }
 
 /**
- * Les couches qui se décident, avec leur glyphe. L'horizon n'en fait pas partie : c'est la
- * ligne à laquelle se lisent les hauteurs et l'azimut, donc le repère du reste — l'effacer
- * rendait la scène illisible sans rien libérer. Il reste une passe de rendu
- * (`CouchesActives.horizon`), toujours allumée, que les tests de tracé isolent couche par
- * couche.
- *
- * Elles se rangent dans le tiroir « Calques » : six glyphes empilés au flanc de la scène se
- * lisaient comme une liste sans nom. Le cadre matériel reste seul sur le rail — ce n'est pas
- * un habillage du ciel mais ce qu'on vise, et il se bascule en cadrant, sans ouvrir de menu.
- *
- * `filter_hdr` et non `terrain` pour le sol : la ligature `terrain` n'existe pas dans la
- * police livrée, et une ligature absente s'affiche en toutes lettres.
+ * Layers that are decided, with glyph. Horizon excluded: the line heights and azimuth are read
+ * against, reference for the rest — erasing it made the scène unreadable for no gain. Still a
+ * render pass (`CouchesActives.horizon`), always on, isolated per layer by the tracé tests.
+ * Grouped in the "Calques" drawer: six stacked glyphs on the scène flank read as an unnamed
+ * list. Cadre matériel stays alone on the rail — not sky dressing but what is aimed at,
+ * toggled while framing without opening a menu.
+ * `filter_hdr`, not `terrain`, for the sol: `terrain` ligature absent from the shipped font,
+ * and a missing ligature renders as plain text.
  */
 type Couche = readonly [keyof CouchesActives, string, string]
 
@@ -93,12 +83,11 @@ const CALQUES: readonly Couche[] = [
 const CADRE: Couche = ['cadre', 'crop', 'Cadre matériel']
 
 /**
- * T-0171 — sous l'aperçu peint sur toute la scène (§9.5), seuls le sol, l'horizon, le cadre
- * matériel et le trait du plan galactique s'ajoutent : ces trois couches-ci n'ont aucun effet
- * en Panorama. Elles y étaient grisées avec une note ; elles quittent désormais le rail, qui ne
- * garde que ce qui commande l'image affichée. Leur état est conservé : revenir en Ciel profond
- * les rend telles qu'on les avait laissées. T-0403 — la Voie lactée reste : sa bascule commande
- * le trait du plan galactique (T-0173).
+ * T-0171 — under the preview painted across the scène (§9.5), only sol, horizon, cadre matériel
+ * and the galactic-plane line add on: those three layers do nothing in Panorama. Were greyed
+ * with a note; now leave the rail (keeps only what controls the displayed image). State kept:
+ * back in Ciel profond they return as left. T-0403 — Voie lactée stays: its toggle controls
+ * the galactic-plane line (T-0173).
  */
 const ABSENTES_EN_PANORAMA: readonly (keyof CouchesActives)[] = [
   'figures',
@@ -107,40 +96,39 @@ const ABSENTES_EN_PANORAMA: readonly (keyof CouchesActives)[] = [
 ]
 
 /**
- * T-0324 — sous un parcours de pointage, la scène ne garde que le trajet, la cible et le cadre
- * matériel. AUCUNE bascule de couche n'y change quoi que ce soit — pas même celle du cadre, qui
- * est forcé allumé. Elles s'éteignent donc toutes, et disent pourquoi.
+ * T-0324 — under a pointage parcours the scène keeps only path, target and cadre matériel. NO
+ * layer toggle changes anything — not even the cadre, forced on. All go off and say why.
  */
 const NOTE_PARCOURS = 'masqué pendant le parcours de pointage'
 
-/* T-0097 — la bascule ne plafonne plus seulement la magnitude : elle peint le fond de ciel
-   du site, son halo d'horizon et celui de la Lune. */
+/* T-0097 — toggle no longer only caps magnitude: it paints the site's fond de ciel, horizon
+   halo and the Moon's. */
 const AIDE_REALISTE = 'Simulation du ciel tel qu’on le voit depuis ce site'
 
-/** Une phrase par bulle : le libellé du contrôle, puis ce qu'il faut savoir avant de cliquer. */
+/** One sentence per bubble: control label, then what to know before clicking. */
 function aide(libelle: string, ...notes: readonly (string | undefined)[]): string {
   return [libelle, ...notes.filter((n) => n !== undefined && n !== '')].join(' — ')
 }
 
 interface BasculeProps {
   readonly nom: string
-  /** Le libellé écrit après le glyphe — dans le tiroir, où la place le permet. */
+  /** Label written after the glyph — in the drawer, where room allows. */
   readonly texte?: string
   readonly variante?: 'flottant' | 'nu'
-  /** Nom accessible du bouton : court, c'est lui qu'un lecteur d'écran annonce. */
+  /** Accessible button name: short, what a screen reader announces. */
   readonly libelle: string
-  /** Ce que la bulle dit au survol et au focus. Elle DÉCRIT le bouton, elle ne le nomme pas. */
+  /** Bubble text on hover and focus. DESCRIBES the button, does not name it. */
   readonly aide: string
   readonly actif: boolean
-  /** La commande est sans effet dans le mode courant : elle le montre au lieu de faire semblant. */
+  /** Control has no effect in the current mode: shows it instead of pretending. */
   readonly eteinte?: boolean
   readonly sur: () => void
 }
 
 function Bascule(props: BasculeProps) {
   return (
-    // `aria-pressed` plutôt qu'une case : ces boutons ne déplient rien, ils tiennent un état à
-    // deux positions — même grammaire que la bascule de mode de la barre haute.
+    // `aria-pressed`, not a checkbox: buttons unfold nothing, hold a two-position state — same
+    // grammar as the top bar's mode toggle.
     <BoutonGlyphe
       icone={props.nom}
       aide={props.aide}
@@ -163,24 +151,23 @@ export function RailVue(props: RailVueProps) {
   const parcours = cibleDuParcours !== null
   const modeInterface = useTrancheSeance(modeSeance)
 
-  /* Les bornes de champ sont une propriété de la PROJECTION (`fovMaxSelonMode`), et leur
-     plancher une propriété du paquet chargé : la cause se lit donc sur les deux boutons qui
-     choisissent la projection. §3.3 — un geste sans effet doit nommer ce qui l'arrête. */
+  /* Field bounds are a property of the PROJECTION (`fovMaxSelonMode`), their floor of the
+     loaded pack: cause reads on the two projection-choosing buttons. §3.3 — a no-op gesture
+     must name what stops it. */
   const bornes = bornesZoom(props.gaiaCharge, mode)
   const vueAppareil = mode !== 'MODE_PLANETARIUM'
   const aideProjection = vueAppareil
     ? `Vue comme l’appareil — ${props.modeObjectif === 'MODE_FISHEYE' ? 'équidistante' : 'gnomonique'}`
     : 'Vue planétarium — stéréographique'
 
-  /* §4.1 — le sol masque, il doit donc dire sur quoi il repose. L'hypothèse d'horizon plat
-     invite à éditer un relevé que l'interface ne propose plus : elle ne s'affiche pas. */
+  /* §4.1 — sol masks, so must say what it rests on. Flat-horizon hypothesis invites editing a
+     survey the UI no longer offers: not shown. */
   const noteSol =
     !props.masque.estHypothese && props.masque.note !== undefined ? props.masque.note : undefined
 
-  /* §10.2 — tout nombre affiché est dépliable jusqu'à sa formule. Une bulle ne déplie rien :
-     y écrire l'écart de précession en ferait un chiffre à croire sur parole. Elle porte donc
-     la phrase que la trace adresse à l'utilisateur, et le nombre reste au compteur de visée
-     et aux valeurs tracées, où il se déplie. */
+  /* §10.2 — every displayed number unfolds to its formula. A bubble unfolds nothing: the
+     precession gap there = a number taken on faith. It carries the sentence the trace
+     addresses to the user; the number stays in the aim counter and traced values (unfoldable). */
   const noteFrontieres = ecartFrontieresDeg(props.epoqueAnnee).note
 
   const notes: Partial<Record<keyof CouchesActives, string | undefined>> = {
@@ -193,11 +180,10 @@ export function RailVue(props: RailVueProps) {
   return (
     <>
       <div className="coque-rail" role="group" aria-label="Vue de la scène">
-        {/* Une bascule, pas deux choix : éteinte la vue de planétarium, allumée celle de
-            l'objectif déclaré. Offrir gnomonique ET équidistante ici laisserait choisir une
-            projection que le matériel ne produit pas — §5.1 en fait une propriété de
-            l'objectif. Le nom reste fixe, `aria-pressed` porte l'état ; la bulle dit la vue
-            affichée. */}
+        {/* Toggle, not two choices: off = planétarium view, on = declared objectif's. Offering
+            gnomonique AND équidistante here would let choose a projection the matériel does not
+            produce — §5.1 makes it an objectif property. Name fixed, `aria-pressed` carries
+            state; bubble says the displayed view. */}
         <div className="rail-groupe" role="group" aria-label="Projection">
           <Bascule
             nom="camera"
@@ -218,14 +204,13 @@ export function RailVue(props: RailVueProps) {
           />
         </div>
 
-        {/* T-0324 — le parcours se déclenche depuis le plan de nuit, un panneau qui se replie.
-            Sans cette sortie posée près de la scène, on resterait devant un ciel dépouillé sans
-            savoir d'où il vient. Pas de bascule : il n'y a rien à rallumer, seulement à sortir. */}
+        {/* T-0324 — parcours starts from the night plan, a folding panel. Without this exit near
+            the scène one faces a stripped sky not knowing why. No toggle: nothing to relight,
+            only to leave. */}
         {parcours && (
           <div className="rail-groupe" role="group" aria-label="Parcours de pointage">
-            {/* T-0324 — la bulle NOMME la cible : deux étapes du plan peuvent avoir leur aide
-                au pointage ouverte en même temps, et un libellé générique laisserait deviner
-                lequel des deux trajets la scène montre. */}
+            {/* T-0324 — bubble NAMES the target: two plan étapes may have their pointage aid
+                open at once, a generic label leaves unclear which path the scène shows. */}
             <BoutonGlyphe
               icone="route"
               aide={`Masquer le parcours vers ${cibleDuParcours}`}
@@ -249,8 +234,8 @@ export function RailVue(props: RailVueProps) {
             <Tiroir modificateur="calques" resume={<Icone nom="layers" libelle="Calques" />}>
               <div className="calques" role="group" aria-label="Calques">
                 {CALQUES.map(([cle, glyphe, libelle]) => {
-                  // Une couche sans effet en Panorama reste montée, inerte et cachée : son état
-                  // est conservé pour le retour en Ciel profond.
+                  // Layer without effect in Panorama stays mounted, inert + hidden: state kept
+                  // for return to Ciel profond.
                   const absente =
                     modeInterface === 'PANORAMA' && ABSENTES_EN_PANORAMA.includes(cle)
                   return (
@@ -275,18 +260,17 @@ export function RailVue(props: RailVueProps) {
           </Bulle>
         </div>
 
-        {/* Le lieu et le matériel se règlent une fois par séance : trois cartes posées sur le
-            ciel le couvraient en permanence pour une saisie qu'on ne relit qu'à l'occasion.
-            Chacune devient un bouton du rail, sous les calques, qui ouvre sa fenêtre à droite. */}
+        {/* Lieu and matériel are set once per séance: three cards over the sky covered it
+            permanently for rarely re-read input. Each = a rail button under the calques,
+            opening its window on the right. */}
         <div className="rail-groupe" role="group" aria-label="Site et matériel">
           {props.reglages}
         </div>
 
-        {/* T-0069 — « un raccourci qui n'est écrit que dans le code n'existe pas ». La carte
-            Vue les affichait ; le rail n'a pas la place d'un paragraphe, mais il a celle d'un
-            bouton. Ce n'est pas une bascule : il ne commande rien, il ANNONCE — d'où l'absence
-            d'`aria-pressed`. Sa bulle s'ouvre au focus autant qu'au survol, et c'est exactement
-            le public concerné : qui pilote la scène au clavier l'atteint au clavier. */}
+        {/* T-0069 — "a shortcut written only in code does not exist". Vue card showed them; rail
+            has no room for a paragraph but has for a button. Not a toggle: controls nothing, it
+            ANNOUNCES — hence no `aria-pressed`. Bubble opens on focus as on hover: exactly the
+            audience, keyboard drivers of the scène reach it by keyboard. */}
         <div className="rail-groupe">
           <BoutonGlyphe
             icone="keyboard"

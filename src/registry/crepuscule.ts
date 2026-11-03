@@ -1,47 +1,40 @@
 /**
- * T-0099 — brillance du ciel crépusculaire au zénith, en bande V.
- *
- * SOURCE UNIQUE, lue et vérifiée : Patat, Ugolnikov & Postylyakov (2006), A&A 455, 385,
- * « UBVRI twilight sky brightness at ESO-Paranal », Table 1. Plus de 2000 images FORS1
- * d'archive, ajustement par un polynôme du second degré :
+ * T-0099 — twilight sky brightness at zenith, V band.
+ * SINGLE SOURCE, read and verified: Patat, Ugolnikov & Postylyakov (2006), A&A 455, 385,
+ * « UBVRI twilight sky brightness at ESO-Paranal », Table 1. 2000+ archive FORS1 images, 2nd-
+ * degree polynomial fit:
  *
  *     μ(ζ) = a0 + a1 (ζ − 95) + a2 (ζ − 95)²        95° ≤ ζ ≤ 105°
  *
- * ζ est la DISTANCE ZÉNITHALE DU SOLEIL en degrés, soit 90° + dépression solaire (les auteurs
- * négligent la dépression de l'horizon). Le domaine ajusté couvre donc une dépression de 5° à
- * 15° : ni le crépuscule civil, ni la nuit astronomique.
- *
- * EXTRAPOLATION INTERDITE, et pas seulement par principe : le polynôme a son sommet à
- * ζ = 108,3° puis REDESCEND. Prolongé, il ferait réapparaître un ciel de crépuscule au milieu
- * de la nuit. Sous 5° de dépression, il n'est pas prolongé non plus — la valeur du bord de
- * table est retenue et le déclare, comme `contrast.ts` plafonne au dernier palier de Blackwell.
- *
- * SITE DE MONTAGNE — la question était ouverte, la source y répond. Paranal est à 2600 m ;
- * les auteurs comparent avec CrAO (600 m) et concluent (§5) : « the bright twilight and night
- * sky brightnesses are very close at the two sites », Paranal n'étant plus sombre que d'environ
- * 30 % en bande V pendant le crépuscule PROFOND. La table est donc utilisable pour un site de
- * plaine là où elle compte — le crépuscule clair, celui qui efface les étoiles — et l'écart de
- * 30 % (0,3 mag, une fois et demie la dispersion σ de l'ajustement lui-même) se concentre dans
- * la phase où la contribution est déjà résiduelle. Limite déclarée, aucune correction
- * d'altitude appliquée : il n'existe pas de table par altitude à citer.
+ * ζ = SOLAR ZENITH DISTANCE, deg = 90° + solar depression (authors neglect horizon dip).
+ * Fitted domain = depression 5° to 15°: neither civil twilight nor nuit astronomique.
+ * EXTRAPOLATION FORBIDDEN, not just on principle: polynomial peaks at ζ = 108,3° then FALLS,
+ * reviving a twilight sky mid-night. Below 5° not extended either: table-edge value kept and
+ * declared, like `contrast.ts` caps at last Blackwell tier.
+ * MOUNTAIN SITE — open question, source answers. Paranal 2600 m; authors compare CrAO (600 m),
+ * conclude (§5) « the bright twilight and night sky brightnesses are very close at the two
+ * sites »; Paranal only ~30% darker in V in DEEP twilight. Table usable for lowland sites where
+ * it matters (bright twilight, erases stars); the 30% gap (0,3 mag, 1.5× fit σ) sits where the
+ * contribution is already residual. Declared limit, no altitude correction: no per-altitude
+ * table to cite.
  */
 
 export interface AjustementCrepuscule {
-  /** μ au bord bas du domaine, mag/arcsec². */
+  /** μ at low edge of domain, mag/arcsec². */
   readonly a0: number
-  /** mag/arcsec² par degré. */
+  /** mag/arcsec² per degree. */
   readonly a1: number
-  /** mag/arcsec² par degré carré. */
+  /** mag/arcsec² per degree squared. */
   readonly a2: number
-  /** Écart quadratique moyen des mesures à l'ajustement, mag/arcsec². */
+  /** RMS of measurements about the fit, mag/arcsec². */
   readonly sigma: number
-  /** Distance zénithale solaire de référence du polynôme, en degrés. */
+  /** Polynomial's reference solar zenith distance, deg. */
   readonly zetaReferenceDeg: number
   readonly zetaMinDeg: number
   readonly zetaMaxDeg: number
 }
 
-/** Bande V — la seule des cinq utilisée : c'est celle de `TABLE_BORTLE` et de `moon.ts`. */
+/** V band, the only one of five used: that of `TABLE_BORTLE` and `moon.ts`. */
 export const CREPUSCULE_V: AjustementCrepuscule = Object.freeze({
   a0: 11.84,
   a1: 1.518,
@@ -58,35 +51,28 @@ export const SOURCE_CREPUSCULE =
   'dans le domaine, extrapolation interdite hors de lui.'
 
 /**
- * Fond de ciel nocturne du site où la table a été mesurée, en bande V : c'est LUI qu'il faut
- * retirer à l'ajustement pour obtenir la contribution du crépuscule seul.
- *
- * L'ajustement mesure un total — lueur crépusculaire diffusée PLUS lueur nocturne de Paranal.
- * Le composer avec le fond d'un autre site sans retirer celui de Paranal compterait deux fois
- * une lueur nocturne.
- *
- * Source : Patat (2003), A&A 400, 1183, Table 4 (valeurs publiées par l'ESO pour Paranal :
- * U 22,28 · B 22,64 · V 21,61 · R 20,87 · I 19,71 mag/arcsec², σ_V = 0,20). Recoupée sur
- * l'article de 2006 lui-même, qui donne les couleurs du ciel nocturne de Paranal
- * (U−B = −0,36 · B−V = 1,03 · V−R = 0,74 · V−I = 1,90) : les cinq magnitudes les redonnent
- * exactement.
+ * Night sky background of the site where table was measured, V band: what must be SUBTRACTED
+ * from the fit to get twilight alone. Fit measures a total (scattered twilight glow PLUS Paranal
+ * night glow); composing with another site's background without removing Paranal's would count
+ * night glow twice.
+ * Source: Patat (2003), A&A 400, 1183, Table 4 (ESO-published Paranal values: U 22,28 · B 22,64
+ * · V 21,61 · R 20,87 · I 19,71 mag/arcsec², σ_V = 0,20). Cross-checked on the 2006 paper's
+ * Paranal night-sky colours (U−B = −0,36 · B−V = 1,03 · V−R = 0,74 · V−I = 1,90): five
+ * magnitudes reproduce them exactly.
  */
 export const SB_NUIT_SITE_REFERENCE_MAG = 21.61
 
 const DEPRESSION_HORIZON_DEG = 90
 
-/** Dépression solaire au bord bas du domaine ajusté : sous elle, rien n'est extrapolé. */
+/** Solar depression at fitted domain's low edge: nothing extrapolated below. */
 export const DEPRESSION_MIN_TABLE_DEG = CREPUSCULE_V.zetaMinDeg - DEPRESSION_HORIZON_DEG
 
 /**
- * Dépression solaire à laquelle l'ajustement rejoint le fond de ciel nocturne de son propre
- * site : au-delà, la contribution du crépuscule est nulle, et le polynôme n'est plus évalué.
- *
- * Elle se DÉDUIT — racine de μ(ζ) = SB_NUIT_SITE_REFERENCE_MAG, la plus petite des deux. Elle
- * ne se choisit pas, et elle tombe à 15,9°, soit ζ = 105,9° : exactement dans l'intervalle que
- * l'article annonce par ailleurs (« the night sky brightness level is reached at around
- * ζ = 105°-106° »). Le raccord n'est donc pas une convention posée sur le bord de la table,
- * c'est le point que la source elle-même désigne.
+ * Solar depression where the fit meets its own site's night background: beyond it twilight
+ * contribution is zero, polynomial no longer evaluated.
+ * DERIVED, not chosen: smaller root of μ(ζ) = SB_NUIT_SITE_REFERENCE_MAG, lands at 15,9° (ζ =
+ * 105,9°), inside the paper's interval (« the night sky brightness level is reached at around
+ * ζ = 105°-106° »): the source's own junction, not a convention on the table edge.
  */
 export const DEPRESSION_FIN_CREPUSCULE_DEG = (() => {
   const { a0, a1, a2 } = CREPUSCULE_V
@@ -99,19 +85,17 @@ export const DEPRESSION_FIN_CREPUSCULE_DEG = (() => {
 export type BorneCrepuscule = 'AUCUNE' | 'CIEL_PLUS_CLAIR'
 
 export interface SbCrepuscule {
-  /** Brillance de surface totale du ciel crépusculaire au zénith, mag/arcsec². */
+  /** Total twilight-sky brightness at zenith, mag/arcsec². */
   readonly value: number
-  /** `CIEL_PLUS_CLAIR` : la dépression est sous le domaine, la valeur est celle du bord. */
+  /** `CIEL_PLUS_CLAIR`: depression below domain, value is the edge's. */
   readonly borne: BorneCrepuscule
 }
 
 /**
- * Brillance TOTALE du ciel de Paranal au zénith pour cette dépression solaire — lueur
- * nocturne du site de mesure comprise. La contribution du crépuscule seul se déduit en
- * retirant `SB_NUIT_SITE_REFERENCE_MAG`, ce que fait `brillanceCrepusculeNl`.
- *
- * Au-delà de `DEPRESSION_FIN_CREPUSCULE_DEG` la fonction n'a plus de sens : elle refuse de
- * répondre plutôt que de prolonger un polynôme qui redescend.
+ * TOTAL Paranal sky brightness at zenith for this solar depression, measurement-site night glow
+ * included. Twilight alone = subtract `SB_NUIT_SITE_REFERENCE_MAG` (`brillanceCrepusculeNl`).
+ * Beyond `DEPRESSION_FIN_CREPUSCULE_DEG`: meaningless, refuses instead of extending a falling
+ * polynomial.
  */
 export function sbCrepusculeZenith(depressionSolaireDeg: number): SbCrepuscule | null {
   if (!Number.isFinite(depressionSolaireDeg)) return null

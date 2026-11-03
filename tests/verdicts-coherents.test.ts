@@ -1,10 +1,9 @@
 /**
- * T-0383 — les verdicts de la fiche ne se contredisent plus.
- *
- * Le cas d'origine : M45 sous une Lune gibbeuse à 10°, notée « idéale » à côté d'une
- * dégradation lunaire « forte », posée 1 s sans explication malgré un suivi, déclarée « en
- * photo seulement » et « peu gênée par la pollution lumineuse » dans la phrase sur la Lune.
- * Chaque test reconstruit sa situation par le calcul, aucune valeur n'est recopiée.
+ * T-0383 — fiche verdicts no longer contradict each other.
+ * Original case: M45 under 10° gibbous Moon, rated "idéale" beside "forte" lunar degradation,
+ * posed 1 s with no explanation despite suivi, declared "en photo seulement" and "peu gênée par
+ * la pollution lumineuse" in the Moon sentence.
+ * Each test rebuilds its situation by computation, nothing copied.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -16,7 +15,7 @@ import { VALEURS_OBTURATEUR_S } from '../src/registry/verdicts.ts'
 import type { Candidate } from '../src/core/session-types.ts'
 
 describe('facilité — la Lune plafonne la note', () => {
-  /** Une candidate au score plein : seule la Lune peut faire baisser sa note. */
+  /** Candidate with full score: only the Moon can lower its rating. */
   const candidate = (deltaSbLune: number): Candidate =>
     ({
       objet: {},
@@ -44,7 +43,7 @@ describe('facilité — la Lune plafonne la note', () => {
 describe('pose — le plancher de l’obturateur se dit', () => {
   const rn = 1.5
   const plancher = Math.min(...VALEURS_OBTURATEUR_S)
-  /** E_ciel qui donne t_opt = `tOptS` : t_opt = C·RN² / E_ciel. */
+  /** E_ciel giving t_opt = `tOptS`: t_opt = C·RN² / E_ciel. */
   const eCielPour = (tOptS: number) => (K('FACTEUR_POSE_C_DEFAUT') * rn ** 2) / tOptS
   const SUIVI_S = plancher * 1000
 
@@ -66,8 +65,8 @@ describe('détectabilité — un amas ouvert se voit par ses étoiles', () => {
   const mLimOeil = 6
   const sbCiel = 18
   const mInt = mLimOeil - 2
-  // Grand axe qui place la brillance de surface deux magnitudes sous le ciel :
-  // SB = m + 2,5 log10(π/4 · a²), a en arcsec.
+  // Major axis placing surface brightness 2 mag under the sky: SB = m + 2.5 log10(π/4 · a²), a in
+  // arcsec.
   const aArcsec = Math.sqrt((4 / Math.PI) * 10 ** ((sbCiel + 2 - mInt) / K('POGSON')))
   const amas = (typeObjet: 'AMAS_OUVERT' | 'AMAS_GLOB') =>
     detectabilite({

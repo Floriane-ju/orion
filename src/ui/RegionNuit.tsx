@@ -1,9 +1,6 @@
 /**
- * L'onglet « Nuit » : quand la nuit commence, ce qu'elle vaut en fond de ciel, et pourquoi
- * le plan de session peut être absent.
- *
- * Chaque nombre reste dépliable jusqu'à sa formule (§1.5.2, §10.1), et chaque terme technique
- * porte sa définition au contact.
+ * "Nuit" tab: when night starts, its fond de ciel value, why the plan may be absent.
+ * Each number unfolds to its formula (§1.5.2, §10.1), each technical term carries its definition.
  */
 
 import type { FenetreNocturne } from '../core/nuit.ts'
@@ -25,9 +22,9 @@ export interface RegionNuitProps {
   readonly nuit: FenetreNocturne
   readonly ciel: FondDeCiel
   readonly offsetMidi: Traced<number>
-  /** T-0267 — le SOIR de la nuit planifiée, celui du coucher du Soleil. */
+  /** T-0267 — EVENING of the planned night (sunset date). */
   readonly nuitIso: string
-  /** Vrai tant qu'aucun catalogue vérifié n'alimente le plan : la région le dit en clair. */
+  /** True while no verified catalogue feeds the plan: region says so in clear. */
   readonly planIndisponible: boolean
 }
 
@@ -52,7 +49,7 @@ export function RegionNuit(props: RegionNuitProps) {
   )
 }
 
-/** §2.3 — les bornes de la nuit, du coucher du Soleil à son lever. */
+/** §2.3 — night bounds, Sun set to Sun rise. */
 function FenetreNocturneVue({
   nuit,
   offsetMidi,
@@ -65,13 +62,13 @@ function FenetreNocturneVue({
   return (
     <section>
       <h2>Fenêtre nocturne</h2>
-      {/* T-0267 — la nuit se nomme par ses deux dates : passé minuit, « 17/09 » seul laisse
-          le doute sur le soir désigné, et c'est à ce moment-là qu'on lit la carte. */}
+      {/* T-0267 — night named by both dates: past midnight "17/09" alone leaves the evening
+          ambiguous, exactly when the card is read. */}
       <p className="etat">{nomDeLaNuit(nuitIso)}</p>
       <p className="etat">état : {LIBELLE_ETAT_NUIT[nuit.etat]}</p>
       {nuit.cause !== undefined && <Mention ton="cause">{nuit.cause}</Mention>}
-      {/* T-0264 — `instants` : chaque valeur est une date ET une heure, et elle tient sur une
-          ligne. C'est l'intitulé qui se replie quand la carte se resserre. */}
+      {/* T-0264 — `instants`: each value = date AND time, one line. Heading folds when the card
+          narrows. */}
       <table className="instants">
         <tbody>
           <tr>
@@ -105,7 +102,7 @@ function FenetreNocturneVue({
   )
 }
 
-/** §2.2 — d'où vient le fond de ciel retenu, et ce qu'il laisse voir à l'œil nu. */
+/** §2.2 — where the retained fond de ciel comes from, and what it shows to the naked eye. */
 function FondDeCielVue({ ciel }: { readonly ciel: FondDeCiel }) {
   return (
     <section>

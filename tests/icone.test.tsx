@@ -1,8 +1,7 @@
 /**
- * T-0122 — l'icône est un glyphe de police, pas une image : ce qui peut casser n'est pas un
- * rendu mais un contrat. Trois choses le tiennent, et une seule suffit à afficher « CLOSE »
- * dans un bouton si elle lâche : la ligature n'est pas altérée par la casse ni par le suivi,
- * la police est livrée avec l'artefact, et le glyphe n'est pas annoncé comme du texte.
+ * T-0122 — icon = font glyph, not image: contract, not render. 3 holds (any failure shows
+ * "CLOSE" in a button): ligature unaltered by case/suivi, font shipped with artefact, glyph
+ * not announced as text.
  */
 
 import { readFileSync, readdirSync } from 'node:fs'
@@ -13,14 +12,14 @@ import { Icone, attendsPoliceIcones } from '../src/ui/Icone.tsx'
 
 const CSS = readFileSync(join(import.meta.dirname, '..', 'src', 'ui', 'styles.css'), 'utf8')
 
-/** Le corps de la règle `.icone`, sans les accolades. */
+/** Body of `.icone` rule, no braces. */
 function reglePointIcone(): string {
   const debut = CSS.indexOf('.icone {')
   expect(debut).toBeGreaterThan(-1)
   return CSS.slice(debut, CSS.indexOf('}', debut))
 }
 
-/** Le corps de la `@font-face` de la police d'icônes — T-0191 en a livré d'autres. */
+/** Body of icon font `@font-face` (T-0191 shipped others). */
 function faceIcone(): string {
   const faces = [...CSS.matchAll(/@font-face\s*\{([^}]*)\}/g)].map(([, corps]) => corps!)
   const face = faces.find((corps) => corps.includes("'Material Symbols Sharp'"))
@@ -36,7 +35,7 @@ describe('composant Icone', () => {
   })
 
   it('cache le glyphe aux lecteurs d’écran quand le contrôle porte déjà son libellé', () => {
-    // Sans cela, un bouton « Fermer le panneau » s'annonce « Fermer le panneau close ».
+    // Else "Fermer le panneau" button announces "Fermer le panneau close".
     expect(renderToStaticMarkup(<Icone nom="close" />)).toContain('aria-hidden="true"')
   })
 
@@ -56,8 +55,7 @@ describe('composant Icone', () => {
 
 describe('style des icônes §11.1', () => {
   it('neutralise la casse et le suivi, sans quoi la ligature ne se forme plus', () => {
-    // `--suivi-micro` et les capitales sont la grammaire des libellés de T-0113 : une icône
-    // posée dans l'un d'eux en hérite.
+    // `--suivi-micro` + capitals = T-0113 label grammar: an icon inside inherits it.
     const regle = reglePointIcone()
     expect(regle).toMatch(/text-transform:\s*none/)
     expect(regle).toMatch(/letter-spacing:\s*normal/)
@@ -76,7 +74,7 @@ describe('style des icônes §11.1', () => {
     const source = /src:\s*url\('([^']+)'\)/.exec(face)?.[1]
     expect(source).toBeDefined()
     expect(source).not.toMatch(/^https?:/)
-    // Le chemin est relatif à `src/ui/` : il doit désigner un fichier réellement versionné.
+    // Path relative to `src/ui/`: must point to a really versioned file.
     expect(() =>
       readFileSync(join(import.meta.dirname, '..', 'src', 'ui', source!)),
     ).not.toThrow()
@@ -90,21 +88,16 @@ describe('style des icônes §11.1', () => {
 })
 
 /**
- * T-0215 — LA RÈGLE EXISTAIT, RIEN NE LA TENAIT.
- *
- * `.claude/rules/orion.md` interdit déjà « un caractère Unicode décoratif posé à la place
- * d'un glyphe » ; `pastilles.test.tsx` le vérifiait pour un seul composant. Trois caractères
- * y échappaient dans le schéma de pointage de §8.4 — « ✛ », « ● » et « ★ » —, rendus dans la
- * police de TEXTE : ni la grille optique, ni la graisse, ni l'alignement du reste, et un
- * dessin qui variait d'un poste à l'autre selon la police de repli disponible.
- *
- * Ce qui est interdit est le caractère qui DESSINE : formes géométriques, dingbats, symboles
- * divers, emoji. Ce qui reste permis est le caractère qui SE LIT dans une phrase — « → »,
- * « × », « − », « ° », « Δ », « · » sont de la typographie, pas des icônes, et les proscrire
- * obligerait à poser un glyphe au milieu d'un mot.
+ * T-0215 — THE RULE EXISTED, NOTHING HELD IT.
+ * `.claude/rules/orion.md` bans decorative Unicode in place of a glyph; `pastilles.test.tsx`
+ * checked one component. 3 chars escaped in §8.4 pointage diagram — "✛", "●", "★" — rendered
+ * in TEXT font: no optical grid/weight/alignment, drawing varied per machine (fallback font).
+ * Banned: chars that DRAW (geometric shapes, dingbats, misc symbols, emoji). Allowed: chars
+ * that READ in a sentence ("→", "×", "−", "°", "Δ", "·"): typography; banning would force a
+ * glyph mid-word.
  */
 describe('T-0215 — aucun caractère Unicode à la place d’un glyphe', () => {
-  /** Formes géométriques, symboles divers, dingbats, emoji. Pas les flèches ni les opérateurs. */
+  /** Geometric shapes, misc symbols, dingbats, emoji; not arrows/operators. */
   const DESSINS =
     /[\u{25A0}-\u{25FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{2B00}-\u{2BFF}\u{1F300}-\u{1FAFF}]/u
 
@@ -112,7 +105,7 @@ describe('T-0215 — aucun caractère Unicode à la place d’un glyphe', () => 
     const racine = join(import.meta.dirname, '..', 'src', 'ui')
     for (const fichier of readdirSync(racine)) {
       if (!fichier.endsWith('.tsx') && !fichier.endsWith('.ts')) continue
-      // Les commentaires CITENT les caractères proscrits pour dire qu'ils le sont.
+      // Comments QUOTE the banned chars to say they are banned.
       const source = readFileSync(join(racine, fichier), 'utf8')
         .replace(/\/\*[\s\S]*?\*\//g, '')
         .replace(/\/\/.*$/gm, '')
@@ -123,16 +116,14 @@ describe('T-0215 — aucun caractère Unicode à la place d’un glyphe', () => 
 })
 
 /**
- * T-0215 — l'alerte porte son signe par le BALISAGE, plus par la feuille.
- *
- * `.cause::before` posait « ⚠ » en `content` : une seconde façon d'afficher une icône dans un
- * projet qui n'en autorise qu'une, et un second endroit à toucher le jour où l'épaisseur des
- * glyphes change. Ce qui se vérifie ici est que ce chemin ne rouvre pas — ni par un `content`
- * qui dessine, ni par un appel direct à la police d'icônes ailleurs que dans `.icone`.
+ * T-0215 — alert carries its sign via MARKUP, not the stylesheet.
+ * `.cause::before` set "⚠" as `content`: a 2nd way to show an icon, a 2nd place to touch on
+ * glyph weight change. Keeps that path closed: no drawing `content`, no direct icon-font call
+ * outside `.icone`.
  */
 describe('T-0215 — une seule façon d’afficher une icône', () => {
   it('ne pose aucun glyphe en `content` dans la feuille', () => {
-    // « · » reste permis : c'est un séparateur de liste, il se lit dans une phrase.
+    // "·" allowed: list separator, reads in a sentence.
     const DESSINS =
       /[\u{25A0}-\u{25FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{2B00}-\u{2BFF}\u{1F300}-\u{1FAFF}]/u
     for (const [, valeur] of CSS.matchAll(/content:\s*'([^']*)'/g)) {
@@ -141,31 +132,25 @@ describe('T-0215 — une seule façon d’afficher une icône', () => {
   })
 
   it('ne nomme la police d’icônes que dans `.icone`', () => {
-    // Deux occurrences légitimes, et deux seulement : la déclaration du jeton, et la règle
-    // qui l'applique. Une troisième serait un second style d'icône hors de portée d'`Icone`.
+    // Two legit occurrences: token declaration + rule applying it. A third = 2nd icon style
+    // out of `Icone` reach.
     const REGLES = CSS.replace(/\/\*[\s\S]*?\*\//g, '')
     expect([...REGLES.matchAll(/var\(--police-icone\)/g)]).toHaveLength(1)
     expect(reglePointIcone()).toContain('var(--police-icone)')
   })
 
   /**
-   * T-0287 — DEUX GLYPHES NE SE TOUCHENT PAS.
-   *
-   * Le schéma de pointage posait `<Icone nom="circle" />` puis `<Icone nom="star" />` sans
-   * rien entre eux. Le navigateur façonne le texte à travers la frontière de deux `<span>`
-   * qui se suivent : la police y a lu « circles » — une ligature qui existe —, et les trois
-   * lettres restantes se sont affichées en toutes lettres. Le défaut n'était visible qu'à
-   * l'écran, avec la police réelle, donc invisible à toute la suite.
-   *
-   * Ce qui est interdit n'est pas ce couple-là : c'est l'adjacence, qui refait le même
-   * accident avec n'importe quel autre nom dont un préfixe est aussi une ligature. Deux
-   * icônes séparées par un texte, une espace ou un élément ne posent pas de problème.
+   * T-0287 — TWO GLYPHS MUST NOT TOUCH.
+   * Pointage diagram put `<Icone nom="circle" />` then `<Icone nom="star" />` adjacent.
+   * Browser shapes text across adjacent `<span>`: font read "circles" (a real ligature), 3
+   * leftover letters showed as text. Visible only on screen with real font.
+   * Banned = adjacency, not that pair: same accident with any name whose prefix is a ligature.
+   * Icons separated by text, space or element are fine.
    */
   it('ne colle jamais deux glyphes l’un contre l’autre', () => {
     const racine = join(import.meta.dirname, '..', 'src', 'ui')
-    // Deux glyphes que rien ne sépare : collés, séparés d'un simple retour à la ligne, ou
-    // rendus par deux conditions qui se suivent. Une espace `{' '}`, un mot ou les deux
-    // branches d'un ternaire séparent bel et bien, et restent permis.
+    // Two glyphs nothing separates: stuck, a newline apart, or two consecutive conditions.
+    // `{' '}`, a word or both ternary branches separate: allowed.
     const ADJACENTES = /<Icone\b[^>]*\/>\s*\}?\s*(?:\{\s*[^{}'"`]*&&\s*)?<Icone\b/
     for (const fichier of readdirSync(racine)) {
       if (!fichier.endsWith('.tsx')) continue
@@ -192,10 +177,9 @@ describe('T-0215 — une seule façon d’afficher une icône', () => {
 })
 
 /**
- * T-0300 — `font-display: block` ne cache le texte que pendant ~3 s. La police d'icônes pèse
- * 8,8 Mo : sur un premier lancement lent, elle arrive bien après, et la barre affichait
- * « light_mode MODE NUIT » dix-huit secondes durant. Le glyphe reste donc masqué tant que la
- * police n'est pas chargée, sans limite de durée.
+ * T-0300 — `font-display: block` hides text only ~3 s. Icon font = 8,8 Mo: on slow first launch
+ * it arrives later, bar showed "light_mode MODE NUIT" for 18 s. Glyph stays hidden until font
+ * loaded, no time limit.
  */
 describe('T-0300 — une ligature ne s’affiche jamais en clair', () => {
   it('masque `.icone` tant que la racine ne porte pas `icones-pretes`', () => {

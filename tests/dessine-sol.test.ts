@@ -1,9 +1,6 @@
 /**
- * T-0397 — le tracé des courbes de niveau sur le sol : seules celles du champ se projettent,
- * et chaque polyligne est UN sous-chemin.
- *
- * Les courbes sont synthétiques : des azimuts et des hauteurs choisis pour tomber dedans ou
- * hors du champ, pas un relief recopié.
+ * T-0397 — contour lines drawn on sol: only those in field project, each polyline = ONE
+ * subpath. Synthetic curves: azimuths/heights chosen inside/outside field, no copied relief.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -22,7 +19,7 @@ const VUE: Vue = {
   rotationDeg: 0,
 }
 
-/** Les ordres du dernier chemin tracé à cette teinte : le sol, lui, se remplit. */
+/** Orders of the last path drawn in this hue: the sol itself is filled. */
 function contexte(teinte = 'courbes'): {
   ctx: CanvasRenderingContext2D
   trace: () => { moveTo: number; lineTo: number }
@@ -45,7 +42,7 @@ function contexte(teinte = 'courbes'): {
     lineTo: () => {
       courant.lineTo++
     },
-    // Une courbe de niveau lissée joint ses points par des arcs : chacun compte comme un trait.
+    // Smoothed contour joins points by arcs: each counts as a stroke.
     quadraticCurveTo: () => {
       courant.lineTo++
     },
@@ -60,7 +57,7 @@ function contexte(teinte = 'courbes'): {
   return { ctx, trace: () => trace, traces: () => traces }
 }
 
-/** Une polyligne au ras du sol, d'un azimut à l'autre, au degré. */
+/** Polyline hugging the ground, azimuth to azimuth, per degree. */
 function ligne(deDeg: number, aDeg: number): number[] {
   const points: number[] = []
   for (let az = deDeg; az <= aDeg; az++) points.push((az + 360) % 360, -1)
@@ -79,12 +76,12 @@ function trace(...lignes: number[][]): { moveTo: number; lineTo: number; project
   const compte = {
     ...brut,
     projetteEn: (...args: Parameters<typeof brut.projetteEn>) => {
-      // La crête se projette aussi : seules comptent les projections des courbes.
+      // Ridge projects too: only the curves' projections count.
       if (ctx.strokeStyle === 'courbes') projections++
       return brut.projetteEn(...args)
     },
   }
-  // Le sol se peint d'abord, avec ses propres projections : seules celles des courbes comptent.
+  // Sol painted first with its own projections: only the curves' count.
   const masque = { ...masquePlat(), courbesDeg }
   dessineSol(ctx, compte, IDENTITE, masque, TEINTES)
   projections = 0
@@ -102,7 +99,7 @@ describe('courbes de niveau tracées sur le sol (T-0397)', () => {
   })
 
   it('ne projette pas une courbe hors du champ', () => {
-    // Plein nord, dans le dos d'une visée plein sud : la ligne s'écarte avant toute projection.
+    // Due north, behind a due-south aim: line leaves before any projection.
     expect(trace(ligne(170, 190), ligne(-10, 10))).toEqual({
       moveTo: 1,
       lineTo: 20,
@@ -115,7 +112,7 @@ describe('crête et silhouettes tracées sur le sol (T-0438)', () => {
   it('souligne le bord du sol de traits continus, sans le hacher en segments d’écran', () => {
     const { ctx, trace } = contexte('bords')
     dessineSol(ctx, projecteur(VUE, IDENTITE), IDENTITE, masquePlat(), TEINTES)
-    // Un sous-chemin par secteur de crête dans le champ, et au moins un segment par degré.
+    // One subpath per ridge sector in the field, at least one segment per degree.
     expect(trace().moveTo).toBeLessThanOrEqual(Math.ceil(VUE.fovDeg / 10) + 2)
     expect(trace().lineTo).toBeGreaterThanOrEqual(VUE.fovDeg)
   })
@@ -127,7 +124,7 @@ describe('crête et silhouettes tracées sur le sol (T-0438)', () => {
     )
     const { ctx, traces } = contexte('bords')
     dessineSol(ctx, projecteur(haute, IDENTITE), IDENTITE, { ...masquePlat(), silhouettesDeg }, TEINTES)
-    // Les silhouettes d'abord, la crête ensuite.
+    // Silhouettes first, ridge after.
     expect(traces()[0]).toEqual({ moveTo: 1, lineTo: 20 })
   })
 })

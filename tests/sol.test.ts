@@ -1,9 +1,7 @@
 /**
- * §4.1 / §3.3 — le sol du site, opposé au projecteur.
- *
- * Aucune coordonnée n'est recopiée ici : les directions se construisent dans le repère
- * horizontal du site avec `versVecteur`, puis se transposent en J2000. Un test qui vérifierait
- * une valeur relevée vérifierait la copie, pas la règle.
+ * §4.1 / §3.3 — site ground, opposed to projector.
+ * No coordinate copied: directions built in site horizontal frame via `versVecteur`, then
+ * transposed to J2000. Checking a surveyed value checks the copy, not the rule.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -19,7 +17,7 @@ const DATE = new Date('2026-08-15T22:00:00Z')
 const ciel = cielInstantane(SITE, DATE)
 const versJ2000 = transpose(ciel.matrice)
 
-/** Une direction J2000 désignée par la hauteur et l'azimut qu'elle a DEPUIS ce site. */
+/** J2000 direction given by the height + azimuth it has FROM this site. */
 function vise(azimutDeg: number, hauteurDeg: number): Vec3 {
   return applique(versJ2000, versVecteur(azimutDeg, hauteurDeg))
 }
@@ -50,8 +48,8 @@ describe('sol du site — §4.1', () => {
   })
 
   it('avec un relief relevé, le sol monte avec lui', () => {
-    // Une crête à l'est, l'horizon dégagé au nord : deux azimuts relevés suffisent, les
-    // intermédiaires s'interpolent (§4.1).
+    // Ridge east, clear horizon north: two surveyed azimuths suffice, intermediates interpolate
+    // (§4.1).
     const masque = masqueDepuisPoints([
       { azimutDeg: 0, altitudeDeg: 0 },
       { azimutDeg: 90, altitudeDeg: 10 },
@@ -66,8 +64,8 @@ describe('sol du site — §4.1', () => {
   })
 
   it('dit la même chose que la hauteur et l’azimut calculés en clair', () => {
-    // Le prédicat inline les produits scalaires pour ne rien allouer par étoile (T-0065). Ce
-    // test est ce qui interdit à cette optimisation de dériver de sa définition lisible.
+    // Predicate inlines dot products to allocate nothing per star (T-0065). Test stops that
+    // optimisation drifting from its readable definition.
     const masque = masqueDepuisPoints([
       { azimutDeg: 30, altitudeDeg: 4 },
       { azimutDeg: 150, altitudeDeg: 12 },
@@ -104,15 +102,15 @@ describe('projecteur aveugle au sol — §3.3', () => {
 
   it('rend non projetable ce qui est sous le sol', () => {
     const enterree = vise(VUE.azimutDeg, -10)
-    // Elle serait dans le champ : c'est bien le sol qui l'écarte, pas le cadrage.
+    // Would be in the field: ground rejects it, not the framing.
     expect(base.projetteEn(enterree.x, enterree.y, enterree.z, pointEcran())).toBe(true)
     expect(filtre.projetteEn(enterree.x, enterree.y, enterree.z, pointEcran())).toBe(false)
     expect(filtre.projette(enterree)).toBeNull()
   })
 
   it('laisse `inverse` répondre : le curseur désigne aussi le sol', () => {
-    // Un point de l'écran a une direction même là où rien n'est dessiné — sans quoi le
-    // pointage à la souris cesserait de savoir où il est (§3.4).
+    // A screen point has a direction even where nothing is drawn — else mouse pointage loses track
+    // (§3.4).
     const basX = VUE.largeurPx / 2
     const basY = VUE.hauteurPx - 1
     expect(filtre.inverse(basX, basY)).toEqual(base.inverse(basX, basY))
@@ -124,7 +122,7 @@ describe('sol dessiné sur la crête fine (T-0438)', () => {
     const masque = { ...masquePlat(), estHypothese: false }
     const parDeg = 10
     const pic = 5
-    // Un pic à mi-chemin entre deux degrés entiers : le masque, nul, ne le connaît pas.
+    // Peak midway between two whole degrees: the (null) mask doesn't know it.
     const creteDeg = new Float32Array(360 * parDeg)
     creteDeg[180.5 * parDeg] = pic
     const fin = sousLeSol({ ...masque, creteDeg }, IDENTITE)

@@ -1,14 +1,10 @@
 /**
- * §9.1 — T-0142 : la carte de pose maximale peinte DANS le cadre du capteur.
- *
- * La grille de §9.1 EST le cadre : neuf cellules de côté, chacune portant sa déclinaison et
- * la pose qu'elle tolère. Lue au panneau, à côté de la scène, elle demandait de rapprocher de
- * tête une grille abstraite et le rectangle qu'elle décrit. Peinte dans le cadre, chaque
- * nombre tombe sur la région qu'il chiffre.
- *
- * Le cadre est MASQUÉ avant d'être garni : une pose lue sur un fond d'étoiles filées ne se
- * lit pas. C'est aussi pourquoi cette passe est la dernière de l'image — elle recouvre les
- * traces, les repères et les noms, pas l'inverse.
+ * §9.1 — T-0142: max pose card painted INSIDE sensor cadre.
+ * §9.1 grid IS the cadre: 9 cells per side, each with declination and tolerated pose. Read in
+ * panel beside scène it forced mentally matching abstract grid and described rectangle; in cadre,
+ * each number lands on the region it quantifies.
+ * Cadre MASKED before filling: pose over a filé star background is unreadable. So this pass is
+ * the frame's last — covers traces, repères, names, not the reverse.
  */
 
 import { K } from '../registry/constants.ts'
@@ -19,20 +15,20 @@ import { pointEcran, type Projecteur } from '../core/projection.ts'
 import { npf } from '../core/suivi.ts'
 import { POLICE_SCENE } from './couleurs.ts'
 
-/** Ce que la NPF demande du matériel, et rien de plus (§9.1). */
+/** What NPF asks of matériel, nothing more (§9.1). */
 export interface OptiquePose {
   readonly focaleMm: number
   readonly ouvertureN: number
   readonly pitchUm: number
 }
 
-/** Part de la hauteur d'une cellule prise par le chiffre de pose. */
+/** Share of cell height taken by pose figure. */
 const FRACTION_POLICE = 0.3
-/** La déclinaison est la légende du chiffre : elle se lit en dessous, plus petite. */
+/** Declination is the figure's legend: read below, smaller. */
 const FRACTION_POLICE_DEC = 0.78
 /**
- * Sous cette taille de police, le texte n'est plus qu'une bavure : le cadre reste alors
- * vide plutôt que masqué pour rien. C'est un fait d'écran, pas un seuil de §9.1.
+ * Under this font size text is a smear: cadre stays empty rather than masked for nothing. Screen
+ * fact, not a §9.1 threshold.
  */
 const POLICE_MIN_PX = 5
 
@@ -44,8 +40,8 @@ interface CelluleEcran {
 }
 
 /**
- * Peint la carte de pose du cadre. Rend `false` quand elle ne l'est pas — cadre hors champ,
- * ou trop petit à l'écran pour porter ses chiffres —, auquel cas rien n'a été masqué.
+ * Paints cadre pose card. `false` if not painted (cadre off-field, or too small on screen for its
+ * figures): nothing masked then.
  */
 export function dessineCartePose(entree: {
   readonly ctx: CanvasRenderingContext2D
@@ -53,12 +49,12 @@ export function dessineCartePose(entree: {
   readonly cadre: Cadre
   readonly matriceCiel: Mat3
   readonly optique: OptiquePose
-  /** Chemin fermé du contour du cadre, composé par l'appelant : il n'en existe qu'un (§3.5). */
+  /** Closed cadre outline path, composed by caller: only one exists (§3.5). */
   readonly chemin: () => void
   readonly couleurTexte: string
-  /** Masque opaque, au fond de la scène : le cadre garni ne laisse rien transparaître. */
+  /** Opaque mask at scène fond: filled cadre lets nothing show through. */
   readonly couleurMasque: string
-  /** Teinte de la zone limitante et de ses voisines : ce sont elles qui fixent la pose. */
+  /** Teinte of limiting zone and its neighbours: they set the pose. */
   readonly couleurLimitante: string
 }): boolean {
   const { ctx, projecteur, cadre, matriceCiel, optique } = entree
@@ -85,8 +81,8 @@ export function dessineCartePose(entree: {
   }
   if (visibles.length === 0) return false
 
-  // La cellule est carrée dans le cadre, pas à l'écran : la plus petite des deux dimensions
-  // décide, sans quoi un cadre vu de biais déborderait de ses cases.
+  // Cell is square in cadre, not on screen: smaller dimension decides, else an oblique cadre
+  // overflows its cells.
   const police = (Math.min(xMax - xMin, yMax - yMin) / cote) * FRACTION_POLICE
   if (police < POLICE_MIN_PX) return false
 
@@ -104,7 +100,7 @@ export function dessineCartePose(entree: {
       seuil !== null && cellule.tNpfS !== null && cellule.tNpfS <= seuil
     ctx.fillStyle = limitante ? entree.couleurLimitante : entree.couleurTexte
     ctx.font = `${police}px ${POLICE_SCENE}`
-    // Au pôle exact la NPF diverge : la cellule porte le symbole, pas une durée inventée.
+    // At exact pole NPF diverges: cell carries the symbol, not an invented duration.
     const pose = cellule.tNpfS === null ? '∞' : `${formatePose(cellule.tNpfS)} s`
     ctx.fillText(pose, cellule.xPx, cellule.yPx - policeDec / 2)
     ctx.font = `${policeDec}px ${POLICE_SCENE}`

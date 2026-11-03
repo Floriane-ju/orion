@@ -1,16 +1,10 @@
 /**
- * T-0121 — une fenêtre de tiroir s'ouvre SOUS son bouton, et se décale pour rester à l'écran.
- *
- * La feuille de style ne sait pas tenir les deux promesses à la fois : ancrée au bouton
- * (`right: 0`), une fenêtre de 52 rem ouverte au milieu de la barre sort par la gauche ;
- * plaquée au bord de l'écran, elle ne dit plus quel bouton l'a ouverte. L'ancrage CSS natif
- * (`position-area`) sait RABATTRE une fenêtre d'un bord à l'autre, mais pas la faire GLISSER
- * — or c'est bien un glissement qu'il faut ici, puisque la fenêtre est plus large que la
- * distance entre le bouton et le bord.
- *
- * Le calage est donc mesuré à l'ouverture, en coordonnées d'écran : la fenêtre est en
- * `position: fixed`. Seule l'horizontale est calculée — la verticale reste à la feuille de
- * style, qui l'ancre à la barre, laquelle ne bouge pas.
+ * T-0121 — tiroir window opens UNDER its button, shifts to stay on screen. CSS can't do both:
+ * anchored to button (`right: 0`), a 52 rem window opened mid-bar exits left; flush to screen
+ * edge, it no longer says which button opened it. CSS anchoring (`position-area`) can FLIP a
+ * window edge to edge, not SLIDE it — slide needed (window wider than button-to-edge distance).
+ * Shift measured at open, screen coords (window `position: fixed`). Only horizontal computed;
+ * vertical stays in CSS, anchored to the bar, which doesn't move.
  */
 
 function cale(tiroir: HTMLDetailsElement): void {
@@ -18,16 +12,16 @@ function cale(tiroir: HTMLDetailsElement): void {
   const bouton = tiroir.querySelector('summary')
   if (!contenu || !bouton) return
 
-  // Fenêtre fermée, ou repli sous 1100 px où elle revient dans le flux : il n'y a rien à
-  // caler, et un `left` en dur y décalerait le contenu de la barre.
+  // Window closed, or repli <1100 px where it returns to the flow: nothing to shift; hardcoded
+  // `left` would offset bar content.
   if (getComputedStyle(contenu).position !== 'fixed') {
     contenu.style.removeProperty('left')
     contenu.style.removeProperty('right')
     return
   }
 
-  // La marge est celle que la feuille pose en repli (`right: var(--jour-carte)`) : lue, pas
-  // recopiée, pour qu'une fenêtre ne s'approche jamais du bord plus près que la coque.
+  // Margin = the one stylesheet sets in repli (`right: var(--jour-carte)`): read, not copied →
+  // window never closer to edge than coque.
   contenu.style.removeProperty('right')
   const marge = parseFloat(getComputedStyle(contenu).right)
   const gauche = bouton.getBoundingClientRect().left
@@ -36,16 +30,14 @@ function cale(tiroir: HTMLDetailsElement): void {
   contenu.style.right = 'auto'
 }
 
-/** Recale toutes les fenêtres ouvertes — après un redimensionnement, leur bord a bougé. */
+/** Realigns all open windows (resize moved their edge). */
 function caleTout(): void {
   for (const t of document.querySelectorAll<HTMLDetailsElement>('details.tiroir')) cale(t)
 }
 
 /**
- * Écoute les ouvertures de tiroir et rend la fonction de retrait.
- *
- * `toggle` ne remonte pas : l'écoute se fait en phase de CAPTURE sur le document, ce qui
- * couvre les six tiroirs des deux barres sans qu'aucun n'ait à s'enregistrer.
+ * Listens to tiroir openings, returns removal fn. `toggle` doesn't bubble: CAPTURE phase on
+ * document covers the 6 tiroirs of both bars, no registration.
  */
 export function ancreTiroirs(): () => void {
   const surBascule = (evt: Event) => {

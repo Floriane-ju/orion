@@ -1,49 +1,35 @@
 /**
- * Frontière d'une région du ciel, cherchée EN ESPACE ÉCRAN — géométrie commune au sol (§4.1)
- * et au halo d'horizon (T-0098).
- *
- * Mailler la demi-sphère concernée paraît plus naturel, et c'est un piège : l'antipode de la
- * visée est dans le maillage dès qu'on regarde au-dessus de la frontière, et la projection l'y
- * envoie à l'infini. Deux sommets voisins tombent alors de part et d'autre du canevas, et la
- * corde qui les relie balaie l'image. Aucun plafond de distance ne clôt ce cas : il suffit que
- * l'antipode tombe entre deux mailles pour que le défaut réapparaisse, à certaines hauteurs de
- * visée seulement.
- *
- * Ici, l'écran est quadrillé, et chaque nœud répond à « ce pixel est-il dedans ? » par
- * `Projecteur.inverse` et un prédicat de direction — question sans singularité ni
- * approximation. Une maille dont les coins divergent est traversée par la frontière : le point
- * de traversée de chaque côté s'affine par dichotomie, et la maille se découpe en carrés
- * marchants (marching squares).
- *
- * Pourquoi un quadrillage et non des colonnes. Des colonnes verticales supposaient la crête à
- * peu près horizontale à l'écran. Visée haute sous un grand champ, l'horizon est un cercle :
- * sur ses flancs la crête est VERTICALE, une colonne la longe au lieu de la couper, et le
- * nombre de traversées change d'une colonne à la suivante sur chaque dent du relief — le bord
- * se peignait en marches. Une maille n'a pas de direction privilégiée : elle coupe la crête de
- * la même façon, quelle que soit son orientation.
- *
- * Interroger chaque nœud fin coûterait quatre fois l'ancien balayage. Le quadrillage se
- * parcourt donc d'abord en blocs grossiers ; seuls les blocs que la frontière traverse
- * descendent à la maille fine. Une région plus petite qu'un bloc, loin de toute autre
- * frontière, est perdue : c'est une pointe de relief de quelques pixels, sans dommage.
+ * Sky region boundary searched IN SCREEN SPACE — geometry shared by ground (§4.1) and horizon halo
+ * (T-0098).
+ * Meshing the half-sphere is a trap: aim's antipode enters the mesh when looking above the
+ * boundary, projection sends it to infinity; neighbouring vertices land on both sides of canvas
+ * and the chord between sweeps the image. No distance cap closes it: antipode between two meshes
+ * revives it at some aim heights only.
+ * Here the screen is gridded, each node answers "is this pixel inside?" via `Projecteur.inverse`
+ * + a direction predicate: no singularity, no approximation. Cell with diverging corners = crossed
+ * by boundary: crossing on each side refined by dichotomy, cell cut by marching squares.
+ * Why grid, not columns: columns assumed a roughly horizontal ridge on screen. High aim under wide
+ * field, horizon is a circle: on its flanks ridge is VERTICAL, a column runs along it instead of
+ * cutting; crossing count changes column to column at each relief tooth → stepped edge. A cell has
+ * no privileged direction.
+ * Querying every fine node cost 4× the old sweep: grid walked in coarse blocks first, only blocks
+ * the boundary crosses descend to fine cells. A region smaller than a block, far from any other
+ * boundary, is lost: few-pixel relief spike, harmless.
  */
 
 import type { Projecteur } from '../core/projection.ts'
 import type { TestSol } from '../core/sol.ts'
 
 export interface FinesseBalayage {
-  /** Côté d'une maille fine, en pixels : c'est la corde du bord sur une dent du relief. */
+  /** Fine cell side, px: the edge chord over a relief tooth. */
   readonly pasMaillePx: number
-  /**
-   * Côté d'un bloc grossier, en pixels, arrondi à un nombre entier de mailles. Deux traversées
-   * plus proches que lui, entre deux coins de bloc, se confondent.
-   */
+  /** Coarse block side, px, whole cells; crossings closer than it (between 2 corners) merge. */
   readonly pasBlocPx: number
-  /** Dichotomies par traversée : de quoi placer la frontière sous le demi-pixel. */
+  /** Dichotomies per crossing: places boundary under half a pixel. */
   readonly dichotomies: number
 }
 
-/** Finesse du bord du sol : c'est une crête soulignée d'un trait, elle se voit au pixel près. */
+/** Ground edge fineness: a ridge underlined by a stroke, seen to the pixel. */
 export const BALAYAGE_FIN: FinesseBalayage = Object.freeze({
   pasMaillePx: 4,
   pasBlocPx: 16,
@@ -53,13 +39,13 @@ export const BALAYAGE_FIN: FinesseBalayage = Object.freeze({
 type Point = readonly [number, number]
 
 export interface FrontiereEcran {
-  /** La région, en polygones qui se touchent par leurs bords sans se recouvrir. */
+  /** Region, as polygons touching by edges without overlap. */
   readonly polygones: readonly (readonly Point[])[]
-  /** La frontière, en segments : chacun traverse une maille. */
+  /** Boundary, as segments: each crosses one cell. */
   readonly segments: readonly (readonly [Point, Point])[]
 }
 
-/** Cherche la région définie par `dedans`, maille par maille. */
+/** Searches region defined by `dedans`, cell by cell. */
 export function frontiereEcran(
   projecteur: Projecteur,
   dedans: TestSol,
@@ -78,7 +64,7 @@ export function frontiereEcran(
     return dedans(v.x, v.y, v.z)
   }
 
-  // Nœuds interrogés à la demande : -1 inconnu, 0 dehors, 1 dedans.
+  // Nodes queried on demand: -1 unknown, 0 outside, 1 inside.
   const noeuds = new Int8Array((nx + 1) * (ny + 1)).fill(-1)
   const noeud = (i: number, j: number): boolean => {
     const k = j * (nx + 1) + i
@@ -87,9 +73,8 @@ export function frontiereEcran(
   }
 
   /**
-   * Point où la frontière coupe l'arête du nœud (i, j) à son voisin (si, sj), cherché toujours
-   * depuis le nœud de plus petit rang : une arête est partagée par deux mailles, et sa
-   * traversée ne se paie qu'une fois.
+   * Boundary point on edge from node (i, j) to neighbour (si, sj), always searched from the
+   * lower-rank node: edge shared by two cells, crossing paid once.
    */
   const traversees = new Map<number, Point>()
   const traversee = (i: number, j: number, si: number, sj: number): Point => {
@@ -121,9 +106,9 @@ export function frontiereEcran(
     noeud(borne(u + 1, nx), borne(v + 1, ny)),
     noeud(borne(u, nx), borne(v + 1, ny)),
   ]
-  // Blocs à descendre en maille fine : ceux dont les coins divergent, puis, de proche en proche,
-  // tout voisin qu'un nœud de l'arête commune contredit — la frontière y déborde entre deux
-  // coins, et le bloc peint d'une pièce la couperait net.
+  // Blocks to descend to fine cells: diverging corners, then step by step any neighbour a node of
+  // the shared edge contradicts (boundary bulges between two corners; a whole painted block would
+  // cut it).
   const fin = new Uint8Array(bx * by)
   const aVoir: number[] = []
   for (let v = 0; v < by; v++) {
@@ -160,8 +145,8 @@ export function frontiereEcran(
 
   const polygones: Point[][] = []
   const segments: [Point, Point][] = []
-  // Mailles entièrement dedans : elles se peignent en bandes, rangée par rangée, plutôt qu'une
-  // à une — des milliers de carrés alloués coûtaient plus que le prédicat lui-même.
+  // Fully-inside cells: painted as row bands, not one by one (thousands of allocated squares cost
+  // more than the predicate).
   const pleines = new Uint8Array(nx * ny)
   for (let v = 0; v < by; v++) {
     for (let u = 0; u < bx; u++) {
@@ -186,9 +171,8 @@ export function frontiereEcran(
   }
 
   /**
-   * Carrés marchants : les coins sont parcourus dans le sens horaire, et chaque changement de
-   * côté y insère sa traversée. Au col — deux coins dedans en diagonale —, le parcours relie
-   * les deux coins dedans : le choix est arbitraire, il n'est que le même partout.
+   * Marching squares: corners walked clockwise, each side change inserts its crossing. Saddle (two
+   * diagonal inside corners): walk links the inside corners; arbitrary, only consistent everywhere.
    */
   function decoupeMaille(i: number, j: number): void {
     const cotes = [noeud(i, j), noeud(i + 1, j), noeud(i + 1, j + 1), noeud(i, j + 1)]
@@ -217,7 +201,7 @@ export function frontiereEcran(
     if (c === undefined || d === undefined) {
       segments.push([a, b])
     } else if (cotes[0]) {
-      // Coin haut-gauche dedans : la frontière contourne les deux coins dehors.
+      // Top-left corner inside: boundary goes around the two outside corners.
       segments.push([a, b], [c, d])
     } else {
       segments.push([b, c], [d, a])
@@ -227,7 +211,7 @@ export function frontiereEcran(
   return { polygones, segments }
 }
 
-/** Peint la région, opaque. */
+/** Paints the region, opaque. */
 export function remplitRegion(
   ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
   f: FrontiereEcran,

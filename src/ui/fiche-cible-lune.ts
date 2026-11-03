@@ -1,14 +1,11 @@
 /**
- * §8.1 côté fiche — l'état du ciel sous la Lune pour la cible ouverte (T-0089).
- *
- * T-0268 — l'instant d'évaluation n'est plus un choix propre à la fiche : c'est le milieu du
- * créneau de la cible, celui du plan de séance (`instantLune`, §8.1). La fiche prenait
- * l'instant affiché par le planétarium, si bien que la même nuit préparée à midi et consultée
- * à 23 h 30 donnait deux gênes lunaires — et deux poses. Une gêne lunaire évaluée à midi ne
- * décrit d'ailleurs aucune observation : la cible y est sous l'horizon.
- *
- * La hauteur de cible passée au modèle est la culmination, exactement comme le plan
- * (`altCulminationDeg`) : c'est ce qui garantit que les deux écrans dégradent le même ciel.
+ * §8.1 fiche side — sky state under Lune for opened cible (T-0089).
+ * T-0268 — evaluation instant no longer fiche's choice: cible créneau midpoint, plan de séance's
+ * (`instantLune`, §8.1). Fiche took planétarium displayed instant → same night prepared at noon,
+ * consulted at 23:30 gave two lunar gênes and two poses. Noon gêne describes no observation
+ * anyway (cible under horizon).
+ * Cible height passed to model = culmination, as plan (`altCulminationDeg`): both degrade the same
+ * sky.
  */
 
 import { cielSousLaLune } from '../core/moon.ts'
@@ -22,7 +19,7 @@ import { DEG_PAR_HEURE } from '../core/unites.ts'
 export interface EntreeLuneCible {
   readonly site: Site
   readonly instant: Date
-  /** La cible du catalogue : ses coordonnées portent la séparation et la hauteur. */
+  /** Catalogue cible: its coordinates carry separation and height. */
   readonly objet: ObjetCielProfond
   readonly sbCielNoirMag: number
 }
@@ -43,8 +40,8 @@ export function lunePourCible(entree: EntreeLuneCible): LuneFiche {
       }),
     }
   } catch (erreur) {
-    // §12.5 — un instant hors du domaine des séries ne fait pas tomber la fiche : le reste
-    // de la chaîne vaut encore, seule la Lune manque, et elle nomme sa cause.
+    // §12.5 — instant outside series domain doesn't take fiche down: rest of chain holds, only Lune
+    // missing, names its cause.
     if (erreur instanceof HorsDomaineSeriesError) {
       return { evaluee: false, cause: erreur.message }
     }

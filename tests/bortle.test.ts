@@ -1,4 +1,4 @@
-/** §2.2 — critères d'acceptation de la table Bortle et du fond de ciel. */
+/** §2.2 — acceptance criteria for Bortle table + fond de ciel. */
 
 import { describe, expect, it } from 'vitest'
 import { BortleHorsTableError, interpoleBortle } from '../src/registry/bortle.ts'
@@ -12,7 +12,7 @@ describe('table Bortle §2.2', () => {
   })
 
   it('refuse toute valeur hors [1 ; 9] plutôt que d’extrapoler', () => {
-    // L'extrapolation linéaire donnait 23,4 mag/arcsec² à Bortle 1 : physiquement impossible.
+    // Linear extrapolation gave 23.4 mag/arcsec² at Bortle 1: physically impossible.
     expect(() => interpoleBortle(0.9)).toThrow(BortleHorsTableError)
     expect(() => interpoleBortle(9.1)).toThrow(BortleHorsTableError)
     expect(() => interpoleBortle(Number.NaN)).toThrow(BortleHorsTableError)
@@ -29,15 +29,15 @@ describe('fond de ciel §2.2, §4.1', () => {
     const ciel = fondDeCiel({ sqmMesure: 21.1, bortleDeclare: 6 })
     expect(ciel.sourceSb).toBe('SQM_MESURE')
     expect(ciel.sbCiel.value).toBe(21.1)
-    // 21,1 tombe entre les lignes 4 (SB 21,3 → 6,3) et 5 (SB 20,6 → 5,8) :
-    // fraction 0,2857 → 6,3 − 0,2857 × 0,5 = 6,157.
+    // 21.1 falls between rows 4 (SB 21.3 → 6.3) and 5 (SB 20.6 → 5.8):
+    // fraction 0.2857 → 6.3 − 0.2857 × 0.5 = 6.157.
     expect(ciel.mLimOeil.value).toBeCloseTo(6.157, 3)
   })
 
   it('demande confirmation pour un SQM plus sombre que le fond de ciel naturel', () => {
     const ciel = fondDeCiel({ sqmMesure: 23.0 })
     expect(ciel.confirmationRequise).toMatch(/plus noir que le ciel le plus noir connu/)
-    // Hors du domaine de la table : aucune magnitude limite n'est extrapolée.
+    // Outside table domain: no limiting magnitude extrapolated.
     expect(ciel.mLimOeil.value).toBeNull()
     expect(ciel.mLimOeil.flags).toContain('DONNEE_MANQUANTE')
   })

@@ -1,18 +1,12 @@
 /**
- * §6.4, §6.2 — l'image d'une cible : une découpe du relevé, son attribution, et le cadre du
- * capteur posé dessus.
- *
- * Une seule source, et c'est ce qui rend le cadre possible. Une image d'encyclopédie est
- * cadrée par son auteur : son champ angulaire n'est écrit nulle part, donc aucun rectangle ne
- * peut y être juste. La découpe, elle, est demandée à un champ choisi — et c'est ce champ qui
- * donne l'échelle. §6.4 décrit encore deux sources dans l'ordre inverse : l'écart est assumé,
- * son arbitrage ne se fait pas ici.
- *
- * Un refus subsiste, celui du plafond de poids : §12.3 passe avant une vignette.
- *
- * Un échec ne lève jamais. Une cible sans image reste une cible complète : c'est la
- * formulation de §12.5, et un message d'erreur ferait passer un agrément visuel manquant
- * pour une panne.
+ * §6.4, §6.2 — target image: survey cutout + attribution + overlaid sensor frame.
+ * Single source = what makes the frame possible. Encyclopedia image is framed by its author:
+ * angular field written nowhere, no rectangle can be right. Cutout is requested at a chosen
+ * field → gives the scale. §6.4 still describes two sources in reverse order: gap assumed,
+ * arbitration not made here.
+ * One refusal remains: weight cap, §12.3 outranks a thumbnail.
+ * Failure never throws. No image = still complete target (§12.5); an error message would make
+ * missing visual comfort look like an outage.
  */
 
 import type { ObjetCielProfond } from './deepsky.ts'
@@ -30,12 +24,9 @@ import { ARCMIN_PAR_DEG, POURCENT, QUART_TOUR_DEG as ANGLE_DROIT_DEG } from '../
 const OCTETS_PAR_KO = 1024
 
 /**
- * §6.4 — le champ de la découpe : la taille de l'objet, élargie par la marge du registre.
- *
- * Un objet de 71' et un objet de 2' ne se regardent pas au même champ. Une taille absente du
- * catalogue prend la valeur de repli nommée par le registre — et c'est aussi pourquoi aucun
- * cadre ne se dessine sur une cible sans dimensions : le champ serait une convention, pas une
- * mesure, et le rectangle mentirait.
+ * §6.4 — cutout field: object size widened by registry margin. A 71' and a 2' object aren't
+ * viewed at the same field. Size absent → registry fallback; hence no frame on a target without
+ * dimensions: field would be convention, not measure, rectangle would lie.
  */
 export function champDecoupeDeg(objet: ObjetCielProfond): number {
   const taille = objet.majAxArcmin
@@ -44,7 +35,7 @@ export function champDecoupeDeg(objet: ObjetCielProfond): number {
   return Math.min(Math.max(brut, I('CHAMP_DECOUPE_MIN_DEG')), I('CHAMP_DECOUPE_MAX_DEG'))
 }
 
-/** L'adresse de la découpe de relevé aux coordonnées de l'objet, au champ demandé. */
+/** Survey cutout address at object coordinates and requested field. */
 function urlDecoupeAuChamp(objet: ObjetCielProfond, champDeg: number): string {
   const cote = I('LARGEUR_VIGNETTE_PX')
   const parametres = new URLSearchParams({
@@ -61,15 +52,14 @@ function urlDecoupeAuChamp(objet: ObjetCielProfond, champDeg: number): string {
   return `${HOTE_DECOUPE}${CHEMIN_DECOUPE}?${parametres.toString()}`
 }
 
-/** La découpe qui illustre l'objet : cadrée sur sa taille (§6.4). */
+/** Cutout illustrating the object: framed on its size (§6.4). */
 export function urlDecoupe(objet: ObjetCielProfond): string {
   return urlDecoupeAuChamp(objet, champDecoupeDeg(objet))
 }
 
 /**
- * §13.1 — aucune requête ne dit d'où elle vient. Sans cela, le navigateur joint l'origine de
- * l'application à chaque appel : ce n'est ni un profil, ni un site, ni un plan, mais c'est une
- * information que rien n'oblige à transmettre, et la liste des origines énumère ce qui sort.
+ * §13.1 — no request says where it comes from; else browser attaches app origin to each call: no
+ * profil/site/plan, but information nothing obliges to send. Origin list enumerates what leaves.
  */
 const SANS_REFERENT: RequestInit = { referrerPolicy: 'no-referrer' }
 
@@ -82,7 +72,7 @@ async function octets(adresse: string): Promise<Blob | null> {
   return corps
 }
 
-/** Une découpe de relevé, rangée sous la désignation de l'objet. */
+/** Survey cutout, stored under object designation. */
 async function decoupe(designation: string, adresse: string): Promise<ImageStockee | null> {
   const corps = await octets(adresse)
   if (corps === null) return null
@@ -97,22 +87,20 @@ async function decoupe(designation: string, adresse: string): Promise<ImageStock
 }
 
 /**
- * Les résolutions en vol, par désignation. Sans elles, la fiche et la vignette de liste
- * demandent deux fois la même image au même instant — et le service répond 429.
+ * In-flight resolutions by designation: else fiche + list thumbnail request the same image
+ * twice at once → service answers 429.
  */
 const enVol = new Map<string, Promise<ImageStockee | null>>()
 
 /**
- * L'image d'une cible : le cache d'abord, le réseau ensuite, jamais l'inverse.
- *
- * Hors réseau, l'absence de cache n'est pas une erreur : c'est la ligne §12.5 de cette
- * fonction, dont la dégradation nommée est le cadre schématique de §9.2, déjà rendu sur la
- * scène. En ligne, un échec de bout en bout rend `null` sans lever.
+ * Target image: cache first, then network, never reverse.
+ * Offline with no cache is not an error: it's this function's §12.5 line, degradation named =
+ * §9.2 schematic frame, already rendered. Online, end-to-end failure returns `null`, no throw.
  */
 export async function resoudImage(objet: ObjetCielProfond): Promise<ImageStockee | null> {
   const enCache = await litImage(objet.designation)
-  // Une visite antérieure a pu ranger une image d'encyclopédie sous cette désignation. Son
-  // champ n'est écrit nulle part : la resservir ferait poser le cadre à une échelle inventée.
+  // Earlier visit may have stored an encyclopedia image under this designation; its field is
+  // written nowhere, reusing it would place the frame at an invented scale.
   if (enCache !== null && enCache.origine === 'RELEVE') return enCache
   if (modeReseauCourant() === 'HORS_LIGNE') return null
 
@@ -133,41 +121,30 @@ export async function resoudImage(objet: ObjetCielProfond): Promise<ImageStockee
   return resolution
 }
 
-/** L'image d'une cible si elle est déjà rangée, sans jamais toucher au réseau (§6.4). */
+/** Stored target image, never touches network (§6.4). */
 export function imageEnCache(designation: string): Promise<ImageStockee | null> {
   return litImage(designation)
 }
 
 /**
- * §6.2 — le cadre du capteur, lu sur la découpe de l'objet.
- *
- * UNE SEULE FAÇON DE LE LIRE, QUEL QUE SOIT LE REMPLISSAGE
- *   Le cadre vit dans un encart, jamais en surimpression sur la grande image. Un rectangle
- *   posé sur la vue changeait de nature selon la cible — tantôt un cadre DANS l'image, tantôt
- *   une image DANS le cadre — et demandait un geste différent pour la même question. L'encart
- *   répond toujours à la même : voilà le cadre, voilà ce que la cible y occupe.
- *
- *   La formule s'en accommode sans cas particulier. `partObjetPct` passe au-dessus de cent
- *   quand la cible est plus grande que le cadre : la découpe déborde alors de l'encart et s'y
- *   fait couper, ce qui EST l'image d'une mosaïque — le cadre plein, l'objet qui sort.
- *
- * LE CADRE NE TOURNE PAS, L'IMAGE S'INCLINE
- *   Un cadre penché ne montre pas ce qu'un capteur donnera. La relation est la même dans
- *   l'autre sens et se lit mieux — c'est aussi ce qui est physiquement juste : quand on tourne
- *   le boîtier, c'est le ciel qui bascule dans le cadre.
- *
- *   Le signe vient de la projection. Une découpe en TAN a le Nord en haut et l'Est à gauche ;
- *   l'angle de position se compte du Nord vers l'Est, donc dans le sens trigonométrique à
- *   l'écran, quand `rotate()` en CSS tourne dans l'horaire. Un rectangle non tourné a son grand
- *   côté horizontal, ce qui correspond à un angle de position d'un quart de tour : le cadre se
- *   dessinerait à `90 − angle`, et le redresser incline l'image de `angle − 90`. Sur un capteur
- *   en portrait, le grand côté est déjà vertical et le quart de tour tombe.
+ * §6.2 — sensor frame, read on the object cutout.
+ * ONE WAY TO READ IT, WHATEVER THE FILL
+ *   Frame lives in an inset, never overlaid on the large image: an overlay changed nature per
+ *   target (frame IN image vs image IN frame), needing different gestures for the same question.
+ *   Inset always answers: here is the frame, here is what target occupies. No special case:
+ *   `partObjetPct` > 100 when target exceeds frame → cutout overflows inset, clipped = the mosaic
+ *   picture (full frame, object spilling out).
+ * FRAME DOES NOT ROTATE, IMAGE TILTS
+ *   Tilted frame doesn't show what a sensor gives. Reversed relation reads better and is
+ *   physically right: turning the body tilts the sky in the frame.
+ *   Sign from projection. TAN cutout: North up, East left; position angle counts North→East =
+ *   counter-clockwise on screen, CSS `rotate()` clockwise. Unrotated rectangle has long side
+ *   horizontal = position angle a quarter turn off: frame would draw at `90 − angle`, so
+ *   straightening it tilts image by `angle − 90`. Portrait sensor: long side already vertical,
+ *   quarter turn drops.
  */
 export interface CadreSurImage {
-  /**
-   * Part de la largeur de l'encart qu'occupe la découpe, en pourcent. Au-delà de cent, la
-   * cible déborde du cadre : c'est le cas mosaïque, et l'encart le coupe.
-   */
+  /** Cutout's share of inset width, %. > 100: target overflows frame (mosaic), inset clips it. */
   readonly partObjetPct: number
   readonly rotationDeg: number
 }

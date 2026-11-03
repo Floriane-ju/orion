@@ -1,8 +1,6 @@
 /**
- * T-0324, T-0338 — « Voir le parcours » : la scène montre le cheminement et se cadre dessus.
- *
- * Sorti de `PlanSession.tsx` : c'est un calcul de scène (cadrage, visée, champ), pas du rendu.
- * Le composant appelle, il ne calcule pas.
+ * T-0324, T-0338 — "Voir le parcours": scène shows the path and frames itself on it.
+ * Extracted from `PlanSession.tsx`: scène calc (cadrage, visée, champ), not rendering.
  */
 
 import { cadrageParcours, type EtapeParcours } from '../core/pointage.ts'
@@ -26,28 +24,23 @@ export interface EntreeParcours {
   readonly objet: ObjetCielProfond
   readonly date: Date
   readonly site: Site
-  /** §3.3 — il borne le champ que « Voir le parcours » demande à la scène. */
+  /** §3.3 — bounds of the champ "Voir le parcours" asks of the scène. */
   readonly gaiaCharge: boolean
 }
 
 /**
- * T-0324 — la scène prend le trajet, puis s'y range : elle va à l'heure du pointage, se centre
- * dessus et ouvre son champ juste assez pour le contenir.
- *
- * L'HORLOGE SAUTE, contrairement au bouton « Voir » de T-0046 qui ne bouge que la visée. Ce
- * n'est pas la même question : « Voir » demande où est cette cible en ce moment, le parcours
- * montre le trajet qu'on fera à l'heure de l'étape. Le reste de l'aide au pointage — la table,
- * le schéma, l'angle parallactique de §8.4 — est déjà calculé pour cette heure-là ; laisser la
- * scène à la sienne montrerait le ciel d'un autre moment sous des chiffres qui n'en parlent
- * pas, et le cadrage automatique raterait le trajet d'autant que les deux heures diffèrent.
- *
- * Le rayon du trajet devient un champ par `fovPourRayonDeg`, qui le fait tenir sur le bord le
- * plus proche : `fovDeg` est horizontal, et un trajet à dominante verticale sortirait d'un champ
- * dimensionné sur la largeur d'un canevas plus large que haut.
- *
- * Le champ passe ensuite par `bornesZoom` alors que `majVue` ne pose que le plafond de la
- * projection. Sans ce plancher, un trajet court laisserait la scène sous la profondeur du
- * catalogue embarqué — et l'y laisserait encore après la fermeture du parcours.
+ * T-0324 — scène takes the path then settles on it: goes to the pointage time, centres, opens
+ * champ just enough to contain it.
+ * CLOCK JUMPS, unlike T-0046 "Voir" (moves only the visée). Different question: "Voir" = where
+ * is this target now; parcours = path walked at the étape's time. The rest of the pointage aid
+ * (table, schema, §8.4 parallactic angle) is computed for that time; a scène at its own time
+ * would show another moment's sky under unrelated figures, and auto-framing would miss the
+ * path by the gap between the two times.
+ * Path radius → champ via `fovPourRayonDeg` (fits nearest edge): `fovDeg` is horizontal, a
+ * mostly vertical path would overflow a champ sized on a canvas wider than tall.
+ * Champ then goes through `bornesZoom` while `majVue` only sets the projection cap. Without
+ * this floor a short path leaves the scène below the embedded catalogue depth — and still
+ * there after the parcours closes.
  */
 export function poseParcours(props: EntreeParcours, etapes: readonly EtapeParcours[]): void {
   const adCibleH = props.objet.adDeg / DEG_PAR_HEURE

@@ -1,13 +1,9 @@
 /**
- * T-0089 — la fiche cible compte la Lune comme le plan de séance (§8.1, §6.3, §7.5).
- *
- * Ce que ce fichier interdit de régresser : deux écrans qui évaluent la même cible la même
- * nuit ne doivent pas annoncer deux poses. La fiche appelait `detectabilite()` sans la Lune,
- * sur le fond de ciel noir du site — elle dosait donc une nuit sans Lune, quelle que soit la
- * nuit. Le test compare les deux chemins sur la même entrée et échoue s'ils divergent.
- *
- * Aucune éphéméride n'est écrite ici : la nuit de Lune est CHERCHÉE à l'exécution, et les
- * valeurs attendues sont celles que le moteur du plan produit sur la même entrée.
+ * T-0089 — fiche cible counts the Moon like plan de séance (§8.1, §6.3, §7.5).
+ * Guards: 2 screens on same target same nuit must not announce 2 poses. Fiche called
+ * `detectabilite()` without Moon on site's black fond de ciel (dosed as Moonless nuit).
+ * Compares both paths on same input. No ephemeris: Moon nuit SEARCHED at runtime, expected =
+ * plan engine output.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -38,8 +34,8 @@ import { lunePourCible } from '../src/ui/fiche-cible-lune.ts'
 import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
 /**
- * Pas de nuit chiffrable : la fiche n'a alors ni créneau ni masse d'air, et `fluxObjetReel`
- * annonce un minimum plutôt que de supposer le zénith (§7.6, §12.5).
+ * No computable nuit: fiche has no créneau/masse d'air; `fluxObjetReel` announces a minimum,
+ * no assumed zenith (§7.6, §12.5).
  */
 const SANS_CRENEAU: CaptureNuit = {
   masseAir: masseAir(null),
@@ -48,7 +44,7 @@ const SANS_CRENEAU: CaptureNuit = {
   exclusion: null,
 }
 
-/** Annexe A : site de référence, et le setup grand champ 120 mm f/2,8 sur plein format. */
+/** Annexe A: reference site + wide-field 120 mm f/2,8, plein format. */
 const CAPTEUR = capteurEffectif(BOITIER_REFERENCE, 'FULL_FRAME')
 const OPTIQUE = profilOptique({ focaleMm: 120, ouvertureN: 2.8, ...CAPTEUR })
 const ZERO = pointZeroSysteme(BOITIER_REFERENCE)
@@ -56,7 +52,7 @@ const ISO = isoRecommande(BOITIER_REFERENCE)
 const SB_CIEL_NOIR = 20.95
 const M_LIM_OEIL = 6.05
 const T_MAX_S = 200
-/** L'objectif de qualité du plan de la nuit : la fiche doit être interrogée sur le même. */
+/** Nuit plan quality objective: fiche must be queried on the same. */
 const SNR_PLAN = PRESET_SNR_DEFAUT
 
 const NGC7000: ObjetCielProfond = {
@@ -103,9 +99,8 @@ function contexteSession(dateIso: string): ContexteSession {
 }
 
 /**
- * Le fond de ciel que le plan emploie avant la Lune : le ciel noir du site, moins la
- * pénalité de crépuscule de la nuit (§2.2). La fiche est interrogée sur celui-là, pour que
- * la seule différence testée soit la Lune.
+ * Fond de ciel the plan uses before the Moon: site black sky − nuit's crépuscule penalty
+ * (§2.2). Fiche queried on it → only the Moon differs.
  */
 function sbCielBase(contexte: ContexteSession): number {
   return contexte.sbCielNoir - contexte.nuit.penaliteSbMag
@@ -123,8 +118,7 @@ function contexteFiche(sbCiel: number): ContexteFiche {
     sbCiel,
     mLimOeil: M_LIM_OEIL,
     tMaxS: T_MAX_S,
-    // Bortle 4 : sous le seuil C-22 du conseil filtre. Ce qui déclenche le conseil dans ce
-    // fichier ne peut donc être que la Lune.
+    // Bortle 4: under C-22 filter advice threshold; only the Moon can trigger advice here.
     bortle: 4,
     suiviActif: true,
     focaleMm: 120,
@@ -132,9 +126,8 @@ function contexteFiche(sbCiel: number): ContexteFiche {
 }
 
 /**
- * Première nuit, à partir du 1er août 2026, où le plan retient la cible sous une Lune qui
- * dégrade réellement le fond de ciel. Cherchée plutôt qu'écrite : une date recopiée serait
- * une éphéméride en dur, et le test la vérifierait contre elle-même.
+ * First nuit from 1 Aug 2026 where plan keeps target under a Moon really degrading fond de
+ * ciel. Searched, not written: a copied date = hardcoded ephemeris.
  */
 function nuitAvecLune(): { readonly contexte: ContexteSession; readonly etape: EtapePlan } {
   for (let jour = 1; jour <= 30; jour += 1) {
@@ -146,12 +139,10 @@ function nuitAvecLune(): { readonly contexte: ContexteSession; readonly etape: E
 }
 
 /**
- * T-0268 — les TROIS chemins sur la même entrée : le plan de séance, la liste du catalogue et
- * la fiche. Reprise du test de T-0089, qui ne comparait que deux d'entre eux et tolérait
- * explicitement un écart de masse d'air — c'est par là que la régression est revenue.
- *
- * Ce que ce fichier interdit désormais : que la fiche annonce une autre intégration, un autre
- * nombre de poses ou une autre gêne lunaire que le plan pour la même cible la même nuit.
+ * T-0268 — THREE paths on same input: plan de séance, catalogue list, fiche. Redo of T-0089
+ * (compared 2, tolerated a masse d'air gap → regression came back through it).
+ * Forbidden: fiche announcing other integration, pose count or Moon gêne than plan for same
+ * target + nuit.
  */
 describe('T-0268 — la liste, la fiche et le plan annoncent le même dosage', () => {
   const { contexte, etape } = nuitAvecLune()
@@ -195,9 +186,8 @@ describe('T-0268 — la liste, la fiche et le plan annoncent le même dosage', (
   })
 
   /**
-   * L'instant lunaire de la fiche est tiré du CRÉNEAU, donc de la nuit seule. Aucune horloge
-   * n'y entre : préparer à midi et consulter à 23 h 30 lisent le même instant, donc la même
-   * gêne. C'est la clause que la fiche violait en datant sa Lune de l'instant affiché.
+   * Fiche Moon instant drawn from the CRÉNEAU, so from nuit alone; no clock: prepare at noon,
+   * consult at 23:30 → same instant, same gêne. Violated by dating Moon at displayed instant.
    */
   it('date sa Lune d’un instant du créneau, jamais de l’heure de consultation', () => {
     const creneaux = nuit.creneau.chiffre ? nuit.creneau.creneau.creneaux : []
@@ -208,9 +198,8 @@ describe('T-0268 — la liste, la fiche et le plan annoncent le même dosage', (
   })
 
   /**
-   * §7.6 — le plancher est la variante nommée : la même cible au seul meilleur instant. Il
-   * est plus court que la prévision, et c'est tout son intérêt — l'écart chiffre ce que coûte
-   * le fait de poser toute la fenêtre plutôt que l'heure de la culmination.
+   * §7.6 — floor = named variant: same target at best instant only. Shorter than forecast by
+   * design: gap prices posing the whole window vs culmination hour.
    */
   it('affiche un plancher plus court que la prévision, jamais à sa place', () => {
     expect(fiche.plancher).not.toBeNull()
@@ -221,9 +210,8 @@ describe('T-0268 — la liste, la fiche et le plan annoncent le même dosage', (
   })
 
   /**
-   * Le critère que la phrase « Lune à 12:47, cible à son point le plus haut » violait : la
-   * hauteur annoncée et l'instant nommé doivent décrire le MÊME événement. Ils viennent du
-   * même échantillon du créneau, ce qui les rend incapables de diverger.
+   * Violated by "Lune à 12:47, cible à son point le plus haut": elevation and named instant
+   * must describe the SAME event. Same créneau sample → cannot diverge.
    */
   it('nomme un instant auquel la cible est effectivement à la hauteur annoncée', () => {
     const plusHaut = fiche.plancher!.plusHaut
@@ -250,7 +238,7 @@ describe('T-0268 — la liste, la fiche et le plan annoncent le même dosage', (
 })
 
 describe('§6.3 — une Lune sous l’horizon ne dégrade rien, et la fiche le dit', () => {
-  /** Premier instant de la nuit où la Lune est couchée, cherché heure par heure. */
+  /** First nuit instant with Moon set, searched hour by hour. */
   function instantSansLune(): Date {
     const nuit = fenetreNocturne(SITE, new Date('2026-08-01T12:00:00Z'))
     const depart = nuit.debutReference ?? new Date('2026-08-01T22:00:00Z')
@@ -292,7 +280,7 @@ describe('§6.3 et §7.5 — la même Lune ne pénalise pas tous les types de la
 
   function conseilPour(typeObjet: TypeObjet) {
     const ctx = contexteFiche(sbBase)
-    // Le type de l'objet décide du conseil : il est imposé ici, la cible restant la même.
+    // Object type decides advice: imposed, target unchanged.
     const r = evalue(ctx, { ...etape.objet, type: typeObjet }, SNR_PLAN, ISO, lune, SANS_CRENEAU)
     return {
       r,
@@ -328,8 +316,8 @@ describe('§6.3 et §7.5 — la même Lune ne pénalise pas tous les types de la
 
 describe('T-0089 — une Lune non évaluée ne se voit pas inventer un fond de ciel', () => {
   /**
-   * §12.5 — l'instant sorti du domaine des séries est le seul refus qui subsiste depuis
-   * T-0156 : une cible a toujours ses coordonnées. La cause vient du moteur, pas d'ici.
+   * §12.5 — instant outside series domain = only refusal left since T-0156 (a target always
+   * has coordinates). Cause from engine.
    */
   const lune: LuneFiche = {
     evaluee: false,
@@ -339,7 +327,7 @@ describe('T-0089 — une Lune non évaluée ne se voit pas inventer un fond de c
 
   it('garde le fond de ciel du site plutôt que de deviner la dégradation', () => {
     expect(fiche.sbCielEffectif).toBe(SB_CIEL_NOIR)
-    // Sans créneau, aucune hauteur n'est supposée : ni plancher affiché, ni masse d'air.
+    // No créneau: no elevation assumed, no floor, no masse d'air shown.
     expect(fiche.plusHaut).toBeNull()
     expect(fiche.plancher).toBeNull()
     expect(fiche.extinction?.masseAir.value).toBeNull()

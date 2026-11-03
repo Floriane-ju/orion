@@ -1,13 +1,9 @@
 /**
- * L'application : un lieu, un matériel, une intention, et la scène au centre.
- *
- * Ce fichier ne dessine plus rien et ne calcule plus rien. Il tient les magasins partagés,
- * appelle la chaîne de calcul (`app-calcul.ts`) et distribue ses sorties aux sept régions de
- * la coque : la barre haute, la scène, le panneau du temps, les cartes du matériel, les autres
- * cartes posées dessus, le panneau latéral et la barre basse.
- *
- * Chaque nombre affiché reste dépliable jusqu'à sa formule, et chaque terme technique porte
- * sa définition au contact (§1.5.2, §10.1) — c'est le contrat, pas la mise en page.
+ * App root: lieu, matériel, intention, scène at centre. Draws/computes nothing: holds shared
+ * stores, calls the compute chain (`app-calcul.ts`), dispatches outputs to 7 shell regions (top
+ * bar, scène, time panel, matériel cards, cards stacked on them, side panel, bottom bar).
+ * Every displayed number unfolds to its formula; every technical term carries its definition
+ * (§1.5.2, §10.1) — contract, not layout.
  */
 
 import { useEffect, useState, useSyncExternalStore } from 'react'
@@ -49,27 +45,24 @@ import { Mention } from './ui/Mention.tsx'
 
 
 /**
- * T-0056 — la tranche du magasin de scène dont l'application dépend vraiment : l'époque de
- * précession, arrondie au jour. La boucle republie l'instant affiché deux fois par seconde ;
- * l'écart de frontières qu'en tire l'onglet Explorer bouge de 0,014° par an. S'abonner à la
- * journée plutôt qu'à la milliseconde, c'est ne plus rendre l'arbre entier à cette cadence.
+ * T-0056 — store slice the app really depends on: precession epoch, rounded to the day. Loop
+ * republishes displayed instant 2×/s; frontières offset (Explorer tab) moves 0,014°/yr →
+ * per-day subscription stops full-tree renders at that rate.
  */
 export function epoqueAffichee(etat: EtatScene): number {
   return epoqueAnnee(new Date(Math.floor(etat.msAffiche / MS_PAR_JOUR) * MS_PAR_JOUR))
 }
 
 /**
- * §11.1 — le mode nuit reste actif au redémarrage.
- *
- * T-0140 — il ne s'allume plus seul au crépuscule : un basculement au rouge pendant la
- * préparation du matériel n'est pas demandé à l'instant où il survient.
+ * §11.1 — mode nuit persists across restarts. T-0140: no auto-switch at crépuscule (a red
+ * switch mid matériel prep is unwanted).
  */
 function useModeNuit(): [EtatModeNuit, (etat: EtatModeNuit) => void] {
   const [modeNuit, setModeNuit] = useState<EtatModeNuit>(litEtatPersiste)
 
   useEffect(() => appliqueModeNuit(modeNuit), [modeNuit])
 
-  // T-0375 — la touche vaut partout, pas seulement scène focalisée : c'est un geste d'urgence.
+  // T-0375 — key works everywhere, not only with scène focused: emergency gesture.
   useEffect(() => {
     const surTouche = (e: KeyboardEvent) => {
       const modificateur = e.ctrlKey || e.metaKey || e.altKey
@@ -84,15 +77,13 @@ function useModeNuit(): [EtatModeNuit, (etat: EtatModeNuit) => void] {
 }
 
 /**
- * §12.3 — la saisie enregistrée se relit avant tout le reste. L'application n'a qu'un lieu et
- * qu'un matériel : les monter sur les valeurs par défaut pour les remplacer ensuite ferait
- * calculer, afficher puis jeter une nuit qui n'est pas celle du site enregistré.
+ * §12.3 — saved input read back first. One lieu, one matériel: mounting on defaults then
+ * replacing would compute, display, discard a night not the saved site's.
  */
 export function App() {
   const restauree = useSaisieRestauree()
-  // T-0296 — les catalogues se chargent ICI, au-dessus de l'attente : leurs requêtes partent
-  // donc en même temps que la lecture de la saisie, pas après elle. Montés dans `AppPrete`,
-  // ils ne démarraient qu'une fois la base relue et la première image calculée.
+  // T-0296 — catalogues load HERE, above the wait: requests start with the saved-input read.
+  // In `AppPrete` they started only after DB read + first frame.
   const catalogues = useCatalogues()
   if (restauree === null)
     return (
@@ -113,20 +104,20 @@ function AppPrete({
   const lieu = useSaisieLieu(restauree.lieu)
   const materiel = useSaisieMateriel(restauree.materiel)
   const poids = useSaisiePoids(restauree.poids)
-  // §12.5 — l'état affiché suit les bascules, il n'est pas figé au démarrage.
+  // §12.5 — displayed state follows toggles, not frozen at startup.
   const modeReseau = useSyncExternalStore<ModeReseau>(abonneModeReseau, modeReseauCourant, () => 'EN_LIGNE')
 
-  // T-0189 — une seule écoute d'Échap pour toute l'application : les bulles s'ouvrent sans
-  // JavaScript et ne peuvent pas porter la leur (§1.4.13, voir `gere-echap.ts`).
+  // T-0189 — single app-wide Échap listener: bubbles open without JS can't carry their own
+  // (§1.4.13, see `gere-echap.ts`).
   useEffect(() => installeEchap(document), [])
   useEffect(() => installeFermetureDehors(document), [])
-  // T-0362 — la fiche laissée ouverte se rouvre dès que le catalogue est là.
+  // T-0362 — a fiche left open reopens once the catalogue is there.
   useEffect(() => relieCible(catalogues.objets), [catalogues.objets])
 
-  // Pointage, temps et intention : les deux magasins que la scène et les panneaux partagent.
+  // Pointage, time, intention: the two stores shared by scène and panels.
   const anneeEpoque = useTrancheScene(epoqueAffichee)
-  // T-0398 — la cible seule : la pose max du Panorama change à chaque mouvement de la visée,
-  // et s'abonner à toute la séance re-rendait l'application entière sous le geste.
+  // T-0398 — cible only: Panorama pose max changes each visée move; subscribing to whole séance
+  // re-rendered the app under the gesture.
   const cibleDuCiel = useTrancheSeance(cibleSeance)
 
   const chaine = useChaineCalcul({
@@ -139,14 +130,13 @@ function AppPrete({
   const { calcul, ciel } = chaine
   const [modeNuit, setModeNuit] = useModeNuit()
 
-  // §6.4 — filtrer la liste filtre la scène : les cibles écartées s'y estompent au lieu d'y
-  // rester indistinctes. `null` tant qu'aucun filtre n'est actif.
+  // §6.4 — list filter filters the scène: excluded cibles fade, not left indistinct. `null` =
+  // no filter.
   const enAvant = useCiblesEnAvant(catalogues.objets, chaine.etatsCibles)
-  // Sur « Mon plan », la scène ne garde en pleine lumière que ce que le plan photographie.
+  // On "Mon plan", scène keeps in full light only what the plan photographs.
   const ciblesPlan = chaine.plan?.etapes.map((e) => e.objet) ?? null
 
-  // §12.3 — le lieu et le matériel s'enregistrent au fil de la saisie, et l'export les
-  // emporte tels qu'ils sont à l'écran.
+  // §12.3 — lieu and matériel saved as typed; export carries them as on screen.
   const persistance = usePersistance({
     site: siteAEnregistrer(lieu, chaine.masque),
     profil: profilAEnregistrer(materiel),
@@ -176,9 +166,8 @@ function AppPrete({
   )
 
   /**
-   * T-0149 — la scène ne dépend que du CIEL. Un matériel incomplet lui retire son cadre et
-   * son aperçu de filé — `profilsCadre` est alors vide, `materielFile` absent — mais
-   * pas les étoiles, le sol ni le fond de ciel : ce sont des grandeurs du lieu.
+   * T-0149 — scène depends on CIEL only. Incomplete matériel drops cadre + filé preview
+   * (`profilsCadre` empty, `materielFile` absent), not stars/sol/fond de ciel (lieu quantities).
    */
   const scene = ciel.ok ? (
     <Planetarium

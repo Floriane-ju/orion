@@ -1,10 +1,8 @@
 /**
- * T-0408 — sous un zoom, la fiche s'ouvre à la focale optimale de la cible, la dit, et lit
- * son cadrage à cette focale. Hors zoom, rien ne change.
- *
- * La focale est un ESSAI de la fiche : aucune saisie du matériel n'est reçue, il n'y a donc
- * rien qu'elle puisse modifier — c'est la construction qui le garantit, pas un clic. Seul le
- * cadre de la cible, dans la scène, la suit.
+ * T-0408 — under a zoom, fiche opens at target's focale optimale, states it, reads cadrage
+ * at it. No zoom → unchanged.
+ * Focale = fiche TRIAL: no matériel input received → modifies nothing (by construction).
+ * Only target cadre in scène follows it.
  */
 
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -52,7 +50,7 @@ const CIBLE: ObjetCielProfond = {
   adDeg: 314.75,
   decDeg: 44.52,
   type: 'EMISSION',
-  // Cadrée à 80 % quelque part au milieu de la plage du 100-400 sur plein format.
+  // Framed at 80 %, mid-range of 100-400 on plein format.
   majAxArcmin: 400,
   minAxArcmin: 300,
   posAngDeg: null,
@@ -206,7 +204,7 @@ describe('sous un zoom, les cadres de la scène', () => {
 })
 
 describe('T-0436 — la fiche choisit l’objectif du parc', () => {
-  // Un fixe court et un fixe long : la cible (400′) se cadre au long, aucun zoom au parc.
+  // Short + long prime: target (400′) framed by long one, no zoom in parc.
   const COURT: Objectif = { ...ZOOM, id: 'court', nom: '50', focaleMinMm: 50, focaleMaxMm: 50 }
   const LONG: Objectif = { ...ZOOM, id: 'long', nom: '200', focaleMinMm: 200, focaleMaxMm: 200 }
   const zoom = zoomSur({
@@ -245,7 +243,7 @@ describe('T-0436 — la fiche choisit l’objectif du parc', () => {
     const essai = { designation: CIBLE.designation, objectifId: COURT.id, focaleMm: COURT.focaleMinMm }
     expect(profilCible(zoom, CIBLE, essai, [MODELE])?.fovHDeg).toBe(champ(COURT))
     expect(profilCible(zoom, CIBLE, null, [MODELE])?.fovHDeg).toBe(champ(LONG))
-    // Le monté est un fixe : la scène ne peint que le réglage.
+    // Mounted lens = prime: scène paints only the setting.
     expect(profilsScene(zoom, [MODELE])).toEqual([MODELE])
     expect(zoom.monte).toBe(COURT)
   })

@@ -1,17 +1,14 @@
 /**
- * §6.3 — Détectabilité et quatre verdicts.
+ * §6.3 — détectabilité and four verdicts.
  *
- * La magnitude intégrée ment : c'est la brillance de surface qui décide. M57, cinq
- * magnitudes plus faible que M31, est dix-huit fois plus brillante par seconde d'arc au
- * carré qu'un ciel Bortle 4,5 ; M33, plus brillante que M57 en magnitude intégrée, est sept
- * fois plus faible que ce même fond de ciel.
+ * Integrated magnitude lies: brillance de surface decides. M57, 5 mag fainter than M31, is 18×
+ * brighter per arcsec² than a Bortle 4,5 sky; M33, brighter than M57 in integrated magnitude, is
+ * 7× fainter than that background.
+ * An instrument NEVER raises an extended object's brillance de surface, only apparent size:
+ * magnification acts through size via the contraste table, never a nonexistent contrast gain.
  *
- * Et un instrument N'AUGMENTE JAMAIS la brillance de surface d'un objet étendu : il
- * augmente sa taille apparente. C'est par la taille, via la table de contraste, que le
- * grossissement joue — jamais par un gain de contraste qui n'existe pas.
- *
- * PHOTO_SEULE n'est pas un refus : c'est une durée. Le débutant qui lit « invisible »
- * abandonne, celui qui lit « une heure d'intégration » sort son intervallomètre.
+ * PHOTO_SEULE isn't a refusal, it's a duration: "invisible" → beginner gives up; "an hour of
+ * integration" → gets the intervalometer.
  */
 
 import { K } from '../registry/constants.ts'
@@ -33,7 +30,7 @@ export interface ModulationType {
   readonly conseil: string
 }
 
-/** §6.3 — modulation par type d'objet, conséquence directe du socle. */
+/** §6.3 — modulation per object type, direct consequence of the foundation. */
 const MODULATIONS: Readonly<Record<TypeObjet, ModulationType>> = Object.freeze({
   EMISSION: {
     toleranceLune: 'FORTE',
@@ -83,28 +80,28 @@ const MODULATIONS: Readonly<Record<TypeObjet, ModulationType>> = Object.freeze({
   },
 })
 
-/** La modulation §6.3 d'un type : le plan en lit la tolérance, la fiche le conseil. */
+/** §6.3 modulation of a type: plan reads its tolerance, fiche its advice. */
 export function modulationDuType(type: TypeObjet): ModulationType {
   return MODULATIONS[type]
 }
 
 export interface EtatLune {
-  /** Hauteur de la Lune au moment évalué. Négative : elle n'entre pas dans le calcul. */
+  /** Lune hauteur at evaluated moment. Negative: not in the computation. */
   readonly altitudeDeg: number
   readonly separationDeg?: number
 }
 
 export interface EntreeDetectabilite {
-  /** `null` quand le catalogue ne donne pas la magnitude : aucun verdict n'est produit. */
+  /** `null` when catalogue gives no magnitude: no verdict produced. */
   readonly mInt: number | null
   readonly aArcmin: number | null
-  /** Absent : l'objet est supposé rond, `b = a`. */
+  /** Absent: object assumed round, `b = a`. */
   readonly bArcmin?: number | null
   readonly typeObjet: TypeObjet
   readonly sbCiel: number
-  /** `null` hors du domaine de la table Bortle : les verdicts visuels ne sont pas évalués. */
+  /** `null` outside the Bortle table domain: visual verdicts not evaluated. */
   readonly mLimOeil: number | null
-  /** Diamètre de l'instrument de l'utilisateur, mm. */
+  /** User's instrument diameter, mm. */
   readonly dMm: number
   readonly lune?: EtatLune
 }
@@ -112,26 +109,25 @@ export interface EntreeDetectabilite {
 export interface Detectabilite {
   readonly sbObj: Traced<number | null>
   readonly deltaSb: Traced<number | null>
-  /** `null` quand la donnée source manque : aucune estimation n'est produite. */
+  /** `null` when source data missing: no estimate produced. */
   readonly verdict: VerdictDetectabilite | null
   readonly toleranceLune: ToleranceLune
   readonly conseilType: string
-  /** Une phrase : pourquoi cette magnitude n'implique pas cette visibilité. */
+  /** One sentence: why this magnitude doesn't imply this visibility. */
   readonly explication: string
   readonly noteLune?: string
-  /** Magnitude limite atteinte par l'instrument de l'utilisateur. */
+  /** Magnitude limite reached by the user's instrument. */
   readonly mLimInstr: Traced<number | null>
 }
 
 /**
- * T-0383 — un amas ouvert se voit par ses étoiles, une à une : étaler sa magnitude sur un
- * disque uniforme donnait aux Pléiades une brillance de surface sous le ciel, donc « en photo
- * seulement ». Un globulaire, lui, reste une tache non résolue à l'œil et aux jumelles : le
- * critère de contraste lui convient.
+ * T-0383 — amas ouvert is seen by its stars one by one: spreading its magnitude on a uniform
+ * disc gave the Pléiades brillance de surface below sky → "photo only". Globulaire stays an
+ * unresolved blob by eye/binoculars: contrast criterion fits.
  */
 const TYPES_RESOLUS: readonly TypeObjet[] = Object.freeze(['AMAS_OUVERT'])
 
-/** Aire d'une ellipse donnée par ses deux axes, en secondes d'arc au carré. */
+/** Ellipse area from its two axes, arcsec². */
 export function aireEllipseArcsec2(aArcmin: number, bArcmin: number): number {
   return (
     (Math.PI / K('AIRE_ELLIPSE_DIAMETRES')) *
@@ -142,20 +138,19 @@ export function aireEllipseArcsec2(aArcmin: number, bArcmin: number): number {
   )
 }
 
-/** Gain en magnitude limite apporté par un diamètre, contre l'œil adapté (C-11). */
+/** Magnitude limite gain brought by a diameter, vs adapted eye (C-11). */
 export function gainInstrumental(dMm: number): number {
   return 2 * K('POGSON') * Math.log10(dMm / K('PUPILLE_OEIL_ADAPTE_MM'))
 }
 
-/** Grossissement à pupille de sortie pleine : le réglage qui favorise la détection. */
+/** Magnification at full exit pupil: the setting favouring detection. */
 export function grossissement(dMm: number): number {
   return dMm / K('PUPILLE_OEIL_ADAPTE_MM')
 }
 
 /**
- * Détection visuelle d'un objet étendu : magnitude limite ET contraste suffisant à la
- * taille apparente. Un objet ponctuel échappe au second critère — il n'a pas de brillance
- * de surface exploitable.
+ * Visual detection of an extended object: magnitude limite AND sufficient contrast at apparent
+ * size. Point object escapes the 2nd criterion (no usable brillance de surface).
  */
 function detecteVisuellement(
   mInt: number,
@@ -184,8 +179,8 @@ export function detectabilite(entree: EntreeDetectabilite): Detectabilite {
   const { mInt, aArcmin, typeObjet, sbCiel, mLimOeil, dMm } = entree
   const bArcmin = entree.bArcmin ?? aArcmin
   const modulation = MODULATIONS[typeObjet]
-  // T-0383 — le conseil du type parle souvent de pollution lumineuse : collé à la ligne Lune,
-  // il contredisait la dégradation lunaire. La fiche l'affiche à part.
+  // T-0383 — type advice often talks of light pollution: beside the Lune line it contradicted
+  // the lunar degradation. Fiche shows it apart.
   const noteLune = messageLune(entree.lune)
 
   if (mInt === null || aArcmin === null || bArcmin === null) {
@@ -265,7 +260,7 @@ interface EntreeVerdict {
   readonly resolu: boolean
 }
 
-/** Les quatre verdicts, évalués dans l'ordre : le premier satisfait gagne. */
+/** The four verdicts, evaluated in order: first satisfied wins. */
 function verdictVisuel(e: EntreeVerdict): VerdictDetectabilite {
   if (e.mLimOeil === null) return 'PHOTO_SEULE'
 
@@ -303,7 +298,7 @@ function verdictVisuel(e: EntreeVerdict): VerdictDetectabilite {
   return 'PHOTO_SEULE'
 }
 
-/** Combien de fois le fond de ciel est plus brillant que l'objet, par arcsec². */
+/** How many times the sky background is brighter than the object, per arcsec². */
 export function rapportAuFondDeCiel(deltaSb: number): number {
   return rapportDeFlux(deltaSb)
 }

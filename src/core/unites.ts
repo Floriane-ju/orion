@@ -1,10 +1,7 @@
 /**
- * Changements d'unité et réductions d'angle — des définitions, pas des grandeurs.
- *
- * T-0336 — ces valeurs étaient redéclarées dans une quarantaine de modules. Aucune n'est
- * fausse, mais sept copies d'un même 24 finissent par en contenir un qui dit autre chose. Ce
- * ne sont pas des constantes du registre §2.1 : 24 heures font un tour par définition, rien
- * ne se règle ici, et les y ranger laisserait croire le contraire.
+ * Unit changes and angle reductions — definitions, not quantities.
+ * T-0336 — values were redeclared in ~40 modules (seven copies of one 24: one ends wrong).
+ * Not §2.1 registry: 24 h = 1 turn by definition, nothing tunable; filing there would suggest it.
  */
 
 export const TOUR_DEG = 360
@@ -12,7 +9,7 @@ export const DEMI_TOUR_DEG = 180
 export const QUART_TOUR_DEG = 90
 export const TOUR_RAD = 2 * Math.PI
 export const HEURES_PAR_TOUR = 24
-/** Heures d'angle horaire en degrés : un changement d'unité, pas le taux A-ROT (§3.1). */
+/** Hour-angle hours → degrees: unit change, not the A-ROT rate (§3.1). */
 export const DEG_PAR_HEURE = TOUR_DEG / HEURES_PAR_TOUR
 export const ARCMIN_PAR_DEG = 60
 export const ARCSEC_PAR_ARCMIN = 60
@@ -29,17 +26,17 @@ export const UM_PAR_MM = 1000
 
 export const POURCENT = 100
 
-/** `v` ramené dans [min ; max]. Une seule écriture, pour que tous les bornages se lisent pareil. */
+/** `v` clamped to [min ; max]; one implementation for all clamps. */
 export function encadre(v: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, v))
 }
 
-/** `x` ramené dans [0 ; tour[ — le `%` de JavaScript garde le signe du dividende. */
+/** `x` reduced to [0 ; tour[ — JS `%` keeps the dividend's sign. */
 export function ramene(x: number, tour: number): number {
   return ((x % tour) + tour) % tour
 }
 
-/** L'écart signé de `a` à `b` par le plus court chemin, dans ]−tour/2 ; tour/2]. */
+/** Signed shortest-path gap `a` → `b`, in ]−tour/2 ; tour/2]. */
 export function ecartCourt(a: number, b: number, tour: number): number {
   const d = ramene(b - a, tour)
   return d > tour / 2 ? d - tour : d

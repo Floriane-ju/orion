@@ -1,9 +1,7 @@
 /**
- * T-0343 — ce qui entre de l'extérieur est vérifié avant d'être cru.
- *
- * Trois frontières : le manifeste servi par le réseau, le paquet de constellations, le format
- * de capteur écrit dans un fichier ou dans la base. Aucune ne doit lever au démarrage, et
- * aucune ne doit transformer en silence une valeur inconnue en valeur par défaut.
+ * T-0343 — external input verified before trust. 3 boundaries: network manifest,
+ * constellations packet, capteur format in a file or database. None throws at startup, none
+ * silently turns an unknown value into a default.
  */
 
 import 'fake-indexeddb/auto'

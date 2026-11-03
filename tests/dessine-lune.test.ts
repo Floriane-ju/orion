@@ -1,6 +1,6 @@
 /**
- * T-0353 — la Lune du planétarium : limbe éclairé tourné vers le Soleil à l'écran, terminateur
- * tiré de l'angle de phase.
+ * T-0353 — planétarium Moon: lit limb turned toward the Sun on screen, terminator drawn from
+ * phase angle.
  */
 import { describe, expect, it } from 'vitest'
 import { IDENTITE, versVecteur } from '../src/core/mat3.ts'
@@ -26,7 +26,7 @@ const VUE: Vue = {
 }
 
 describe('angleLimbeEclaireRad', () => {
-  // Matrice identité : les vecteurs sont déjà horizontaux, la Lune est au centre de la vue.
+  // Identity matrix: vectors already horizontal, Moon at view centre.
   const proj = projecteur(VUE, IDENTITE)
   const lune = versVecteur(VUE.azimutDeg, VUE.hauteurDeg)
   const centre = proj.projette(lune)!
@@ -80,7 +80,7 @@ describe('rayonLunePx', () => {
     const proj = projecteur({ ...VUE, fovDeg }, IDENTITE)
     return rayonLunePx(proj, lune, proj.projette(lune)!, demiDiametreDeg)
   }
-  // Un demi-diamètre quelconque : le test vérifie la projection, pas l'éphéméride.
+  // Arbitrary half-diameter: test checks projection, not ephemeris.
   const DEMI_DIAMETRE_DEG = 0.25
 
   it('garde le disque lisible au champ large', () => {
@@ -92,7 +92,7 @@ describe('rayonLunePx', () => {
     const fovDeg = 1
     const r = rayon(fovDeg, DEMI_DIAMETRE_DEG)
     expect(r).toBeGreaterThan(RAYON_LUNE_PX)
-    // Au centre d'un champ étroit, l'échelle est celle du champ : ½ ° sur 1 ° ≈ demi-largeur.
+    // At narrow-field centre scale is the field's: ½ ° over 1 ° ≈ half-width.
     expect(r).toBeCloseTo((VUE.largeurPx * DEMI_DIAMETRE_DEG) / fovDeg, -1)
     expect(rayon(fovDeg, 2 * DEMI_DIAMETRE_DEG) / r).toBeCloseTo(2, 1)
   })
@@ -130,7 +130,7 @@ describe('dessineTrajetLune', () => {
     expect(remplis).toHaveLength(1)
     expect(remplis[0]!.fillStyle).toBe('blanc')
     expect(appels.some((a) => a.nom === 'stroke')).toBe(false)
-    // Un disque au plus tous les PAS_ETALEMENT_LUNE_RAYONS rayons : la bande n'a pas de trou.
+    // At most one disk per PAS_ETALEMENT_LUNE_RAYONS radii: band has no hole.
     expect(disques.length).toBeGreaterThanOrEqual(longueur / (RAYON_LUNE_PX * K('PAS_ETALEMENT_LUNE_RAYONS')))
   })
 
@@ -149,7 +149,7 @@ describe('dessineTrajetLune', () => {
     const brut = projecteur(VUE, IDENTITE)
     const x1 = brut.projette(pas[1]!)!.xPx
     const x3 = brut.projette(pas[3]!)!.xPx
-    // Aucun disque entre les deux tronçons : la trace ne passe pas sous le sol.
+    // No disk between the two stretches: trace does not pass under the sol.
     expect(disques.filter((x) => x > Math.min(x1, x3) + 1 && x < Math.max(x1, x3) - 1)).toHaveLength(0)
   })
 

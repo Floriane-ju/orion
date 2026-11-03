@@ -1,12 +1,9 @@
 /**
- * §3.4 — Ce qu'un clic sur la scène a désigné, mis en mots.
- *
- * La géométrie a déjà tranché : `cibleSousLeCurseur` a rendu la cible la plus proche. Ne
- * reste qu'à la décrire pour le magasin de scène — et à ne jamais inventer ce que le
- * catalogue ne porte pas.
- *
- * T-0109 — le titre vient de `titreCible` : la fiche et la scène nomment le même astre, et
- * ce module ne garde que ce qu'il est seul à savoir dire, les lignes de détail.
+ * §3.4 — what a scène click designated, in words.
+ * Geometry already decided (`cibleSousLeCurseur` returned the nearest target): describe it for
+ * the scène store, never invent what the catalogue lacks.
+ * T-0109 — title from `titreCible` (fiche and scène name the same body); module keeps only
+ * the detail lines.
  */
 
 import { titreCible } from './libelles-cibles.ts'

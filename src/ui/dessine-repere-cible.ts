@@ -1,14 +1,11 @@
 /**
- * §6.4, T-0283 — la cible ouverte se repère dans la scène.
- *
- * « Amener la cible au centre » est le geste central de §6.4 ; sans repère, rien ne confirmait
- * ce qui était pointé — une nébuleuse obscure comme B144 n'a ni marqueur lisible ni nom à
- * grand champ. Le repère est un RÉTICULE ouvert (quatre branches, centre libre : il ne cache
- * pas l'objet qu'il désigne) et la désignation, peints hors de l'arbitrage des libellés :
- * ni le plafond de magnitude des marqueurs ni le budget de noms du zoom ne l'éteignent.
- *
- * La teinte est celle du cadre : ce que le matériel vise et ce qu'on a ouvert parlent la même
- * langue, et la nuit la forme suffit à les distinguer.
+ * §6.4, T-0283 — opened cible located in scène.
+ * « Bring cible to centre » = §6.4's central gesture; without repère nothing confirmed what was
+ * aimed (dark nebula like B144 has no readable marker nor name at wide field). Repère = open
+ * RÉTICULE (4 branches, free centre: doesn't hide object) plus designation, painted outside label
+ * arbitration: neither marker magnitude cap nor zoom name budget extinguishes it.
+ * Teinte = cadre's: what matériel aims and what was opened speak the same language; at night form
+ * alone distinguishes them.
  */
 
 import { versVecteur } from '../core/mat3.ts'
@@ -19,11 +16,11 @@ import type { BoiteLabel } from '../core/labels.ts'
 import { boiteLabel, MARQUEUR_OBJET_PX } from './libelles-cibles.ts'
 import { geometrieMarqueur } from './marqueur-objet.ts'
 
-/** Écart entre le bord du marqueur et le pied des branches : le réticule entoure, il ne touche pas. */
+/** Gap marker edge ↔ branch foot: reticle surrounds, doesn't touch. */
 const ECART_RETICULE_PX = 4
-/** Longueur d'une branche : lisible à la frontale sans masquer les étoiles voisines. */
+/** Branch length: readable head-on without hiding neighbour stars. */
 const BRANCHE_RETICULE_PX = 8
-/** Le réticule se trace plus épais que les contours d'objets, qui sont au trait fin. */
+/** Reticle stroked thicker than object outlines (thin stroke). */
 const TRAIT_RETICULE_PX = 2
 
 export interface EntreeRepere {
@@ -35,7 +32,7 @@ export interface EntreeRepere {
   readonly hauteur: number
 }
 
-/** Le repère peint, ou `null` quand la cible n'est pas à l'écran. */
+/** Painted repère, or `null` when cible is off-screen. */
 export function dessineRepereCible(entree: EntreeRepere): BoiteLabel | null {
   const { ctx, projecteur, objet, largeur, hauteur } = entree
   const p = pointEcran()

@@ -1,9 +1,7 @@
 /**
- * §4.1, §12.5 — le relief d'un site : tuiles, cache par site, replis (T-0359).
- *
- * Le réseau est remplacé par un chargeur de tuiles synthétiques : ce qui est vérifié, c'est la
- * conduite face à chaque issue — tuile manquante, service qui lève, hors réseau, cache — et
- * jamais la disponibilité d'un service tiers.
+ * §4.1, §12.5 — site relief: tiles, per-site cache, fallbacks (T-0359).
+ * Synthetic tile loader: checks each outcome (missing tile, throwing service, offline, cache),
+ * never third-party availability.
  */
 
 import 'fake-indexeddb/auto'
@@ -27,7 +25,7 @@ import { SITE_REFERENCE } from './fixtures.ts'
 const { latitudeDeg: LAT, longitudeDeg: LON } = SITE_REFERENCE
 const cote = R('COTE_TUILE_PX')
 
-/** Une tuile de plaine à l'altitude donnée. */
+/** Plain tile at given altitude. */
 const plaine =
   (altitude: number): ChargeTuile =>
   async () =>
@@ -51,7 +49,7 @@ describe('format Terrarium et tuiles', () => {
   })
 
   it('interpole l’altitude entre les centres de pixels, sans dépasser leurs valeurs', () => {
-    // Une tuile dont l'altitude croît d'un mètre par colonne de pixels.
+    // Tile whose altitude rises 1 m per pixel column.
     const p = pixelMonde(LAT, LON, R('ZOOM_TUILE_RELIEF'))
     const tx = Math.floor(p.x / cote)
     const ty = Math.floor(p.y / cote)
@@ -91,7 +89,7 @@ describe('résolution du relief (§4.1, §12.5)', () => {
   })
 
   it('lit les tuiles nord en haut : un terrain qui monte vers le nord cache le nord', async () => {
-    // L'altitude croît vers le haut de chaque tuile, et de tuile en tuile vers le nord.
+    // Altitude rises toward top of each tile, and tile to tile northward.
     const penteNord: ChargeTuile = async (_z, _x, y) =>
       Float32Array.from({ length: cote * cote }, (_, i) => -(y * cote + Math.floor(i / cote)) * 10)
     const relief = await resoudRelief(LAT, LON, penteNord)

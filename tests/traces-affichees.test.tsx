@@ -1,7 +1,6 @@
 /**
- * T-0386 — §10.1, §10.2 : la bulle d'une valeur tracée ne garde que la glose et ce que le
- * glossaire y ajoute ; la chaîne complète (N3) se lit dans la rubrique « Calcul » de la page
- * info, alimentée par les valeurs affichées.
+ * T-0386 — §10.1, §10.2: traced-value bubble keeps only gloss + what glossaire adds; full chain
+ * (N3) reads in "Calcul" section of info page, fed by displayed values.
  */
 
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -42,7 +41,7 @@ describe('bulle d’une valeur tracée — T-0386', () => {
   })
 
   it('s’en tient à la glose quand le glossaire n’y ajoute rien', () => {
-    // T-0404 — le premier terme sans ajout de bulle qui ait de quoi en ajouter.
+    // T-0404 — first term with something to add beyond the bubble.
     const cle = (Object.keys(GLOSSAIRE) as TermeGlossaire[]).find(
       (k) => GLOSSAIRE[k].bulle === undefined && GLOSSAIRE[k].explication !== undefined && GLOSSAIRE[k].glose !== undefined,
     )!

@@ -1,24 +1,13 @@
 /**
- * T-0113 — le panneau latéral : ce qui se lit en longueur, à côté de la scène.
- *
- * T-0181 — il n'est plus un tiroir qu'on ouvre, c'est une colonne à demeure : le mode décide
- * de ce qu'elle porte, et il n'y a donc plus de choix à faire ni d'état fermé.
- *
- * T-0182 — en Ciel profond elle porte deux lectures successives, la liste puis la fiche. La
- * fiche a son en-tête : il nomme la cible, porte le retour et le rappel de facilité. Le retour
- * N'EXISTE PAS sur la liste — un bouton inerte resterait dans l'ordre de tabulation et
- * annoncerait une issue qui n'en est pas une.
- *
- * T-0183 — le plan de session n'est plus ici : il se consulte pendant qu'on regarde le ciel,
- * pas en le parcourant pour choisir, et c'est ce qui en fait une carte.
- *
- * T-0246 — la bascule de mode quitte la barre haute et devient les onglets du panneau. Le mode
- * décide de ce que le panneau porte : sa commande se pose donc sur le panneau, et le titre qui
- * répétait le mode (« Toutes les cibles », « Panorama ») disparaît. Les onglets restent au-dessus
- * de la fiche — on en sort vers Panorama sans repasser par la liste.
- *
- * Le plan de nuit quitte sa carte pour un troisième onglet, « Mon plan » : il se lit de haut
- * en bas, comme la liste dont il ordonne les choix.
+ * T-0113 — side panel: what reads lengthwise, beside the scène.
+ * T-0181 — permanent column, not an openable drawer: mode decides content, no closed state.
+ * T-0182 — Ciel profond = two successive readings, list then fiche. Fiche header names the
+ * target, holds back button + facilité reminder. Back DOES NOT EXIST on the list (an inert
+ * button would stay in tab order announcing a non-exit).
+ * T-0183 — plan de session not here: consulted while watching the sky (hence a card).
+ * T-0246 — mode toggle left the top bar, became panel tabs (mode decides content; title
+ * repeating the mode gone). Tabs stay above the fiche — leave to Panorama without the list.
+ * Night plan → third tab "Mon plan": reads top-down like the list whose choices it orders.
  */
 
 import type { ReactNode, RefObject } from 'react'
@@ -26,8 +15,8 @@ import { BoutonGlyphe } from './BoutonGlyphe.tsx'
 import { modeSeance, poseMode, useTrancheSeance, type ModeInterface } from './seance-etat.ts'
 
 /**
- * Les trois positions, dans l'ordre de la rangée. L'ordre est un contrat : le défaut d'abord, à
- * gauche — la position dit laquelle est active autant que le fond.
+ * The three positions, row order. Order = contract: default first, left — position says which
+ * is active as much as background.
  */
 const MODES: readonly (readonly [ModeInterface, string])[] = [
   ['CIEL_PROFOND', 'Ciel profond'],
@@ -35,19 +24,19 @@ const MODES: readonly (readonly [ModeInterface, string])[] = [
   ['PLAN', 'Mon plan'],
 ]
 
-/** L'en-tête de la fiche ouverte. */
+/** Header of the open fiche. */
 export interface EnteteFiche {
   readonly titre: string
   readonly retour: () => void
-  /** §6.4 — la note de facilité de la cible ouverte, annoncée avec son libellé. */
+  /** §6.4 — facilité note of the open target, announced with its label. */
   readonly rappel: ReactNode
 }
 
 export interface PanneauLateralProps {
-  /** `null` sur la liste, en Panorama et sur le plan : il n'y a rien derrière, donc ni titre ni retour. */
+  /** `null` on list, Panorama and plan: nothing behind, so no title or back. */
   readonly fiche: EnteteFiche | null
   readonly children: ReactNode
-  /** T-0188 — ref au titre pour la gestion du focus quand on ouvre une fiche. */
+  /** T-0188 — ref to the title for focus management when a fiche opens. */
   readonly titreRef?: RefObject<HTMLHeadingElement | null>
 }
 
@@ -55,9 +44,8 @@ export function PanneauLateral(props: PanneauLateralProps) {
   const mode = useTrancheSeance(modeSeance)
   return (
     <aside className="coque-lateral" id="panneau-lateral" aria-label="Panneau de séance">
-      {/* §11.3 — le commutateur de premier rang. `aria-pressed` plutôt qu'`aria-expanded` :
-          ces boutons ne déplient rien, ils choisissent lequel des états l'écran tient — et
-          l'un d'eux est toujours vrai. */}
+      {/* §11.3 — first-rank switch. `aria-pressed` not `aria-expanded`: buttons unfold nothing,
+          they choose the screen's state — one always true. */}
       <div className="onglets" role="group" aria-label="Mode d’interface">
         {MODES.map(([cle, libelle]) => (
           <button
@@ -81,7 +69,7 @@ export function PanneauLateral(props: PanneauLateralProps) {
             classe="lateral-retour"
             onClick={props.fiche.retour}
           />
-          {/* T-0188 — le titre est focalisable pour la gestion du focus au clavier. */}
+          {/* T-0188 — title focusable for keyboard focus management. */}
           <h2 ref={props.titreRef} tabIndex={-1}>
             {props.fiche.titre}
           </h2>

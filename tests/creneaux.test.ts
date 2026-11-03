@@ -1,9 +1,7 @@
 /**
- * §8.2 — Créneau d'observation par cible.
- *
- * Les valeurs de hauteur viennent de l'Annexe A, site 46,391° N. La règle produit vérifiée
- * en priorité : une cible écartée nomme toujours sa cause, et le relief est nommé comme
- * relief — jamais confondu avec un simple manque de hauteur.
+ * §8.2 — créneau d'observation per target. Altitudes from Annexe A, site 46,391° N.
+ * Priority rule: discarded target always names its cause; relief named as relief, never
+ * confused with plain lack of altitude.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -21,7 +19,7 @@ import { SITE_REFERENCE } from './fixtures.ts'
 const NUIT = fenetreNocturne(SITE_REFERENCE, new Date('2026-08-14T12:00:00Z'))
 const FENETRE = { debut: NUIT.debutNuitAstronomique!, fin: NUIT.finNuitAstronomique! }
 
-/** Dentelles du Cygne : δ = +31°, culmination annoncée à 74,6° depuis ce site. */
+/** Dentelles du Cygne: δ = +31°, culmination announced at 74,6° from this site. */
 const DENTELLES = { adH: 20.75, decDeg: 31 }
 
 describe('hauteur et créneau §8.2', () => {
@@ -35,7 +33,7 @@ describe('hauteur et créneau §8.2', () => {
     })
     expect(creneau.altCulminationDeg.value).toBeCloseTo(74.6, 1)
     expect(creneau.causeExclusion).toBeUndefined()
-    // Une nuit d'août dure 5 h 49 : la cible passe au-dessus de 30° sur une large part.
+    // August night lasts 5 h 49: target above 30° for a large share.
     expect(creneau.dureeTotaleMin.value).toBeGreaterThan(180)
   })
 
@@ -55,18 +53,18 @@ describe('hauteur et créneau §8.2', () => {
   })
 
   it('nomme le relief, et non la hauteur, quand c’est le masque qui bloque', () => {
-    // Masque à 22° entre les azimuts 150 et 210 : la cible culmine à 19,6°, au sud.
+    // Mask at 22° between azimuths 150 and 210: target culminates at 19,6°, south.
     const altitudes = Array.from({ length: NB_AZIMUTS }, (_, azimut) =>
       azimut >= 150 && azimut <= 210 ? 22 : 0,
     )
     const creneau = creneauCible({
       site: SITE_REFERENCE,
-      // Ascension droite choisie pour que la cible passe au méridien pendant la nuit.
+      // AD chosen so target crosses meridian during the night.
       adH: 22,
       decDeg: -24,
       fenetre: FENETRE,
       masque: masqueDepuisRelief(altitudes),
-      // Seuil abaissé : sans cela, la hauteur exclurait la cible avant le relief.
+      // Lowered threshold: else altitude would exclude the target before relief.
       seuilHauteurDeg: 15,
       typeMonture: 'TRACKER',
     })
@@ -77,11 +75,11 @@ describe('hauteur et créneau §8.2', () => {
 
 
   it('§8.1 — un relief saisi à 22° dans l’azimut 165 écarte une cible culminant à 19°', () => {
-    // La déclinaison se déduit de la latitude pour que la culmination tombe à 19° pile :
-    // recopier une déclinaison ferait dépendre le test d'un site qu'il ne déclare pas.
+    // Declination derived from latitude → culmination exactly 19°; copied declination would
+    // tie test to an undeclared site.
     const culminationVoulueDeg = 19
     const decDeg = SITE_REFERENCE.latitudeDeg - (90 - culminationVoulueDeg)
-    // Le relief relevé à la main : une crête à 22° du sud-sud-est au sud-sud-ouest.
+    // Hand-surveyed relief: ridge at 22° from SSE to SSW.
     const masque = masqueDepuisPoints([
       { azimutDeg: 149, altitudeDeg: 0 },
       { azimutDeg: 150, altitudeDeg: 22 },
@@ -96,7 +94,7 @@ describe('hauteur et créneau §8.2', () => {
       decDeg,
       fenetre: FENETRE,
       masque,
-      // Seuil abaissé sous la culmination : sans cela, la hauteur trancherait avant le relief.
+      // Threshold lowered under culmination: else altitude would decide before relief.
       seuilHauteurDeg: 15,
       typeMonture: 'TRACKER',
     })
@@ -105,7 +103,7 @@ describe('hauteur et créneau §8.2', () => {
     expect(creneau.causeExclusion).toBe('RELIEF')
     expect(creneau.causeExclusion).not.toBe('HAUTEUR')
     expect(creneau.dureeTotaleMin.value).toBe(0)
-    // §10.2 — l'explication nomme l'azimut bloquant et son altitude d'obstruction.
+    // §10.2 — explanation names the blocking azimuth and its obstruction altitude.
     expect(creneau.message).toMatch(/22° de haut vers l’azimut \d+°/)
   })
 

@@ -1,9 +1,7 @@
 /**
- * §3.5 — Superposition du cadre matériel.
- *
- * Le critère qui compte est géométrique : à grand champ, les bords du cadre ne sont PAS des
- * droites dans le planétarium. Un rectangle à côtés droits mentirait sur ce que l'objectif
- * capture, et le cadrage est justement ce que cette couche sert à décider.
+ * §3.5 — cadre matériel overlay. Key criterion is geometric: at wide champ, cadre edges are NOT
+ * straight lines in planétarium. Straight-sided rectangle would lie about what the objectif
+ * captures, and cadrage is what this layer helps decide.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -70,7 +68,7 @@ describe('cadre projeté §3.5', () => {
     const apsc = profil('APSC_CROP')
     expect(plein.fovLDeg / apsc.fovLDeg).toBeCloseTo(1.5, 1)
     expect(plein.fovHDeg / apsc.fovHDeg).toBeCloseTo(1.5, 1)
-    // Le recadrage ne change ni le pitch ni la focale : la résolution est la même (§5.1).
+    // Recadrage changes neither pitch nor focale: same résolution (§5.1).
     expect(apsc.echApx).toBeCloseTo(plein.echApx, 9)
   })
 
@@ -79,8 +77,8 @@ describe('cadre projeté §3.5', () => {
     const pas = K('SUBDIVISION_CADRE')
     const centre = versVecteur(CADRE.azimutDeg, CADRE.hauteurDeg)
 
-    // Les bords sont parcourus dans l'ordre bas, droite, haut, gauche : le milieu de
-    // chacun est à la demi-dimension du champ, exactement.
+    // Edges walked in order bas, droite, haut, gauche: each middle exactly at half champ
+    // dimension.
     expect(separationDeg(contour[pas / 2]!, centre)).toBeCloseTo(CADRE.profil.fovHDeg / 2, 6)
     expect(separationDeg(contour[pas + pas / 2]!, centre)).toBeCloseTo(
       CADRE.profil.fovLDeg / 2,
@@ -91,8 +89,7 @@ describe('cadre projeté §3.5', () => {
       6,
     )
 
-    // Les coins sont plus loin que les milieux de bord : le cadre n'est pas un disque, et
-    // sa diagonale n'est pas la somme des demi-côtés.
+    // Corners farther than edge middles: cadre isn't a disc; diagonal ≠ sum of half-sides.
     const diagonale = separationDeg(contour[0]!, centre)
     expect(diagonale).toBeGreaterThan(CADRE.profil.fovLDeg / 2)
     expect(diagonale).toBeLessThan(
@@ -101,7 +98,7 @@ describe('cadre projeté §3.5', () => {
   })
 
   it('courbe les bords d’un cadre de 130° de diagonale en vue stéréographique', () => {
-    // Objectif de 10 mm sur plein format : c'est le cas limite du PRD.
+    // 10 mm objectif on plein format: PRD edge case.
     const grandAngle: Cadre = {
       ...CADRE,
       profil: {
@@ -119,8 +116,8 @@ describe('cadre projeté §3.5', () => {
       .filter((p) => p !== null)
     expect(contour.length).toBeGreaterThan(K('SUBDIVISION_CADRE'))
 
-    // Un bord est une polyligne : son point médian s'écarte nettement de la corde qui
-    // joindrait ses extrémités. Ce serait zéro si le bord était une droite.
+    // Edge = polyline: midpoint clearly leaves the chord joining its ends. Zero for a straight
+    // edge.
     const pas = K('SUBDIVISION_CADRE')
     const debut = contour[0]!
     const fin = contour[pas]!
@@ -189,12 +186,12 @@ describe('cible dans le cadre §3.5, §6.2', () => {
     expect(dominante).not.toBeNull()
     const suggestion = rotationSuggeree(dominante!, CADRE, IDENTITE)
     expect(suggestion.angleDeg).toBeNull()
-    // §6.2 — l'absence de donnée est nommée : un silence se lirait « déjà bien cadré ».
+    // §6.2 — missing data is named: silence would read "déjà bien cadré".
     expect(suggestion.message).toMatch(/orientation est inconnue/)
   })
 
   it('ne suggère aucun angle sous le seuil de rapport d’axes, et le dit', () => {
-    // Rapport 1,2 : sous RAPPORT_AXES_ORIENTATION, tourner le boîtier ne change rien.
+    // Ratio 1.2: under RAPPORT_AXES_ORIENTATION, rotating boîtier changes nothing.
     const ronde = objet('ronde', 0, 60, 23, 50)
     const dominante = cibleDominante([ronde], CADRE, IDENTITE)
     const suggestion = rotationSuggeree(dominante!, CADRE, IDENTITE)
@@ -223,8 +220,8 @@ describe('cible dans le cadre §3.5, §6.2', () => {
     const cible = cibleDominante([objet('allongée', 0, 60, 23)], CADRE, IDENTITE)!
     const suggestion = rotationSuggeree(cible, CADRE, IDENTITE)
     const applique: Cadre = { ...CADRE, rotationDeg: suggestion.angleDeg! }
-    // Le critère du PRD, vérifié géométriquement : après application, le grand axe est
-    // aligné sur l'axe u du capteur — à un demi-tour près, un axe n'ayant pas de sens.
+    // PRD criterion, verified geometrically: after applying, major axis aligned on sensor u axis,
+    // up to a half-turn (axis has no direction).
     const phi = angleGrandAxeDansCadre(cible, applique, IDENTITE)!
     expect(Math.min(phi, 180 - phi)).toBeCloseTo(0, 6)
   })
@@ -232,7 +229,7 @@ describe('cible dans le cadre §3.5, §6.2', () => {
 
 describe('le cadre tourne, la vue non — T-0084', () => {
   it('déplace le contour projeté quand le boîtier tourne', () => {
-    // La MÊME vue projette les deux contours : c'est le cadre qui change, pas le ciel.
+    // SAME vue projects both outlines: the cadre changes, not the sky.
     const proj = projecteur(vue('MODE_PLANETARIUM', 60), IDENTITE)
     const points = (rotationDeg: number) =>
       contourCadreJ2000({ ...CADRE, rotationDeg }, IDENTITE)
@@ -241,13 +238,13 @@ describe('le cadre tourne, la vue non — T-0084', () => {
 
     const droit = points(0)
     const tourne = points(45)
-    // Le coin bas-gauche s'est franchement déplacé : le cadre paraît tourné à l'écran.
+    // Bottom-left corner clearly moved: cadre looks rotated on screen.
     const deplacement = Math.hypot(
       tourne[0]!.xPx - droit[0]!.xPx,
       tourne[0]!.yPx - droit[0]!.yPx,
     )
     expect(deplacement).toBeGreaterThan(50)
-    // Un demi-tour ramène le contour sur lui-même : le rectangle a cette symétrie.
+    // Half-turn maps outline onto itself: the rectangle has this symmetry.
     const demiTour = points(180)
     const pas = K('SUBDIVISION_CADRE')
     const oppose = demiTour[2 * pas]!
@@ -256,8 +253,8 @@ describe('le cadre tourne, la vue non — T-0084', () => {
   })
 
   it('garde le zénith en haut : la vue de la scène ne roule jamais', () => {
-    // §3.3 — le mode ne change que R(θ). Le roulis appartient au boîtier, pas à la vue :
-    // sans cela, tourner le cadre ferait tourner tout le ciel et le contour resterait fixe.
+    // §3.3 — mode changes only R(θ). Roulis belongs to boîtier, not vue: else rotating cadre
+    // turns whole sky, outline fixed.
     const sansRoulis = vuePlanetarium({
       azimutDeg: 180,
       hauteurDeg: 40,
@@ -279,7 +276,7 @@ describe('remplissage orienté §6.2 après rotation du boîtier §3.5', () => {
     fovLDeg: PROFIL.fovLDeg,
     echApx: PROFIL.echApx,
     capteurHMm: PROFIL.capteurHMm,
-    // Cible franchement allongée : c'est le seul cas où l'orientation change le verdict.
+    // Clearly elongated cible: only case where orientation changes the verdict.
     tailleMajArcmin: 4.5 * 60,
     tailleMinArcmin: 1.0 * 60,
     angleGrandAxeDeg,
@@ -327,7 +324,7 @@ describe('cadre d’un fisheye §3.5 (T-0219)', () => {
       fovHDeg: fovDeg(CAPTEUR.capteurHMm, FOCALE_FISHEYE_MM, 'FISHEYE').value,
       modeObjectif: 'MODE_FISHEYE',
     },
-    // Visée en (1, 0, 0) : la séparation au centre se lit sans la machinerie testée.
+    // Visée at (1, 0, 0): centre separation reads without the machinery under test.
     azimutDeg: 0,
     hauteurDeg: 0,
     rotationDeg: 0,
@@ -337,7 +334,7 @@ describe('cadre d’un fisheye §3.5 (T-0219)', () => {
   it('place le milieu des bords à la moitié du champ, en équidistante', () => {
     const pas = Math.round(K('SUBDIVISION_CADRE'))
     const contour = contourCadreJ2000(fisheye, IDENTITE)
-    // Arête 1 : de (uMax, −vMax) à (uMax, vMax) ; son milieu est sur l'axe horizontal.
+    // Edge 1: from (uMax, −vMax) to (uMax, vMax); its middle is on the horizontal axis.
     const milieuDroit = contour[pas + pas / 2]!
     const milieuHaut = contour[2 * pas + pas / 2]!
     expect(separationDeg(CENTRE, milieuDroit)).toBeCloseTo(fisheye.profil.fovLDeg / 2, 6)
@@ -366,7 +363,7 @@ describe('cadre d’un fisheye §3.5 (T-0219)', () => {
       bMag: null,
       surfBr: null,
     })
-    // Demi-largeur de 90° : à 85° dans la largeur la cible est cadrée, à 95° elle ne l'est pas.
+    // Half-width 90°: at 85° in width cible is cadrée, at 95° it isn't.
     const demi = fisheye.profil.fovLDeg / 2
     expect(cibleDominante([cible('dedans', demi - 5)], fisheye, IDENTITE)).not.toBeNull()
     expect(cibleDominante([cible('dehors', demi + 5)], fisheye, IDENTITE)).toBeNull()

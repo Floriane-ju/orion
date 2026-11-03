@@ -1,13 +1,10 @@
 /**
- * §12.4 — Éphémérides côté client.
+ * §12.4 — client-side éphémérides.
  *
- * Façade mince sur `astronomy-engine` : séries analytiques portées en JavaScript, aucun
- * fichier de données téléchargé, aucun appel réseau. C'est l'option C de §12.4 ; l'appel
- * serveur casserait l'offline et les noyaux JPL seraient surdimensionnés.
- *
- * La réfraction employée par la bibliothèque est celle de Meeus — la formule de Bennett —
- * avec un relèvement d'environ 34' à l'horizon vrai, conforme au registre §2.1. Sans elle,
- * les instants de lever et de coucher sont faux de plusieurs minutes.
+ * Thin facade over `astronomy-engine`: analytic JS series, no data file, no network. Option C
+ * of §12.4; server call breaks offline, JPL kernels oversized.
+ * Library refraction = Meeus — Bennett formula — lifting ≈34' at true horizon, matching
+ * registry §2.1. Without it rise/set off by several minutes.
  */
 
 import {
@@ -29,7 +26,7 @@ export interface Site {
   readonly altitudeM: number
 }
 
-/** Les 10 corps mobiles du MVP : Soleil, Lune et 6 planètes visibles (§3.1). */
+/** The 10 moving bodies of MVP: Soleil, Lune and 6 visible planets (§3.1). */
 export const CORPS_MOBILES = Object.freeze([
   Body.Sun,
   Body.Moon,
@@ -54,7 +51,7 @@ export class HorsDomaineSeriesError extends Error {
   }
 }
 
-/** §3.1, §12.4 — hors de ces bornes, les corps du système solaire sont masqués. */
+/** §3.1, §12.4 — outside these bounds, solar-system bodies are hidden. */
 export function dansLeDomaineDesSeries(date: Date): boolean {
   const annee = date.getUTCFullYear()
   return annee >= K('ANNEE_MIN_SERIES') && annee <= K('ANNEE_MAX_SERIES')
@@ -70,7 +67,7 @@ export function observateur(site: Site): Observer {
   return new Observer(site.latitudeDeg, site.longitudeDeg, site.altitudeM)
 }
 
-/** Temps sidéral local, en heures. */
+/** Local sidereal time, hours. */
 export function tempsSideralLocal(date: Date, longitudeDeg: number): Traced<number> {
   const tsg = SiderealTime(date)
   const brut = tsg + longitudeDeg / DEG_PAR_HEURE
@@ -84,19 +81,16 @@ export function tempsSideralLocal(date: Date, longitudeDeg: number): Traced<numb
 
 export interface PositionCorps {
   readonly corps: Body
-  /** Ascension droite, en heures. */
+  /** Right ascension, hours. */
   readonly adH: number
-  /** Déclinaison, en degrés. */
+  /** Déclinaison, degrees. */
   readonly decDeg: number
   readonly azimutDeg: number
-  /** Hauteur corrigée de la réfraction atmosphérique. */
+  /** Hauteur corrected for atmospheric refraction. */
   readonly hauteurDeg: number
 }
 
-/**
- * Position d'un corps à la date donnée, en coordonnées équatoriales de la date et en
- * coordonnées horizontales corrigées de la réfraction.
- */
+/** Body position at date: equatorial of date + refraction-corrected horizontal. */
 export function positionCorps(corps: Body, date: Date, site: Site): PositionCorps {
   verifieDomaineDesSeries(date)
   const obs = observateur(site)

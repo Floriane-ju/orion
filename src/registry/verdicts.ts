@@ -1,20 +1,14 @@
 /**
- * Tables énumérées du PRD — §6.2 verdicts de cadrage, §7.2 valeurs
- * d'obturateur, §7.3 objectifs de qualité, §7.4 prescriptions de calibration.
- *
- * Ce sont des tables déclarées, au même titre que la table Bortle : elles vivent dans le
- * registre et non dans les moteurs, pour la raison de §2.1 — une borne de classification
- * écrite en dur dans un moteur devient invérifiable et se met à diverger de sa source.
- *
- * Les bornes de remplissage 0,33 et 0,5 sont les mêmes que C-05 ; elles sont citées ici
- * depuis le registre plutôt que recopiées.
+ * PRD enumerated tables — §6.2 cadrage verdicts, §7.2 shutter values, §7.3 quality targets,
+ * §7.4 calibration prescriptions.
+ * Declared tables like Bortle, in registre not moteurs (§2.1): a classification bound hardcoded
+ * in a moteur is unverifiable and drifts from its source. Fill bounds 0,33 / 0,5 = C-05, cited
+ * from registre.
  */
 
 import { K } from './constants.ts'
 
-// ---------------------------------------------------------------------------
-// §6.2 — verdict de cadrage par cible
-// ---------------------------------------------------------------------------
+// §6.2 — cadrage verdict per cible
 
 export type VerdictCadrage =
   | 'MOSAIQUE_REQUISE'
@@ -26,11 +20,11 @@ export type VerdictCadrage =
 
 export interface LigneCadrage {
   readonly verdict: VerdictCadrage
-  /** Borne basse, incluse, sur le remplissage du champ. */
+  /** Lower bound, inclusive, on field fill. */
   readonly remplissageMin: number
   /**
-   * Faux quand le verdict interdit de présenter la cible comme cadrable. La cause est
-   * toujours nommée, et aucun recadrage logiciel n'est proposé en compensation (§6.1).
+   * False: verdict forbids presenting the cible as frameable. Cause always named; no software
+   * reframing offered instead (§6.1).
    */
   readonly faisable: boolean
   readonly message: string
@@ -79,13 +73,12 @@ export const TABLE_CADRAGE: readonly LigneCadrage[] = Object.freeze(
   ].map(Object.freeze) as LigneCadrage[],
 )
 
-/** Le rapport d'axes au-delà duquel une orientation du boîtier est suggérée (§6.2). */
+/** Axis ratio beyond which a boîtier orientation is suggested (§6.2). */
 export const RAPPORT_AXES_ORIENTATION = 1.3
 
 /**
- * §8.3 — verdicts de cadrage admis au pré-filtrage du plan de session. La mosaïque en est
- * exclue : elle demande autant de sessions partielles que de tuiles, ce qui n'est pas un
- * créneau d'une nuit.
+ * §8.3 — cadrage verdicts admitted to plan de session pre-filter. Mosaic excluded: needs as many
+ * partial sessions as tiles, not one créneau.
  */
 export const VERDICTS_PLANIFIABLES: readonly VerdictCadrage[] = Object.freeze([
   'CADRAGE_SERRE',
@@ -93,28 +86,21 @@ export const VERDICTS_PLANIFIABLES: readonly VerdictCadrage[] = Object.freeze([
   'CADRAGE_LARGE',
 ])
 
-/** Remplissage minimal d'une cible planifiable : la borne basse de CADRAGE_LARGE. */
+/** Minimum fill of a plannable cible: lower bound of CADRAGE_LARGE. */
 export const REMPLISSAGE_MIN_PLANIFIABLE = Math.min(
   ...TABLE_CADRAGE.filter((l) => VERDICTS_PLANIFIABLES.includes(l.verdict)).map(
     (l) => l.remplissageMin,
   ),
 )
 
-// ---------------------------------------------------------------------------
-// §7.2 — valeurs d'obturateur usuelles
-// ---------------------------------------------------------------------------
+// §7.2 — usual shutter values
 
-/**
- * La pose retenue est arrondie à une valeur d'obturateur usuelle (§2.3) : un boîtier ne
- * propose pas 13,43 s, il propose 13 s.
- */
+/** Pose rounded to usual shutter value (§2.3): boîtier offers 13 s, not 13,43 s. */
 export const VALEURS_OBTURATEUR_S: readonly number[] = Object.freeze([
   1, 1.3, 1.6, 2, 2.5, 3.2, 4, 5, 6, 8, 10, 13, 15, 20, 25, 30, 40, 50, 60, 90, 120, 180, 240,
 ])
 
-// ---------------------------------------------------------------------------
-// §7.3 — objectifs de qualité
-// ---------------------------------------------------------------------------
+// §7.3 — quality targets
 
 export interface PresetSnr {
   readonly cle: string
@@ -132,36 +118,31 @@ export const PRESETS_SNR: readonly PresetSnr[] = Object.freeze(
 )
 
 /**
- * L'objectif de qualité par défaut — celui sur lequel la fiche s'ouvre ET celui que le plan de
- * séance alloue. T-0268 : les deux écrans le choisissaient chacun de leur côté, l'un par
- * indice, l'autre par un 10 recopié. Une seule valeur les rend incapables de diverger.
+ * Default quality target: fiche opens on it AND plan de séance allocates it. T-0268: two screens
+ * chose separately (index vs copied 10); one value prevents divergence.
  */
 const PRESET_CORRECT = PRESETS_SNR.find((p) => p.cle === 'CORRECT')
-// Renommer la clé casse ici, nommément, au chargement du module — pas trois écrans plus loin
-// sur une valeur `undefined` qui aurait traversé toute la chaîne de pose.
+// Renaming the key breaks here at module load, named; not 3 screens later on `undefined`.
 if (PRESET_CORRECT === undefined) {
   throw new Error('Préréglage de qualité « CORRECT » absent du registre.')
 }
 
 export const PRESET_SNR_DEFAUT: number = PRESET_CORRECT.valeur
 
-// ---------------------------------------------------------------------------
-// §7.4 — prescriptions de calibration
-// ---------------------------------------------------------------------------
+// §7.4 — calibration prescriptions
 
 export interface PrescriptionCalibration {
   readonly type: 'FLATS' | 'DARKS' | 'OFFSETS'
   readonly min: number
   readonly max: number
-  /** Nombre prescrit par défaut, à l'intérieur de la plage. */
+  /** Default prescribed count, within range. */
   readonly defaut: number
   readonly consigne: string
 }
 
 /**
- * Ordonnées par importance décroissante, et c'est cet ordre qui est affiché : à f/2,8 sur
- * plein format, le vignettage atteint un à deux diaphragmes dans les coins — sans flats,
- * l'image garde un halo central que rien ne rattrape ensuite (§7.4).
+ * Decreasing importance = display order. f/2,8 full frame: vignetting 1-2 stops in corners;
+ * without flats a central halo stays (§7.4).
  */
 export const PRESCRIPTIONS_CALIBRATION: readonly PrescriptionCalibration[] = Object.freeze(
   [
@@ -192,16 +173,14 @@ export const PRESCRIPTIONS_CALIBRATION: readonly PrescriptionCalibration[] = Obj
   ].map(Object.freeze) as PrescriptionCalibration[],
 )
 
-/** Amplitude du décalage inter-pose (§7.4). */
+/** Inter-pose offset amplitude (§7.4). */
 export const DITHERING_PX = Object.freeze({ min: 5, max: 15 })
 
-// ---------------------------------------------------------------------------
-// §10.2 — identification du facteur dominant
-// ---------------------------------------------------------------------------
+// §10.2 — dominant factor identification
 
 /**
- * Écart relatif en deçà duquel deux sensibilités sont tenues pour équivalentes : les deux
- * variables sont alors présentées conjointement, aucune n'est désignée arbitrairement.
+ * Relative gap under which two sensitivities count equivalent: both variables shown, none
+ * arbitrarily designated.
  */
 export const TOLERANCE_EGALITE_SENSIBILITE = 0.1
 
@@ -221,8 +200,7 @@ export interface LevierCatalogue {
 }
 
 /**
- * §10.2 — leviers hiérarchisés par coût CROISSANT. L'ordre du tableau est l'ordre affiché,
- * et c'est lui qui tient la règle : jamais l'achat en premier.
+ * §10.2 — levers by INCREASING cost. Array order = display order = the rule: never purchase first.
  */
 export const CATALOGUE_LEVIERS: readonly LevierCatalogue[] = Object.freeze(
   [
@@ -265,9 +243,7 @@ export const CATALOGUE_LEVIERS: readonly LevierCatalogue[] = Object.freeze(
   ].map(Object.freeze) as LevierCatalogue[],
 )
 
-// ---------------------------------------------------------------------------
-// §6.4 — facilité de prise de vue, lue sur le score de §8.3
-// ---------------------------------------------------------------------------
+// §6.4 — shooting ease, read from the §8.3 score
 
 export interface LigneFacilite {
   readonly note: number
@@ -275,14 +251,11 @@ export interface LigneFacilite {
 }
 
 /**
- * Les libellés de l'échelle, un par note de 0 à C-20 `FACILITE_NOTE_MAX`.
- *
- * Aucune borne de score n'est déclarée ici, et c'est le point : la note est un quintile de
- * l'échelle elle-même (§6.4). Une table de seuils aurait fait entrer des nombres arbitraires
- * dans un moteur, et aurait tassé le catalogue sur une seule classe.
- *
- * La note 0 ne se calcule pas — elle est réservée aux causes d'écart que le moteur nomme
- * (§8.3). Une cible évaluée avec succès plancher à 1 : « impossible » n'existe presque jamais.
+ * Scale labels, one per note 0 to C-20 `FACILITE_NOTE_MAX`.
+ * No score bound declared, on purpose: note = quintile of the scale itself (§6.4); a threshold
+ * table would put arbitrary numbers in a moteur and pile catalogue in one class.
+ * Note 0 never computed: reserved for gap causes the moteur names (§8.3). A successfully
+ * evaluated cible floors at 1: "impossible" almost never exists.
  */
 export const TABLE_FACILITE: readonly LigneFacilite[] = Object.freeze(
   [

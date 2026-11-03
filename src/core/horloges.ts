@@ -1,16 +1,10 @@
 /**
- * §3.1 — Pipeline temporel à deux horloges.
- *
- *   horloge_rendu       60 Hz, produit une image
- *   horloge_ephemerides 10 Hz, produit des positions
- *
- * Le découplage n'est pas une optimisation prématurée : sans lui, chaque image exigerait
- * une évaluation complète des séries planétaires, ce qui plafonne le rendu à quelques
- * images par seconde et rend l'animation saccadée — donc pire que le mode discret.
- *
- * Les étoiles ne sont JAMAIS interpolées : elles sont fixes dans le référentiel équatorial,
- * seule la matrice de rotation change. Les corps mobiles, eux, sont interpolés linéairement
- * entre deux échantillons.
+ * §3.1 — two-clock time pipeline: horloge_rendu 60 Hz (frame), horloge_ephemerides 10 Hz
+ * (positions).
+ * Decoupling is not premature optimization: else every frame = full planetary series evaluation
+ * → few fps, jerky, worse than discrete mode.
+ * Stars NEVER interpolated (fixed in equatorial frame; only rotation matrix changes).
+ * Moving bodies linearly interpolated between two samples.
  */
 
 import { K } from '../registry/constants.ts'
@@ -27,10 +21,10 @@ import { trace, type Traced } from './traced.ts'
 import { ARCSEC_PAR_DEG, DEG_PAR_HEURE, ecartCourt, encadre, HEURES_PAR_TOUR, MS_PAR_MINUTE, MS_PAR_S, ramene, TOUR_DEG } from './unites.ts'
 
 export const MS_PAR_JOUR = K('JOUR_SOLAIRE_S') * MS_PAR_S
-/** J2000,0 tombe à midi, soit une demi-journée après le début du 1er janvier 2000. */
+/** J2000.0 = noon: half a day after 2000-01-01 start. */
 const EPOQUE_J2000_MS = Date.UTC(K('EPOQUE_J2000_ANNEE'), 0, 1) + MS_PAR_JOUR / 2
 
-/** Époque d'affichage en année fractionnaire — c'est elle qui pilote la précession. */
+/** Display epoch, fractional year; drives precession. */
 export function epoqueAnnee(date: Date): number {
   return (
     K('EPOQUE_J2000_ANNEE') +
@@ -38,15 +32,14 @@ export function epoqueAnnee(date: Date): number {
   )
 }
 
-/** Décalage angulaire dû à la précession générale sur `annees`, en degrés (§3.1, §3.4). */
+/** Angular shift from general precession over `annees`, degrees (§3.1, §3.4). */
 export function decalagePrecessionDeg(annees: number): number {
   return (K('PRECESSION_ARCSEC_AN') * annees) / ARCSEC_PAR_DEG
 }
 
 /**
- * Précession générale de J2000 vers l'époque donnée, en rotation autour du pôle de
- * l'écliptique. Recalculée à chaque changement d'année entière, jamais à chaque image :
- * en un an, le décalage vaut 50,29", très en dessous du pixel.
+ * General precession J2000 → epoch, rotation about ecliptic pole. Recomputed per whole year, never
+ * per frame: 1 yr = 50.29", far below a pixel.
  */
 export function matricePrecession(anneeEpoque: number): Mat3 {
   const psiDeg = decalagePrecessionDeg(anneeEpoque - K('EPOQUE_J2000_ANNEE'))
@@ -56,7 +49,7 @@ export function matricePrecession(anneeEpoque: number): Mat3 {
 
 let precessionMemo: { annee: number; matrice: Mat3 } | null = null
 
-/** Même matrice, mémoïsée sur l'année entière : le recalcul par image est inutile (§3.1). */
+/** Same matrix, memoized per whole year (§3.1). */
 function matricePrecessionAnnee(anneeEpoque: number): Mat3 {
   const annee = Math.round(anneeEpoque)
   if (precessionMemo === null || precessionMemo.annee !== annee) {
@@ -66,9 +59,8 @@ function matricePrecessionAnnee(anneeEpoque: number): Mat3 {
 }
 
 /**
- * Direction J2000 du pôle céleste NORD DE L'ÉPOQUE — l'axe autour duquel le ciel tourne
- * réellement, et donc le centre exact des arcs de filé (§9.3). La rotation terrestre s'applique
- * après la précession : l'axe est la troisième ligne de la matrice de précession.
+ * J2000 direction of NORTH CELESTIAL POLE OF DATE: real rotation axis → exact filé arc centre
+ * (§9.3). Earth rotation follows precession → axis = 3rd row of precession matrix.
  */
 export function axePoleDeDate(anneeEpoque: number): Vec3 {
   const [, , , , , , x, y, z] = matricePrecessionAnnee(anneeEpoque)
@@ -76,9 +68,8 @@ export function axePoleDeDate(anneeEpoque: number): Vec3 {
 }
 
 /**
- * Du repère d'angle horaire au repère horizontal du site : x vers le nord, y vers l'est,
- * z au zénith. Le triède est gaucher, comme l'est la convention d'azimut comptée du nord
- * vers l'est ; la matrice reste orthogonale, donc son inverse reste sa transposée.
+ * Hour-angle frame → site horizontal frame: x north, y east, z zenith. Left-handed (azimuth
+ * north→east); matrix stays orthogonal, inverse = transpose.
  */
 export function matriceHorizon(latitudeDeg: number): Mat3 {
   const sin = Math.sin(latitudeDeg * DEG)
@@ -87,30 +78,28 @@ export function matriceHorizon(latitudeDeg: number): Mat3 {
 }
 
 export interface CielInstantane {
-  /** J2000 équatorial → repère horizontal du site (x nord, y est, z zénith). */
+  /** J2000 equatorial → site horizontal frame (x north, y east, z zenith). */
   readonly matrice: Mat3
   readonly tslH: Traced<number>
-  /** Sortie de diagnostic §3.1, exprimée avec le taux A-ROT du PRD. */
+  /** §3.1 diagnostic output, uses PRD A-ROT rate. */
   readonly angleRotationDeg: Traced<number>
   readonly epoqueAnnee: number
   readonly precessionDeg: Traced<number>
-  /** Vrai quand la date sort du domaine des séries : les corps mobiles sont masqués. */
+  /** True when date outside series domain: moving bodies hidden. */
   readonly corpsMasques: boolean
   readonly cause?: string
 }
 
 /**
- * La matrice unique de l'image (§3.1). Elle compose, dans cet ordre d'application :
- * précession J2000 → époque, rotation terrestre par le temps sidéral local, basculement
- * à la latitude du site.
+ * The frame's single matrix (§3.1): precession J2000 → epoch, Earth rotation by local sidereal
+ * time, tilt to site latitude, in order.
  */
 export function cielInstantane(site: Site, date: Date): CielInstantane {
   const tslH = tempsSideralLocal(date, site.longitudeDeg)
   const annee = epoqueAnnee(date)
   const anneesPrecession = Math.round(annee) - K('EPOQUE_J2000_ANNEE')
 
-  // 24 h sidérales font exactement un tour : un changement d'unité, distinct du taux A-ROT
-  // (15,041 °/h de temps SOLAIRE) que §3.2 consomme pour la lisibilité.
+  // 24 sidereal h = exactly 1 turn: unit change, ≠ A-ROT (15.041 °/h SOLAR time, §3.2 readability).
   const rotationTerre = rotationZ(-tslH.value * DEG_PAR_HEURE)
   const matrice = multiplie(
     matriceHorizon(site.latitudeDeg),
@@ -147,19 +136,14 @@ export function cielInstantane(site: Site, date: Date): CielInstantane {
   }
 }
 
-/**
- * T-0336 — la matrice du ciel à une minute ENTIÈRE (minutes depuis l'époque Unix) : c'est la
- * granularité à laquelle les panneaux s'abonnent à l'horloge de la scène.
- */
+/** T-0336 — sky matrix at a WHOLE minute (minutes since Unix epoch): panels' scene-clock grain. */
 export function matriceALaMinute(site: Site, minute: number): Mat3 {
   return cielInstantane(site, new Date(minute * MS_PAR_MINUTE)).matrice
 }
 
-// ---------------------------------------------------------------------------
-// Horloge d'éphémérides — corps mobiles
-// ---------------------------------------------------------------------------
+// Ephemeris clock — moving bodies
 
-/** Deux échantillons encadrant l'instant affiché, à la fréquence de l'horloge lente. */
+/** Two samples bracketing displayed instant, slow-clock rate. */
 export interface EtatEphemerides {
   readonly pasMs: number
   readonly t0Ms: number
@@ -175,12 +159,9 @@ function echantillonne(site: Site, dateMs: number): readonly PositionCorps[] {
 }
 
 /**
- * Pas de l'horloge d'éphémérides, exprimé en temps AFFICHÉ.
- *
- * La fréquence de 10 Hz est celle du temps réel : c'est là que se joue le budget de calcul.
- * En temps affiché, le pas s'étire donc du facteur de défilement. À ×3600, un dixième de
- * seconde réelle vaut six minutes de ciel, et la Lune — corps le plus rapide, ≈ 0,55 °/h —
- * y parcourt 0,055°, soit environ 1,8 px à 32 px/° : invisible.
+ * Ephemeris clock step in DISPLAYED time. 10 Hz = real time (compute budget) → step stretches by
+ * scroll factor. At ×3600, 0.1 s real = 6 min of sky; Moon (fastest, ≈ 0.55 °/h) moves 0.055° ≈
+ * 1.8 px at 32 px/°: invisible.
  */
 export function pasEphemeridesMs(
   facteurVitesse: number,
@@ -190,10 +171,9 @@ export function pasEphemeridesMs(
 }
 
 /**
- * Avance l'horloge lente jusqu'à encadrer `dateMs`, en réutilisant l'échantillon déjà
- * calculé quand le pas suivant est celui déjà en main. C'est ce recyclage qui rend le
- * découplage utile : à 60 Hz d'affichage et 10 Hz d'éphémérides, cinq images sur six ne
- * déclenchent aucune évaluation de série.
+ * Advance slow clock until it brackets `dateMs`, reusing the sample in hand when it is the next
+ * step. Recycling makes decoupling worthwhile: 60 Hz display / 10 Hz ephemerides → 5 frames in 6
+ * evaluate no series.
  */
 export function avanceEphemerides(
   precedent: EtatEphemerides | null,
@@ -223,14 +203,13 @@ export function avanceEphemerides(
 }
 
 function interpoleAngle(a: number, b: number, f: number, tour: number): number {
-  // L'ascension droite repasse par zéro : on interpole par le plus court chemin.
+  // RA wraps through zero: interpolate via shortest path.
   return ramene(a + ecartCourt(a, b, tour) * f, tour)
 }
 
 /**
- * Positions des corps mobiles à l'instant affiché, interpolées entre les deux échantillons.
- * Retourne une liste vide quand la date sort du domaine des séries : les corps sont masqués,
- * la cause est portée par `cielInstantane`.
+ * Moving-body positions at displayed instant, interpolated between the two samples. Empty when
+ * date outside series domain: bodies hidden, cause carried by `cielInstantane`.
  */
 export function positionsInterpolees(
   etat: EtatEphemerides,
@@ -250,7 +229,5 @@ export function positionsInterpolees(
   })
 }
 
-// L'interpolation n'a pas de trace §10.2 : aucun écran n'affiche le facteur f, et une
-// trace jamais dépliée ment sur ce qui est expliqué. La formule reste au formulaire de
-// l'Annexe B sous `INTERPOLATION_CORPS` ; y brancher un `trace()` le jour où un écran
-// la montre (T-0063).
+// Interpolation: no §10.2 trace (no screen shows factor f; a never-unfolded trace lies). Formula in
+// Annexe B `INTERPOLATION_CORPS`; wire `trace()` when a screen shows it (T-0063).

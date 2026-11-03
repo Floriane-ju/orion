@@ -1,13 +1,10 @@
 /**
- * §5.1, T-0404, T-0406 — le parc d'objectifs : une ligne par objectif, qui se lit.
- *
- * La ligne dit l'objectif par sa notation de bague (« 18–55 mm f/3,5–5,6 ») et sa nature —
- * focale fixe ou zoom, fisheye — et ne se corrige plus en place : le crayon rouvre la modale
- * (`ModaleObjectif`) garnie de l'objectif, comme l'ajout l'ouvre vide.
- *
- * Chaque ligne est une carte : un clic monte l'objectif, la carte montée prend le filet du texte.
- * La corbeille ne se pose que s'il en reste un autre : un parc vide renverrait à une saisie sans
- * objectif, et c'est l'état que le parc remplace.
+ * §5.1, T-0404, T-0406 — objectif parc: one readable row per objectif.
+ * Row = ring notation ("18–55 mm f/3,5–5,6") + nature (fixed focale, zoom, fisheye); no longer
+ * edited in place: pencil reopens the modal (`ModaleObjectif`) filled, as add opens it empty.
+ * Each row is a card: click mounts the objectif, mounted card takes the text rule.
+ * Trash only when another remains: empty parc would send back to input with no objectif —
+ * the state the parc replaces.
  */
 
 import { useId, useRef, useState } from 'react'
@@ -26,7 +23,7 @@ export interface PanneauParcProps {
 
 export function PanneauParc({ objectifs, surObjectifs, objectifId, surObjectifId }: PanneauParcProps) {
   const groupe = useId()
-  // `null` fermée, `'ajout'` vide, ou l'objectif qu'on retouche.
+  // `null` closed, `'ajout'` empty, or the objectif being edited.
   const [modale, setModale] = useState<'ajout' | Objectif | null>(null)
   const ouvreur = useRef<HTMLElement | null>(null)
 
@@ -35,7 +32,7 @@ export function PanneauParc({ objectifs, surObjectifs, objectifId, surObjectifId
     setModale(quoi)
   }
 
-  // Le focus revient au bouton qui a ouvert la modale : sans lui, il retombait en haut de page.
+  // Focus returns to the opening button, else it fell to page top.
   function ferme() {
     setModale(null)
     ouvreur.current?.focus()
@@ -60,7 +57,7 @@ export function PanneauParc({ objectifs, surObjectifs, objectifId, surObjectifId
       <button type="button" onClick={() => ouvre('ajout')}>
         Ajouter un objectif
       </button>
-      {/* Portée sous `body` : une carte qui transforme ou rogne son contenu enfermerait le voile. */}
+      {/* Portalled under `body`: a card that transforms or clips would trap the veil. */}
       {modale !== null &&
         createPortal(
           <ModaleObjectif
@@ -68,7 +65,7 @@ export function PanneauParc({ objectifs, surObjectifs, objectifId, surObjectifId
             surFermeture={ferme}
             surValide={(o) => {
               surObjectifs(parcAvec(objectifs, o))
-              // Celui qu'on vient d'ajouter est celui qu'on va monter ; une retouche ne change pas le montage.
+              // Just-added one gets mounted; an edit does not change the mount.
               if (modale === 'ajout') surObjectifId(o.id)
               ferme()
             }}
@@ -94,7 +91,7 @@ function LigneObjectif(props: LigneObjectifProps) {
   const { focaleMinMm, focaleMaxMm, typeObjectif } = props.objectif
   const nature = [focaleMinMm === focaleMaxMm ? 'Focale fixe' : 'Zoom', ...(typeObjectif === 'FISHEYE' ? ['fisheye'] : [])].join(' · ')
 
-  /** La carte se choisit d'un clic, sauf par la corbeille : retirer un objectif ne doit pas le monter au passage. */
+  /** Card chosen by click, except via trash: removing an objectif must not mount it. */
   const choisit = (cible: EventTarget) => {
     if (!(cible instanceof Element && cible.closest('button') !== null)) props.surMonte()
   }
@@ -107,10 +104,9 @@ function LigneObjectif(props: LigneObjectifProps) {
       data-monte={props.monte}
       onClick={(e) => choisit(e.target)}
     >
-      {/* T-0405 — le choix au clavier et au lecteur d'écran : la carte se choisit au clic,
-          mais un groupe sans état ne dit pas lequel est monté. Le radio natif le dit, et ses
-          flèches passent d'un objectif à l'autre. Le rond le montre ; le radio, invisible,
-          couvre la zone pour en garder la cible de clic. */}
+      {/* T-0405 — keyboard / screen-reader choice: card chosen by click, but a stateless group
+          does not say which is mounted. Native radio does, arrows move between objectifs. Dot
+          shows it; invisible radio covers the area to keep the click target. */}
       <span className="parc-choix">
         <input
           type="radio"

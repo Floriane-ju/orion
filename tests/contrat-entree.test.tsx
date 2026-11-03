@@ -1,10 +1,7 @@
 /**
- * Livrable vérifiable du Lot 1 : un lieu et un matériel saisis produisent, À L'ÉCRAN, le
- * champ, la pose maximale et les seuils de déclinaison du site.
- *
- * Le rendu statique suffit : il n'y a rien à cliquer pour que le contrat d'entrée produise
- * ses sorties, et c'est précisément ce qu'on vérifie. Les variantes qui demandent une
- * interaction — recadrage APS-C, suivi actif — sont couvertes sur leurs moteurs.
+ * Lot 1 deliverable: a lieu + matériel entered yield, ON SCREEN, the site's champ, pose
+ * maximale, declination thresholds. Static render suffices (nothing to click); variants
+ * needing interaction (APS-C reframing, suivi active) covered on their engines.
  */
 
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -14,12 +11,11 @@ import { GLOSSAIRE } from '../src/registry/glossaire.ts'
 import { TABLE_FORMATS_CAPTEUR } from '../src/registry/capteur-formats.ts'
 import { LIBELLE_ZP_SOURCE } from '../src/registry/libelles.ts'
 
-// T-0437 — les menus du site et du matériel montent leur contenu fermés : l'écran le porte.
+// T-0437 — site and matériel menus mount content closed: the screen carries it.
 const ecran = renderToStaticMarkup(<App />)
 
-// T-0404 — le champ et la pose maximale sans suivi ont quitté la carte Optique à la demande de
-// l'utilisatrice : la carte ne porte plus que le parc et le réglage. Leurs valeurs restent
-// vérifiées sur leurs moteurs (optics.test.ts, suivi.test.ts).
+// T-0404 — champ, pose maximale sans suivi left Optique card (user request; card = parc +
+// réglage only). Values checked on engines (optics.test.ts, suivi.test.ts).
 describe('contrat d’entrée — écran par défaut, setup de l’Annexe A', () => {
   it('affiche les seuils de déclinaison du site', () => {
     expect(ecran).toContain('-13,6')
@@ -43,7 +39,7 @@ describe('contrat d’entrée — écran par défaut, setup de l’Annexe A', ()
     }
   })
 
-  // T-0275 — c'est la VALEUR de zp_source que §7.1 veut à l'écran, et elle s'y lit en clair.
+  // T-0275 — VALUE of zp_source is what §7.1 wants on screen, in clear.
   it('affiche la source du point zéro et l’ISO retenu là où une pose est affichée (§7.1, §7.2)', () => {
     expect(ecran).toContain(LIBELLE_ZP_SOURCE.GENERIQUE)
     expect(ecran).toContain(GLOSSAIRE.iso_recommande.libelle)

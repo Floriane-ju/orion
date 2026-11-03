@@ -1,34 +1,27 @@
 /**
- * §7 — l'heure affichée, à la minute, dans la langue de l'interface.
- *
- * T-0110 — la même fonction vivait dans `Verdicts.tsx` et dans `PlanSession.tsx`, la première
- * commentée « comme partout ailleurs » : une promesse que deux définitions ne peuvent pas
- * tenir. Un plan de séance et le verdict qui le justifie citent les mêmes créneaux ; qu'ils
- * les datent au même format n'est pas une coïncidence à entretenir à la main.
- *
- * T-0162 — le panneau du temps ne se contente plus d'écrire l'instant, il le règle champ par
- * champ : le format est celui de la locale, et `partiesJour` en rend les morceaux sans le
- * réécrire — découper l'instant en compteurs ne doit pas en changer l'ordre ni la ponctuation.
+ * §7 — displayed time, to the minute, in interface language.
+ * T-0110 — same function lived in `Verdicts.tsx` and `PlanSession.tsx`, the first commented
+ * « comme partout ailleurs »: a promise two definitions can't keep. Plan de séance and the verdict
+ * justifying it cite the same créneaux; same date format must not rely on hand upkeep.
+ * T-0162 — time panel sets the instant field by field: format is locale's, `partiesJour` returns
+ * its pieces without rewriting — splitting into compteurs must not change order or punctuation.
  */
 
 import { LOCALE } from '../registry/ecriture.ts'
 
 export { LOCALE }
 
-/** L'heure seule, sans la date : les deux bornes d'un créneau tombent dans la même nuit. */
+/** Time alone, no date: a créneau's two bounds fall in the same night. */
 export function heure(date: Date): string {
   return date.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' })
 }
 
 /**
- * Le jour tout en chiffres, à deux chiffres : « 07/01/2026 ».
- *
- * T-0314 avait abrégé le mois en lettres ; la maquette du bloc du temps revient aux chiffres :
- * trois compteurs de largeur fixe, alignés sous les deux de l'heure. Le glisser capture le
- * pointeur, la largeur n'a de toute façon jamais gêné le geste.
- *
- * T-0327 — le jour de la semaine est retiré : ce n'est pas un champ réglable, et posé en texte
- * devant trois champs encadrés, il se lisait comme un quatrième qui ne répondait pas.
+ * Day in digits, two-digit: « 07/01/2026 ».
+ * T-0314 had abbreviated month as letters; time block mock-up returns to digits: three fixed-width
+ * compteurs aligned under the hour's two. Drag captures pointer, width never hindered the gesture.
+ * T-0327 — weekday removed: not a settable field; as text before three boxed fields it read as a
+ * fourth that didn't respond.
  */
 const OPTIONS_JOUR: Intl.DateTimeFormatOptions = {
   day: '2-digit',
@@ -36,16 +29,18 @@ const OPTIONS_JOUR: Intl.DateTimeFormatOptions = {
   year: 'numeric',
 }
 
-/** L'heure à la minute : le transport accéléré n'existe plus, la seconde n'avait plus rien à
- * montrer — l'horloge ne se tire plus qu'à la main, et la frise vise la minute. */
+/**
+ * Time to the minute: accelerated transport gone, seconds showed nothing (clock dragged by hand,
+ * frise targets minute).
+ */
 const OPTIONS_HEURE: Intl.DateTimeFormatOptions = {
   hour: '2-digit',
   minute: '2-digit',
 }
 
 /**
- * L'instant complet, date et heure : les bornes de la nuit tombent sur deux jours.
- * T-0276 — à la minute, comme `heure` : « 19:40:53 » à côté de « 19:40 » était une autre écriture.
+ * Full instant, date and time: night bounds fall on two days.
+ * T-0276 — to the minute, like `heure`: « 19:40:53 » beside « 19:40 » was another writing.
  */
 export function dateHeure(date: Date): string {
   return date.toLocaleString(LOCALE, {
@@ -57,14 +52,14 @@ export function dateHeure(date: Date): string {
   })
 }
 
-/** Un compte, avec le séparateur de milliers de la langue de l'interface. */
+/** A count, with interface-language thousands separator. */
 export function compte(n: number): string {
   return n.toLocaleString(LOCALE)
 }
 
 /**
- * Les morceaux du jour et de l'heure, séparateurs compris — l'ordre et la ponctuation restent
- * ceux de la locale, que ce soit « 31/08/2026 » ou une autre langue un jour.
+ * Day and time pieces, separators included — order and punctuation stay locale's, « 31/08/2026 »
+ * or another language someday.
  */
 export function partiesJour(date: Date): readonly Intl.DateTimeFormatPart[] {
   return new Intl.DateTimeFormat(LOCALE, OPTIONS_JOUR).formatToParts(date)
@@ -75,10 +70,9 @@ export function partiesHeure(date: Date): readonly Intl.DateTimeFormatPart[] {
 }
 
 /**
- * La largeur la plus longue que prend chaque morceau de l'instant, en caractères : le mois le
- * plus long de l'année, le quantième et l'heure à deux chiffres. Mesurée sur les douze mois
- * d'une année en fin de journée, dans la locale même — pas écrite : « sept. » n'a pas la
- * largeur de « mai » dans toutes les langues.
+ * Longest width of each instant piece, in chars: longest month, day, two-digit hour. MEASURED over
+ * the twelve months of a year at day's end, in the locale itself, not written: « sept. » isn't
+ * « mai »'s width in all languages.
  */
 export const LARGEURS_INSTANT: Readonly<Partial<Record<Intl.DateTimeFormatPartTypes, number>>> =
   (() => {
@@ -92,16 +86,14 @@ export const LARGEURS_INSTANT: Readonly<Partial<Record<Intl.DateTimeFormatPartTy
     return Object.freeze(largeurs)
   })()
 
-/** Les six champs que le panneau du temps règle séparément. Le mois est humain : 1 à 12. */
+/** The six fields time panel sets separately. Month is human: 1 to 12. */
 export type ChampInstant = 'annee' | 'mois' | 'jour' | 'heure' | 'minute' | 'seconde'
 
 /**
- * T-0162 — le même instant, un champ réécrit.
- *
- * Le jour est ramené au dernier jour du mois VISÉ, alors que les heures, les minutes et les
- * secondes débordent librement : glisser les mois depuis un 31 doit donner le 28 février et
- * non le 3 mars — le geste règle un mois, pas une durée —, tandis que glisser les heures
- * au-delà de minuit doit bel et bien changer de jour, puisque c'est un instant qu'on promène.
+ * T-0162 — same instant, one field rewritten.
+ * Day clamped to the TARGET month's last day; hours, minutes, seconds overflow freely: dragging
+ * months from a 31st gives 28 Feb not 3 Mar (gesture sets a month, not a duration), but dragging
+ * hours past midnight must change day (an instant is being moved).
  */
 export function dateAvec(date: Date, champ: ChampInstant, valeur: number): Date {
   const annee = champ === 'annee' ? valeur : date.getFullYear()
@@ -109,7 +101,7 @@ export function dateAvec(date: Date, champ: ChampInstant, valeur: number): Date 
   const heures = champ === 'heure' ? valeur : date.getHours()
   const minutes = champ === 'minute' ? valeur : date.getMinutes()
   const secondes = champ === 'seconde' ? valeur : date.getSeconds()
-  // Le zéroième jour du mois suivant EST le dernier du mois visé.
+  // Day zero of next month IS the last of the target month.
   const dernierJour = new Date(annee, mois + 1, 0).getDate()
   const jour =
     champ === 'jour' ? valeur : Math.min(date.getDate(), dernierJour)

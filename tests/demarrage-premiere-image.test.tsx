@@ -1,17 +1,11 @@
 /**
- * T-0296 — ce que le fil principal ne fait plus au démarrage.
- *
- * Deux propriétés que seule la coque peut montrer :
- *
- *   - les catalogues partent PENDANT la relecture de la saisie. `useCatalogues` est appelé
- *     au-dessus de l'attente, donc son effet est planifié par le premier rendu, celui qui
- *     affiche « Lecture des données enregistrées… », et non par le rendu d'après.
- *   - en mode Ciel profond, l'index de l'aperçu Panorama n'est pas construit. Il l'était au
- *     démarrage, pour un aperçu que personne n'avait ouvert. T-0398 : il ne l'est plus du tout
- *     dans un rendu React — il se construit là où la passe de filé peint (`file-index.ts`).
- *
- * `fake-indexeddb` sert à tenir la relecture en suspens : sans base, la saisie n'a rien à
- * restaurer et la coque passerait directement à l'écran complet.
+ * T-0296 — what main thread no longer does at startup. Two properties only the coque shows:
+ *  - catalogues start DURING saisie re-read: `useCatalogues` is called above the wait, so its
+ *    effect is scheduled by first render ("Lecture des données enregistrées…"), not the next.
+ *  - Ciel profond mode: Panorama preview index not built. T-0398: no longer built in any
+ *    React render, built where filé pass paints (`file-index.ts`).
+ * `fake-indexeddb` holds re-read pending: without DB the saisie restores nothing and coque
+ * jumps straight to full screen.
  */
 
 import 'fake-indexeddb/auto'
@@ -30,7 +24,7 @@ vi.mock('../src/core/index-ciel.ts', async (importeReel) => {
   return { ...reel, construitIndex: vi.fn(reel.construitIndex) }
 })
 
-/** Un catalogue minimal : ce qui compte ici est qu'on l'indexe ou qu'on ne l'indexe pas. */
+/** Minimal catalogue: only whether it is indexed matters. */
 const ETOILES: readonly Etoile[] = Object.freeze([
   { adDeg: 10, decDeg: 20, magV: 2, bv: 0.1 },
   { adDeg: 200, decDeg: -30, magV: 4, bv: 0.6 },
@@ -62,7 +56,7 @@ describe('T-0296 — l’index de Panorama n’est construit qu’en Panorama', 
     const premiere = indexFile(ETOILES)
     expect(premiere.indexReel.nombreEtoiles).toBe(ETOILES.length)
     expect(indexFile(ETOILES)).toEqual(premiere)
-    // Le catalogue réel, puis le semis : deux constructions, et aucune à l'image suivante.
+    // Real catalogue then semis: two builds, none at next frame.
     expect(construitIndex).toHaveBeenCalledTimes(2)
   })
 

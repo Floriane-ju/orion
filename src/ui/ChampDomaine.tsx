@@ -1,22 +1,14 @@
 /**
- * §5.1 et §10.1 — un champ numérique : sa borne vient du registre, jamais du composant, et
- * laisser un champ facultatif vide n'est pas une erreur — c'est déclarer la grandeur inconnue.
- *
- * T-0209 — il était local à `PanneauBoitier` sous le nom `ChampCapteur`, et les autres écrans
- * posaient des `<input>` nus. Trois écritures du même champ, donc trois occasions d'oublier
- * quelque chose : c'est ainsi qu'aucun champ de l'application ne portait `aria-invalid`, et
- * que T-0192 a dû ajouter un test pour rattraper les `inputMode` manquants.
- *
- * T-0208 — le champ dit LUI-MÊME quand sa valeur a été ramenée dans le domaine. La cause se
- * lit au pied du champ qui l'a produite, pas en bas du panneau : c'est le seul endroit où
- * elle désigne sans ambiguïté la valeur à corriger.
- *
- * `glisse` — le champ se règle aussi en le tirant à l'horizontale, au pas de son domaine,
- * comme un compteur (`compteur-glisse.ts`) mais sans changer de forme : c'est le même
- * `<input>`, à la même taille. Le glisser n'agit que champ au repos et à la souris : un champ
- * en cours de frappe garde la sélection de texte, et un doigt garde le défilement de la page.
- * Un clic sans glisser ouvre la frappe, valeur sélectionnée ; ↑ et ↓ font le même cran au
- * clavier.
+ * §5.1 and §10.1 — numeric field: bound from registre, never the component; optional field left
+ * empty = quantity declared unknown, not an error.
+ * T-0209 — was local to `PanneauBoitier` (`ChampCapteur`), other screens used bare `<input>`: 3
+ * writings → no `aria-invalid` anywhere, T-0192 needing a test for missing `inputMode`.
+ * T-0208 — field itself says when its value was clamped into domain; cause reads at foot of the
+ * field that produced it (only unambiguous place).
+ * `glisse` — also set by dragging horizontally at domain step, like a counter
+ * (`compteur-glisse.ts`) but same `<input>`, same size. Drag acts only on idle field with mouse:
+ * typing field keeps text selection, finger keeps page scroll. Click without drag opens typing,
+ * value selected; ↑ ↓ give the same step by keyboard.
  */
 
 import { useId, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
@@ -32,12 +24,10 @@ import { Icone } from './Icone.tsx'
 import { Mention } from './Mention.tsx'
 
 /**
- * T-0199 — le signe qui dit qu'une grandeur manque, posé au bout du libellé du champ qu'elle
- * concerne. §11.1 : le rouge ne porte jamais seul, la forme du glyphe le double.
- *
- * `nomme` plutôt que `describedby` : le glyphe n'a pas d'autre nom que la note. Il est
- * atteignable au clavier — la bulle s'ouvre sur `:focus-visible`, et une note qui ne sort
- * qu'au survol n'existe pas pour qui n'a pas de souris.
+ * T-0199 — sign that a quantity is missing, at end of its field label. §11.1: red never alone,
+ * glyph shape doubles it. `nomme` not `describedby`: glyph has no other name than the note.
+ * Keyboard-reachable: bulle opens on `:focus-visible` (hover-only note doesn't exist without a
+ * mouse).
  */
 export function AlerteChamp({ note }: { readonly note: string }) {
   return (
@@ -51,39 +41,39 @@ export function AlerteChamp({ note }: { readonly note: string }) {
 
 export interface ChampDomaineProps {
   readonly domaine: DomaineId
-  /** §10.1 — le libellé est une clé du glossaire quand le terme y figure. */
+  /** §10.1 — label is a glossaire key when the term is there. */
   readonly cle?: TermeGlossaire
-  /** Le libellé en clair, pour un champ qui n'a pas d'entrée au glossaire. */
+  /** Plain label, for a field with no glossaire entry. */
   readonly libelle?: string
-  /** Précision calculée au contact, ajoutée à la bulle de `cle`. */
+  /** Precision computed at point of use, added to `cle` bulle. */
   readonly precision?: string | undefined
   readonly valeur: string
   readonly surValeur: (v: string) => void
-  /** Sans lui, la sortie n'existe pas : le placeholder annonce alors la plage attendue. */
+  /** Without it no output exists: placeholder announces the expected range. */
   readonly requis?: boolean
-  /** T-0199 — ce que le registre met à la place, quand la grandeur reste vide. */
+  /** T-0199 — what registre substitutes when the quantity stays empty. */
   readonly note?: string | undefined
-  /** L'unité du domaine, suffixée au libellé. Inutile là où le libellé la porte déjà. */
+  /** Domain unit, suffixed to label. Unneeded where label already carries it. */
   readonly unite?: boolean
   readonly placeholder?: string
-  /** Un indice ENTIER n'ouvre pas le clavier à séparateur décimal (T-0192). */
+  /** An INTEGER index doesn't open the decimal-separator keyboard (T-0192). */
   readonly inputMode?: 'decimal' | 'numeric'
-  /** Le champ se tire à l'horizontale, au `pas` de son domaine. */
+  /** Field is dragged horizontally, at domain `pas`. */
   readonly glisse?: boolean
   /**
-   * T-0404 — une plage plus étroite que le domaine : celle de l'objectif monté. Le refus et le
-   * placeholder la citent ; le domaine reste la borne de dernier recours.
+   * T-0404 — range narrower than domain: the mounted lens's. Refusal + placeholder cite it; domain
+   * stays last-resort bound.
    */
   readonly plage?: Plage | undefined
 }
 
-/** Le point de départ d'un geste : un champ vide part de la borne basse. */
+/** Gesture start point: an empty field starts at the lower bound. */
 function valeurDeDepart(texte: string, min: number): number {
   const n = nombreDeTexte(texte)
   return Number.isFinite(n) ? n : min
 }
 
-/** Glisser et flèches, au pas du domaine ; `null` pour un champ qui ne se tire pas. */
+/** Drag and arrows, at domain step; `null` for a non-draggable field. */
 function useGlisse(props: ChampDomaineProps) {
   const d = DOMAINES[props.domaine]
   const depart = useRef<{ readonly xPx: number; readonly valeur: number; bouge: boolean } | null>(null)
@@ -94,7 +84,7 @@ function useGlisse(props: ChampDomaineProps) {
   return {
     onPointerDown(e: PointerEvent<HTMLInputElement>) {
       if (e.pointerType !== 'mouse' || e.button !== 0 || document.activeElement === e.currentTarget) return
-      // Ni focus ni sélection à l'appui : on ne sait pas encore si c'est un clic ou un glisser.
+      // No focus/selection on press: click vs drag not known yet.
       e.preventDefault()
       e.currentTarget.setPointerCapture(e.pointerId)
       depart.current = { xPx: e.clientX, valeur: valeurDeDepart(props.valeur, d.min), bouge: false }
@@ -115,8 +105,8 @@ function useGlisse(props: ChampDomaineProps) {
       e.currentTarget.focus()
       e.currentTarget.select()
     },
-    // `preventDefault` au `pointerdown` ne retient pas partout le focus ni la sélection : ce
-    // sont des effets du `mousedown`, qu'on retient donc aussi.
+    // `preventDefault` on `pointerdown` doesn't hold focus/selection everywhere: those are
+    // `mousedown` effects, held too.
     onMouseDown(e: MouseEvent<HTMLInputElement>) {
       if (e.button === 0 && document.activeElement !== e.currentTarget) e.preventDefault()
     },
@@ -127,7 +117,7 @@ function useGlisse(props: ChampDomaineProps) {
       const sens = e.key === 'ArrowUp' ? 1 : e.key === 'ArrowDown' ? -1 : 0
       if (sens === 0) return
       e.preventDefault()
-      // Un cran de clavier est un cran de glisser : le même arrondi, la même borne.
+      // A keyboard step is a drag step: same rounding, same bound.
       const texte = texteGlisse(valeurDeDepart(props.valeur, d.min) + sens * pas, 0, domaine)
       props.surValeur(texte)
     },
@@ -137,11 +127,11 @@ function useGlisse(props: ChampDomaineProps) {
 export function ChampDomaine(props: ChampDomaineProps) {
   const d = DOMAINES[props.domaine]
   const idRefus = useId()
-  // Un champ vide n'est pas une valeur fautive : c'est un état transitoire de frappe (T-0149),
-  // et la conséquence de son absence est déjà dite par `note` ou par le panneau.
-  // T-0404 — le refus attend qu'on quitte le champ : « 1 » en route vers « 18 » n'est pas une
-  // faute, et l'annoncer à chaque frappe criait avant la fin du nombre. La valeur, elle, est
-  // bornée dès la frappe par la chaîne de calcul ; seul l'avertissement est différé.
+  // Empty field isn't a faulty value: transient typing state (T-0149); consequence of absence
+  // already said by `note` or the panel.
+  // T-0404 — refusal waits for blur: "1" heading to "18" isn't a fault, per-keystroke announcement
+  // shouted before number end. Value bounded at keystroke by the calcul chain; only the warning is
+  // deferred.
   const [enFrappe, setEnFrappe] = useState(false)
   const refus =
     enFrappe || props.valeur.trim() === ''

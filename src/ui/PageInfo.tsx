@@ -1,16 +1,11 @@
 /**
- * §12.1, §12.3, T-0325 — la modale « info » : l'état du socle, les réglages et la provenance
- * des données.
- *
- * Elle remplace les deux tiroirs de la barre haute (T-0228 « info », T-0184 « réglages »).
- * Leurs contenus se lisent en longueur — matrice de dégradation, cinq curseurs, sources — et
- * une fenêtre de tiroir les tenait sous un ascenseur. Une modale presque pleine largeur leur
- * donne la place, sans quitter l'onglet : les poids réglés ici sont ceux du plan affiché
- * dessous — un autre onglet aurait son propre état, et ses réglages n'y agiraient pas.
- *
- * Aucun état React : la page est la cible de l'ancre `#info`, et `:target` l'affiche. Le
- * retour du navigateur la referme, un lien direct l'ouvre, et la scène reste montée dessous —
- * la quitter ne recalcule rien. Échap la ferme depuis l'écoute unique (`gere-echap.ts`).
+ * §12.1, §12.3, T-0325 — "info" modal: base state, settings, data provenance.
+ * Replaces the two top-bar drawers (T-0228 info, T-0184 réglages): long contents (dégradation
+ * matrix, 5 sliders, sources) sat under a scrollbar. Near-full-width modal, no tab change:
+ * weights set here are the displayed plan's — another tab has its own state.
+ * No React state: page = `#info` anchor target, `:target` shows it. Browser back closes,
+ * direct link opens, scène stays mounted below (nothing recomputed). Escape closes via the
+ * single listener (`gere-echap.ts`).
  */
 
 import { useEffect } from 'react'
@@ -36,18 +31,17 @@ import {
   vueRealisteScene,
 } from './scene-etat.ts'
 
-/** L'ancre de la page : le bouton de la barre y mène, Échap et « fermer » en repartent. */
+/** Page anchor: top-bar button leads in, Escape and "fermer" leave. */
 const ANCRE_INFO = 'info'
 
-/** T-0325 — le nom du bouton info, dit par sa bulle : le bouton ne porte que son icône. */
+/** T-0325 — info button's name, said by its bubble (button carries only its icon). */
 const AIDE_INFO = 'Infos de l’app'
 
 /**
- * T-0325 — le bouton qui mène à la page. Il se pose en bas à gauche de la scène, sous le mode
- * nuit : les deux gestes qui sortent du ciel se trouvent au même endroit. T-0041 — l'alerte de
- * persistance s'y signale en mots et nomme sa section : le rouge ne l'annonce jamais seul
- * (§11.1). Au repos, l'icône seule : la bulle la nomme. En alerte, le texte revient — c'est lui
- * qui dit l'échec, et il porte alors le nom du lien.
+ * T-0325 — button leading to the page. Bottom-left of scène under mode nuit: the two gestures
+ * leaving the sky sit together. T-0041 — persistence alert shows in words, names its section
+ * (red never alone, §11.1). At rest icon only (bubble names it); on alert text returns: says
+ * the failure, becomes the link name.
  */
 export function BoutonInfo({ persistance }: { readonly persistance: Persistance }) {
   return (
@@ -65,25 +59,24 @@ export interface PageInfoProps {
   readonly modeReseau: ModeReseau
   readonly persistance: Persistance
   readonly poids: SaisiePoids
-  /** Magnitude la plus faible du paquet chargé : au-delà, le champ paraît plus pauvre qu'il n'est. */
+  /** Faintest magnitude of the loaded pack: beyond it the champ looks poorer than it is. */
   readonly profondeurMag: number
-  /** §2.2 — fond de ciel du site : c'est lui qui plafonne la profondeur en vue réaliste. */
+  /** §2.2 — site fond de ciel: caps depth in vue réaliste. */
   readonly sbCiel: number | null
-  /** Les témoins de la légende se peignent aux teintes du mode courant. */
+  /** Legend swatches use the current mode's tints. */
   readonly modeNuit: boolean
-  /** §4.1 — seuils de déclinaison du site, absents si la saisie du lieu est refusée. */
+  /** §4.1 — site declination thresholds, absent if site input is refused. */
   readonly seuils?: SeuilsSite
 }
 
-/** Sélecteurs définis au niveau du module — `useTrancheScene` exige une identité stable. */
+/** Module-level selectors — `useTrancheScene` needs a stable identity. */
 function fovScene(etat: EtatScene): number {
   return etat.vue.fovDeg
 }
 /**
- * T-0325 — la profondeur affichée, descendue de la barre haute. Elle se lit hors des
- * rubriques, sous le titre : une ligne qu'aucun clic ne doit cacher. L'explication complète
- * du glossaire, jointe à la cause d'un catalogue épuisé quand elle existe, tient le survol :
- * la glose seule ne dirait pas pourquoi la profondeur bouge avec le zoom (§10.1).
+ * T-0325 — displayed depth, moved down from the top bar. Outside sections, under the title:
+ * a line no click may hide. Full glossary explanation (+ exhausted-catalogue cause if any)
+ * holds the hover: gloss alone would not say why depth moves with zoom (§10.1).
  */
 interface LectureProfondeurProps {
   readonly profondeurMag: number
@@ -122,8 +115,8 @@ function LectureProfondeur(props: LectureProfondeurProps) {
 }
 
 export function PageInfo(props: PageInfoProps) {
-  // Un lien direct vers `#info` se résout AVANT que React ait monté la page : `:target` n'a
-  // alors rien à viser. Renaviguer vers la même ancre une fois montée la lui rend.
+  // Direct link to `#info` resolves BEFORE React mounts the page: `:target` has nothing to hit.
+  // Re-navigating to the same anchor once mounted fixes it.
   useEffect(() => {
     if (location.hash === `#${ANCRE_INFO}`) location.replace(`#${ANCRE_INFO}`)
   }, [])
@@ -144,9 +137,9 @@ export function PageInfo(props: PageInfoProps) {
           </a>
         </header>
         <LectureProfondeur profondeurMag={props.profondeurMag} sbCiel={props.sbCiel} />
-        {/* La légende en tête : c'est elle qu'on vient chercher en regardant le ciel. */}
+        {/* Legend first: what one comes for while looking at the sky. */}
         <LegendeCouleurs modeNuit={props.modeNuit} />
-        {/* Puis la vérification : elle seule porte une conduite à tenir (T-0184). */}
+        {/* Then vérification: only one carrying an action to take (T-0184). */}
         <Verification
           etat={props.etat}
           modeReseau={props.modeReseau}

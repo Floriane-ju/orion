@@ -1,15 +1,10 @@
 /**
- * T-0194 — les deux échelles de `styles.css`, et le retour d'état des contrôles.
- *
- * La feuille garantit déjà qu'aucune COULEUR n'y est écrite en dur (`mode-nuit.test.tsx`) :
- * c'est ce qui rend le basculement de §11.1 total. Les écarts et les tailles de texte
- * relèvent de la même mécanique et n'avaient pas la même garantie — d'où vingt et une
- * valeurs d'espacement et treize corps de texte, dont cinq tenaient dans un dixième de rem.
- *
- * Ce qui est vérifié ici n'est pas une valeur mais une DISCIPLINE : un écart ou un corps de
- * texte ajouté demain doit citer un pas de l'échelle, pas en inventer un seizième. Le test
- * lit le texte de la feuille, comme ses voisins, parce qu'une règle de style ne casse aucun
- * rendu quand elle dérive — elle se contente de désaligner l'interface d'un pixel à la fois.
+ * T-0194 — the two `styles.css` scales, control state feedback. Sheet already guarantees no
+ * hard-coded COLOUR (`mode-nuit.test.tsx`): makes §11.1 toggle total. Spacing and text sizes
+ * share the mechanism but lacked the guarantee (21 spacing values, 13 text sizes, 5 within a
+ * tenth of rem). Checks a DISCIPLINE: new spacing/text size must cite a scale step, not
+ * invent a sixteenth. Reads sheet text like neighbours: a drifting style rule breaks no
+ * render, just misaligns the UI a pixel at a time.
  */
 import { describe, expect, it } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
@@ -18,10 +13,10 @@ import { adoucit } from '../src/ui/horizon-transition.ts'
 
 const CSS = readFileSync(join(import.meta.dirname, '..', 'src', 'ui', 'styles.css'), 'utf8')
 
-/** La feuille moins ses commentaires : une valeur citée en prose n'est pas une déclaration. */
+/** Sheet minus comments: a value quoted in prose is not a declaration. */
 const REGLES = CSS.replace(/\/\*[\s\S]*?\*\//g, '')
 
-/** Les déclarations d'une propriété, valeur brute, hors blocs de commentaire. */
+/** Declarations of a property, raw value, comment blocks excluded. */
 function declarations(motif: RegExp): readonly string[] {
   return [...REGLES.matchAll(motif)].map((m) => m[1]!.trim())
 }
@@ -36,8 +31,8 @@ describe('T-0194 — l’échelle d’espacement', () => {
   })
 
   it('ne laisse aucun écart écrit en dur dans une propriété d’espacement', () => {
-    // `-1px` fait exception : ce n'est pas un écart mais la ruse qui sort
-    // `.scene-description` du flux visuel sans la sortir de l'arbre d'accessibilité.
+    // `-1px` = exception: not spacing but the trick taking `.scene-description` out of visual
+    // flow while staying in the accessibility tree.
     for (const valeur of declarations(ESPACEMENT)) {
       if (valeur === '-1px') continue
       expect(valeur, valeur).not.toMatch(/(?<![\w.-])[0-9]*\.?[0-9]+(rem|px|em)\b/)
@@ -45,9 +40,9 @@ describe('T-0194 — l’échelle d’espacement', () => {
   })
 
   /**
-   * T-0332 — les trous du test précédent : les propriétés logiques de fin, les décalages de
-   * position, les unités d'écran, les règles écrites sur une ligne, et l'exception `-1px`
-   * qui valait pour toute règle. `%` reste permis : `top: 50%` centre, il ne mesure pas d'air.
+   * T-0332 — gaps of previous test: logical end properties, position offsets, screen units,
+   * single-line rules, and the `-1px` exception that held for every rule. `%` allowed:
+   * `top: 50%` centres, measures no air.
    */
   it('tient aussi les propriétés logiques, les décalages et les unités d’écran', () => {
     const PROPRIETE =
@@ -68,8 +63,7 @@ describe('T-0194 — l’échelle d’espacement', () => {
   })
 
   it('garde les gabarits hors de l’échelle : ils mesurent des objets, pas de l’air', () => {
-    // Un pas d'espacement qui dimensionnerait une barre ou une carte ferait dépendre la
-    // hauteur de la coque du grain des marges — deux réglages qui n'ont rien à voir.
+    // Spacing step sizing a bar or card would tie coque height to margin grain: unrelated settings.
     for (const jeton of ['barre-haut', 'lateral', 'carte-large', 'bulle-large']) {
       const valeur = new RegExp(`--${jeton}: ([^;]+);`).exec(CSS)?.[1]
       expect(valeur, jeton).toMatch(/^[\d.]+rem$/)
@@ -89,8 +83,8 @@ describe('T-0194 — l’échelle typographique', () => {
   })
 
   it('ne laisse aucun corps de texte écrit en dur', () => {
-    // Deux exceptions, déclarées dans la feuille : `.icone` porte la taille d'un GLYPHE, pas
-    // d'un texte, et `.tracee-plage` se règle en `em` sur ce qui la contient.
+    // Two exceptions declared in sheet: `.icone` carries a GLYPH size, not text; `.tracee-plage`
+    // is set in `em` on its container.
     const corps = [
       ...declarations(/^\s*font-size:\s*([^;]+);/gm),
       ...declarations(/^\s*font:\s*([^;]+);/gm).map((v) => v.split('/')[0]!),
@@ -98,26 +92,24 @@ describe('T-0194 — l’échelle typographique', () => {
     const derogations = ['1.25rem', '0.85em']
     for (const valeur of corps) {
       if (derogations.includes(valeur)) continue
-      // `inherit` n'écrit aucun corps : il rend la main à la règle qui contient (T-0329).
+      // `inherit` writes no size: hands over to the containing rule (T-0329).
       expect(valeur, valeur).toMatch(/^(?:var\(--texte-[a-z]+\)|inherit)$/)
     }
   })
 })
 
 /**
- * T-0215 — le suivi relève de la même discipline que le corps et l'écart.
- *
- * §11.1 confisque la luminance comme moyen de hiérarchie ; il reste la taille et la CASSE, et
- * la casse ne se lit qu'espacée. Le suivi est donc le second étage de la hiérarchie, et il
- * était le seul des trois à n'avoir aucune garantie : trois valeurs sur six étaient écrites
- * en dur dans leur règle, invisibles à toute comparaison.
+ * T-0215 — suivi follows same discipline as text size and spacing. §11.1 confiscates
+ * luminance as hierarchy; size and CASE remain, and case reads only when spaced. Suivi =
+ * second hierarchy tier, only one of three with no guarantee: 3 of 6 values hard-coded in
+ * their rule, invisible to any comparison.
  */
 describe('T-0215 — l’échelle de suivi', () => {
   const SUIVI = /^\s*letter-spacing:\s*([^;]+);/gm
 
   it('ne laisse aucun suivi écrit en dur', () => {
-    // `normal` et `0` ne sont pas des valeurs de l'échelle : ce sont les deux façons de
-    // l'ANNULER, là où un texte hérite du suivi d'un libellé parent qui n'est pas le sien.
+    // `normal` and `0` aren't scale values: the two ways to CANCEL it, where text inherits a
+    // parent label's suivi.
     for (const valeur of declarations(SUIVI)) {
       if (valeur === 'normal' || valeur === '0') continue
       expect(valeur, valeur).toMatch(/^var\(--suivi-[a-z]+\)$/)
@@ -131,41 +123,33 @@ describe('T-0215 — l’échelle de suivi', () => {
 })
 
 /**
- * T-0215 — LE MICRO-LIBELLÉ, le style de texte le plus fréquent de l'interface.
- *
- * C'est la grammaire de T-0113 : ce qui NOMME — l'étiquette d'un champ, l'en-tête d'une
- * colonne, l'onglet, le résumé d'un tiroir, le détail d'un score — se distingue de ce qui
- * VAUT par sa casse et son suivi, puisque §11.1 ne laisse pas assez de luminance pour
- * l'étager autrement. Le motif est écrit neuf fois, et ses quatre valeurs sont déjà des
- * jetons : ce qui peut dériver n'est pas une valeur, c'est la sixième règle qui en oublierait
- * un et produirait un libellé presque semblable.
- *
- * T-0323 — elles étaient dix : le détail de score du plan de nuit portait la dixième, et le
- * plan ne détaille plus son score.
- *
- * Les cinq règles ne sont PAS regroupées en une seule. Les regrouper les déplacerait dans la
- * cascade — un onglet actif, un tiroir ouvert et un survol reposent chacun sur l'ordre de la
- * feuille pour surcharger leur couleur. Dix-huit lignes gagnées contre cinq réordonnance-
- * ments dans une feuille dont toute la discipline est que rien ne bouge en silence : la
- * garantie vaut mieux ici que la concision.
+ * T-0215 — THE MICRO-LIBELLÉ, most frequent text style of UI. T-0113 grammar: what NAMES
+ * (field label, column header, tab, drawer summary, score detail) is told from what HOLDS A
+ * VALUE by case + suivi, since §11.1 leaves too little luminance to tier otherwise. Pattern
+ * written nine times, its four values already tokens: what can drift is the sixth rule
+ * forgetting one → near-identical label.
+ * T-0323 — were ten: night-plan score detail was the tenth; plan no longer details score.
+ * The five rules are NOT merged: merging moves them in cascade — active tab, open drawer,
+ * hover each rely on sheet order to override colour. 18 lines saved vs five reorderings in a
+ * sheet where nothing moves silently: guarantee > concision.
  */
 describe('T-0215 — le micro-libellé', () => {
-  /** Les corps de règle qui portent la taille du micro-libellé et la casse. */
+  /** Rule bodies carrying the micro-libellé size and case. */
   function reglesMicro(): readonly (readonly [string, string])[] {
     return [...REGLES.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
       .map(([, sel, corps]) => [sel!.split('\n').join(' ').trim(), corps!] as const)
       .filter(
         ([, corps]) =>
-          // T-0332 — le raccourci `font:` et le rang `--texte-mini` comptent aussi.
+          // T-0332 — shorthand `font:` and rank `--texte-mini` count too.
           /font(?:-size)?:\s*var\(--texte-(?:micro|mini)\)/.test(corps) &&
           corps.includes('text-transform: uppercase'),
       )
   }
 
   /**
-   * Les deux micro-corps en capitales qui ne sont PAS des libellés, et restent en `--texte` :
-   * un bouton est une commande, qui doit se lire active ; la légende d'un curseur nomme le
-   * seuil où la détente accroche — c'est une lecture, pas l'étiquette d'un champ.
+   * The two uppercase micro-size texts that are NOT labels, kept in `--texte`: a button is a
+   * command, must read active; a slider legend names detent's accroche threshold — a reading,
+   * not a field label.
    */
   const PAS_DES_LIBELLES = ['button, .bouton-fichier', '.curseur-legende']
 
@@ -174,9 +158,8 @@ describe('T-0215 — le micro-libellé', () => {
   })
 
   it('n’en laisse aucune oublier le suivi ni la couleur qui vont avec', () => {
-    // Les quatre valeurs tiennent ensemble ou ne tiennent pas : un libellé en capitales sans
-    // suivi se lit comme un mot tapé en majuscules, et rendu en --texte il pèse autant que la
-    // valeur qu'il annonce — c'est exactement la hiérarchie que §11.1 confisque par ailleurs.
+    // Four values hold together or not: uppercase label without suivi reads as shouted typing,
+    // and in --texte weighs as much as the value it announces — the hierarchy §11.1 confiscates.
     for (const [selecteur, corps] of reglesMicro()) {
       expect(corps, selecteur).toContain('letter-spacing: var(--suivi-micro)')
       if (PAS_DES_LIBELLES.includes(selecteur.replace(/\s+/g, ' '))) continue
@@ -186,7 +169,7 @@ describe('T-0215 — le micro-libellé', () => {
 })
 
 describe('T-0194 — le retour d’état des contrôles', () => {
-  /** Ce qui se clique, se tire ou se saisit : tout doit répondre au geste de la même façon. */
+  /** What is clicked, dragged or typed: all must answer the gesture alike. */
   const CONTROLES = [
     'button',
     '.bouton-fichier',
@@ -198,7 +181,7 @@ describe('T-0194 — le retour d’état des contrôles', () => {
     'select',
   ] as const
 
-  /** Le corps de la règle qui porte la transition d'état. */
+  /** Body of the rule carrying the state transition. */
   function regleDuFondu(): string {
     const debut = CSS.indexOf('  transition: background-color var(--fondu-etat)')
     expect(debut, 'aucune transition d’état dans la feuille').toBeGreaterThan(-1)
@@ -220,9 +203,8 @@ describe('T-0194 — le retour d’état des contrôles', () => {
   })
 
   it('annonce chaque contrôle au survol', () => {
-    // Onze commandes en portaient un, trois seulement répondaient à l'appui : un contrôle
-    // muet sous la souris ne se distingue pas d'une lecture.
-    // Une ligne de sélecteur, qu'elle ferme la liste (`{`) ou la continue (`,`).
+    // Eleven commands had one, three answered press: a control mute under mouse reads as a reading.
+    // Selector line, closing the list (`{`) or continuing it (`,`).
     const survols = [...CSS.matchAll(/^[^{}\n]*:hover[^{}\n]*[,{]$/gm)].map((m) => m[0])
     for (const selecteur of CONTROLES) {
       expect(
@@ -233,8 +215,8 @@ describe('T-0194 — le retour d’état des contrôles', () => {
   })
 
   it('raccourcit le fondu sous mouvement réduit sans le supprimer', () => {
-    // La surcharge doit suivre la valeur nominale dans la feuille : un jeton se résout à
-    // l'ordre du texte, et le même bloc placé avant serait réécrit par elle.
+    // Override must follow nominal value in sheet: a token resolves in text order; same block
+    // earlier would be overwritten.
     const nominale = Number(/--fondu-etat: (\d+)ms;/.exec(CSS)![1])
     const surcharge = [...CSS.matchAll(/--fondu-etat: (\d+)ms;/g)].map((m) => m.index!)
     expect(surcharge, 'aucune surcharge sous mouvement réduit').toHaveLength(2)
@@ -250,24 +232,19 @@ describe('T-0194 — le retour d’état des contrôles', () => {
   })
 
   it('n’allume pas une commande éteinte', () => {
-    // Un bouton désactivé qui répond au survol promet un clic qui n'aura pas lieu.
+    // Disabled button answering hover promises a click that will not happen.
     expect(CSS).toMatch(/button:not\(:disabled\):hover/)
     expect(CSS).toMatch(/button:not\(:disabled\):active/)
   })
 })
 
 /**
- * T-0215 — UN CONTENEUR NE RESTYLE PAS CE QU'IL NE POSSÈDE PAS.
- *
- * `label` portait la casse et le suivi du micro-libellé. Or un `<label>` ENVELOPPE son
- * contrôle : le style descendait sur l'`<input>`, sur le `<select>`, sur la bulle de glose, et
- * — sans que rien ne l'arrête — sur le message de refus, qui se rendait donc en capitales
- * espacées. La règle `.etat` dit pourtant l'inverse en toutes lettres : « appliquées à une
- * explication, elles la rendent illisible ». Les contrôles s'en défendaient par une
- * annulation ; l'explication, non.
- *
- * Le style vit maintenant sur `.libelle`, un enfant nommé. Ce qui se vérifie ici est que le
- * défaut ne revient pas : ni par `label`, ni par un champ qui oublierait la classe.
+ * T-0215 — A CONTAINER DOES NOT RESTYLE WHAT IT DOES NOT OWN. `label` carried micro-libellé
+ * case + suivi. A `<label>` WRAPS its control: style flowed onto `<input>`, `<select>`, glose
+ * bubble and — unstopped — the refusal message, rendered in spaced capitals. `.etat` rule
+ * says the opposite ("appliquées à une explication, elles la rendent illisible"); controls
+ * cancelled it, the explanation didn't. Style now on `.libelle`, a named child. Checks the
+ * default doesn't return: not via `label`, not via a field forgetting the class.
  */
 describe('T-0215 — le libellé ne déborde pas sur son contrôle', () => {
   it('ne laisse à `label` que la disposition', () => {
@@ -278,8 +255,8 @@ describe('T-0215 — le libellé ne déborde pas sur son contrôle', () => {
   })
 
   it('ne laisse aucun `<label>` sans son libellé nommé', () => {
-    // Deux exceptions, et elles portent leur propre style de texte : `.interrupteur` est une
-    // PHRASE et non une étiquette, `.bouton-fichier` est un bouton déguisé en label.
+    // Two exceptions with own text style: `.interrupteur` = a PHRASE, not a label;
+    // `.bouton-fichier` = a button disguised as label.
     const SANS_LIBELLE = ['interrupteur', 'bouton-fichier']
     const racine = join(import.meta.dirname, '..', 'src', 'ui')
     for (const fichier of readdirSync(racine)) {
@@ -296,23 +273,18 @@ describe('T-0215 — le libellé ne déborde pas sur son contrôle', () => {
 })
 
 /**
- * T-0216 — le rythme vertical d'une section.
- *
- * L'écart entre deux champs ne vivait que sur `.champs`, dont le `gap` ne joue qu'entre les
- * enfants de sa grille : tout ce que le balisage posait à côté d'elle retombait à zéro, tout
- * ce qu'il y posait avec une marge propre montait à une fois et demie. La feuille porte
- * maintenant l'écart sur les frères de la section ; ce qui reste à tenir est la CONVENTION qui
- * va avec — une grille de champs ne contient que des champs.
- *
- * Elle ne se tient pas toute seule : deux sections du même fichier appliquaient deux règles
- * opposées, et rien ne les départageait. C'est ce test qui départage.
+ * T-0216 — vertical rhythm of a section. Gap between two fields lived only on `.champs`,
+ * whose `gap` acts only between its grid children: siblings beside it fell to zero, those
+ * with own margin rose to 1.5×. Sheet now puts gap on section siblings; remaining is the
+ * CONVENTION: a field grid holds only fields. Not self-holding: two sections of one file
+ * applied opposite rules, nothing arbitrated. This test arbitrates.
  */
 describe('T-0216 — le rythme vertical d’une section', () => {
-  /** Le corps de chaque grille `.champs`, délimité par l'indentation de sa balise ouvrante. */
+  /** Body of each `.champs` grid, delimited by the indentation of its opening tag. */
   function grilles(source: string): readonly string[] {
     const blocs: string[] = []
-    // T-0234 — `[^"]*` : une grille modifiée (`champs paire`) reste une grille de champs, et
-    // un motif exact l'aurait laissée échapper à la convention sans que rien ne le dise.
+    // T-0234 — `[^"]*`: a modified grid (`champs paire`) stays a field grid; exact pattern
+    // would escape the convention silently.
     for (const m of source.matchAll(/^([ ]*)<div className="champs[^"]*">$/gm)) {
       const debut = m.index + m[0].length + 1
       const fin = source.indexOf(`\n${m[1]!}</div>`, debut)
@@ -321,7 +293,7 @@ describe('T-0216 — le rythme vertical d’une section', () => {
     return blocs
   }
 
-  /** Les grilles de tout le dossier, avec le fichier d'où elles viennent. */
+  /** Grids of the whole folder, with source file. */
   function toutesLesGrilles(): readonly (readonly [string, string])[] {
     const racine = join(import.meta.dirname, '..', 'src', 'ui')
     const paires: (readonly [string, string])[] = []
@@ -334,9 +306,9 @@ describe('T-0216 — le rythme vertical d’une section', () => {
   }
 
   it('ne laisse dans la grille rien d’autre que des champs nommés', () => {
-    // Un message ajoute sa marge propre au `gap` — les marges ne fusionnent pas en grille —
-    // et devient la seule chose du panneau à un écart double. Un interrupteur et un bouton,
-    // eux, deviennent des cellules à côté d'un champ, alors qu'ils n'en sont pas un.
+    // A message adds its own margin to `gap` (margins don't collapse in a grid) → only
+    // double-gap thing in panel. A switch and a button become cells beside a field though not
+    // one.
     const INTRUS = ['<Mention', '<Interrupteur', '<button', 'className="etat"']
     for (const [fichier, grille] of toutesLesGrilles()) {
       for (const intrus of INTRUS) {
@@ -346,29 +318,26 @@ describe('T-0216 — le rythme vertical d’une section', () => {
   })
 
   it('ne laisse aucune grille vide', () => {
-    // Une grille sans champ occupe quand même une place dans le rythme de la section.
+    // A fieldless grid still takes a place in section rhythm.
     for (const [fichier, grille] of toutesLesGrilles()) {
       expect(/<Champ|<label/.test(grille), `${fichier} — une grille sans aucun champ`).toBe(true)
     }
   })
 
   it('donne à la grille et aux frères le même pas', () => {
-    // Deux pas différents rendraient l'écart dépendant de ce qui est dans la grille — le
-    // défaut même que ce ticket ferme.
+    // Two different steps would make gap depend on grid content: the defect this ticket closes.
     const pas = (motif: RegExp) => REGLES.slice(REGLES.search(motif)).match(/var\(--pas-\d\)/)![0]
     expect(pas(/\.champs \{/)).toBe(pas(/section:not\(\[class\]\) > \* \+ \*/))
   })
 })
 
 /**
- * T-0331 — interlignage, graisse, durée et empilement ont chacun leur échelle.
- *
- * Même règle que les écarts et les corps : une valeur écrite en dur dans une règle est un
- * bug. Les jetons eux-mêmes et les `@font-face` — qui DÉCRIVENT les fichiers livrés — sont
- * les seuls endroits où un nombre s'écrit.
+ * T-0331 — line-height, weight, duration, stacking each have a scale. Same rule as spacing
+ * and sizes: hard-coded value in a rule = bug. Only tokens and `@font-face` (which DESCRIBE
+ * shipped files) may write a number.
  */
 describe('T-0331 — les échelles de souffle, de graisse, de durée et de pile', () => {
-  /** La feuille sans ses commentaires, sans les `@font-face` et sans les déclarations de jetons. */
+  /** Sheet without comments, `@font-face` and token declarations. */
   const REGLES_SEULES = CSS.replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/@font-face\s*\{[^}]*\}/g, '')
     .replace(/^\s*--[\w-]+:[^;]*;/gm, '')
@@ -404,8 +373,8 @@ describe('T-0331 — les échelles de souffle, de graisse, de durée et de pile'
       .map((m) => m[1]!)
       .filter((v) => !/^var\(--plan-[a-z]+\)$/.test(v))
     expect(fautes).toEqual([])
-    // La bulle passe devant tout ce qui la contient : rang le plus haut de l'interface. Seul le
-    // masque du mode nuit (T-0185) la dépasse — il n'est pas de l'interface, il la filtre.
+    // Bubble sits above all its containers: highest rank of UI. Only night-mode mask (T-0185)
+    // exceeds it: it filters the UI, isn't part of it.
     const rangs = [...CSS.matchAll(/--plan-([a-z]+):\s*(\d+);/g)].map((m) => [m[1]!, Number(m[2])] as const)
     const rang = (nom: string): number | undefined => rangs.find(([n]) => n === nom)?.[1]
     const interface_ = rangs.filter(([nom]) => nom !== 'masque').map(([, r]) => r)
@@ -427,7 +396,7 @@ describe('T-0391 — une seule courbe d’accélération', () => {
   it('aucune transition n’écrit sa courbe en dur : toutes citent --courbe', () => {
     const enDur = [...REGLES.matchAll(/\b(?:ease(?:-in|-out|-in-out)?|linear(?!-)|steps\(|cubic-bezier\()/g)]
       .map((m) => m[0])
-    // Le seul cubic-bezier permis est la définition du jeton.
+    // Only permitted cubic-bezier is the token definition.
     expect(enDur).toEqual(['cubic-bezier('])
     expect(REGLES).toMatch(/--courbe: cubic-bezier\(/)
   })
@@ -441,7 +410,7 @@ describe('T-0391 — une seule courbe d’accélération', () => {
       3 * (1 - t) ** 2 * t * a + 3 * (1 - t) * t ** 2 * b + t ** 3
     for (let i = 0; i <= 20; i++) {
       const t = i / 20
-      // x(t) = t à 1e-4 près : la progression du temps se lit directement en ordonnée.
+      // x(t) = t within 1e-4: time progress reads directly as ordinate.
       expect(bezier(x1, x2, t)).toBeCloseTo(t, 3)
       expect(bezier(y1, y2, t)).toBeCloseTo(adoucit(t), 6)
     }

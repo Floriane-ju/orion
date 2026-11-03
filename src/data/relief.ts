@@ -1,13 +1,9 @@
 /**
- * §4.1, §12.5 — le relief d'un site : le cache d'abord, les tuiles de terrain ensuite.
- *
- * Un échec ne lève jamais. Le masque plat [HYP] est le repli que §4.1 prévoit pour un site
- * sans donnée de relief : la saisie et le calcul continuent, et la cause se lit en une phrase
- * plutôt qu'en message d'erreur brut (T-0279). Hors réseau, un site déjà visité retrouve son
- * relief — c'est la ligne « Masque d'horizon » de la matrice §12.5.
- *
- * Les tuiles ne sont pas gardées, seul le profil de 360 élévations l'est : c'est lui que le
- * moteur consomme, et il pèse trois kilo-octets là où ses tuiles en pèsent mille cinq cents.
+ * §4.1, §12.5 — site relief: cache first, then terrain tiles.
+ * Failure never throws. Flat mask [HYP] = §4.1 fallback for a site without relief: input and
+ * computation go on, cause in one sentence not raw error (T-0279). Offline, a visited site finds
+ * its relief — §12.5 matrix line « Masque d'horizon ».
+ * Tiles not kept, only the 360-elevation profile the engine consumes: 3 KB vs 1.5 MB.
  */
 
 import { courbesNiveau, creteFine, profilRelief, silhouettes, type Altimetre } from '../core/relief.ts'
@@ -26,21 +22,21 @@ import { modeReseauCourant } from './degradation.ts'
 export interface ReliefConnu {
   readonly etat: 'RELIEF'
   readonly altitudesDeg: readonly number[]
-  /** T-0365 — l'altitude du sol au site, en mètres : celle d'où l'œil regarde le relief. */
+  /** T-0365 — ground altitude at site, m: eye level over relief. */
   readonly solM: number
-  /** T-0395 — les courbes de niveau visibles (voir `courbesNiveau`) ; absentes d'un ancien cache. */
+  /** T-0395 — visible contour lines (`courbesNiveau`); absent from old cache. */
   readonly courbesDeg?: Float32Array
-  /** T-0438 — les lignes de silhouette (voir `silhouettes`), tracées avec les courbes. */
+  /** T-0438 — silhouette lines (`silhouettes`), drawn with contours. */
   readonly silhouettesDeg?: Float32Array
-  /** T-0438 — la crête au pas fin (voir `creteFine`), pour le dessin du sol. */
+  /** T-0438 — fine-step ridge (`creteFine`), for ground drawing. */
   readonly creteDeg?: Float32Array
-  /** Ce qui les a tracées — algorithme et équidistance : une autre signature les fait refaire. */
+  /** What drew them — algorithm + equidistance: another signature redoes them. */
   readonly signatureCourbes?: string
 }
 
 export type ReliefSite = ReliefConnu | { readonly etat: 'INDISPONIBLE'; readonly cause: string }
 
-/** Les altitudes d'une tuile, en mètres, ligne par ligne ; null quand elle n'a pas pu être lue. */
+/** Tile altitudes, m, row by row; null if unreadable. */
 export type ChargeTuile = (z: number, x: number, y: number) => Promise<Float32Array | null>
 
 const CANAUX_RGBA = 4
@@ -51,12 +47,12 @@ export function altitudeTerrarium(rouge: number, vert: number, bleu: number): nu
   return rouge * base + vert + bleu / base - R('DECALAGE_TERRARIUM_M')
 }
 
-/** Position en pixels mondiaux Web Mercator au zoom `z` : la tuile est ce nombre divisé par 256. */
+/** Web Mercator world-pixel position at zoom `z`: tile = this / 256. */
 export function pixelMonde(latDeg: number, lonDeg: number, z: number): PointMonde {
   return pixelMondeCote(latDeg, lonDeg, z, R('COTE_TUILE_PX'))
 }
 
-/** Les tuiles qui couvrent le rayon de §4.1 autour du site, ou null au-delà du plafond. */
+/** Tiles covering §4.1 radius around site; null beyond cap. */
 export function tuilesCouvrantes(
   latDeg: number,
   lonDeg: number,
@@ -65,7 +61,7 @@ export function tuilesCouvrantes(
   const cote = R('COTE_TUILE_PX')
   const nb = 2 ** z
   const rayonDeg = (R('RAYON_RELIEF_KM') / K('RAYON_TERRE_KM')) / DEG
-  // Au-delà de la latitude où Mercator s'arrête (≈ 85,05°), il n'existe aucune tuile.
+  // No tile beyond latitude where Mercator stops (≈ 85,05°).
   if (Math.abs(latDeg) + rayonDeg > LATITUDE_MAX_MERCATOR_DEG) return null
   const dLon = rayonDeg / Math.cos(latDeg * DEG)
   const nordOuest = pixelMonde(latDeg + rayonDeg, lonDeg - dLon, z)
@@ -77,19 +73,19 @@ export function tuilesCouvrantes(
   if ((x1 - x0 + 1) * (y1 - y0 + 1) > R('TUILES_RELIEF_MAX')) return null
   const tuiles: { x: number; y: number }[] = []
   for (let y = y0; y <= y1; y++) {
-    // L'antiméridien se referme : la tuile à l'ouest de 0 est la dernière de la rangée.
+    // Antimeridian wraps: tile west of 0 = last of the row.
     for (let x = x0; x <= x1; x++) tuiles.push({ x: ((x % nb) + nb) % nb, y })
   }
   return tuiles
 }
 
-/** §13.1 — la requête ne dit pas d'où elle vient. */
+/** §13.1 — request does not say where it comes from. */
 const SANS_REFERENT: RequestInit = { referrerPolicy: 'no-referrer' }
 
-/** Une tuile téléchargée et décodée par le navigateur lui-même : aucun décodeur tiers. */
+/** Tile downloaded + decoded by browser: no third-party decoder. */
 export const chargeTuileReseau: ChargeTuile = async (z, x, y) => {
   if (typeof OffscreenCanvas === 'undefined' || typeof createImageBitmap === 'undefined') return null
-  // Un service muet ne doit pas laisser le masque « en cours de chargement » pour la session.
+  // Mute service must not leave mask « en cours de chargement » all session.
   const reponse = await fetch(urlTuileRelief(z, x, y), {
     ...SANS_REFERENT,
     signal: AbortSignal.timeout(R('DELAI_MAX_TUILE_MS')),
@@ -97,9 +93,9 @@ export const chargeTuileReseau: ChargeTuile = async (z, x, y) => {
   if (!reponse.ok) return null
   const corps = await reponse.blob()
   if (!corps.type.startsWith('image/')) return null
-  // Sans conversion : un profil de couleur appliqué aux octets fausserait les altitudes.
-  // Limite connue : Firefox avec `privacy.resistFingerprinting` bruite `getImageData`, et le
-  // profil obtenu est faux sans erreur. Aucune parade fiable ; le relevé manuel reste possible.
+  // No conversion: colour profile would skew altitudes.
+  // Known limit: Firefox `privacy.resistFingerprinting` noises `getImageData` → silently wrong
+  // profile. No reliable workaround; manual survey stays possible.
   const image = await createImageBitmap(corps, {
     colorSpaceConversion: 'none',
     premultiplyAlpha: 'none',
@@ -120,11 +116,9 @@ export const chargeTuileReseau: ChargeTuile = async (z, x, y) => {
 }
 
 /**
- * L'altimètre des tuiles chargées, interpolé entre les quatre pixels voisins.
- *
- * T-0359 — au pixel le plus proche, un même sommet dominait plusieurs azimuts de suite, et le
- * masque montait par plateaux. L'interpolation bilinéaire ne crée aucun sommet : elle reste
- * entre les altitudes des pixels qui l'entourent.
+ * Loaded-tile altimeter, bilinear over the 4 neighbouring pixels.
+ * T-0359 — nearest pixel let one peak dominate several azimuths (mask in plateaus). Bilinear
+ * creates no peak: stays between surrounding pixel altitudes.
  */
 export function altimetre(tuiles: ReadonlyMap<string, Float32Array>): Altimetre {
   const z = R('ZOOM_TUILE_RELIEF')
@@ -139,7 +133,7 @@ export function altimetre(tuiles: ReadonlyMap<string, Float32Array>): Altimetre 
   }
   return (latDeg, lonDeg) => {
     const p = pixelMonde(latDeg, lonDeg, z)
-    // Les altitudes sont celles des CENTRES de pixels.
+    // Altitudes = pixel CENTRES.
     const gx = p.x - 1 / 2
     const gy = p.y - 1 / 2
     const x0 = Math.floor(gx)
@@ -178,7 +172,7 @@ async function depuisReseau(
   const tuiles = new Map<string, Float32Array>()
   for (const [rang, { x, y }] of couvrantes.entries()) {
     const altitudes = lues[rang]
-    // Une tuile manquante laisserait un secteur plat sans le dire : le profil entier tombe.
+    // Missing tile = silent flat sector: whole profile fails.
     if (altitudes === null || altitudes === undefined) {
       return { etat: 'INDISPONIBLE', cause: CAUSE_SERVICE }
     }
@@ -186,7 +180,7 @@ async function depuisReseau(
   }
   const altitude = altimetre(tuiles)
   const profil = profilRelief(altitude, latDeg, lonDeg)
-  // `profilRelief` rend null sans sol : non nul, le profil garantit l'altitude du site.
+  // `profilRelief` null without ground; non-null profile ⇒ site altitude exists.
   const solM = altitude(latDeg, lonDeg)
   if (profil === null || solM === null || !dansLeDomaine(profil)) {
     return { etat: 'INDISPONIBLE', cause: CAUSE_INVALIDE }
@@ -210,8 +204,8 @@ async function depuisReseau(
 }
 
 /**
- * Un profil — reçu ou relu du cache — que `masqueDepuisRelief` accepte. Un cache laissé par une
- * version antérieure ou retouché à la console lèverait sinon au rendu, dans la chaîne de calcul.
+ * Profile (received or from cache) that `masqueDepuisRelief` accepts. Cache from an earlier
+ * version or console-edited would otherwise throw at render, in the compute chain.
  */
 function dansLeDomaine(profil: readonly number[]): boolean {
   try {
@@ -223,8 +217,8 @@ function dansLeDomaine(profil: readonly number[]): boolean {
 }
 
 /**
- * T-0395 — version du calcul des courbes, à monter quand `courbesNiveau` change. Elle ne touche
- * pas la clé du cache : hors réseau, un site déjà visité garde son masque.
+ * T-0395 — contour-computation version; bump when `courbesNiveau` changes. Not in cache key:
+ * offline, a visited site keeps its mask.
  */
 const VERSION_COURBES = 10
 
@@ -242,10 +236,10 @@ export function signatureCourbes(): string {
   ].join(':')
 }
 
-/** Les résolutions en vol, par site : deux rendus rapprochés ne téléchargent pas deux fois. */
+/** In-flight resolutions by site: two close renders don't download twice. */
 const enVol = new Map<string, Promise<ReliefSite>>()
 
-/** Le relief d'un site : jamais une exception, toujours un profil ou une cause. */
+/** Site relief: never an exception, always a profile or a cause. */
 export async function resoudRelief(
   latDeg: number,
   lonDeg: number,
@@ -255,8 +249,8 @@ export async function resoudRelief(
   const lu = await litRelief(cle).catch(() => null)
   const enCache = lu !== null && dansLeDomaine(lu.altitudesDeg) ? lu : null
   const horsLigne = modeReseauCourant() === 'HORS_LIGNE'
-  // T-0395 — des courbes absentes, ou tracées autrement qu'aujourd'hui, se refont en ligne ;
-  // hors réseau ou si le service se tait, le masque en cache reste bon, et c'est lui qui compte.
+  // T-0395 — absent/outdated contours redone online; offline or mute service, cached mask
+  // stays good (what matters).
   if (enCache !== null && (horsLigne || enCache.signatureCourbes === signatureCourbes())) {
     return enCache
   }
@@ -265,7 +259,7 @@ export async function resoudRelief(
   const dejaEnVol = enVol.get(cle)
   if (dejaEnVol !== undefined) return dejaEnVol
   const resolution = depuisReseau(latDeg, lonDeg, charge).then(async (relief) => {
-    // Un cache refusé (navigation privée, quota) ne retire rien au relief de la session.
+    // Refused cache (private browsing, quota) removes nothing from session relief.
     if (relief.etat === 'RELIEF') await ecritRelief(cle, relief).catch(() => undefined)
     return relief
   })

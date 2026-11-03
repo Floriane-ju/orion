@@ -1,10 +1,7 @@
 /**
- * §3.3, T-0110 — la calotte céleste que le canevas montre.
- *
- * Ce module existe pour qu'il n'y en ait qu'UNE définition. Deux couches s'en servent pour
- * écarter ce qui ne se voit pas — la sélection d'étoiles du planétarium et les segments de la
- * bande de la Voie lactée — et deux définitions du même champ, c'est à terme deux domaines qui
- * divergent d'un demi-degré et une couche qui s'interrompt un pas trop tôt au bord.
+ * §3.3, T-0110 — celestial cap the canvas shows. ONE definition: star selection and Voie lactée
+ * band segments both cull with it; two would drift half a degree, a layer stops one step early at
+ * the edge.
  */
 
 import { angleDeCosDeg, type Vec3 } from '../core/mat3.ts'
@@ -16,9 +13,8 @@ export interface ChampVisible {
 }
 
 /**
- * La calotte céleste que le canevas montre : sa direction centrale et son rayon, diagonale
- * comprise. C'est le domaine que partagent la sélection d'étoiles de §3.3 et l'écart des
- * segments de la bande — un seul calcul, sinon deux définitions du même champ.
+ * Celestial cap shown by canvas: central direction + radius, diagonal included. Shared by §3.3
+ * star selection and band segment gap.
  */
 export function champVisible(projecteur: Projecteur): ChampVisible {
   return {
@@ -27,7 +23,7 @@ export function champVisible(projecteur: Projecteur): ChampVisible {
   }
 }
 
-/** Vrai quand la calotte de rayon `demiExtensionDeg` autour de `centre` ne touche pas le champ. */
+/** True when cap of radius `demiExtensionDeg` around `centre` does not touch the field. */
 export function horsDuChamp(champ: ChampVisible, centre: Vec3, demiExtensionDeg: number): boolean {
   const cos =
     champ.centre.x * centre.x + champ.centre.y * centre.y + champ.centre.z * centre.z
@@ -35,7 +31,7 @@ export function horsDuChamp(champ: ChampVisible, centre: Vec3, demiExtensionDeg:
   return separationDeg > champ.rayonDeg + demiExtensionDeg
 }
 
-/** Vrai quand un point projeté tombe hors du canevas : il ne se peint pas. */
+/** True when a projected point falls outside the canvas: not painted. */
 export function horsCanevas(p: PointEcran, largeur: number, hauteur: number): boolean {
   return p.xPx < 0 || p.yPx < 0 || p.xPx > largeur || p.yPx > hauteur
 }

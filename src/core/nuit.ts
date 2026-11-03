@@ -1,10 +1,7 @@
 /**
- * §8.1 — Fenêtre nocturne, et §4.1 — décalage du midi solaire vrai.
- *
- * Le milieu de nuit ne tombe pas à minuit légal : l'application centre ses créneaux sur le
- * milieu de nuit vrai, jamais sur l'heure ronde. À haute latitude, la nuit astronomique
- * peut être nulle une partie de l'année — le site n'est pas refusé pour autant, la période
- * concernée est annoncée.
+ * §8.1 — fenêtre nocturne; §4.1 — true solar noon offset.
+ * Mid-night ≠ legal midnight: créneaux centered on true mid-night, never round hour. At high
+ * latitude nuit astronomique can be nil part of the year — site not refused, period announced.
  */
 
 import { Body, SearchAltitude, SearchRiseSet } from 'astronomy-engine'
@@ -17,16 +14,16 @@ import { DEG_PAR_HEURE, MIN_PAR_H, MS_PAR_MINUTE } from './unites.ts'
 
 const JOURS_DE_RECHERCHE = 2
 
-/** Sens de recherche d'astronomy-engine : +1 en montée, −1 en descente. */
+/** astronomy-engine search direction: +1 rising, −1 setting. */
 const DESCENTE = -1
 const MONTEE = +1
 
 export type EtatNuit =
-  /** Nuit astronomique complète : le Soleil descend sous −18°. */
+  /** Full nuit astronomique: Sun below −18°. */
   | 'NUIT_ASTRONOMIQUE'
-  /** Le Soleil ne descend jamais sous −18° : crépuscule permanent. */
+  /** Sun never below −18°: permanent twilight. */
   | 'PAS_DE_NUIT_ASTRONOMIQUE'
-  /** Le Soleil ne se lève pas : nuit polaire. */
+  /** Sun does not rise: polar night. */
   | 'NUIT_POLAIRE'
 
 export interface FenetreNocturne {
@@ -37,31 +34,25 @@ export interface FenetreNocturne {
   readonly finNuitAstronomique: Date | null
   readonly milieuNuitVrai: Date | null
   readonly dureeNuitH: number
-  /** Crépuscule civil (−6°) : borne de la frise de la nuit, n'entre dans aucun calcul. */
+  /** Civil twilight (−6°): frise bound, enters no calculation. */
   readonly debutCivil: Date | null
   readonly finCivil: Date | null
-  /** Crépuscule nautique (−12°) : repli de planification quand la nuit noire est nulle. */
+  /** Nautical twilight (−12°): planning fallback when nuit noire is nil. */
   readonly debutNautique: Date | null
   readonly finNautique: Date | null
-  /**
-   * Fenêtre effectivement retenue pour la planification : la nuit astronomique, ou la
-   * fenêtre nautique en mode dégradé (§8.1). Jamais une durée négative.
-   */
+  /** Planning window: nuit astronomique, else nautical (degraded mode, §8.1). Never negative. */
   readonly debutReference: Date | null
   readonly finReference: Date | null
   readonly dureeReferenceH: number
-  /** Vrai quand la nuit astronomique est nulle et que la fenêtre nautique la remplace. */
+  /** True when nuit astronomique nil, nautical window replaces it. */
   readonly modeDegrade: boolean
-  /** Pénalité de fond de ciel appliquée et affichée en mode dégradé, mag/arcsec². */
+  /** fond de ciel penalty applied and shown in degraded mode, mag/arcsec². */
   readonly penaliteSbMag: number
-  /** Phrase adressée à l'utilisateur quand la nuit est dégradée ou absente. */
+  /** User-facing sentence when nuit degraded or absent. */
   readonly cause?: string
 }
 
-/**
- * Décalage du midi solaire vrai par rapport à l'heure légale, en minutes (§4.1).
- * Positif : le midi solaire tombe après le midi légal.
- */
+/** True solar noon offset vs legal time, minutes (§4.1). Positive: solar noon after legal noon. */
 export function offsetMidiSolaireMin(
   longitudeDeg: number,
   offsetFuseauH: number,
@@ -84,11 +75,7 @@ function dureeHeures(debut: Date, fin: Date): number {
   return (fin.getTime() - debut.getTime()) / (MS_PAR_MINUTE * MIN_PAR_H)
 }
 
-/**
- * Fenêtre nocturne à partir d'un instant de départ — typiquement l'après-midi du jour
- * d'observation. Aucun appel réseau (§12.4).
- */
-/** Intervalle pendant lequel le Soleil reste sous une hauteur donnée. */
+/** Interval during which Sun stays below a given altitude. */
 function fenetreSousHauteur(
   obs: ReturnType<typeof observateur>,
   depart: Date,
@@ -104,6 +91,7 @@ function fenetreSousHauteur(
   return { debut, fin }
 }
 
+/** Fenêtre nocturne from a start instant (typically observation-day afternoon). Offline (§12.4). */
 export function fenetreNocturne(site: Site, depart: Date): FenetreNocturne {
   verifieDomaineDesSeries(depart)
   const obs = observateur(site)
@@ -148,8 +136,8 @@ export function fenetreNocturne(site: Site, depart: Date): FenetreNocturne {
   )
 
   if (debut === null || fin === null) {
-    // §8.1 — nuit noire nulle : la fenêtre nautique est retenue en mode dégradé, avec sa
-    // pénalité de fond de ciel chiffrée. Jamais une durée négative, jamais un plantage.
+    // §8.1 — nil nuit noire: nautical window in degraded mode + quantified fond de ciel penalty.
+    // Never negative duration, never a crash.
     const degrade = nautique.debut !== null && nautique.fin !== null
     return {
       etat: 'PAS_DE_NUIT_ASTRONOMIQUE',
@@ -198,12 +186,9 @@ export function fenetreNocturne(site: Site, depart: Date): FenetreNocturne {
 }
 
 /**
- * T-0409 — levé entre le lever et le coucher d'`astronomy-engine` (bord supérieur, réfraction
- * comprise), et non à une hauteur choisie ici : le thème bascule à l'instant que la frise de la
- * nuit annonce. Le Soleil est levé quand le prochain événement est un coucher.
- *
- * Sans lever ni coucher dans la fenêtre de recherche (soleil de minuit, nuit polaire), le
- * Soleil reste du même côté de l'horizon tout ce temps : le signe de sa hauteur tranche.
+ * T-0409 — risen = between `astronomy-engine` rise and set (upper limb, refraction incl.), not at
+ * an altitude chosen here: theme flips when the nuit frise says so. Up when next event is a set.
+ * No rise/set in search window (soleil de minuit, nuit polaire): altitude sign decides.
  */
 export function soleilLeve(site: Site, instant: Date): boolean {
   const obs = observateur(site)

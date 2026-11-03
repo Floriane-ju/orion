@@ -1,8 +1,6 @@
 /**
- * §5.1 — profil optique et capteur.
- *
- * Valeurs de référence : Annexe A du PRD. Deux pièges y sont vérifiés explicitement —
- * l'arctangente employée partout, et le recadrage qui ne change pas l'échantillonnage.
+ * §5.1 — optical profile + capteur. Reference: PRD Annexe A. 2 traps: arctangent everywhere,
+ * crop not changing sampling.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -13,7 +11,7 @@ import { BOITIER_REFERENCE, capteurEffectif } from '../src/data/equipment.ts'
 import { DEG } from '../src/core/mat3.ts'
 import { K } from '../src/registry/constants.ts'
 
-/** Annexe A — configuration ciel profond : 120 mm f/2,8 sur le plein format de référence. */
+/** Annexe A ciel profond config: 120 mm f/2,8 on reference plein format. */
 const REFERENCE = {
   focaleMm: 120,
   ouvertureN: 2.8,
@@ -28,7 +26,7 @@ describe('champ §5.1', () => {
   })
 
   it('reste physiquement possible à 10 mm, là où l’approximation linéaire échoue', () => {
-    // L'approximation 57,3 × d / f donnerait 205,7°, valeur impossible (§5.1, Annexe C).
+    // Approximation 57,3 × d / f gives 205,7°, impossible (§5.1, Annexe C).
     const grandAngle = profilOptique({ ...REFERENCE, focaleMm: 10 })
     expect(grandAngle.fovLDeg.value).toBeCloseTo(121.8, 0)
     expect(grandAngle.fovHDeg.value).toBeCloseTo(100.2, 0)
@@ -48,7 +46,7 @@ describe('champ d’un fisheye §5.1 (T-0218)', () => {
     expect(quinze.fovLDeg.value).toBeCloseTo(REFERENCE.capteurLMm / 15 / DEG, 6)
     expect(quinze.fovHDeg.value).toBeCloseTo(REFERENCE.capteurHMm / 15 / DEG, 6)
     expect(quinze.fovLDeg.formula.id).toBe('FOV_FISHEYE')
-    // À la même focale, le rectilinéaire couvre moins : l'arctangente sature.
+    // Same focale: rectilinear covers less (arctangent saturates).
     expect(quinze.fovLDeg.value).toBeGreaterThan(
       profilOptique({ ...REFERENCE, focaleMm: 15 }).fovLDeg.value,
     )
@@ -79,7 +77,7 @@ describe('grandeurs dérivées §5.1', () => {
   })
 
   it('diagnostique un grand champ assumé, sans alerte anxiogène', () => {
-    // Exigence produit §5.1 : à 8,80 "/px l'app ne doit afficher aucun avertissement.
+    // §5.1 requirement: at 8,80 "/px app shows no warning.
     expect(profil.diagEch).toBe('GRAND_CHAMP_ASSUME')
     expect(profil.alerte).toBe(false)
     expect(profil.messageDiag).toBe('')

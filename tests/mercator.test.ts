@@ -1,8 +1,7 @@
 /**
- * La projection Web Mercator des tuiles, dans les deux sens (T-0363).
- *
- * Le relief de §4.1 va du lieu au pixel ; la carte de choix du lieu fait l'aller-retour. Les
- * deux doivent tomber sur le même lieu, sinon le clic poserait le site à côté du point visé.
+ * Web Mercator tile projection, both ways (T-0363). §4.1 relief goes place → pixel; site-choice
+ * map round-trips. Both must land on the same place, else a click sets the site beside the
+ * aimed point.
  */
 
 import { describe, expect, it } from 'vitest'

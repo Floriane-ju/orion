@@ -1,8 +1,7 @@
 /**
- * §3.2, T-0394 — le trajet dans le temps tient sous le plafond de lisibilité.
- *
- * Les durées attendues se dérivent de la formule de `facteur_max` et de la pente de pointe
- * de la courbe, jamais d'un chiffre recopié : c'est la règle qui est éprouvée.
+ * §3.2, T-0394 — time path stays under readability cap.
+ * Expected durations derived from `facteur_max` formula + curve peak slope, never copied: the rule
+ * is under test.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -13,7 +12,7 @@ import { K } from '../src/registry/constants.ts'
 import { MS_PAR_MINUTE } from '../src/core/unites.ts'
 
 const DEPART = Date.UTC(2026, 9, 2, 14, 12)
-/** Revue DA §4.2 : de 16 h 12 à environ 20 h 50, quelque 280 minutes de ciel. */
+/** Revue DA §4.2: 16 h 12 → ~20 h 50, ~280 min of sky. */
 const SOIREE = 280 * MS_PAR_MINUTE
 const PENTE_MAX = penteMaxTrajet()
 
@@ -28,7 +27,7 @@ function plan(fovDeg: number, largeurPx: number, ecartMs = SOIREE, mouvementRedu
 
 describe('planTrajet §3.2', () => {
   it('garde la durée nominale en vue large, pointe sous le repliement', () => {
-    // Une heure de ciel à 200° de champ sur 1280 px : loin du plafond.
+    // One hour of sky at 200° field on 1280 px: far from cap.
     const heure = 60 * MS_PAR_MINUTE
     const p = plan(200, 1280, heure)
     expect(p).toEqual({ saut: false, dureeMs: K('DUREE_TRAJET_MS') })
@@ -107,7 +106,7 @@ describe('courbeTrajet', () => {
   })
 
   it('se pose plus lentement qu’elle ne part', () => {
-    // À égale distance des bouts, il reste moins à parcourir qu'il n'en a été parcouru.
+    // Equidistant from ends: less remains to travel than was travelled.
     expect(1 - courbeTrajet(0.8)).toBeLessThan(courbeTrajet(0.2))
   })
 })

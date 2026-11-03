@@ -1,24 +1,24 @@
-/** §9 — ce que la scène doit savoir du filé pour l'incruster dans le cadre. */
+/** §9 — what the scène must know of the filé to inlay it in the cadre. */
 
 import type { EntreeProfondeur } from '../core/galactique.ts'
 import type { OptiquePose } from './dessine-pose-cadre.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import type { ModeInterface, VueCibles } from './seance-etat.ts'
 
-/** §9.2 — la profondeur d'une pose, sans la pose : elle se joint là où la séance se lit. */
+/** §9.2 — depth of a pose, minus the pose: joined where the séance is read. */
 export type ProfondeurSansPose = Omit<EntreeProfondeur, 'tPoseS'>
 
 export interface MaterielFile {
-  /** §9.1 / T-0142 — ce dont la carte de pose a besoin quand elle se peint dans le cadre. */
+  /** §9.1 / T-0142 — what the pose map needs when painted in the cadre. */
   readonly optique: OptiquePose
   readonly profondeur: ProfondeurSansPose
   readonly sbCiel: number
 }
 
 /**
- * T-0377 — la carte de pose par déclinaison sert le grand champ : en ciel profond la pose est
- * guidée par la cible. Le mode masque la carte sans toucher à la préférence, qui revient avec
- * le Panorama. T-0142 : sans matériel, pas de NPF, donc rien à peindre.
+ * T-0377 — declination pose map serves grand champ; in ciel profond the target guides the pose.
+ * Mode hides the map without touching the preference (returns with Panorama).
+ * T-0142: no matériel → no NPF → nothing to paint.
  */
 export function poseCadreAffichee(
   mode: ModeInterface,
@@ -29,12 +29,9 @@ export function poseCadreAffichee(
 }
 
 /**
- * T-0283 — la scène marque la cible tant que sa fiche est ouverte, et seulement alors : au
- * retour à la liste, la séance garde la cible pour y revenir, mais la scène n'a plus rien
- * à désigner. En Panorama, il n'y a pas de fiche.
- *
- * Sur « Mon plan », le même repère se pose sur CHAQUE cible photographiée cette nuit : le plan
- * se lit alors dans le ciel comme la fiche y lit sa cible. `null` : plan pas encore calculé.
+ * T-0283 — scène marks the target only while its fiche is open: back on the list the séance
+ * keeps the target, the scène has nothing to designate. Panorama: no fiche.
+ * "Mon plan": same marker on EACH target photographed that night. `null` = plan not computed.
  */
 export function ciblesMarquees(
   mode: ModeInterface,
@@ -47,10 +44,9 @@ export function ciblesMarquees(
 }
 
 /**
- * §6.4 — ce que la scène garde en pleine lumière. Sur « Mon plan », la question n'est plus
- * celle des filtres du catalogue mais celle du plan : tout objet qu'il ne photographie pas
- * s'estompe — estompé, jamais retiré, pour la même raison que sous les filtres
- * (`cibles-en-avant.ts`). Plan pas encore calculé : les filtres restent la réponse.
+ * §6.4 — what the scène keeps in full light. "Mon plan": the question is the plan's, not the
+ * catalogue filters': any object it does not photograph dims (never removed, as under filters,
+ * `cibles-en-avant.ts`). Plan not computed yet: filters stay the answer.
  */
 export function enAvantScene(
   mode: ModeInterface,

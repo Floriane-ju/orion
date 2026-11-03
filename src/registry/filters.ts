@@ -1,13 +1,9 @@
 /**
- * §7.5, §10.3 — Table de transmission par famille de filtres.
- *
- * Une famille, pas un modèle : aucune marque, aucune référence commerciale, aucun prix
- * (§10.3). Ce qui est déclaré ici, c'est la largeur de bande transmise — la seule grandeur
- * dont les moteurs §7.1 et §7.3 ont besoin pour chiffrer un gain.
- *
- * Un filtre à bande étroite ne se recommande QUE sur un objet qui émet en raies. Sur une
- * galaxie ou une nébuleuse par réflexion, il coupe le signal autant que le fond de ciel :
- * la table porte donc les types d'objets concernés, et le moteur refuse le conseil ailleurs.
+ * §7.5, §10.3 — transmission table per filter family.
+ * Family, not model: no brand, reference or price (§10.3). Only transmitted bandwidth, the one
+ * quantity §7.1/§7.3 engines need for a gain.
+ * Narrow band recommended ONLY on line emitters; on galaxy/reflection nebula it cuts signal as much
+ * as fond de ciel. Table carries concerned object types; moteur refuses advice elsewhere.
  */
 
 import type { TypeObjet } from '../data/deepsky.ts'
@@ -17,14 +13,14 @@ export type FamilleFiltre = 'AUCUN' | 'DUAL_BAND' | 'UHC' | 'OIII'
 export interface LigneFiltre {
   readonly famille: FamilleFiltre
   readonly libelle: string
-  /** Bandes passantes transmises, en nanomètres. Vide pour l'absence de filtre. */
+  /** Passbands, nm. Empty = no filter. */
   readonly bandesNm: readonly number[]
-  /** Types d'objets sur lesquels le filtre conserve le signal utile. */
+  /** Object types where filter keeps useful signal. */
   readonly typesUtiles: readonly TypeObjet[]
   readonly note: string
 }
 
-/** Les objets en émission : ce sont les seuls que la bande étroite ne coupe pas. */
+/** Emission objects: only ones narrow band doesn't cut. */
 export const TYPES_EN_EMISSION: readonly TypeObjet[] = Object.freeze([
   'EMISSION',
   'RESTE_SUPERNOVA',

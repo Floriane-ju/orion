@@ -1,16 +1,10 @@
 /**
- * Fiche d'une cible : §6.2 cadrage, §6.3 détectabilité, §7 pose et intégration.
- *
- * Toute la valeur de l'application tient dans cet écran, et il se livre avant le
- * planétarium. Ce qui est vérifiable ici, c'est la chaîne complète : d'un lieu et d'un
- * matériel jusqu'à « pose 13 s, 252 images, 8,3 Go », chaque nombre dépliable jusqu'à sa
- * formule et sa constante source.
- *
- * Ce fichier n'assemble que les régions. Le calcul est dans `fiche-cible-calcul.ts`, la
- * description de la cible dans `ChampsCible.tsx`.
- *
- * T-0156 — la cible vient toujours du catalogue : sans objet désigné, il n'y a pas de fiche,
- * et c'est la carte qui le dit.
+ * Cible fiche: §6.2 cadrage, §6.3 détectabilité, §7 pose and integration.
+ * App's whole value is this screen, delivered before planétarium. Verifiable here: complete chain,
+ * lieu and matériel → « pose 13 s, 252 images, 8,3 Go », each number expandable to formula and
+ * source constant.
+ * Assembles regions only. Calc in `fiche-cible-calcul.ts`, cible description in `ChampsCible.tsx`.
+ * T-0156 — cible always from catalogue: no designated object, no fiche; card says so.
  */
 
 import { useMemo, type ReactNode } from 'react'
@@ -37,35 +31,31 @@ export { LIBELLE_TYPE_OBJET, libelleObjet } from './libelles-objet.ts'
 
 export interface FicheCibleProps extends ContexteFiche {
   /**
-   * §3.4 — cible ouverte depuis le planétarium. Un clic sur un objet du ciel profond charge
-   * ici son verdict de cadrage, de détectabilité et son plan de capture : le planétarium
-   * n'est pas décoratif, c'est le point d'entrée vers les moteurs.
+   * §3.4 — cible opened from planétarium. Click on deep-sky object loads here its cadrage,
+   * détectabilité verdict and capture plan: planétarium = entry point to engines.
    */
   readonly objet: ObjetCielProfond
-  /** T-0045 — le lieu, sans lequel « au-dessus de l'horizon » ne veut rien dire. */
+  /** T-0045 — lieu, without which « above horizon » means nothing. */
   readonly site: Site
-  /** T-0222 — la nuit du plan de séance, `null` tant qu'elle n'est pas chiffrable. */
+  /** T-0222 — plan de séance night, `null` until priceable. */
   readonly contexteSession: ContexteSession | null
   /**
-   * §8.3 — cette cible dans `plan.ciblesEcartees`, code `CONFLIT_CRENEAU` ou `BUDGET`.
-   *
-   * Les autres causes d'écart (cadrage, hauteur, relief, fenêtre, hors de portée, donnée
-   * manquante) se recalculent déjà plus bas, indépendamment du plan — cadrage et détectabilité
-   * portent leur propre verdict, le créneau sa propre cause. Ces deux-là sont différentes :
-   * `evalueCandidate` ne les produit pas, elles ne naissent qu'à l'allocation de la nuit
-   * (`session.ts`), quand une cible par ailleurs viable perd sa place à une autre mieux notée
-   * ou au budget. Sans ce prop, rien dans la fiche ne dit qu'une cible évaluable n'est
-   * pourtant pas au plan ce soir.
+   * §8.3 — this cible in `plan.ciblesEcartees`, code `CONFLIT_CRENEAU` or `BUDGET`.
+   * Other écart causes (cadrage, hauteur, relief, fenêtre, hors de portée, donnée manquante) are
+   * recomputed below, plan-independent. These two differ: `evalueCandidate` doesn't produce them,
+   * they arise only at night allocation (`session.ts`) when an otherwise viable cible loses its
+   * place to a better-rated one or to budget. Without this prop nothing in fiche says an
+   * evaluable cible isn't in tonight's plan.
    */
   readonly ecarteePlan?: CibleEcartee | null
-  /** T-0282 — l'étape de cette cible au plan : la tête de fiche en reprend les valeurs. */
+  /** T-0282 — this cible's plan étape: fiche head takes its values. */
   readonly etapePlan?: EtapePlan | null
-  /** T-0381 — la note de la liste pour cette cible, lue dans la même map, jamais recalculée. */
+  /** T-0381 — list note for this cible, read from the same map, never recomputed. */
   readonly facilite?: EtatCible | null
   /**
-   * T-0408 — sous un zoom, la bague de la fiche, posée sous l'image qu'elle recadre. Elle
-   * reçoit le remplissage que la fiche vient de calculer : celui que « Taille dans le cadre »
-   * affiche, orientation comprise, et pas un second calcul qui pourrait s'en écarter.
+   * T-0408 — under a zoom, fiche ring, under the image it reframes. Receives the fill fiche just
+   * computed (what « Taille dans le cadre » shows, orientation incl.), not a second calc that
+   * could diverge.
    */
   readonly reglageZoom?: (remplissage: number | null) => ReactNode
 }
@@ -73,10 +63,9 @@ export interface FicheCibleProps extends ContexteFiche {
 const NON_CHIFFRE = '—'
 
 /**
- * T-0381 — la première carte dit QUOI et QUAND, comme la carte de liste dont on vient : la
- * désignation et son nom d'usage, le type, puis le créneau et la culmination. Sans titre de
- * rubrique — elle ne range rien, elle nomme. Le type est dit ici une fois, la carte suivante
- * ne le redit pas.
+ * T-0381 — first card says WHAT and WHEN, like the list card we came from: désignation and usage
+ * name, type, then créneau and culmination. No section title (names, doesn't sort). Type said once
+ * here; next card doesn't repeat.
  */
 function Resume({
   objet,
@@ -86,9 +75,9 @@ function Resume({
 }: {
   readonly objet: ObjetCielProfond
   readonly s: SyntheseFiche | null
-  /** L'heure du plus haut de la nuit, `null` sans nuit chiffrée : la ligne ne meuble pas. */
+  /** Time of night's highest point, `null` without priced night: line doesn't pad. */
   readonly culmination: Date | null
-  /** §7.6 — l'atténuation de la nuit, `null` sans créneau chiffrable. */
+  /** §7.6 — night attenuation, `null` without priceable créneau. */
   readonly extinction: Resultat['extinction']
 }) {
   const nom = nomCommun(objet)
@@ -109,7 +98,7 @@ function Resume({
       {culmination !== null && (
         <Lecture libelle={<Etiquette cle="culmination" />} valeur={heure(culmination)} />
       )}
-      {/* T-0385 — la perte dans l'air est une propriété de la nuit, comme le créneau. */}
+      {/* T-0385 — air loss is a property of the night, like créneau. */}
       {extinction !== null && extinction.attenuation.value !== null && (
         <TracedValue terme="extinction_atmospherique" trace={extinction.attenuation} decimales={3} />
       )}
@@ -118,16 +107,15 @@ function Resume({
 }
 
 export function FicheCible(props: FicheCibleProps) {
-  // T-0362 — les réglages de la fiche vivent dans la séance : ils survivent au rechargement.
+  // T-0362 — fiche settings live in séance: survive reload.
   const { snrCible, permissif } = useTrancheSeance(ficheSeance)
 
   const objet = props.objet
   const iso = props.iso
   /**
-   * T-0268 — la nuit du plan de séance : créneau, Lune au milieu de ce créneau, masse d'air
-   * moyenne. Mémoïsée sur la NUIT et la cible seules — pas sur l'horloge de la scène : c'est
-   * ce qui rend la fiche incapable d'annoncer une pose différente selon l'heure de
-   * consultation, et d'annoncer autre chose que la liste et le plan.
+   * T-0268 — plan de séance night: créneau, Lune at créneau middle, mean masse d'air. Memoized on
+   * NIGHT and cible only, not scène clock: fiche can't announce a pose varying with consultation
+   * time, nor anything different from list and plan.
    */
   const nuit = useMemo(
     () => nuitFiche(props.contexteSession, objet),
@@ -158,10 +146,9 @@ export function FicheCible(props: FicheCibleProps) {
 
   return (
     <div className="fiche">
-      {/* §6.4, §6.2 — l'objet avant ses nombres, et le cadre du capteur posé dessus. Sans
-          image disponible, le composant ne rend rien : une cible sans image reste une cible
-          complète. Sans cadrage calculé — pas de dimensions au catalogue — l'image reste, mais
-          nue : un rectangle tracé contre un champ de repli mentirait sur l'échelle. */}
+      {/* §6.4, §6.2 — object before its numbers, sensor cadre laid on it. No image: renders nothing
+          (imageless cible stays complete). No cadrage (no catalogue dimensions): bare image — a
+          rectangle on fallback field would lie on scale. */}
       <ImageCible objet={objet} cadre={cadre} />
       {props.reglageZoom?.(calcul.ok ? (calcul.r.cadrage?.remplissage.value ?? null) : null)}
       <Resume

@@ -1,12 +1,9 @@
 /**
- * §12.2 — Encodage binaire du catalogue d'objets du ciel profond.
- *
- * Même principe que les étoiles : enregistrements de taille fixe, chaînes déportées dans
- * un bloc séparé indexé par offset. 28 octets par objet plus les chaînes, soit environ
- * 0,8 Mo pour les ~14 000 entrées d'OpenNGC, sous le budget de 1,2 Mo de §12.2.
- *
- * Les champs absents portent une sentinelle plutôt qu'un zéro : un objet sans magnitude
- * intégrée affiche [DONNÉE MANQUANTE], il ne reçoit pas une magnitude 0 (§6.3).
+ * §12.2 — Binary deep-sky catalogue encoding. Like stars: fixed-size records, strings in a
+ * separate block indexed by offset. 28 bytes/object + strings ≈ 0,8 Mo for ~14 000 OpenNGC
+ * entries, under §12.2 budget 1,2 Mo.
+ * Absent fields carry a sentinel, not zero: no integrated magnitude → [DONNÉE MANQUANTE], not
+ * magnitude 0 (§6.3).
  */
 
 import { dUnBloc, pointDeCoupe, type Decoupable } from '../core/tranches.ts'
@@ -31,14 +28,14 @@ const ECHELLE_MAG = 100
 
 const LITTLE_ENDIAN = true
 
-/** Sentinelles d'absence : distinctes de toute valeur physique plausible. */
+/** Absence sentinels, distinct from any plausible value. */
 const ABSENT_U16 = 0xffff
 const ABSENT_I16 = -32768
 
-/** Séparateur entre la désignation principale et les noms communs. */
+/** Separator between main designation and common names. */
 const SEPARATEUR_NOMS = '\u001f'
 
-/** Types de §6.3, qui pilotent la tolérance à la Lune et le conseil filtre. */
+/** §6.3 types: drive Moon tolerance and filter advice. */
 export const TYPES_OBJET = [
   'INCONNU',
   'GALAXIE',
@@ -55,22 +52,22 @@ export const TYPES_OBJET = [
 export type TypeObjet = (typeof TYPES_OBJET)[number]
 
 export interface ObjetCielProfond {
-  /** Désignation principale : « M31 », « NGC0224 », « Sh2-276 ». */
+  /** Main designation: « M31 », « NGC0224 », « Sh2-276 ». */
   readonly designation: string
-  /** Noms communs, séparés par « | ». Chaîne vide si aucun. */
+  /** Common names separated by « | »; empty if none. */
   readonly nomsCommuns: string
   readonly adDeg: number
   readonly decDeg: number
   readonly type: TypeObjet
-  /** Grand axe, en minutes d'arc. `null` si le catalogue ne le donne pas. */
+  /** Major axis, arcmin; `null` if catalogue lacks it. */
   readonly majAxArcmin: number | null
   readonly minAxArcmin: number | null
-  /** Angle de position du grand axe, en degrés. Souvent absent du catalogue (§6.2). */
+  /** Major-axis position angle, deg; often absent (§6.2). */
   readonly posAngDeg: number | null
-  /** Magnitude visuelle intégrée. `null` → aucun verdict de détectabilité (§6.3). */
+  /** Integrated visual magnitude; `null` → no détectabilité verdict (§6.3). */
   readonly vMag: number | null
   readonly bMag: number | null
-  /** Brillance de surface publiée, quand le catalogue la donne. */
+  /** Published surface brightness, if catalogue gives it. */
   readonly surfBr: number | null
 }
 
@@ -90,12 +87,9 @@ function decodeU16(brut: number, echelle: number): number | null {
 }
 
 /**
- * T-0317 — une taille sous la résolution du paquet (0,05′) s'encode ABSENTE, jamais nulle.
- *
- * Arrondie à zéro, elle donne une aire nulle, donc SB = m + 2,5 log10(0) = −∞ (§6.3) : la
- * cible se retrouve infiniment brillante alors que le paquet ne sait simplement pas la
- * mesurer. Neuf nébuleuses planétaires de quelques secondes d'arc étaient dans ce cas.
- * L'angle de position garde `encodeU16` : pour lui, zéro est une vraie valeur.
+ * T-0317 — size under package resolution (0,05′) encodes ABSENT, never zero: rounded to 0 → null
+ * area → SB = m + 2,5 log10(0) = −∞ (§6.3), target infinitely bright (9 small planetary nebulae).
+ * Position angle keeps `encodeU16`: zero is real there.
  */
 function encodeTailleU16(valeur: number | null): number {
   const brut = encodeU16(valeur, ECHELLE_ARCMIN)
@@ -151,8 +145,8 @@ export function encodeObjets(objets: readonly ObjetCielProfond[]): PaquetCielPro
 }
 
 /**
- * T-0296 — le décodage nomme ses points de coupe. Voir `decodeEtoilesPas` : même raison,
- * même pilotage — `dUnBloc` hors navigateur, `parTranches` à l'écran.
+ * T-0296 — decode names its cut points; see `decodeEtoilesPas` (same reason, same driving):
+ * `dUnBloc` outside browser, `parTranches` on screen.
  */
 export function* decodeObjetsPas(paquet: PaquetCielProfond): Decoupable<ObjetCielProfond[]> {
   const vue = new DataView(paquet.enregistrements)

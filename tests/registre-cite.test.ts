@@ -1,9 +1,8 @@
 /**
- * T-0341 — chaque terme du glossaire est cité par l'interface, chaque formule par un moteur.
- *
- * `glossaire.ts` n'admet un terme que s'il apparaît dans une sortie ; `formulas.ts` n'existe
- * que pour que §10.2 déplie ce que les moteurs tracent. Une entrée que personne ne cite est
- * une définition qui dérive en silence : le test lit les sources et nomme l'orpheline.
+ * T-0341 — every glossaire term cited by UI, every formula by an engine.
+ * `glossaire.ts` admits a term only if it appears in an output; `formulas.ts` exists only so
+ * §10.2 unfolds what engines trace. Uncited entry = silently drifting definition: test reads
+ * sources, names the orphan.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -23,7 +22,7 @@ function sources(dossier: string): readonly string[] {
   })
 }
 
-/** Tout le code, sauf le fichier qui déclare : une entrée ne se cite pas elle-même. */
+/** All code except the declaring file: an entry doesn't cite itself. */
 function codeHors(declarant: string): string {
   return sources(SRC)
     .filter((f) => !f.endsWith(declarant))

@@ -1,9 +1,7 @@
 /**
- * §7.4 — plan de calibration et dithering.
- *
- * Et le contrôle négatif de §2.3 et §7.1 : AUCUN écran de calibration n'existe nulle part.
- * Les poses de calibration prescrites ici sont des images prises sur le terrain ; elles
- * n'ont rien à voir avec un réglage du point zéro système, qui n'existe pas.
+ * §7.4 — calibration plan + dithering. Plus §2.3/§7.1 negative control: NO calibration screen
+ * exists anywhere. Calibration poses prescribed here = field images, unrelated to a système
+ * point zéro setting (doesn't exist).
  */
 
 import { readFileSync, readdirSync } from 'node:fs'
@@ -87,12 +85,12 @@ describe('aucun écran de calibration — §2.3, §7.1', () => {
   it('n’expose aucune fonction de calibration du point zéro système', () => {
     expect(code).not.toMatch(/function\s+calibre/i)
     expect(code).not.toMatch(/export function\s+\w*[Cc]alibration\w*\s*\([^)]*\)\s*:\s*void/)
-    // Le point zéro se lit, il ne s'écrit pas : aucun modificateur nulle part.
+    // Point zéro is read, not written: no modifier anywhere.
     expect(code).not.toMatch(/setZpSys|ecritZpSys|majZpSys/)
   })
 
   it('n’ouvre aucun import de fichier RAW', () => {
-    // Le seul champ fichier de l'application est l'import JSON des données utilisateur (§12.3).
+    // App's only file field is user-data JSON import (§12.3).
     const accepts = [...code.matchAll(/accept="([^"]+)"/g)].map((m) => m[1])
     expect(accepts).toEqual(['application/json'])
   })

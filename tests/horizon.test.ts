@@ -1,8 +1,6 @@
 /**
- * §4.1 — masque d'horizon.
- *
- * Un site sans donnée de relief reçoit un masque plat à 0°, marqué [HYP] : l'hypothèse est
- * annoncée, jamais présentée comme une mesure du terrain.
+ * §4.1 — masque d'horizon. Site without relief data → flat 0° mask marked [HYP]: announced
+ * hypothesis, never shown as measured terrain.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -64,7 +62,7 @@ describe('masque saisi à la main §4.1', () => {
     expect(obstructionDeg(masque, 0)).toBeCloseTo(10, 6)
     expect(obstructionDeg(masque, 180)).toBeCloseTo(20, 6)
     expect(obstructionDeg(masque, 90)).toBeCloseTo(15, 6)
-    // Le retour du dernier relevé au premier passe par l'azimut 270, pas par un trou.
+    // Wrap last → first reading goes through azimuth 270, not a gap.
     expect(obstructionDeg(masque, 270)).toBeCloseTo(15, 6)
   })
 

@@ -1,9 +1,7 @@
 /**
- * T-0392 — ce qu'un onglet et un partage montrent d'Orion avant qu'il ne se charge.
- *
- * La description de la page et celle du manifeste disent la même chose : deux phrases qui
- * dérivent finissent par présenter deux applications. La favicon porte son propre fond — un
- * tracé sur transparent disparaît dans un onglet de la couleur de son trait.
+ * T-0392 — what a tab and a share show of Orion before load. Page description = manifest
+ * description (2 drifting sentences = 2 apps). Favicon carries its own background: a stroke on
+ * transparent vanishes in a tab of the stroke colour.
  */
 
 import { describe, expect, it } from 'vitest'

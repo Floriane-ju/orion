@@ -1,10 +1,8 @@
 /**
- * §6.4 — l'ordre de la liste quand la case « photographiables » est décochée : d'abord ce qui
- * se photographie ce soir, puis les écartées de la plus vite rattrapable à la moins — la Lune
- * (quelques nuits), la saison (quelques mois), la position (jamais d'ici), la focale (un autre
- * objectif), le capteur (aucun objectif du domaine).
- *
- * Aucune taille en dur : les bornes viennent de `bornesTailleCadre`, comme dans le moteur.
+ * §6.4 — list order with "photographiables" unchecked: shootable tonight first, then discarded
+ * ones quickest → slowest to recover: Moon (few nuits), season (few months), position (never
+ * from here), focale (another lens), capteur (no lens in domain).
+ * No size hardcoded: bounds from `bornesTailleCadre`, as in engine.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -30,9 +28,9 @@ const RETENUE: EtatCible = {
   code: null,
 }
 
-/** Trop petite d'un cheveu : une focale du domaine la rattrape. */
+/** Just too small: a focale in domain recovers it. */
 const FOCALE = objetGalaxie({ designation: 'FOCALE', majAxArcmin: minArcmin * 0.9 })
-/** Si petite qu'aucune focale du domaine ne la cadre sur ce capteur. */
+/** So small no focale in domain frames it on this capteur. */
 const CAPTEUR = objetGalaxie({ designation: 'CAPTEUR', majAxArcmin: minArcmin * 1e-6 })
 
 const lignes = [

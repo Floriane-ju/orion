@@ -1,10 +1,7 @@
 /**
- * §3.4 — Constellations, frontières et astérismes.
- *
- * Le test porte sur le PAQUET RÉELLEMENT EMBARQUÉ, pas sur une donnée fabriquée pour
- * l'occasion : une figure amputée ou une frontière à la mauvaise époque est un défaut de
- * chaîne de données, et c'est précisément ce que le PRD signale comme « le détail qui
- * décale tout ».
+ * §3.4 — Constellations, frontières, astérismes. Tests the SHIPPED PACK, not forged data:
+ * truncated figure / boundary at wrong epoch = data-chain defect (PRD: "le détail qui décale
+ * tout").
  */
 
 import { readFileSync } from 'node:fs'
@@ -51,7 +48,7 @@ describe('paquet des tracés §3.4', () => {
 
   it('déclare les segments écartés plutôt que d’amputer une figure en silence', () => {
     expect(PAQUET.segmentsIgnores).toBeGreaterThan(0)
-    // Ils viennent des sommets Gaia que HYG ne référence pas : le compte est publié.
+    // From Gaia vertices HYG lacks: count is published.
     expect(PAQUET.segmentsIgnores).toBeLessThan(PAQUET.figures.length * 10)
   })
 
@@ -61,8 +58,8 @@ describe('paquet des tracés §3.4', () => {
     expect(noms).toContain('Ceinture d’Orion')
     expect(noms).toContain('Cintre')
     expect(noms).toContain('Triangle d’été')
-    // Aucun astérisme ne porte le nom d'une constellation : les deux couches ne se
-    // recouvrent pas, et la Grande Casserole n'est pas la Grande Ourse.
+    // No astérisme named like a constellation: layers don't overlap (Grande Casserole ≠ Grande
+    // Ourse).
     const constellations = new Set(PAQUET.figures.map((f) => f.nom))
     for (const nom of noms) expect(constellations.has(nom), nom).toBe(false)
     expect(RAPPEL_ASTERISME).toMatch(/n’est pas une constellation/)
@@ -81,7 +78,7 @@ describe('paquet des tracés §3.4', () => {
 
 describe('précession des frontières §3.4', () => {
   it('décale les frontières de 2,11° entre B1875 et 2026', () => {
-    // Le chiffre du PRD : 50,29 "/an × 151 ans.
+    // PRD figure: 50,29 "/an × 151 ans.
     expect(ecartFrontieresDeg(2026).value).toBeCloseTo(2.11, 2)
     expect(ecartFrontieresDeg(2000).value).toBeCloseTo(1.75, 2)
   })
@@ -90,11 +87,11 @@ describe('précession des frontières §3.4', () => {
     const arete = PAQUET.frontieres[0]!
     const brut = versVecteur(arete.ad1Deg, arete.dec1Deg)
     const j2000 = applique(matriceB1875VersJ2000(), brut)
-    // Vers J2000 : environ 1,75° de déplacement, jamais zéro.
+    // To J2000: about 1,75° shift, never zero.
     expect(separationDeg(brut, j2000)).toBeGreaterThan(1)
     expect(separationDeg(brut, j2000)).toBeLessThan(2)
 
-    // Puis vers 2026, par la matrice unique de l'image : le total suit la précession.
+    // Then to 2026 via the image's single matrix: total follows precession.
     const affiche = applique(matricePrecession(2026), j2000)
     expect(separationDeg(brut, affiche)).toBeGreaterThan(separationDeg(brut, j2000))
     expect(separationDeg(brut, affiche)).toBeLessThan(ecartFrontieresDeg(2026).value + 0.1)
@@ -115,7 +112,7 @@ describe('précession des frontières §3.4', () => {
     expect(polyligne.length).toBeGreaterThan(
       longueurAreteDeg(parallele) / K('SUBDIVISION_FRONTIERE_DEG'),
     )
-    // Le point médian de la polyligne n'est PAS le milieu de la corde : il suit le parallèle.
+    // Polyline midpoint is NOT chord midpoint: follows the parallel.
     const milieu = polyligne[Math.floor(polyligne.length / 2)]!
     const corde = {
       x: (polyligne[0]!.x + polyligne[polyligne.length - 1]!.x) / 2,
@@ -131,8 +128,7 @@ describe('précession des frontières §3.4', () => {
     const couche = coucheFrontieres(PAQUET)
     expect(couche.polylignes).toHaveLength(PAQUET.frontieres.length)
     expect(couche.codes[0]).toEqual(PAQUET.frontieres[0]!.codes)
-    // Codes IAU à trois lettres, avec le suffixe des deux régions du Serpent — SER1 pour la
-    // tête, SER2 pour la queue : le Serpent est la seule constellation en deux morceaux.
+    // 3-letter IAU codes, SER1 (head) / SER2 (tail): Serpent = only constellation in two pieces.
     for (const codes of couche.codes) {
       expect(codes[0]).toMatch(/^[A-Z]{3}\d?$/)
       expect(codes[1]).toMatch(/^[A-Z]{3}\d?$/)
@@ -146,7 +142,7 @@ describe('couches de tracés §3.4', () => {
     const orion = coucheFigures(PAQUET.figures).find((f) => f.code === 'ORI')
     expect(orion).toBeDefined()
     expect(orion!.centre).not.toBeNull()
-    // Le barycentre d'Orion tombe près de la Ceinture : déclinaison proche de zéro.
+    // Orion barycentre near the Ceinture: declination close to zero.
     const { z } = orion!.centre!
     expect(Math.abs(Math.asin(z) * (180 / Math.PI))).toBeLessThan(15)
   })
@@ -193,7 +189,7 @@ describe('labels §3.4', () => {
     )
     const retenus = composeLabels(candidats, 20)
     expect(retenus.length).toBe(K('LABELS_MAX'))
-    // Les 25 premiers par priorité, dans l'ordre.
+    // First 25 by priority, in order.
     expect(retenus.map((l) => l.texte)).toEqual(
       candidats.slice(0, K('LABELS_MAX')).map((l) => l.texte),
     )
@@ -218,7 +214,7 @@ describe('labels §3.4', () => {
       largeurPx: 40,
       hauteurPx: 12,
     })
-    // La catégorie OBJET est inactive à 60° : c'est justement ce nom-là que le survol montre.
+    // Category OBJET inactive at 60°: this very name is what hover shows.
     expect(retenus.map((l) => l.texte)).toEqual(['Orion'])
     expect(revele).toEqual({ texte: 'M42 — Grande nébuleuse d’Orion', xPx: 400, yPx: 300, largeurPx: 40, hauteurPx: 12 })
   })
@@ -286,7 +282,7 @@ describe('étoiles des tracés §3.4', () => {
       couches.flatMap((c) => c.segments.flatMap((s) => [s.a, s.b])).map((v) => `${v.x},${v.y},${v.z}`),
     )
     const etoiles = etoilesDesTraces(couches, INDEX)
-    // Les sommets viennent de la même ligne HYG que le catalogue : aucun ne reste orphelin.
+    // Vertices come from the same HYG line as the catalogue: none orphaned.
     expect(etoiles.length).toBe(sommets.size)
     for (const e of etoiles) expect(Number.isFinite(e.magV)).toBe(true)
   })

@@ -1,9 +1,7 @@
 /**
- * T-0345 — §8.3 : la nuit est une ressource à allouer.
- *
- * Les créneaux sont forgés à partir d'une origine arbitraire : ce qui est vérifié est
- * l'arithmétique des intervalles (ce qui reste libre, ce qui se chevauche, le plus long morceau
- * retenu), pas une éphéméride.
+ * T-0345 — §8.3: the night = resource to allocate.
+ * Créneaux forged from arbitrary origin: checks interval arithmetic (what stays free, overlaps,
+ * longest piece kept), not an ephemeris.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -37,13 +35,13 @@ describe('T-0345 — allocation de la nuit', () => {
 
   it('dit si deux cibles se disputent au moins une minute', () => {
     expect(creneauxSeChevauchent(creneau(sous(0, 60)), creneau(sous(59, 90)))).toBe(true)
-    // Bord à bord : aucune minute commune.
+    // Edge to edge: no common minute.
     expect(creneauxSeChevauchent(creneau(sous(0, 60)), creneau(sous(60, 90)))).toBe(false)
   })
 
   it('alloue dans le PLUS LONG morceau libre, borné à la durée demandée', () => {
     const c = creneau(sous(0, 240))
-    // Occupé de 9 à 30 : restent 9 minutes avant, 210 après — c'est l'après qui est retenu.
+    // Busy 9-30: 9 min before, 210 after remain — the after is kept.
     const alloue = alloueCreneau(c, [intervalle(9, 30)], 60)
     expect(alloue).not.toBeNull()
     expect(alloue!.debut.getTime()).toBe(t(30).getTime())
@@ -56,15 +54,15 @@ describe('T-0345 — allocation de la nuit', () => {
 })
 
 describe('T-0271 — les alertes d’une étape décrivent son créneau alloué', () => {
-  // Culmination forgée à la minute 240 : la cible bascule au méridien à cet instant.
+  // Culmination forged at minute 240: target crosses meridian then.
   const creneauGem = { retournementMeridien: true, heureCulmination: t(240) }
 
   it('ne signale pas un retournement qui tombe hors de l’étape', () => {
-    // M31 21:51 → 22:08 pour un retournement à 02:27 : l'étape est finie bien avant.
+    // M31 21:51 → 22:08, flip at 02:27: step ends well before.
     expect(
       retournementDansEtape({ creneau: creneauGem, creneauAlloue: intervalle(0, 17) }),
     ).toBeNull()
-    // Étape posée juste après le retournement : on pointe déjà du bon côté.
+    // Step just after flip: already pointing the right side.
     expect(
       retournementDansEtape({ creneau: creneauGem, creneauAlloue: intervalle(240, 300) }),
     ).toBeNull()
@@ -90,7 +88,7 @@ describe('T-0271 — les alertes d’une étape décrivent son créneau alloué'
   })
 
   it('nomme le créneau alloué quand c’est lui, et non la nuit, qui manque', () => {
-    // B111 : 27 min requises, 20 min allouées, une nuit suffirait.
+    // B111: 27 min required, 20 allocated, one night would suffice.
     const phrase = manqueIntegration(etape(20, 27, 1))
     expect(phrase).toMatch(/créneau alloué de 20 min/i)
     expect(phrase).not.toMatch(/nuits/)

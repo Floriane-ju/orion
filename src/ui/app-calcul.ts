@@ -1,10 +1,7 @@
 /**
- * §7 et §8 — la chaîne de calcul de l'application, d'un lieu et d'un matériel jusqu'au plan
- * de la nuit.
- *
- * Rien n'est dessiné ici : chaque sortie est mémoïsée et distribuée aux régions de la coque.
- * Une saisie refusée ou un domaine dépassé nomme sa cause plutôt que de faire tomber
- * l'application (§12.5).
+ * §7 and §8 — app calcul chain, lieu + matériel → night plan.
+ * Nothing drawn here: outputs memoised, handed to coque regions. Refused input / exceeded domain
+ * names its cause instead of crashing (§12.5).
  */
 
 import { useDeferredValue, useEffect, useMemo, useRef } from 'react'
@@ -66,29 +63,23 @@ import { useCiblesChoisies } from './cibles-choisies.ts'
 import type { PanneauFileProps } from './PanneauFile.tsx'
 
 /**
- * Objectif de qualité retenu pour le plan de la nuit : « correct » au sens de §7.3.
- *
- * T-0268 — lu dans le registre, pas recopié : la fiche ouvre sur ce même préréglage, et deux
- * 10 écrits à deux endroits finissent par ne plus valoir la même chose.
+ * Quality target for the night plan: "correct" per §7.3. T-0268: read from registre, not copied
+ * (fiche opens on same preset; two `10`s drift).
  */
 const PRESET_SNR_PLAN = PRESET_SNR_DEFAUT
 
 /**
- * T-0291 — ce que disent les régions dont le calcul est encore en vol.
- *
- * La phrase nomme l'état ET sa conséquence. « Calcul en cours… » seul laisserait croire que
- * l'écran est vide ; ce qu'il montre est un résultat, juste celui d'avant, et c'est la seule
- * chose qu'un observateur doit savoir pour ne pas se fier à un chiffre périmé.
+ * T-0291 — what regions with in-flight calcul say. Names state AND consequence: "Calcul en
+ * cours…" alone suggests an empty screen; it shows the previous result, enough not to trust a
+ * stale figure.
  */
 export const RECALCUL_EN_COURS =
   'Recalcul en cours : les chiffres affichés sont ceux de la saisie précédente.'
 
 /**
- * T-0149 — ce que le LIEU et la DATE donnent, sans rien savoir du matériel.
- *
- * Séparé de `Calcul` parce que les deux tombent pour des raisons différentes : une focale
- * effacée en cours de frappe ne rend pas la nuit incalculable, et la scène n'a besoin que
- * de ce bloc-ci pour se dessiner (§12.5).
+ * T-0149 — what LIEU and DATE give, independent of matériel. Separate from `Calcul`: different
+ * failures (focale erased mid-typing doesn't make the night incalculable); scène needs only this
+ * (§12.5).
  */
 export type CalculCiel =
   | {
@@ -100,10 +91,10 @@ export type CalculCiel =
     }
   | { readonly ok: false; readonly erreur: string }
 
-/** Le ciel quand il est calculable — ce que la scène et le plan de séance consomment. */
+/** Sky when calculable — what scène and plan de séance consume. */
 export type CielCalcule = Extract<CalculCiel, { readonly ok: true }>
 
-/** §5.1, §5.2 et §9.1 — ce que le MATÉRIEL déclaré produit, ou la cause de son refus. */
+/** §5.1, §5.2, §9.1 — what the declared MATÉRIEL produces, or the cause of its refusal. */
 export type Calcul =
   | {
       readonly ok: true
@@ -111,10 +102,10 @@ export type Calcul =
       readonly suivi: ProfilSuivi
       readonly poseNpf: Traced<number | null>
       readonly capteur: CapteurEffectif
-      /** T-0208 — la focale et l'ouverture BORNÉES : celles dont tout le reste est déduit. */
+      /** T-0208 — CLAMPED focale and aperture: everything else derives from them. */
       readonly focaleMm: number
       readonly ouvertureN: number
-      /** §5.1 — le boîtier retenu : celui de la base, ou celui que la saisie décrit. */
+      /** §5.1 — retained boîtier: from base, or as described by input. */
       readonly boitier: Boitier
       readonly zeroSysteme: PointZeroSysteme
       readonly iso: IsoRetenu
@@ -124,49 +115,44 @@ export type Calcul =
 
 export interface ChaineCalcul {
   readonly calcul: Calcul
-  /** T-0149 — le ciel du site : il se calcule même quand le matériel est incomplet. */
+  /** T-0149 — site sky: computes even when matériel is incomplete. */
   readonly ciel: CalculCiel
   /**
-   * La cause du refus de la SAISIE en cours, quand `ciel` est celui de la saisie précédente.
-   * `null` dès que le lieu saisi est de nouveau calculable.
+   * Refusal cause of current INPUT when `ciel` is the previous input's; `null` once lieu is
+   * calculable again.
    */
   readonly cielRefus: string | null
   readonly site: Site
   readonly masque: MasqueHorizon
-  /** T-0369 — le lieu a changé et son relief n'est pas encore là : le planétarium l'aplatit. */
+  /** T-0369 — lieu changed, relief not there yet: planétarium flattens it. */
   readonly horizonEnAttente: boolean
   readonly fenetreUtile: FenetreUtile | null
-  /** Index de sélection : construit une fois, lu par la scène et par l'onglet Explorer. */
+  /** Selection index: built once, read by scène and Explorer tab. */
   readonly index: IndexCiel
   readonly profilsCadre: readonly ProfilCadre[]
-  /** Absent quand le matériel n'est pas chiffrable : la scène n'incruste alors rien. */
+  /** Absent when matériel isn't chiffrable: scène then overlays nothing. */
   readonly materielFile: MaterielFile | null
-  /** §8.3 — le contexte de la nuit, partagé par le plan de séance et la liste du catalogue. */
+  /** §8.3 — night context, shared by plan de séance and catalogue list. */
   readonly contexteSession: ContexteSession | null
   /**
-   * T-0407 — sous un zoom, le contexte de chaque cible à sa focale optimale, de la MÊME
-   * génération différée que `contexteSession`. `null` hors zoom.
+   * T-0407 — under zoom, each cible's context at its optimal focale, from the SAME deferred
+   * generation as `contexteSession`. `null` outside zoom.
    */
   readonly zoom: Zoom | null
   readonly plan: PlanSession | null
   /**
-   * §6.4 — la note de facilité par désignation, calculée UNE fois pour toute l'application.
-   *
-   * Elle vit ici et pas dans un écran parce que DEUX surfaces l'affichent — la liste du
-   * catalogue et l'en-tête de la carte Cible. Deux appels au moteur, même identiques, sont
-   * deux couvertures à garder d'accord : la carte notait des cibles que la liste laissait
-   * vides. Une seule map les rend incapables de se contredire.
+   * §6.4 — ease note per designation, computed ONCE app-wide. Here not in a screen: TWO surfaces
+   * show it (list, Cible card header); two moteur calls = two coverages to sync (card rated
+   * cibles the list left empty); one map prevents contradiction.
    */
   readonly etatsCibles: ReadonlyMap<string, EtatCible>
-  /** Le matériel et le ciel sous lesquels la fiche évalue une cible (§6, §7). */
+  /** Matériel and sky under which fiche evaluates a cible (§6, §7). */
   readonly contexteFiche: ContexteFiche | null
   readonly panneauFile: PanneauFileProps | null
   /**
-   * T-0291 — vrai tant que le plan, les notes et la liste affichés sont ceux de la saisie
-   * PRÉCÉDENTE : le calcul lourd est parti, il n'a pas encore rendu.
-   *
-   * Les régions concernées le DISENT. Un chiffre en retard qui ne s'annonce pas est un chiffre
-   * faux : c'est la seule contrepartie du report, et elle se paie à l'écran, pas en silence.
+   * T-0291 — true while displayed plan, notes and list are the PREVIOUS input's (heavy calcul
+   * left, not returned). Affected regions SAY so: a late figure that doesn't announce itself is a
+   * wrong figure.
    */
   readonly recalculEnCours: boolean
 }
@@ -176,32 +162,26 @@ export interface EntreeChaine {
   readonly materiel: SaisieMateriel
   readonly catalogue: readonly ObjetCielProfond[]
   /**
-   * §3.3 — l'index spatial, reçu tout fait. T-0296 : le construire ici obligeait à le
-   * construire DANS un rendu, où rien ne peut rendre la main ; il se bâtit maintenant avec
-   * les catalogues (`app-donnees.ts`), par tranches.
+   * §3.3 — spatial index, received built. T-0296: building here forced building INSIDE a render
+   * where nothing can yield; now built with catalogues (`app-donnees.ts`), in slices.
    */
   readonly index: IndexCiel
-  /** §8.3 — les poids C-15 tels qu'ils sont réglés ; le moteur les normalise. */
+  /** §8.3 — C-15 weights as set; moteur normalises them. */
   readonly poids: PoidsScoring
 }
 
 /**
- * T-0291 — le LIEU ramené à ses GRANDEURS, avant le moindre mémo.
- *
- * La chaîne mémoïsait sur les CHAÎNES tapées. « 45.5 » puis « 45.50 » désignent la même
- * latitude mais pas le même texte : la nuit entière se recalculait pour un caractère sans
- * effet — 480 ms à CPU ×4. Le bornage se refait à chaque rendu, ce qui ne coûte rien — lire
- * un texte n'est pas calculer une nuit —, et ce sont ses NOMBRES qui servent de dépendances.
- * Deux saisies qui décrivent le même lieu partagent alors la même clé.
- *
- * `NaN` s'y compare à lui-même sous `Object.is`, celui dont React se sert : un champ vidé le
- * temps d'être retapé ne relance donc rien non plus.
+ * T-0291 — LIEU reduced to QUANTITIES, before any memo. Memoising on typed STRINGS: "45.5" vs
+ * "45.50" = same latitude, different text → whole night recomputed for a no-effect char (480 ms at
+ * 4× CPU). Clamping redone per render (free); its NUMBERS are the deps, so two inputs describing
+ * one lieu share a key. `NaN` equals itself under `Object.is` (React's): field emptied mid-retype
+ * relaunches nothing.
  */
 export interface GrandeursLieu {
   readonly latitudeDeg: number
   readonly longitudeDeg: number
   readonly altitudeM: number
-  /** §2.3 — `undefined` quand le champ est vide : la grandeur est déclarée inconnue. */
+  /** §2.3 — `undefined` when field is empty: quantity declared unknown. */
   readonly bortleDeclare: number | undefined
   readonly sqmMesure: number | undefined
   readonly nuitIso: string
@@ -218,23 +198,20 @@ export function grandeursLieu(lieu: SaisieLieu): GrandeursLieu {
   }
 }
 
-/** T-0291 — le MATÉRIEL ramené à ses grandeurs, pour la même raison que le lieu. */
+/** T-0291 — MATÉRIEL reduced to quantities, same reason as lieu. */
 export interface GrandeursMateriel {
   readonly focaleMm: number
   readonly ouvertureN: number
   /**
-   * §7.2 — l'ISO que la saisie fixe, `undefined` quand rien ne le fixe.
-   *
-   * T-0206 — sous un boîtier de la base, c'est le seuil de double gain de sa ligne qui désigne
-   * l'ISO, et la valeur saisie est ignorée. Le filtre est ici et non dans `evalueMateriel`
-   * pour que taper dans ce champ sous un boîtier de la base ne change AUCUNE dépendance :
-   * sans effet sur le calcul, donc sans effet sur la nuit.
+   * §7.2 — ISO fixed by input, `undefined` when nothing fixes it. T-0206: under a base boîtier its
+   * row's dual-gain threshold designates ISO, typed value ignored. Filtered here, not in
+   * `evalueMateriel`: typing in this field under a base boîtier changes NO dependency.
    */
   readonly isoSaisi: number | undefined
 }
 
 export function grandeursMateriel(materiel: SaisieMateriel): GrandeursMateriel {
-  // T-0404 — sous un objectif monté, le réglage est borné à ce qu'il permet.
+  // T-0404 — under a mounted lens, setting is clamped to what it allows.
   const reglage = reglageOptique(
     objectifActif(materiel.objectifs, materiel.objectifId),
     materiel.focale,
@@ -253,21 +230,19 @@ export function grandeursMateriel(materiel: SaisieMateriel): GrandeursMateriel {
 export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
   const { lieu, materiel, catalogue, index, poids } = entree
 
-  // §8.3 — lue ici plutôt que reçue en prop : la sélection n'a aucun ancêtre commun avec les
-  // deux boutons qui la composent, et la faire descendre depuis l'application n'ajouterait
-  // qu'un relais de plus entre le magasin et son seul consommateur.
+  // §8.3 — read here, not a prop: selection shares no ancestor with the two composing buttons;
+  // a prop would add one more relay between store and sole consumer.
   const choisies = useCiblesChoisies()
 
-  // T-0291 — les deux saisies bornées, recalculées à chaque rendu : ce sont les clés de tout
-  // ce qui suit, et une clé mémoïsée sur elle-même n'en serait plus une.
+  // T-0291 — the two clamped inputs, recomputed per render: keys of everything below (a key
+  // memoised on itself isn't one).
   const lieuBorne = grandeursLieu(lieu)
   const materielBorne = grandeursMateriel(materiel)
 
   /**
-   * T-0208 — les trois grandeurs du lieu, ramenées dans leur domaine avant d'entrer dans le
-   * moindre moteur. C'est ici que se ferme l'écran noir : `astronomy-engine` lève une CHAÎNE
-   * de caractères sur une latitude hors [−90, 90], que `refus()` ne reconnaissait pas et
-   * relançait depuis un rendu.
+   * T-0208 — the three lieu quantities clamped into domain before any moteur. Closes the black
+   * screen: `astronomy-engine` throws a STRING on latitude outside [−90, 90]; `refus()` didn't
+   * recognise it and rethrew from a render.
    */
   const siteSaisi = useMemo(
     () => ({
@@ -279,26 +254,24 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
   )
 
   /**
-   * T-0149, même raison que pour le ciel : un champ vidé le temps d'être retapé n'est pas un
-   * lieu. Un site non chiffrable laisse la place au dernier qui l'était, et c'est ce site-là
-   * que reçoivent la fenêtre utile, le plan de séance et la boucle du planétarium — aucun
-   * `NaN` ne descend plus dans la chaîne.
+   * T-0149, as for sky: a field emptied mid-retype isn't a lieu. Non-chiffrable site yields to the
+   * last valid one; it feeds fenêtre utile, plan de séance and planétarium loop — no `NaN`
+   * descends the chain.
    */
   const dernierSite = useRef<Site | null>(null)
   if (siteChiffrable(siteSaisi)) dernierSite.current = siteSaisi
   const site = dernierSite.current ?? siteSaisi
 
   /**
-   * §4.1 — le relief du terrain. Sans lui (hors réseau sur un site inconnu, service muet), le
-   * masque plat [HYP] reste le repli de la matrice de dégradation §12.5.
+   * §4.1 — terrain relief. Without it (offline on unknown site, service mute) flat mask [HYP]
+   * stays: §12.5 degradation fallback.
    */
   const { relief, enCharge: horizonEnAttente } = useReliefSite(site.latitudeDeg, site.longitudeDeg)
   const masque: MasqueHorizon = useMemo(() => masqueDuRelief(relief), [relief])
 
   /**
-   * L'altitude n'est plus saisie : c'est le sol du relief au lieu posé, quelle que soit la
-   * façon dont les coordonnées ont changé (carte, frappe, glisser). Sans relief exploitable,
-   * le champ garde sa dernière valeur.
+   * Altitude no longer typed: it's relief ground at the set lieu, however coordinates changed
+   * (map, typing, drag). Without usable relief, field keeps its last value.
    */
   const { altitude, surAltitude } = lieu
   useEffect(() => {
@@ -313,20 +286,17 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
   )
 
   /**
-   * T-0149, suite — un champ du lieu vidé le temps d'en retaper la valeur refusait tout le
-   * ciel, et la scène disparaissait le temps de la frappe. Le dernier ciel calculable tient
-   * lieu de ciel affiché, et la cause du refus se lit à côté du champ qui l'a produite : un
-   * planétarium qui clignote à chaque touche est illisible, et l'erreur reste dite.
-   *
-   * Tant qu'aucune saisie n'a abouti — profil relu hors domaine au premier rendu — il n'y a
-   * rien à garder : le refus reste le seul état possible.
+   * T-0149 cont. — lieu field emptied mid-retype refused the whole sky and scène vanished. Last
+   * calculable sky stands as displayed sky; refusal cause reads beside its field (flickering
+   * planétarium is unreadable, error stays said). While no input ever succeeded (profile reread
+   * out of domain at first render) nothing to keep: refusal is the only state.
    */
   const dernierCiel = useRef<CielCalcule | null>(null)
   if (cielSaisi.ok) dernierCiel.current = cielSaisi
   const ciel = cielAffiche(cielSaisi, dernierCiel.current)
-  // T-0208 — le bornage d'un champ se dit AU PIED DE CE CHAMP (`ChampDomaine`), pas ici :
-  // cette ligne-ci ne porte que ce qu'aucun champ ne peut dire seul — une table de Bortle
-  // sans repli, un fond de ciel indéterminable, un lieu incomplet.
+  // T-0208 — field clamping is said AT THAT FIELD (`ChampDomaine`); this line carries only what
+  // no field says alone: Bortle table without fallback, indeterminable fond de ciel, incomplete
+  // lieu.
   const cielRefus = cielSaisi.ok ? null : cielSaisi.erreur
 
   const calcul = useMemo(
@@ -335,8 +305,8 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
       materiel.boitierId,
       materiel.boitier,
       materiel.capteurMode,
-      // T-0270 — la projection de l'objectif entre dans le champ calculé : sans elle ici,
-      // cocher « fisheye » ne changeait rien tant qu'un autre champ n'était pas touché.
+      // T-0270 — lens projection enters the computed field: without it, ticking "fisheye" changed
+      // nothing until another field was touched.
       materiel.typeObjectif,
       materiel.suiviActif,
       materiel.qualiteMes,
@@ -348,11 +318,10 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
   )
 
   /**
-   * T-0433 — sous un zoom, chaque cible s'évalue à SA focale (T-0407) : la bague réglée n'entre
-   * ni dans la liste ni dans le plan, et la tourner ne doit rien y relancer. Leur contexte de
-   * base se chiffre donc à une focale de référence fixe — le télé, où `focaleOptimale` mène une
-   * cible dont la taille tend vers zéro — et c'est là que tombent les cibles sans dimensions.
-   * L'ouverture y est le plancher, comme le réglage sous un objectif (T-0404).
+   * T-0433 — under zoom each cible is evaluated at ITS focale (T-0407): the set ring enters
+   * neither list nor plan, turning it relaunches nothing. Base context is chiffré at a fixed
+   * reference focale — the tele, where `focaleOptimale` leads a cible of size→0 — and cibles
+   * without dimensions land there. Aperture = floor, as setting under a lens (T-0404).
    */
   const objectif = objectifActif(materiel.objectifs, materiel.objectifId)
   const focaleListe = estZoom(objectif) ? objectif.focaleMaxMm : materielBorne.focaleMm
@@ -365,7 +334,7 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
       reglageSuffit
         ? calcul
         : evalueMateriel(materiel, { ...materielBorne, focaleMm: focaleListe, ouvertureN: ouvertureListe }),
-    // Hors zoom, `calcul` porte déjà toutes les clés ; sous un zoom, il est écarté : il suit la bague.
+    // Outside zoom `calcul` already has all keys; under zoom dropped: follows the ring.
     [
       reglageSuffit ? calcul : null,
       materiel.boitierId,
@@ -386,16 +355,16 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
     [ciel, site],
   )
 
-  /** §3.5 — le cadre projeté sur la scène, tel que le matériel saisi le définit. */
+  /** §3.5 — cadre projected on scène, as the entered matériel defines it. */
   const profilsCadre = useMemo(
     () => profilsDeCadre(calcul, materiel),
     [calcul, materiel.capteurMode, materiel.typeObjectif],
   )
 
   /**
-   * §9.2 — ce qui fixe la profondeur d'une pose, la pose exceptée. T-0398 : la pose unitaire
-   * suit la pose max du cadre, donc la déclinaison visée ; elle se joint dans la scène, qui
-   * lit la séance, et un panoramique ne remonte plus jusqu'à la chaîne de l'application.
+   * §9.2 — what fixes a pose's depth, pose excepted. T-0398: pose unitaire follows cadre's pose
+   * max, hence aimed declination; joined in scène (reads the séance) so a pan no longer climbs to
+   * the app chain.
    */
   const profondeurFile: ProfondeurSansPose | null = useMemo(() => {
     if (!calcul.ok || !ciel.ok) return null
@@ -415,11 +384,9 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
   }, [calcul, ciel])
 
   /**
-   * Ce que la scène doit savoir du filé pour l'incruster dans le cadre.
-   *
-   * Mémoïsée, et pas assemblée dans le JSX : la passe de filé republie ses compteurs de rendu
-   * dans le magasin de séance, ce qui rend l'application. Une identité neuve à chaque rendu
-   * relancerait donc la passe, qui republierait, sans fin.
+   * What scène must know of the filé to overlay it in the cadre. Memoised, not assembled in JSX:
+   * the filé pass republishes its render counters into the séance store, which renders the app; a
+   * fresh identity per render would relaunch the pass → republish, endlessly.
    */
   const materielFile = useMemo(() => {
     if (!calcul.ok || !ciel.ok || profondeurFile === null) return null
@@ -435,11 +402,9 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
   }, [calcul, ciel, profondeurFile])
 
   /**
-   * §8.3 — le ciel, le site et le matériel sous lesquels une cible est évaluée pour la nuit.
-   *
-   * Mémoïsé à part du plan parce que DEUX écrans s'en servent : le plan de séance et la liste
-   * du catalogue (§6.4). Un second contexte assemblé ailleurs annoncerait tôt ou tard une
-   * autre pose pour la même cible — le désaccord que T-0089 a corrigé une fois.
+   * §8.3 — sky, site, matériel under which a cible is evaluated for the night. Memoised apart from
+   * the plan: TWO screens use it (plan de séance, catalogue list §6.4); a second context elsewhere
+   * would announce another pose for the same cible — T-0089 disagreement.
    */
   const contexteSession = useMemo<ContexteSession | null>(() => {
     if (!calculListe.ok || !ciel.ok || fenetreUtile === null) return null
@@ -465,26 +430,18 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
   }, [calculListe, ciel, masque, materiel.typeMonture, site, fenetreUtile, poids])
 
   /**
-   * T-0291 — LA FRONTIÈRE DU CALCUL LOURD. Ce qui est en aval suit la frappe, il ne la porte
-   * pas.
-   *
-   * Tout ce qui précède est chiffré en quelques millisecondes — le ciel du site, le profil
-   * optique, le cadre. Tout ce qui suit balaie le catalogue entier : le plan de la nuit, les
-   * notes de facilité, et les lectures que la liste en tire. Ensemble, une soixantaine de
-   * millisecondes sans bridage, quatre fois plus sur la tablette que §11.2 vise — dans le
-   * rendu de la touche, la saisie décrochait.
-   *
-   * `useDeferredValue` les déplace dans un rendu de moindre priorité : la touche est peinte
-   * avec le contexte PRÉCÉDENT, puis React reprend avec le nouveau. Ce n'est pas un
-   * amincissement du calcul — le plan reste le même plan — c'est un changement d'ordre.
-   *
-   * La contrepartie est un décalage visible, et elle est assumée à une condition : les régions
-   * en retard le disent (`recalculEnCours`). Le contexte rendu à l'application est le DIFFÉRÉ,
-   * jamais celui de la saisie en cours — deux régions qui liraient l'un et l'autre
-   * s'afficheraient contradictoires le temps d'un rendu.
+   * T-0291 — HEAVY CALCUL BOUNDARY. Downstream follows typing, doesn't carry it.
+   * Above: a few ms (site sky, optical profile, cadre). Below: sweeps the whole catalogue — night
+   * plan, ease notes, list readings; ~60 ms unthrottled, 4× on the §11.2 tablet, inside the
+   * keystroke's render: input dropped.
+   * `useDeferredValue` moves them to a lower-priority render: key painted with the PREVIOUS
+   * context, then React resumes with the new. Same plan, only order changes.
+   * Cost = visible lag, accepted if lagging regions say so (`recalculEnCours`). Context handed to
+   * the app is the DEFERRED one, never the live input's — regions reading both would contradict
+   * for one render.
    */
-  // T-0436 — le parc se compare par son CONTENU : un tableau rebâti à l'identique (import d'un
-  // lien, rendu du panneau) ne doit pas relancer la liste et le plan (T-0433).
+  // T-0436 — park compared by CONTENT: identically rebuilt array (link import, panel render) must
+  // not relaunch list and plan (T-0433).
   const cleParc = JSON.stringify(materiel.objectifs)
   const parc = useMemo(() => materiel.objectifs, [cleParc])
   const zoom = useMemo(() => {
@@ -506,7 +463,7 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
           : null
       },
     })
-    // Mêmes clés que `calcul` : `materiel` est neuf à chaque rendu, ses champs ne le sont pas.
+    // Same keys as `calcul`: `materiel` is new each render, its fields aren't.
   }, [
     objectif,
     parc,
@@ -525,7 +482,7 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
     lieu.bortle,
   ])
 
-  // T-0407 — contexte et zoom différés ENSEMBLE : la liste et le plan lisent la même génération.
+  // T-0407 — context and zoom deferred TOGETHER: list and plan read the same generation.
   const courant = useMemo(() => ({ contexte: contexteSession, zoom }), [contexteSession, zoom])
   const differe = useDeferredValue(courant)
   const contexteDiffere = differe.contexte
@@ -533,15 +490,11 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
   const recalculEnCours = differe !== courant
 
   /**
-   * §8.3 — le plan n'ordonne QUE les cibles choisies (§6.4).
-   *
-   * Le garde porte sur le CATALOGUE, pas sur la sélection : « catalogues en cours de
-   * vérification » et « aucune cible choisie » sont deux états différents, et l'écran doit
-   * pouvoir les distinguer. Le premier rend `null`, le second un plan vide qui parle.
-   *
-   * La sélection ne passe pas par `useDeferredValue` : cocher une cible n'est pas la frappe
-   * lourde que T-0291 a déportée, et le plan d'une poignée de cibles se chiffre en quelques
-   * éphémérides.
+   * §8.3 — plan orders ONLY the chosen cibles (§6.4). Guard is on the CATALOGUE, not the
+   * selection: "catalogues en cours de vérification" and "aucune cible choisie" are distinct
+   * states: first yields `null`, second an empty plan that speaks.
+   * Selection skips `useDeferredValue`: ticking a cible isn't the heavy typing of T-0291; a
+   * handful of cibles costs a few ephemerides.
    */
   const plan = useMemo(() => {
     if (contexteDiffere === null || catalogue.length === 0) return null
@@ -553,8 +506,8 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
   }, [contexteDiffere, zoomDiffere, catalogue, choisies])
 
   /**
-   * §6.4 — même dépendances que le plan, et pour la même raison : un créneau est une propriété
-   * de la NUIT, donc bouger le curseur de temps ne relance rien.
+   * §6.4 — same deps as the plan, same reason: créneau is a property of the NIGHT, moving the time
+   * cursor relaunches nothing.
    */
   const etats = useMemo(
     () =>
@@ -588,16 +541,16 @@ export function useChaineCalcul(entree: EntreeChaine): ChaineCalcul {
 }
 
 /**
- * Le ciel que la scène dessine : celui de la saisie quand elle aboutit, sinon le dernier
- * qui a abouti. Un refus ne remplace le ciel affiché que tant qu'aucun n'a jamais tenu.
+ * Sky scène draws: input's when it succeeds, else last that did. A refusal replaces displayed sky
+ * only while none ever held.
  */
 export function cielAffiche(saisi: CalculCiel, dernier: CielCalcule | null): CalculCiel {
   return saisi.ok ? saisi : (dernier ?? saisi)
 }
 
 /**
- * T-0208 — un lieu dont une grandeur n'est pas un nombre n'est pas un lieu : `new Observer`
- * laisse passer un `NaN` sans lever, et c'est toute la chaîne qui rend ensuite du `NaN`.
+ * T-0208 — a lieu with a non-number quantity isn't a lieu: `new Observer` passes `NaN` without
+ * throwing, whole chain returns `NaN`.
  */
 export function siteChiffrable(site: Site): boolean {
   return (
@@ -608,10 +561,9 @@ export function siteChiffrable(site: Site): boolean {
 }
 
 /**
- * §4.1 et §2.2 — ce que le lieu et la date donnent, ou la cause du refus.
- *
- * T-0291 — l'entrée est le lieu BORNÉ, jamais le texte saisi : ce moteur est le premier de la
- * chaîne lourde, et ce qui décide de le relancer doit être un nombre, pas une frappe.
+ * §4.1, §2.2 — what lieu and date give, or refusal cause. T-0291: input is the CLAMPED lieu,
+ * never typed text: first moteur of the heavy chain; what relaunches it must be a number, not a
+ * keystroke.
  */
 export function evalueCiel(site: Site, grandeurs: GrandeursLieu): CalculCiel {
   try {
@@ -638,19 +590,14 @@ export function evalueCiel(site: Site, grandeurs: GrandeursLieu): CalculCiel {
 }
 
 /**
- * §5.1, §5.2 et §9.1 — ce que le matériel déclaré produit, ou la cause du refus.
- *
- * T-0149 — le lieu n'entre plus ici. Une focale effacée le temps de la retaper refusait
- * jusqu'à la nuit et au fond de ciel, et la scène disparaissait avec eux.
+ * §5.1, §5.2, §9.1 — what declared matériel produces, or refusal cause. T-0149: lieu no longer
+ * enters here: a focale erased mid-retype refused night and fond de ciel too, scène vanished.
  */
 /**
- * T-0204 — le boîtier du calcul : la ligne de la base quand une est choisie, la saisie sinon.
- *
- * La base fait foi tant qu'un boîtier est choisi, plutôt qu'une copie figée dans le profil :
- * corriger une ligne de `boitiers.md` recalcule les plans au redémarrage, ce qu'exige §2.1.
- *
- * T-0205 — sauf le poids d'une image, qui vient de la saisie même sous un boîtier de la base :
- * ce n'est pas une grandeur du capteur mais du réglage RAW, et la ligne n'en donne qu'un départ.
+ * T-0204 — calcul boîtier: base row when chosen, else input. Base rules while a boîtier is
+ * chosen, not a copy frozen in profile: fixing a `boitiers.md` row recalculates plans at
+ * restart (§2.1). T-0205: except image weight, from input even under a base boîtier: RAW
+ * setting, not a sensor quantity; row only gives a start.
  */
 function boitierCourant(materiel: SaisieMateriel): Boitier {
   const ligne = ligneBoitier(materiel.boitierId)
@@ -677,8 +624,8 @@ export function evalueMateriel(
         typeMonture: materiel.typeMonture,
         focaleMm,
       }),
-      // §9.1 — la NPF reste affichée même avec suivi, à titre informatif. Déclinaison 0 :
-      // c'est la zone la plus contraignante du ciel, la carte par cellule vient au lot 5.
+      // §9.1 — NPF stays displayed even with suivi, informative. Declination 0: most constraining
+      // sky zone; per-cell map comes in lot 5.
       poseNpf: npf({ focaleMm, ouvertureN, pitchUm: capteur.pitchUm, decDeg: 0 }),
       capteur,
       focaleMm,
@@ -694,12 +641,9 @@ export function evalueMateriel(
 }
 
 /**
- * Saisie refusée ou domaine dépassé : la cause est nommée, pas avalée.
- *
- * T-0208 — et plus jamais relancée. `astronomy-engine` lève des CHAÎNES de caractères, pas des
- * `Error` : les quatre `instanceof` étaient faux, la levée repartait depuis un `useMemo` de
- * rendu, et React démontait l'arbre entier — l'écran devenait noir sans rien dire. Une cause
- * qu'on ne sait pas nommer ne fait pas tomber l'application.
+ * Refused input / exceeded domain: cause named, not swallowed. T-0208: never rethrown.
+ * `astronomy-engine` throws STRINGS, not `Error`: the four `instanceof` were false, throw
+ * restarted from a render `useMemo`, React unmounted the tree — silent black screen.
  */
 function refus(erreur: unknown): { readonly ok: false; readonly erreur: string } {
   if (
@@ -710,8 +654,7 @@ function refus(erreur: unknown): { readonly ok: false; readonly erreur: string }
   ) {
     return { ok: false, erreur: erreur.message }
   }
-  // T-0279 — la levée inconnue est une phrase anglaise de bibliothèque : elle part à la
-  // console, l'écran dit ce qu'on peut faire.
+  // T-0279 — unknown throw = library English sentence: goes to console, screen says what to do.
   console.error('Orion — calcul refusé', erreur)
   return { ok: false, erreur: 'Calcul impossible pour cette saisie : vérifiez le lieu, la date et le matériel.' }
 }
@@ -721,9 +664,9 @@ export function profilsDeCadre(calcul: Calcul, materiel: SaisieMateriel): readon
   const boitier = calcul.boitier
   const focaleMm = calcul.focaleMm
   const ouvertureN = calcul.ouvertureN
-  // §3.5 — un seul profil, celui du matériel déclaré : la scène montre ce que CE matériel
-  // capturerait. Le tableau reste un tableau (T-0234, Annexe C n° 24) — comparer deux optiques
-  // suppose un stock de profils enregistrés, et rien ici n'empêche de l'allonger le jour venu.
+  // §3.5 — one profile, the declared matériel's: scène shows what THIS matériel would capture.
+  // Array stays an array (T-0234, Annexe C n° 24): comparing optiques needs saved profiles;
+  // nothing prevents extending.
   const mode = materiel.capteurMode
   const capteur = capteurEffectif(boitier, mode)
   const optique = profilOptique({
@@ -746,8 +689,8 @@ export function profilsDeCadre(calcul: Calcul, materiel: SaisieMateriel): readon
 }
 
 /**
- * T-0407 — ce que la focale fixe dans le contexte de nuit, et rien d'autre : la base et le
- * contexte de chaque focale d'un zoom s'en servent, pour qu'aucun champ ne s'y oublie.
+ * T-0407 — what focale fixes in the night context, nothing else: base and each zoom focale's
+ * context use it, so no field is forgotten.
  */
 function champsDeFocale(calcul: Calcul & { ok: true }) {
   return {
@@ -757,8 +700,8 @@ function champsDeFocale(calcul: Calcul & { ok: true }) {
     dMm: calcul.optique.dMm.value,
     ouvertureN: calcul.ouvertureN,
     tMaxS: calcul.suivi.tMaxSuiviS.value ?? calcul.poseNpf.value,
-    // §5.2 — le verrou du domaine, pas seulement son plafond de pose : sans suivi, la NPF
-    // seule laissait passer les cibles brillantes, chiffrées en milliers de poses de 2 s.
+    // §5.2 — domain lock, not only the pose cap: without suivi NPF alone let bright cibles pass,
+    // chiffrées in thousands of 2 s poses.
     domaineCpFerme: calcul.suivi.cause,
   } as const
 }
@@ -779,7 +722,7 @@ function contexteFiche(
     iso: calcul.iso,
     sbCiel: ciel.ciel.sbCiel.value,
     mLimOeil: ciel.ciel.mLimOeil.value,
-    // Sans suivi, c'est la NPF qui plafonne la pose (§9.1) — jamais rien.
+    // Without suivi NPF caps the pose (§9.1) — never nothing.
     tMaxS: calcul.suivi.tMaxSuiviS.value ?? calcul.poseNpf.value,
     bortle: nombreSiRenseigne('bortle_declare', lieu.bortle).valeur ?? null,
     suiviActif: materiel.suiviActif,

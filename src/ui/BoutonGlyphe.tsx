@@ -1,23 +1,13 @@
 /**
- * §11.2 — un bouton qui ne porte qu'un glyphe, et la bulle qui dit ce qu'il fait.
- *
- * Neuf boutons recopiaient le même balisage — une `Bulle`, un `<button type="button">`, une
- * `Icone` — et chacun sa règle de géométrie : quatre façons d'écrire « une cible gantée, sans
- * rembourrage, glyphe centré ». Ils ne diffèrent que par le fond sur lequel ils se posent, et
- * c'est ce que dit la variante :
- *
- * - `cadre` — posé dans un panneau : un filet discret (liste des cibles, en-tête de fiche) ;
- * - `flottant` — posé seul sur le ciel : son propre cadre, fond translucide, aplat plein quand
- *   il est enfoncé (rail de la vue) ;
- * - `nu` — posé dans une rangée qui le borde déjà : pas de filet au repos (transport du temps,
- *   retour de fiche).
- *
- * §11.1 — un état enfoncé REMPLIT le glyphe, quelle que soit la variante : la nuit, la teinte ne
- * dit rien seule, la forme le dit.
- *
- * Le nom accessible est la phrase de la bulle, sauf si `libelle` est donné : c'est le cas où la
- * bulle dit autre chose que le geste (une aide plus longue, une liste de raccourcis). Jamais les
- * deux à la fois — le contrat de `Bulle`.
+ * §11.2 — glyph-only button + the bulle saying what it does.
+ * Replaces 9 copies of `Bulle` + `<button type="button">` + `Icone` with 4 geometry rules,
+ * differing only by background, hence the variant:
+ * - `cadre` — in a panel: discreet rule (cible list, fiche header);
+ * - `flottant` — alone on sky: frame, translucent background, solid fill when pressed (view rail);
+ * - `nu` — in a row that already borders it: no rule at rest (time transport, fiche back).
+ * §11.1 — pressed FILLS the glyph in every variant (at night hue says nothing, shape does).
+ * Accessible name = bulle sentence unless `libelle` given (bulle says something else: longer help,
+ * shortcut list). Never both — `Bulle` contract.
  */
 
 import { Bulle, type PlaceBulle } from './Bulle.tsx'
@@ -26,21 +16,21 @@ import { Icone } from './Icone.tsx'
 export type VarianteGlyphe = 'cadre' | 'flottant' | 'nu'
 
 export interface BoutonGlypheProps {
-  /** Ligature Material Symbols — voir `Icone`. */
+  /** Material Symbols ligature — see `Icone`. */
   readonly icone: string
-  /** La phrase de la bulle ; sans `libelle`, elle est aussi le nom du bouton. */
+  /** Bulle sentence; without `libelle` it is also the button name. */
   readonly aide: string
-  /** Nom accessible, quand la bulle ne se contente pas de nommer le geste. */
+  /** Accessible name, when the bulle does more than name the gesture. */
   readonly libelle?: string
   readonly place?: PlaceBulle
   readonly variante?: VarianteGlyphe
-  /** Bascule : `aria-pressed`. Absent, le bouton n'a pas d'état à deux positions. */
+  /** Toggle: `aria-pressed`. Absent: no two-state. */
   readonly presse?: boolean
-  /** La commande reste offerte mais son effet est suspendu : elle le montre. */
+  /** Command stays offered but its effect is suspended: it shows it. */
   readonly eteinte?: boolean
-  /** Classe de PLACE, pour une règle de disposition — jamais pour repeindre le bouton. */
+  /** PLACE class, for a layout rule — never to repaint the button. */
   readonly classe?: string
-  /** Le mot posé après le glyphe, quand la place le permet. */
+  /** Word after the glyph, when room allows. */
   readonly texte?: string
   readonly onClick?: () => void
 }

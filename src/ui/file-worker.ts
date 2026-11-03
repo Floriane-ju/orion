@@ -1,10 +1,7 @@
 /**
- * §9.3, T-0398 — le worker qui peint la passe de filé (voir `file-hors-fil.ts`).
- *
- * Il refait le projecteur de la scène avec le moteur de §3.3, le filtre du sol compris : les
- * traces retombent au pixel où la boucle les aurait peintes. Ses index se construisent ici, à
- * la réception du catalogue — le semis de trois cent mille étoiles ne passe plus par le fil
- * principal.
+ * §9.3, T-0398 — worker painting the filé pass (see `file-hors-fil.ts`).
+ * Rebuilds scène projecteur with §3.3 engine, sol filter incl.: traces land where loop would paint
+ * them. Indexes built here on catalogue receipt — 300000-star semis no longer crosses main thread.
  */
 
 import { projecteur } from '../core/projection.ts'
@@ -14,7 +11,7 @@ import { dessineChamp } from './dessine-champ.ts'
 import { indexFile } from './file-index.ts'
 import type { MessageDuFile, MessageVersFile } from './file-hors-fil.ts'
 
-/** La portée d'un worker dédié, réduite à ce qui sert : la bibliothèque DOM n'en a pas le type. */
+/** Dedicated worker scope, reduced to what's used: DOM lib has no type for it. */
 interface PorteeWorker {
   onmessage: ((evenement: MessageEvent<MessageVersFile>) => void) | null
   postMessage(message: MessageDuFile, transfert: Transferable[]): void
@@ -44,7 +41,7 @@ portee.onmessage = ({ data }) => {
   const sortie = dessineChamp({
     ...d.parametres,
     ...indexFile(etoiles),
-    // La passe n'emploie que la part commune aux deux contextes 2D.
+    // Pass uses only the part common to both 2D contexts.
     ctx: ctx as unknown as CanvasRenderingContext2D,
     projecteur: d.masque === null ? brut : projecteurSansSol(brut, d.masque, d.matriceCiel),
     axePoleNord: d.axePoleNord,

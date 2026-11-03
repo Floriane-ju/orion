@@ -1,7 +1,6 @@
 /**
- * §8.1 — la frise du ciel découpe aux mêmes hauteurs du Soleil que `fenetreNocturne`, sur une
- * fenêtre de 24 h centrée sur l'instant, et la Lune levée qu'elle peint est celle que
- * l'éphéméride place au-dessus de l'horizon.
+ * §8.1 — frise cuts at same Sun elevations as `fenetreNocturne`, 24 h window centred on the
+ * instant; painted risen Moon = the one ephemeris puts above horizon.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -21,7 +20,7 @@ import { SITE_REFERENCE } from './fixtures.ts'
 const MS_PAR_MINUTE = 60_000
 const MS_PAR_H = 60 * MS_PAR_MINUTE
 
-/** La fenêtre centrée sur le soir du jour : elle couvre la nuit entière. */
+/** Window centred on the day's evening: covers the whole nuit. */
 function frise(site: typeof SITE_REFERENCE, dateIso: string) {
   const nuit = fenetreNocturne(site, new Date(`${dateIso}T12:00:00Z`))
   const centre = new Date(`${dateIso}T23:00:00Z`).getTime()
@@ -98,7 +97,7 @@ describe('frise du ciel §8.1', () => {
       const { levee } = f.lune
       const dedans = (t: number) =>
         levee.some((i) => t > i.debut.getTime() && t < i.fin.getTime())
-      // Échantillonnage à l'écart des bornes : un lever tombe à la minute près.
+      // Sampling away from bounds: a rise lands within the minute.
       const marge = 2 * MS_PAR_MINUTE
       for (let t = f.debut.getTime() + marge; t < f.fin.getTime() - marge; t += 10 * MS_PAR_MINUTE) {
         const proche = f.lune.evenements.some((e) => Math.abs(e.instant.getTime() - t) < marge)

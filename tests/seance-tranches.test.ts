@@ -1,11 +1,9 @@
 /**
- * T-0398 — un panoramique en Panorama ne réveille que ce qui lit la pose max.
- *
- * La pose max dépend de la déclinaison visée : le panneau Panorama la republie à chaque
- * mouvement. Les abonnés au magasin ENTIER se re-rendaient tous — la racine de l'application
- * comprise, jusqu'à 800 ms de rendu React sur deux secondes de geste. `useSyncExternalStore`
- * ne saute un rendu que si l'instantané lu est identique (`Object.is`) : c'est ce contrat que
- * chaque tranche doit tenir.
+ * T-0398 — a pan in Panorama wakes only what reads pose max.
+ * Pose max depends on aimed declination: Panorama panel republishes at each move. Subscribers to
+ * the WHOLE store all re-rendered (app root incl., up to 800 ms React render per 2 s gesture).
+ * `useSyncExternalStore` skips a render only if snapshot identical (`Object.is`): each slice must
+ * hold that contract.
  */
 
 import { beforeEach, describe, expect, it } from 'vitest'

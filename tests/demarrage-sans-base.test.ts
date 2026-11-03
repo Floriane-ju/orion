@@ -1,9 +1,7 @@
 /**
- * T-0342 — §12.5 : sans IndexedDB, l'application démarre quand même et le dit.
- *
- * La base est rendue inutilisable en remplaçant `indexedDB.open` par une ouverture qui échoue ;
- * le réseau sert le manifeste et les paquets. Rien n'est une valeur de ciel : le paquet est
- * un tampon d'octets arbitraires, et seul son chemin jusqu'au lecteur est vérifié.
+ * T-0342 — §12.5: without IndexedDB app still starts and says so. DB unusable via failing
+ * `indexedDB.open`; network serves manifest and packs. No sky value: pack = arbitrary bytes,
+ * only its path to reader checked.
  */
 
 import 'fake-indexeddb/auto'

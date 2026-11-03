@@ -1,9 +1,6 @@
 /**
- * §8.3 — Plan de session ordonné, et §11.2 — export texte imprimable.
- *
- * Ce qui est vérifié ici tient en une phrase : la sortie est une CHRONOLOGIE, pas un
- * palmarès. Et tout ce qui est écarté l'est avec sa cause, à part, sans jamais remplir le
- * plan avec des cibles refusées.
+ * §8.3 — ordered session plan; §11.2 — printable text export. Output = CHRONOLOGY, not ranking.
+ * Dropped targets carry their cause, kept apart; plan never padded with refused targets.
  */
 
 import { readFileSync } from 'node:fs'
@@ -28,7 +25,7 @@ import { objetNebuleuse as objet, SITE_REFERENCE } from './fixtures.ts'
 
 const NUIT = fenetreNocturne(SITE_REFERENCE, new Date('2026-08-14T12:00:00Z'))
 
-/** Setup ciel profond de l'Annexe A : 120 mm f/2,8 sur plein format. */
+/** Annexe A deep-sky setup: 120 mm f/2.8 full frame. */
 function contexte(surcharge: Partial<ContexteSession> = {}): ContexteSession {
   return {
     site: SITE_REFERENCE,
@@ -57,9 +54,8 @@ function contexte(surcharge: Partial<ContexteSession> = {}): ContexteSession {
 }
 
 /**
- * Trois cibles cadrables par ce setup, une trop petite pour lui, une qui déborde du champ.
- * Les dimensions et magnitudes sont celles des objets réels : M31 y retrouve la brillance
- * de surface de 22,17 mag/arcsec² de l'Annexe A.
+ * Three targets: framable, too small, overflowing the field. Real sizes/magnitudes: M31 gets
+ * Annexe A's 22.17 mag/arcsec² surface brightness.
  */
 const CATALOGUE: readonly ObjetCielProfond[] = [
   objet({
@@ -160,11 +156,11 @@ describe('plan de session §8.3', () => {
   })
 
   it('rappelle la batterie quand la capture dépasse le seuil, sans chiffrer d’autonomie', () => {
-    // Le setup de l'Annexe A tient sous le seuil : aucun rappel n'est servi par défaut.
+    // Annexe A setup under threshold: no rappel by default.
     expect(plan.budget.captureMin).toBeLessThanOrEqual(K('DUREE_RAPPEL_BATTERIE_MIN'))
     expect(plan.avertissementBatterie).toBeUndefined()
 
-    // Une cible exigeante allonge la capture : le rappel apparaît, sans chiffrer d'autonomie.
+    // Demanding target lengthens capture: rappel appears, no autonomy figure.
     const long = planSession(contexte({ snrCible: 30 }), CATALOGUE)
     expect(long.budget.captureMin).toBeGreaterThan(K('DUREE_RAPPEL_BATTERIE_MIN'))
     expect(long.avertissementBatterie).toMatch(/batterie/)
@@ -182,10 +178,8 @@ describe('plan de session §8.3', () => {
 })
 
 /**
- * §8.3 — l'entrée du moteur est la SÉLECTION de l'utilisateur (§6.4), jamais le catalogue.
- *
- * Rien n'est recopié ici : ce que le plan retient se compare à ce que le moteur rend sur la
- * même sélection, et ce qu'il écarte doit porter une cause venue du moteur.
+ * §8.3 — engine input = user SELECTION (§6.4), never the catalogue. Kept plan compared with engine
+ * output on same selection; dropped targets carry engine cause.
  */
 describe('le plan n’ordonne que les cibles choisies §8.3', () => {
   const cibleDe = (designation: string): ObjetCielProfond =>
@@ -195,7 +189,7 @@ describe('le plan n’ordonne que les cibles choisies §8.3', () => {
     const vide = planSession(contexte(), [])
     expect(vide.etapes).toStrictEqual([])
     expect(vide.message).toBe(AUCUNE_CIBLE_CHOISIE)
-    // Le grand champ répond à « aucune cible compatible », pas à « vous n'avez rien coché ».
+    // Grand champ answers "aucune cible compatible", not "nothing ticked".
     expect(vide.alternative).toBeUndefined()
     expect(vide.contrainteDominante).toBeUndefined()
     expect(vide.ciblesEcartees).toStrictEqual([])
@@ -205,7 +199,7 @@ describe('le plan n’ordonne que les cibles choisies §8.3', () => {
     const choisies = [cibleDe('M31'), cibleDe('NGC7000')]
     const plan = planSession(contexte(), choisies)
 
-    // La prémisse se calcule : un plan vide ferait passer les deux assertions suivantes.
+    // Premise computed: empty plan would pass next two assertions.
     expect(plan.etapes.length).toBeGreaterThan(0)
     const designations = plan.etapes.map((e) => e.objet.designation)
     expect(designations.every((d) => choisies.some((o) => o.designation === d))).toBe(true)
@@ -217,7 +211,7 @@ describe('le plan n’ordonne que les cibles choisies §8.3', () => {
   it('ignore une cible du catalogue qui n’a pas été choisie', () => {
     const seule = planSession(contexte(), [cibleDe('M31')])
     const complet = planSession(contexte(), CATALOGUE)
-    // La prémisse : le catalogue entier en planifie davantage, sinon rien n'est démontré.
+    // Premise: full catalogue plans more, else nothing demonstrated.
     expect(complet.etapes.length).toBeGreaterThan(seule.etapes.length)
     expect(seule.etapes.map((e) => e.objet.designation)).toStrictEqual(['M31'])
   })
@@ -232,10 +226,9 @@ describe('le plan n’ordonne que les cibles choisies §8.3', () => {
   })
 
   it('garde au plan TOUTE cible que la liste annonce photographiable', () => {
-    // Le défaut corrigé par T-0322 : la liste annonçait « photographiable, 2 nuits », le plan
-    // répondait « non retenue, la moins bien notée est retirée ». Deux verdicts pour une même
-    // cible. Le critère est celui de la liste — `photographiable`, sur l'état du moteur — et
-    // le plan n'a plus le droit d'en défaire aucune.
+    // T-0322: list said "photographiable, 2 nuits", plan said "non retenue, la moins bien notée est
+    // retirée" — two verdicts for one target. Criterion = list's (`photographiable`); plan can't
+    // undo.
     const etats = etatsCibles(contexte(), CATALOGUE)
     const attendues = CATALOGUE.filter((o) => photographiable(etats.get(o.designation)))
     expect(attendues.length).toBeGreaterThan(0)
@@ -248,8 +241,7 @@ describe('le plan n’ordonne que les cibles choisies §8.3', () => {
   })
 
   it('annonce le dépassement de la nuit au lieu de retirer une cible', () => {
-    // Le pointage seul — dix minutes par cible — fait déborder n'importe quelle nuit dès
-    // qu'on en choisit beaucoup. C'est la situation qui retirait des cibles une à une.
+    // Pointage alone (10 min/target) overflows any night once many picked; used to drop one by one.
     const etats = etatsCibles(contexte(), CATALOGUE)
     const photographiables = CATALOGUE.filter((o) => photographiable(etats.get(o.designation)))
     const beaucoup = Array.from({ length: 20 }, (_, i) =>
@@ -257,21 +249,17 @@ describe('le plan n’ordonne que les cibles choisies §8.3', () => {
     ).flat()
 
     const plan = planSession(contexte(), beaucoup)
-    // La prémisse : sans dépassement, ce test ne démontre rien. Dix minutes de pointage par
-    // cible suffisent à faire déborder n'importe quelle nuit.
+    // Premise: without overflow nothing proven (10 min pointage/target suffices).
     expect(plan.budget.tient).toBe(false)
-    // Et pourtant aucune n'est retirée : le partage donne sa part à chacune, et le
-    // dépassement se lit sur le budget.
+    // Yet none dropped: partage gives each its share; overflow shows on the budget.
     expect(plan.etapes).toHaveLength(beaucoup.length)
     expect(plan.ciblesEcartees).toStrictEqual([])
   })
 
   it('ne laisse pas une cible de plusieurs nuits affamer une cible courte', () => {
-    // T-0322 — `alloueCreneau` borne à ce que la cible RÉCLAME, et une cible de plusieurs
-    // nuits en réclame plus que la nuit entière : servie en premier, elle prenait tout son
-    // créneau et sa voisine ressortait « non retenue ». Mêmes coordonnées ici, donc même
-    // créneau : sans la règle « ce qui se termine ce soir passe d'abord », l'une des deux
-    // n'a plus une minute.
+    // T-0322 — `alloueCreneau` caps at what target CLAIMS; multi-night target claims > whole night:
+    // served first, it took its whole créneau, neighbour came out "non retenue". Same coords → same
+    // créneau: without "ce qui se termine ce soir passe d'abord", one gets no minute.
     const gourmande = objet({ designation: 'GOURMANDE', vMag: 3.8, decDeg: 46 })
     const rapide = objet({
       designation: 'RAPIDE',
@@ -282,22 +270,22 @@ describe('le plan n’ordonne que les cibles choisies §8.3', () => {
     })
 
     const etats = etatsCibles(contexte(), [gourmande, rapide])
-    // La prémisse : les deux sont photographiables, et l'une déborde de la nuit.
+    // Premise: both photographiable, one overflows the night.
     expect(photographiable(etats.get('GOURMANDE'))).toBe(true)
     expect(photographiable(etats.get('RAPIDE'))).toBe(true)
     expect(etats.get('GOURMANDE')!.pose!.nNuits).toBeGreaterThan(1)
     expect(etats.get('RAPIDE')!.pose!.nNuits).toBe(1)
 
     const plan = planSession(contexte(), [gourmande, rapide])
-    // Seconde prémisse : c'est bien la gourmande qui gagnerait l'arbitrage par score. Sans
-    // elle, le test passerait pour la mauvaise raison — la courte servie d'abord par hasard.
+    // 2nd premise: greedy one wins score arbitration, else test passes for the wrong reason (short
+    // one served first by chance).
     const score = (d: string) => plan.etapes.find((e) => e.objet.designation === d)!.score.value
     expect(score('GOURMANDE')).toBeGreaterThan(score('RAPIDE'))
     expect(plan.etapes.map((e) => e.objet.designation).sort()).toStrictEqual([
       'GOURMANDE',
       'RAPIDE',
     ])
-    // Et la courte est SERVIE, pas juste présente : son intégration tient ce soir.
+    // Short one SERVED, not just present: its integration fits tonight.
     expect(plan.etapes.find((e) => e.objet.designation === 'RAPIDE')!.integrationComplete).toBe(
       true,
     )
@@ -318,8 +306,8 @@ describe('le plan n’ordonne que les cibles choisies §8.3', () => {
   })
 
   it('n’écarte aucune cible choisie en silence, si nombreuses soient-elles', () => {
-    // L'ancien plafond de candidates coupait la sélection par magnitude, sans cause. Une
-    // sélection plus large que lui doit se retrouver ENTIÈRE : au plan, ou dans les écartées.
+    // Old candidate cap cut selection by magnitude, causeless. Wider selection must come back
+    // ENTIRE (plan or dropped).
     const large = Array.from({ length: 45 }, (_, i) =>
       objet({ designation: `CHOISIE-${i}`, adDeg: i * 8, decDeg: 20 + (i % 40) }),
     )
@@ -359,7 +347,7 @@ describe('export imprimable §11.2', () => {
       materiel: '120 mm f/2,8, plein format',
     })
     expect(texte).toContain('PLAN DE SESSION')
-    // T-0267 — le titre nomme la nuit par ses deux dates, pas par le seul jour du soir.
+    // T-0267 — title names night by its two dates, not just evening day.
     expect(texte).toContain('nuit du 14/08/2026 au 15/08/2026')
     expect(texte).toContain('CHRONOLOGIE')
     expect(texte).toContain('CALIBRATION')
@@ -372,7 +360,7 @@ describe('export imprimable §11.2', () => {
   it('porte une unité sur chaque valeur affichée', () => {
     const plan = planSession(contexte(), CATALOGUE)
     const texte = planEnTexte(plan, { nuitIso: '2026-08-14', lieu: 'site', materiel: 'setup' })
-    // Aucune ligne « libellé : nombre » sans unité derrière le nombre.
+    // No "label: number" line without a unit after the number.
     const sansUnite = texte
       .split('\n')
       .filter((ligne) => /:\s+-?\d+(?:[.,]\d+)?\s*$/.test(ligne))
@@ -399,8 +387,7 @@ describe('sur le catalogue OpenNGC embarqué', () => {
 
     expect(plan.etapes.length).toBeGreaterThan(0)
     expect(plan.budget.tient).toBe(true)
-    // Le pré-filtrage dur borne le coût : le calcul d'éphéméride ne porte que sur les
-    // candidates retenues, pas sur le catalogue entier.
+    // Hard pre-filter bounds cost: ephemeris only for retained candidates, not whole catalogue.
     expect(duree).toBeLessThan(5000)
   })
 
@@ -419,21 +406,15 @@ describe('sur le catalogue OpenNGC embarqué', () => {
 })
 
 /**
- * T-0079 puis T-0266 — ce que le grand champ tient vraiment, mesuré sur le CATALOGUE RÉEL.
- *
- * L'épique exigeait qu'un plan cite une cible Sharpless ou Barnard. Ce critère ne passait que
- * par la classe d'opacité de Barnard lue comme une magnitude : T-0266 l'a retirée, et la
- * promesse est tombée avec. Les 344 objets Barnard ne portent aucune photométrie — une
- * nébuleuse obscure absorbe, elle n'émet pas — et les Sharpless qui en portent une plafonnent
- * sous la borne basse de remplissage du profil grand champ. Les deux ensembles sont disjoints.
- *
- * Ce qui se vérifie ici n'est donc plus la promesse, c'est l'honnêteté : le complément est
- * écarté pour la raison vraie, nommée, au lieu de disparaître en silence ou de remonter sur
- * une magnitude inventée. Faire repasser l'ancien critère demanderait de réintroduire le flux
- * que §6.3 interdit.
+ * T-0079 → T-0266 — what grand champ really holds, on the REAL CATALOGUE.
+ * Epic wanted a plan citing a Sharpless/Barnard target; passed only via Barnard opacity class read
+ * as magnitude (removed T-0266). The 344 Barnard objects have no photometry (dark nebula absorbs);
+ * Sharpless with one sit below grand champ profile's lower fill bound: disjoint sets.
+ * Checks honesty: complement dropped for true, named reason; no invented magnitude (old criterion
+ * needs flux §6.3 forbids).
  */
 describe('grand champ bout en bout §6.1 (T-0079, T-0266)', () => {
-  /** Sharpless et Barnard — le complément que ni NGC ni IC ne portent. */
+  /** Sharpless + Barnard — complement NGC/IC don't carry. */
   const EST_COMPLEMENT = /^(Sh2-|B)\d+$/
 
   function catalogueReel(): readonly ObjetCielProfond[] {
@@ -461,15 +442,13 @@ describe('grand champ bout en bout §6.1 (T-0079, T-0266)', () => {
     const plan = planSession(contexte(), catalogue)
     expect(plan.etapes.length).toBeGreaterThan(0)
 
-    // Sans magnitude intégrée, aucune brillance de surface n'est calculable, donc aucun
-    // verdict : le complément ne peut pas entrer dans le plan. L'y faire remonter demanderait
-    // un flux que ni OpenNGC ni le catalogue DSO ne publient.
+    // No integrated magnitude → no surface brightness → no verdict: complement can't enter plan
+    // (needs flux neither OpenNGC nor DSO catalogue publishes).
     const planifiees = plan.etapes.filter((e) => EST_COMPLEMENT.test(e.objet.designation))
     expect(planifiees.map((e) => e.objet.designation).join(', ')).toBe('')
 
-    // Il n'est pas perdu en silence pour autant. Le pré-filtrage compte les cibles sans donnée
-    // plutôt que de les lister une par une (elles sont des milliers), et la note de couverture
-    // porte ce décompte jusqu'à l'écran : le seuil se dérive du paquet, jamais d'un nombre écrit.
+    // Not lost silently: pre-filter counts dataless targets (thousands) instead of listing them;
+    // coverage note carries count to screen. Threshold derived from pack.
     const sansPhotometrie = catalogue.filter(
       (objet) => EST_COMPLEMENT.test(objet.designation) && objet.vMag === null,
     )
@@ -482,18 +461,16 @@ describe('grand champ bout en bout §6.1 (T-0079, T-0266)', () => {
 })
 
 /**
- * §5.2 — « AUCUN → domaine ciel profond VERROUILLÉ, seul le grand champ reste ouvert ».
- *
- * Le plan n'est alors pas vide « faute de cible » : il est FERMÉ, et le critère d'acceptation
- * de §5.2 exige qu'il le dise avec le grand champ en alternative. Une contrainte dominante
- * anonyme — « SUIVI, 14 000 cibles écartées » — ne remplit pas ce contrat.
+ * §5.2 — "AUCUN → domaine ciel profond VERROUILLÉ, seul le grand champ reste ouvert".
+ * Plan CLOSED, not empty "for lack of target": §5.2 requires saying so, grand champ as alternative.
+ * Anonymous dominant constraint ("SUIVI, 14 000 cibles écartées") fails.
  */
 describe('§5.2 — plan de séance verrouillé sans suivi', () => {
   const sansSuivi = profilSuivi({ suiviActif: false, typeMonture: 'TRACKER', focaleMm: 120 })
   const ferme = planSession(contexte({ domaineCpFerme: sansSuivi.cause }), CATALOGUE)
 
   it('ne retient aucune cible là où le suivi en retient', () => {
-    // La prémisse se calcule : sans elle, le test passerait un jour où le catalogue est vide.
+    // Premise computed: else test passes on a day the catalogue is empty.
     expect(planSession(contexte(), CATALOGUE).etapes.length).toBeGreaterThan(0)
     expect(ferme.etapes).toStrictEqual([])
   })

@@ -1,9 +1,7 @@
 /**
- * T-0402 — §9.3 : une trace filée a la largeur d'une tache stellaire et une teinte désaturée.
- *
- * Aucune largeur ni couleur recopiée : le test contrôle des RELATIONS — la largeur reste dans
- * l'encadrement du registre et ne suit plus le diamètre du disque, la teinte d'une étoile
- * s'approche du blanc sans s'y confondre.
+ * T-0402 — §9.3: filé trace has stellar-blob width and desaturated hue. Tests RELATIONS, no
+ * copied width/colour: width within registry bounds, no longer follows disk diameter; star
+ * hue approaches white without merging.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -36,8 +34,8 @@ describe('passage du disque au fil', () => {
   const rayon = rayonEtoilePx(K('MAG_REFERENCE_RAYON'))
   const fondu = rayon * K('LONGUEUR_FONDU_TRACE_RAYONS')
 
-  // Un trait à bouts ronds de longueur L couvre L + 2r : le disque (2r) n'est rejoint sans saut
-  // qu'à L nulle. Partir d'un seuil à L = r allongeait l'étoile de r d'une image à l'autre.
+  // Round-capped stroke of length L covers L + 2r: disk (2r) joins without jump only at L = 0.
+  // Threshold at L = r stretched the star by r between frames.
   it('part du disque à longueur nulle, sans saut', () => {
     expect(avanceeVersFil(0, rayon)).toBe(0)
     expect(avanceeVersFil(rayon / 100, rayon)).toBeLessThan(1 / 100)

@@ -1,14 +1,10 @@
 /**
- * T-0189 — Échap referme la bulle et les tiroirs (WCAG 2.2, 1.4.13 et motif « disclosure »).
- *
- * Ce qui se vérifie ici n'est pas un événement du DOM mais la règle de priorité : une glose
- * ouverte se congédie AVANT le tiroir qui la porte, faute de quoi une seule touche emporterait
- * les deux et l'utilisateur perdrait le tiroir qu'il consultait. Le branchement DOM est un
- * `addEventListener` sur le document ; c'est la décision qui porte le test, comme pour le
- * clavier du planétarium (T-0069).
- *
- * Le reste du contrat se lit dans la feuille de style : la bulle reste survolable et
- * persistante — congédier ne doit pas avoir retiré `:hover` / `:focus-visible` à l'ancre.
+ * T-0189 — Échap closes bubble and drawers (WCAG 2.2, 1.4.13, "disclosure" pattern). Tests
+ * priority rule, not a DOM event: open glose dismissed BEFORE the drawer holding it, else one
+ * key closes both and user loses the drawer being read. DOM wiring = `addEventListener` on
+ * document; decision carries the test, as for planétarium keyboard (T-0069).
+ * Rest of contract in stylesheet: bubble stays hoverable and persistent — dismissing must not
+ * remove `:hover` / `:focus-visible` from anchor.
  */
 
 import { readFileSync, readdirSync } from 'node:fs'
@@ -72,12 +68,9 @@ describe('T-0189 — les trois tiroirs sont couverts par la même règle', () =>
   })
 
   /**
-   * T-0215 — la classe ne s'écrit plus au site d'appel, elle se construit dans `Tiroir`.
-   *
-   * L'assertion précédente citait les chaînes littérales de deux fichiers : elle garantissait
-   * la propriété en énumérant les tiroirs, donc elle ratait le quatrième (`tiroir-legende`) et
-   * elle aurait raté le cinquième. La propriété tient désormais par CONSTRUCTION, et c'est
-   * cela qui se vérifie : un seul endroit bâtit un `<details class="tiroir">`.
+   * T-0215 — class no longer written at call site, built in `Tiroir`. Old assertion quoted
+   * literal strings of two files: enumerated drawers, missed the fourth (`tiroir-legende`),
+   * would miss the fifth. Now holds by CONSTRUCTION: one place builds `<details class="tiroir">`.
    */
   it('bâtit la classe que l’écoute reconnaît, en un seul endroit', () => {
     const tiroir = readFileSync(join(RACINE, 'ui', 'Tiroir.tsx'), 'utf8')

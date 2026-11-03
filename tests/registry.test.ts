@@ -1,9 +1,6 @@
 /**
- * §2.1 — premier critère d'acceptation : aucune valeur numérique non triviale n'existe
- * hors du registre dans les moteurs de calcul.
- *
- * Ce test n'a de valeur que s'il est automatisé dès le Lot 0 : ajouté après coup, il
- * échouerait partout et serait désactivé.
+ * §2.1 — 1st acceptance criterion: no non-trivial numeric value outside registry in compute
+ * engines. Automated from Lot 0, else added later it fails everywhere and gets disabled.
  */
 
 import { readFileSync, readdirSync } from 'node:fs'
@@ -18,9 +15,8 @@ const DOSSIER_REGISTRE = join(import.meta.dirname, '..', 'src', 'registry')
 const DOSSIER_UI = join(import.meta.dirname, '..', 'src', 'ui')
 
 /**
- * Nombres tolérés dans un moteur : entiers d'indexation et de comparaison, conversions
- * d'unités de temps, d'angle et de pourcentage, et les valeurs définitionnelles de la
- * géométrie sphérique. Tout le reste doit venir du registre.
+ * Numbers tolerated in an engine: indexing/comparison integers, time/angle/percent conversions,
+ * definitional spherical-geometry values. Everything else from registry.
  */
 const TRIVIAUX = new Set([0, 1, 2, 3, 24, 60, 90, 100, 180, 360, 1000, 3600, 60000])
 
@@ -54,7 +50,7 @@ describe('registre §2.1', () => {
   it('est gelé : aucun ajustement à l’exécution', () => {
     expect(Object.isFrozen(REGISTRE)).toBe(true)
     expect(() => {
-      // @ts-expect-error — écriture volontairement interdite
+      // @ts-expect-error — write forbidden on purpose
       REGISTRE.ROTATION_CIEL_DEG_H = null
     }).toThrow()
   })
@@ -68,8 +64,7 @@ describe('registre §2.1', () => {
   })
 
   it('refuse de servir une constante dépréciée', () => {
-    // L'approximation linéaire du champ donne 205,7° à 10 mm : elle ne doit être
-    // consommée par aucun moteur (§5.1, Annexe C).
+    // Linear field approx gives 205.7° at 10 mm: no engine may consume it (§5.1, Annexe C).
     expect(() => K('DEG_PAR_RADIAN_APPROX')).toThrow(/dépréciée/)
   })
 
@@ -82,8 +77,8 @@ describe('registre §2.1', () => {
   })
 
   it('propage l’ordre de grandeur au résultat qui consomme la constante', () => {
-    // C-07 est un plafond de terrain, pas une mesure : une sortie qui en dépend
-    // s'affiche en plage, jamais comme une valeur exacte (§2.1, dernier critère).
+    // C-07 = field ceiling, not a measure: dependent output displays as a range, never exact
+    // (§2.1, last criterion).
     const approximatif = trace({
       value: K('PLAFOND_POSE_SANS_AUTOGUIDAGE_S'),
       formula: 'MASSE_AIR',
@@ -100,16 +95,12 @@ describe('registre §2.1', () => {
 
 describe('sources des tables du registre §2.1', () => {
   /**
-   * Une source déclarée que personne n'affiche est une promesse écrite et non tenue :
-   * elle dit la limite de validité d'une table sur laquelle l'utilisateur agit. Chaque
-   * SOURCE_TABLE_* doit donc arriver à l'écran, et toutes par le même chemin — sinon la
-   * traçabilité se lit de trois manières différentes (T-0062).
-   *
-   * T-0228 — ce chemin n'est plus une classe de style répétée dans trois panneaux, c'est la
-   * table `SOURCES`. Les trois phrases étaient posées sous les valeurs qu'elles sourcent, où
-   * elles se relisaient à chaque cible sans arbitrer quoi que ce soit ; elles sont maintenant
-   * dans le tiroir « info ». La discipline ne change pas de nature : une source déclarée que
-   * la table ne cite pas n'atteint aucun écran, et le test la nomme.
+   * A declared source nobody displays = broken promise: it states the validity limit of a table the
+   * user acts on. Each SOURCE_TABLE_* must reach the screen, all by the same path, else
+   * traceability reads three ways (T-0062).
+   * T-0228 — that path = `SOURCES` table, not a style class repeated in 3 panels (3 sentences under
+   * their values, re-read at every target, arbitrating nothing); now in the "info" drawer. A
+   * declared source the table doesn't cite reaches no screen: test names it.
    */
   const declare = (fichier: string): readonly string[] => [
     ...readFileSync(join(DOSSIER_REGISTRE, fichier), 'utf8').matchAll(

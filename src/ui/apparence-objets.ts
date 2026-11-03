@@ -1,17 +1,11 @@
 /**
- * §3.3, §6.3, §11.1 — ce qui distingue un objet du ciel profond d'un autre à l'écran.
- *
- * C'EST LE FICHIER À ÉDITER pour changer une couleur de marqueur : `APPARENCE_OBJET` donne,
- * pour chacun des dix types de `TYPES_OBJET`, la teinte du dégradé radial et celle du bord.
- * Rien d'autre dans l'application ne décide de ces teintes.
- *
- * Ces couleurs ne sont pas au registre §2.1, et pour la même raison que la table `ANCRES` de
- * `couleurs.ts` : ce sont des décisions de dessin, aucune formule ne les consomme et aucun
- * verdict n'en dépend. Le registre ne porte que les grandeurs qu'un calcul lit.
- *
- * En octets et non en chaînes CSS : c'est ce qui permet de dériver le mode nuit — luminance
- * perçue ramenée sur le seul canal rouge (§11.1) — au lieu de tenir une seconde table à jour
- * à la main, où une teinte oubliée passerait un vert dans le noir.
+ * §3.3, §6.3, §11.1 — what tells one deep-sky object from another on screen.
+ * EDIT THIS FILE to change a marker colour: `APPARENCE_OBJET` gives, per each of the ten
+ * `TYPES_OBJET`, radial gradient hue and edge hue. Nothing else decides them.
+ * Not in registre §2.1 (as `ANCRES` in `couleurs.ts`): drawing decisions, no formula or verdict
+ * reads them; registre holds only quantities a calcul reads.
+ * Bytes, not CSS strings: mode nuit derives (perceived luminance on red channel only, §11.1)
+ * instead of a hand-kept second table where a forgotten hue lets green into the dark.
  */
 
 import { rayonEtoilePx } from '../core/projection.ts'
@@ -28,26 +22,20 @@ import {
 type Octets = readonly [number, number, number]
 
 export interface ApparenceObjet {
-  /** Cœur du dégradé radial : la couleur de la matière de l'objet. */
+  /** Gradient core: object matter colour. */
   readonly radiant: Octets
-  /** Contour de l'ellipse — et couleur de la croix quand le catalogue n'a pas de dimensions. */
+  /** Ellipse outline; also cross colour when catalogue has no dimensions. */
   readonly bord: Octets
 }
 
 /**
- * Les familles partagent leur teinte : trois nébuleuses de mécanisme différent restent trois
- * nébuleuses à l'œil, et multiplier les teintes proches ne distingue plus rien sur fond noir.
- *
- * T-0196 — le fourre-tout (`INCONNU`, `AUTRE`) est GRIS, et non le vert des galaxies. Il
- * portait exactement leur radiant et ne s'en écartait que d'un contour un peu plus sombre :
- * à l'écran, deux disques verts qu'aucun œil ne sépare, et une légende qui promettait une
- * distinction que la scène ne tenait pas. Une classification absente n'est pas une famille —
- * le gris est la seule teinte qui n'en annonce aucune.
- *
- * Le radiant est TOUJOURS plus clair que le bord, y compris pour la nébuleuse obscure. Peindre
- * celle-ci d'un cœur noir était juste sur le fond — c'est ce qu'elle est, une absence de lumière
- * — mais sur un canevas noir, un dégradé noir n'est plus un dégradé : l'objet perdait sa forme
- * et son étendue, la seule chose que le marqueur a à dire. C'est un symbole, pas une photographie.
+ * Families share a hue: 3 nebulae of different mechanism stay 3 nebulae to the eye; close hues
+ * distinguish nothing on black.
+ * T-0196 — catch-all (`INCONNU`, `AUTRE`) is GREY, not galaxy green: same radiant + slightly
+ * darker outline = two indistinguishable green discs, legend promising a distinction scène didn't
+ * hold. No classification isn't a family; grey announces none.
+ * Radiant ALWAYS lighter than edge, dark nebula included: black core is true to the sky but on a
+ * black canvas loses shape and extent, the marker's only job. A symbol, not a photograph.
  */
 export const APPARENCE_OBJET: Readonly<Record<TypeObjet, ApparenceObjet>> = Object.freeze({
   INCONNU: { radiant: [198, 205, 210], bord: [148, 158, 166] },
@@ -62,48 +50,43 @@ export const APPARENCE_OBJET: Readonly<Record<TypeObjet, ApparenceObjet>> = Obje
   AUTRE: { radiant: [198, 205, 210], bord: [148, 158, 166] },
 } satisfies Record<TypeObjet, ApparenceObjet>)
 
-/** Opacité au centre du dégradé. En dessous de 1 : le fond de ciel reste lisible au travers. */
+/** Opacity at gradient centre. Below 1: fond de ciel stays readable through. */
 const OPACITE_RADIANT_COEUR = 0.75
-/** Opacité au bord du dégradé. Nulle : le halo s'éteint sur le contour, il ne s'y arrête pas. */
+/** Opacity at gradient edge. Zero: halo fades out on the outline, doesn't stop there. */
 const OPACITE_RADIANT_BORD = 0
-/** Épaisseur du contour. Un peu plus qu'un pixel : c'est lui qui porte la forme de l'objet. */
+/** Outline thickness. A bit over 1 px: it carries the object's shape. */
 export const EPAISSEUR_BORD_PX = 1.5
 
 /**
- * §3.4 — opacité d'un marqueur que les filtres du catalogue ne retiennent pas. Estompé, pas
- * effacé : le reste du ciel doit rester lisible sous la sélection, sinon on ne voit plus où
- * elle tombe. Un dixième : la sélection porte seule, et l'écarté ne subsiste qu'en trame de
- * fond. La teinte du type n'y est plus reconnaissable, mais c'est la POSITION qu'un marqueur
- * écarté a encore à dire, et le clic la rend toujours.
+ * §3.4 — opacity of a marker the catalogue filters don't retain. Faded, not erased: rest of sky
+ * stays readable under the selection, else its position is lost. 1/10: selection carries alone,
+ * rejected persists as background texture. Type hue unrecognisable but POSITION still says
+ * something, and click still returns it.
  */
 export const OPACITE_OBJET_ESTOMPE = 0.1
 
 /**
- * T-0357 — part visible des étoiles et des repères du ciel nocturne, selon la hauteur du Soleil.
- *
- * Nulle Soleil levé, pleine à la fin du crépuscule civil : c'est là que l'œil voit les
- * premières étoiles de figure, et que les lignes qui les relient redeviennent utiles. Le
- * NOMBRE d'étoiles, lui, reste l'affaire de la magnitude limite (`seuil-oeil.ts`) ; ce fondu
- * n'évite que le basculement d'un coup, sur un fond que le modèle de crépuscule fige de 0 à
- * −5° (bord de la table de Patat). La Lune et les planètes, visibles de jour, n'y passent pas.
+ * T-0357 — visible share of stars and landmarks of night sky, by Sun altitude. Zero Sun up, full
+ * at end of civil twilight: first figure stars become visible, connecting lines useful again. Star
+ * COUNT stays with limiting magnitude (`seuil-oeil.ts`); this fade only avoids a snap on a
+ * background the twilight model freezes from 0 to −5° (Patat table edge). Moon and planets
+ * (visible by day) skip it.
  */
 export function apparitionReperes(altitudeSoleilDeg: number): number {
   return encadre(altitudeSoleilDeg / K('HAUTEUR_CREPUSCULE_CIVIL_DEG'), 0, 1)
 }
 
 /**
- * §8.4 / T-0324 — opacité des étoiles de fond sous un parcours de pointage.
- *
- * Plus haute que celle d'un marqueur écarté : le fond n'est pas ce qu'on écarte, c'est ce qui
- * dit où l'on regarde. Assez basse pour que les étapes cerclées du trajet se détachent du semis
- * sans qu'on ait à les chercher — c'est le seul repère que la scène dépouillée garde encore.
+ * §8.4 / T-0324 — opacity of background stars under a pointage route. Higher than a rejected
+ * marker's: background tells where we look. Low enough that circled route steps stand out without
+ * searching, the only landmark the stripped scène keeps.
  */
 export const OPACITE_ETOILE_PARCOURS = 0.35
 
 export interface TeintesObjet {
-  /** Arrêt central du dégradé. */
+  /** Central gradient stop. */
   readonly coeur: string
-  /** Arrêt périphérique du dégradé. */
+  /** Peripheral gradient stop. */
   readonly halo: string
   readonly bord: string
 }
@@ -116,7 +99,7 @@ function css(octets: Octets): string {
   return `rgb(${octets[0]} ${octets[1]} ${octets[2]})`
 }
 
-/** La table complète, à partir d'une conversion teinte de base → teinte peinte. */
+/** Full table, from a base hue → painted hue conversion. */
 function table(peint: (octets: Octets) => string): TeintesParType {
   const teintes = {} as Record<TypeObjet, TeintesObjet>
   for (const type of TYPES) {
@@ -132,31 +115,28 @@ function table(peint: (octets: Octets) => string): TeintesParType {
 }
 
 /**
- * Deux tables gelées une fois, comme les deux palettes de `couleurs.ts` : la boucle de rendu
- * les demande par image, et les reconstruire n'apporterait rien qu'une allocation.
+ * Two tables frozen once, like the two palettes of `couleurs.ts`: render loop asks per frame,
+ * rebuilding only allocates.
  */
 const TEINTES_JOUR = table(css)
 const TEINTES_NUIT = table((o) => rougeEquivalent(o[0], o[1], o[2]))
 
 /**
- * La teinte de RÉFÉRENCE d'un type : celle du mode courant, sans l'ajustement au fond de ciel.
- * C'est ce que montre la légende de la barre basse — elle nomme une convention de couleur, pas
- * l'état d'une image, et lui passer une brillance de ciel lui ferait dire autre chose à chaque
- * changement de Bortle.
+ * REFERENCE hue of a type: current mode's, without fond de ciel adjustment. Shown by the legend:
+ * a colour convention, not an image state; sky brightness would change its meaning per Bortle.
  */
 export function teintesReference(modeNuit: boolean): TeintesParType {
   return modeNuit ? TEINTES_NUIT : TEINTES_JOUR
 }
 
 /**
- * En vue réaliste, les marqueurs suivent les autres repères de la scène : leur teinte garde le
- * rapport de contraste qu'elle a sur le fond de référence, sinon un objet disparaît sous un
- * ciel de Bortle 9 — exactement ce que §3.7 interdit. Cache à une entrée, même raison que
- * `paletteRealiste` : la valeur de `sbCiel` ne change pas d'une image à l'autre.
+ * Realistic view: markers follow scène's other landmarks: hue keeps its contrast ratio on the
+ * reference background, else an object vanishes under Bortle 9 sky (§3.7 forbids). One-entry
+ * cache, as `paletteRealiste`: `sbCiel` doesn't change between frames.
  */
 let cacheRealiste: { sb: number; teintes: TeintesParType } | null = null
 
-/** La table de la scène. Mode nuit d'abord : il l'emporte sur la vue réaliste (§11.1). */
+/** Scène table. Mode nuit first: it overrides realistic view (§11.1). */
 export function teintesObjets(
   modeNuit: boolean,
   vueRealiste: boolean,
@@ -171,18 +151,15 @@ export function teintesObjets(
   return teintes
 }
 
-/** Sous ce rayon, l'antialiasing efface le disque : la plus faible étoile reste un point. */
+/** Below this radius antialiasing erases the disc: faintest star stays a point. */
 export const RAYON_MIN_ETOILE_PX = K('RAYON_MIN_ETOILE_PX')
 
-/**
- * Plafond du planétarium seul — l'aperçu §9.2 garde la loi complète, parce qu'il simule un
- * capteur, pas une carte.
- */
+/** Planétarium cap only — §9.2 preview keeps the full law (simulates a sensor, not a map). */
 export const RAYON_MAX_ETOILE_PX = K('RAYON_MAX_ETOILE_CIEL_PX')
 
 /**
- * Rayon d'une étoile au planétarium : la loi §3.3, avec la pente de §9.2 mais un r0 de carte
- * (T-0376) — c'est la gradation des disques qui porte la hiérarchie du ciel.
+ * Star radius on planétarium: §3.3 law with §9.2 slope but a map r0 (T-0376); disc gradation
+ * carries sky hierarchy.
  */
 export function rayonEtoileCielPx(magV: number): number {
   const loi = (rayonEtoilePx(magV) * K('RAYON_ETOILE_CIEL_R0_PX')) / K('RAYON_ETOILE_R0_PX')

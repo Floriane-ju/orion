@@ -1,13 +1,8 @@
 /**
- * §5.2 — Profil Suivi, et §9.1 — pose maximale à étoiles ponctuelles.
- *
- * Une seule question est posée à l'utilisateur — « viseur polaire réglé ? » — et « je ne
- * sais pas » vaut mise en station approximative : le moteur ne suppose jamais le pire en
- * silence, il annonce ce qu'il a supposé et ce que la réponse soignée rapporterait.
- *
- * Les poses de référence C-12 et C-13 sont des ORDRES DE GRANDEUR. Toute sortie qui en
- * dépend porte sa plage : la mise en station reste à la charge de l'utilisateur sur le
- * terrain, l'application annonce un ordre de grandeur, jamais une valeur mesurée.
+ * §5.2 — Profil Suivi, §9.1 — pose maximale à étoiles ponctuelles.
+ * One question: « viseur polaire réglé ? »; « je ne sais pas » = mise en station approximative.
+ * Never silently assumes worst case: announces the assumption and what the careful answer yields.
+ * Reference poses C-12, C-13 are ORDERS OF MAGNITUDE: dependent outputs carry their range.
  */
 
 import { K, type ConstantId } from '../registry/constants.ts'
@@ -27,14 +22,14 @@ export interface EntreeNpf {
   readonly focaleMm: number
   readonly ouvertureN: number
   readonly pitchUm: number
-  /** Déclinaison de la zone visée : il n'existe pas une pose max, mais une par déclinaison. */
+  /** Aimed-zone declination: one pose max per declination. */
   readonly decDeg: number
   readonly tolerance?: ToleranceNpf
 }
 
 /**
- * Pose la plus longue conservant des étoiles ponctuelles, à la déclinaison visée (§9.1).
- * Au pôle exact, cos δ s'annule et la NPF n'est plus définie : aucune valeur n'est produite.
+ * Longest point-star pose at aimed declination (§9.1).
+ * Exact pole (cos δ = 0): NPF undefined, no value.
  */
 export function npf(entree: EntreeNpf): Traced<number | null> {
   const focaleMm = valide('focale_mm', entree.focaleMm)
@@ -75,17 +70,12 @@ export function npf(entree: EntreeNpf): Traced<number | null> {
 }
 
 /**
- * §9.3 — étendue angulaire de la tache stellaire, en secondes d'arc : le chemin que la NPF stricte
- * laisse parcourir à une étoile de l'équateur céleste avant qu'elle cesse d'être ponctuelle.
- *
- * La NPF mesure une trace contre la tache — diffraction et aberrations (terme en N), pixel (terme
- * en pitch) — et non contre un seul pixel. C'est donc l'étendue sur laquelle le flux d'une étoile
- * s'accumule tant qu'elle ne file pas : compter la traversée d'un pixel la faisait pâlir dès
- * quelques secondes, alors qu'à la pose NPF elle reste un point.
+ * §9.3 — star blob angular extent, arcsec: path an equatorial star travels at NPF pose before
+ * ceasing to be a point. NPF measures a trail against the blob (N term: diffraction/aberrations;
+ * pitch term: pixel), not 1 pixel: 1-pixel crossing faded stars after seconds.
  */
 export function tacheNpfArcsec(optique: Omit<EntreeNpf, 'decDeg' | 'tolerance'>): number {
-  // Un degré par heure vaut une seconde d'arc par seconde : la NPF à l'équateur, multipliée par
-  // la rotation du ciel, donne directement l'angle. À δ = 0 la NPF est toujours définie.
+  // 1°/h = 1 arcsec/s: NPF at equator × sky rotation = angle. δ = 0: NPF always defined.
   return K('ROTATION_CIEL_DEG_H') * npf({ ...optique, decDeg: 0 }).value!
 }
 
@@ -98,24 +88,22 @@ export interface EntreeSuivi {
 
 export interface ProfilSuivi {
   readonly mode: ModeSuivi
-  /** `null` quand aucune pose de suivi n'a de sens : pas de suivi, ou monture altazimutale. */
+  /** `null` = no tracking pose: no suivi or altaz mount. */
   readonly tMaxSuiviS: Traced<number | null>
   readonly domaineCpOuvert: boolean
-  /** §8.2 — seule l'équatoriale allemande impose un retournement au méridien. */
+  /** §8.2 — only German equatorial flips at meridian. */
   readonly retournementMeridien: boolean
   /**
-   * Pourquoi le domaine ciel profond est fermé — `null` quand il est ouvert.
-   *
-   * Nullable plutôt qu'optionnel : c'est cette phrase que le plan de séance et la liste du
-   * catalogue affichent à la place des cibles (§8.3, §6.4), et un `undefined` les laisserait
-   * refuser sans rien dire. Fermer le domaine et le justifier sont un seul geste.
+   * Why deep-sky domain is closed; `null` = open.
+   * Nullable, not optional: plan de séance and catalogue list show it instead of targets
+   * (§8.3, §6.4); `undefined` would let them refuse silently.
    */
   readonly cause: string | null
-  /** Ce qu'une mise en station soignée rapporterait, chiffré, quand elle ne l'est pas. */
+  /** Quantified yield of a careful mise en station, when not done. */
   readonly gainMiseEnStation?: string
 }
 
-/** « Je ne sais pas » vaut approximatif : c'est l'hypothèse annoncée, pas le pire supposé. */
+/** « Je ne sais pas » = approximatif: announced hypothesis, not assumed worst case. */
 export function modeSuivi(entree: EntreeSuivi): ModeSuivi {
   if (!entree.suiviActif) return 'AUCUN'
   return entree.qualiteMes === 'SOIGNEE' ? 'SUIVI_SOIGNE' : 'SUIVI_APPROX'

@@ -1,24 +1,11 @@
 /**
- * §2.2 — le site : où l'on est, sous quel ciel.
- *
- * T-0113 — c'était le groupe « Séance » en tête du panneau droit, déplié en permanence. Il
- * descend dans la barre basse, derrière la pastille qui affiche déjà le lieu et son Bortle :
- * les six champs commandent bien tout le reste, mais on les règle une fois par sortie, pas
- * une fois par cible. Ce qu'il fallait garder n'était pas leur présence à l'écran — c'était
- * la LECTURE de leurs valeurs sans clic, et c'est la pastille qui la porte maintenant.
- *
- * La date reste dehors, dans la barre : elle date la nuit entière et se change en cours de
- * planification, contrairement aux coordonnées d'un site.
- *
- * T-0228 — la source de la table de Bortle, et la limite de validité qu'elle énonce, sont
- * parties dans le tiroir « info ». Elles ne varient pas avec la saisie : les poser sous un
- * champ qu'on règle une fois par sortie revenait à les faire relire à chaque ouverture.
- *
- * La barre basse est démontée : les champs vivent dans la carte « Site » posée sur la scène,
- * sans `<section>` ni `h2` — la carte porte déjà le cadre et le nom.
- *
- * Le relevé manuel du masque d'horizon en est sorti : le relief du terrain se dessine déjà
- * sur le planétarium, et c'est là qu'il se lit.
+ * §2.2 — the site: where we are, under which sky.
+ * T-0113 — fields moved out of the always-open right panel to the "Site" card on scène (no
+ * `<section>`/`h2`: card has frame and name). Set once per outing, not per cible; what had to
+ * stay was READING values without click (card's pastille carries it).
+ * Date stays in the bar: dates the whole night, changes during planning, unlike coordinates.
+ * T-0228 — Bortle table source + validity limit moved to "info" tiroir (static, not input-bound).
+ * Manual horizon-mask survey removed: terrain relief is drawn on planétarium, read there.
  */
 
 import type { MasqueHorizon } from '../core/site.ts'
@@ -34,18 +21,17 @@ export interface ChampsSiteProps {
   readonly surLatitude: (v: string) => void
   readonly longitude: string
   readonly surLongitude: (v: string) => void
-  /** Lecture seule : le sol du relief au lieu saisi, écrit par la chaîne de calcul. */
+  /** Read-only: relief ground at entered lieu, written by the calcul chain. */
   readonly altitude: string
   readonly bortle: string
   readonly surBortle: (v: string) => void
   readonly sqm: string
   readonly surSqm: (v: string) => void
-  /** §4.1 — le masque en vigueur : un repli plat [HYP] se dit sous la carte. */
+  /** §4.1 — mask in force: flat fallback [HYP] is stated under the card. */
   readonly masque: MasqueHorizon
   /**
-   * La cause du refus de la saisie en cours, `null` si le lieu est calculable. La scène
-   * continue d'afficher le dernier ciel valide : c'est ici, au pied des champs qui l'ont
-   * produit, que le refus se dit.
+   * Refusal cause of current input, `null` if lieu is calculable. Scène keeps showing last valid
+   * sky; refusal said here, at foot of the fields that produced it.
    */
   readonly cielRefus: string | null
 }
@@ -53,7 +39,7 @@ export interface ChampsSiteProps {
 export function ChampsSite(props: ChampsSiteProps) {
   return (
     <>
-      {/* T-0363 — la carte écrit dans les deux champs qui suivent : ils restent la vérité. */}
+      {/* T-0363 — map writes both following fields: they stay the truth. */}
       <ChoixLieu
         latitude={props.latitude}
         longitude={props.longitude}
@@ -62,16 +48,16 @@ export function ChampsSite(props: ChampsSiteProps) {
           props.surLongitude(longitude)
         }}
       />
-      {/* Le relief se lit sur le planétarium ; son absence, elle, ne s'y voit pas. Pendant un
-          chargement, le masque n'a pas de note : rien ne s'affiche. */}
+      {/* Relief is read on planétarium; its absence isn't visible there. While loading, mask has no
+          note: nothing shown. */}
       {props.masque.estHypothese && props.masque.note !== undefined && (
         <Mention ton="cause">
           {props.masque.flags?.map((f) => `${libelleFlag(f)} `).join('')}
           {props.masque.note}
         </Mention>
       )}
-      {/* Latitude et longitude se lisent d'un seul mot — un lieu — et se règlent ensemble :
-          la paire les pose côte à côte, comme la focale et l'ouverture (T-0234). */}
+      {/* Latitude and longitude read as one word (a lieu), set together: paired side by side, like
+          focale and ouverture (T-0234). */}
       <div className="champs paire">
         <ChampDomaine
           domaine="latitude_deg"
@@ -90,8 +76,8 @@ export function ChampsSite(props: ChampsSiteProps) {
           requis
         />
       </div>
-      {/* L'altitude ne se saisit plus : c'est le sol du relief au lieu posé. Une lecture,
-          pas un champ — rien n'y invite au clic. */}
+      {/* Altitude no longer typed: it's relief ground at the set lieu. A reading, not a field:
+          nothing invites a click. */}
       <p className="tracee tracee-vide">
         <span>
           <Etiquette cle="altitude_site" />
@@ -101,9 +87,8 @@ export function ChampsSite(props: ChampsSiteProps) {
         </span>
       </p>
       <div className="champs">
-        {/* Bortle est un indice ENTIER (1 à 9, DOMAINES.bortle_declare) : le pavé numérique
-            sans séparateur décimal évite une saisie qu'aucune valeur du domaine
-            n'accepterait. */}
+        {/* Bortle is an INTEGER index (1-9, DOMAINES.bortle_declare): numeric keypad without
+            decimal separator avoids input no domain value would accept. */}
         <ChampDomaine
           domaine="bortle_declare"
           glisse

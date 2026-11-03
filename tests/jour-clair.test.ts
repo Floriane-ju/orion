@@ -1,9 +1,6 @@
 /**
- * T-0409 — l'interface passe en clair du lever au coucher du Soleil, à l'instant affiché par
- * la scène et au lieu saisi ; le mode nuit l'emporte toujours.
- *
- * Les instants de référence viennent de `fenetreNocturne`, calculés par le même moteur :
- * aucune heure de lever recopiée.
+ * T-0409 — UI light from sunrise to sunset, at scène's displayed instant + typed place; mode
+ * nuit always wins. Reference instants from `fenetreNocturne` (same engine), no copied hour.
  */
 
 import { describe, expect, it } from 'vitest'

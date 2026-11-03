@@ -1,9 +1,7 @@
 /**
- * §3.2 — Curseur temporel et plafond de vitesse.
- *
- * Les deux chiffres du PRD sont vérifiés tels quels : 0,13 px/s au temps réel sur un
- * viewport de 1920 px à 60° de champ, et un plafond ramené sous ×374 dès qu'on zoome à 5°.
- * Le second est le critère d'acceptation du ticket : le curseur est couplé au zoom.
+ * §3.2 — time cursor, speed ceiling. PRD figures as-is: 0,13 px/s at real time on 1920 px
+ * viewport at 60° field; ceiling under ×374 at 5° zoom (ticket criterion: cursor coupled to
+ * zoom).
  */
 
 import { describe, expect, it } from 'vitest'
@@ -58,7 +56,7 @@ describe('couplage du curseur au zoom §3.2', () => {
     expect(serre.facteur).toBeCloseTo(serre.facteurMax.value, 6)
     expect(serre.message).toMatch(/ramené/)
     expect(serre.message).toMatch(/illisible/)
-    // L'ajustement remet la vue dans la plage lisible plutôt que de laisser replier.
+    // Adjustment brings the view back into readable range instead of letting it fold.
     expect(serre.etat).not.toBe('REPLIEMENT')
   })
 
@@ -92,7 +90,7 @@ describe('T-0137 — deux vitesses nommées §3.2', () => {
   })
 
   it('écrête la vitesse rapide en champ serré, et le dit', () => {
-    // Le plafond ne dépend pas de la commande : c'est le zoom qui l'abaisse (§3.2).
+    // Ceiling does not depend on the command: zoom lowers it (§3.2).
     const serre = reglageVitesse(K('FACTEUR_DEFILEMENT_RAPIDE'), VIEWPORT, 5)
     expect(serre.ajuste).toBe(true)
     expect(serre.facteur).toBeCloseTo(serre.facteurMax.value, 6)

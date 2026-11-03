@@ -1,15 +1,9 @@
 /**
- * §3 + §9 — le pointage et le temps de la scène, tenus une seule fois.
- *
- * Le planétarium (§3) et le grand champ (§9) décrivent la même photographie : un azimut, une
- * hauteur, une rotation de boîtier. Tant que chaque vue tenait son propre `useState`, cadrer
- * dans l'une ne cadrait pas dans l'autre — l'utilisateur cadrait deux fois la même image.
- *
- * L'état vit dans le module, pas dans un contexte React : les deux vues sont montées côte à
- * côte sans ancêtre commun autre que l'application, et un magasin externe se lit aussi bien
- * en rendu serveur (`renderToStaticMarkup`) que dans le navigateur.
- * ponytail: un seul magasin pour tout le document — il n'y a qu'une scène ; si un jour deux
- * scènes doivent coexister, ce module devient un contexte.
+ * §3 + §9 — scène pointage + time, held once. Planétarium (§3) and grand champ (§9) show the
+ * same photo: azimut, hauteur, boîtier rotation; per-view `useState` → cadrer in one ≠ other.
+ * Module state, not React context: both views mounted side by side, only common ancestor = app;
+ * external store reads same in SSR (`renderToStaticMarkup`) and browser.
+ * ponytail: one store for whole document (only one scène); if two must coexist → context.
  */
 
 import { useCallback, useSyncExternalStore } from 'react'
@@ -29,26 +23,19 @@ import { creeAbonnes } from './abonnes.ts'
 import { DOMAINES } from '../registry/domains.ts'
 
 /**
- * Résolution de rendu de référence, celle du viewport de §3.2. Ce n'est plus qu'un point de
- * départ : la scène rend désormais à la taille de sa boîte (voir `resolutionRendu`). Elle
- * reste le budget de pixels que ce rendu ne dépasse pas, et la définition servie au premier
- * rendu, avant que la boîte ait été mesurée.
+ * Reference render resolution, §3.2 viewport. Starting point only: scène renders at box size
+ * (`resolutionRendu`). Still the pixel budget render never exceeds + definition at first render,
+ * before box measured.
  */
 export const LARGEUR_SCENE_PX = 1920
 export const HAUTEUR_SCENE_PX = 1080
 
 /**
- * La définition à donner au canevas pour une boîte de `largeurCss × hauteurCss`.
- *
- * Rendre à une définition fixe obligeait à loger un 16/9 dans une boîte qui ne l'est pas :
- * `object-fit: contain` laissait alors des bandes noires en haut et en bas. En suivant la
- * boîte, l'image la remplit sans être ni étirée ni rognée.
- *
- * Le facteur d'échelle est plafonné par le budget de pixels de référence, pas seulement par
- * la densité de l'écran : sur une dalle Retina, suivre `devicePixelRatio` doublerait le
- * nombre de pixels à peindre à chaque image, et le compteur d'images du ciel avec.
- * ponytail: budget constant plutôt qu'adaptatif ; si des machines rapides méritent mieux,
- * c'est le compteur d'images qui doit le décider, pas une constante.
+ * Canvas definition for a `largeurCss × hauteurCss` box.
+ * Fixed definition forced 16/9 in non-16/9 box: `object-fit: contain` → black bars. Following
+ * box fills it, no stretch/crop. Scale capped by reference pixel budget, not screen density:
+ * Retina `devicePixelRatio` would double pixels per frame and the sky's frame counter.
+ * ponytail: constant budget, not adaptive; if fast machines deserve more, frame counter decides.
  */
 export function resolutionRendu(
   largeurCss: number,
@@ -64,40 +51,35 @@ export function resolutionRendu(
 }
 
 /**
- * Le pointage : ce que la scène regarde, comment elle le projette, et sur combien de pixels.
- * Un `Vue` de §3.2 à un champ près — le roulis, qui appartient au boîtier et non à la vue.
- *
- * T-0084 — la rotation porte un nom distinct de `Vue.rotationDeg` EXPRÈS. Tant que les deux
- * s'appelaient pareil, le magasin se passait tel quel à `projecteur()` : la vue du planétarium
- * roulait du même angle que le cadre, et le cadre ne pouvait donc jamais paraître tourné à
- * l'écran — seul le ciel tournait derrière lui. §3.3 ne fait dépendre du mode que la fonction
- * radiale R(θ) : le planétarium garde le zénith en haut, et c'est le boîtier qui tourne.
+ * Pointage: what scène looks at, how it projects, over how many pixels.
+ * §3.2 `Vue` minus roulis (belongs to boîtier, not vue).
+ * T-0084 — rotation named ≠ `Vue.rotationDeg` ON PURPOSE: same name → store passed as-is to
+ * `projecteur()` → planétarium vue rolled by cadre angle, cadre never looked rotated (only sky
+ * turned behind it). §3.3: mode only affects radial R(θ); planétarium keeps zénith up, boîtier
+ * rotates.
  */
 export interface VueScene {
   readonly azimutDeg: number
   readonly hauteurDeg: number
-  /** §3.5 `angle_rotation_cadre` — orientation du boîtier, jamais le roulis de la vue. */
+  /** §3.5 `angle_rotation_cadre` — boîtier orientation, never vue roulis. */
   readonly rotationCadreDeg: number
   readonly fovDeg: number
   readonly mode: ModeProjection
-  /** Définition de rendu, mesurée sur la boîte du canevas. */
+  /** Render definition, measured on canvas box. */
   readonly largeurPx: number
   readonly hauteurPx: number
-  /** T-0258 — écart entre la visée et le milieu du canevas, en pixels de rendu. */
+  /** T-0258 — offset between visée and canvas middle, in render pixels. */
   readonly decalageCentreXPx: number
 }
 
 /**
- * T-0258 — les surfaces qui bordent le ciel EN PERMANENCE : le rail de la vue à gauche, le
- * panneau de séance à droite. Ce sont elles, et elles seules, qui déplacent le centre de visée.
- *
- * Les cartes du matériel et le plan de nuit n'y sont pas : elles se replient, et une visée qui
- * se déplace au repli d'une carte se juge plus mal qu'une visée décalée une fois pour toutes —
- * le cadre sauterait à l'instant même où l'on ouvre la carte pour saisir la focale.
+ * T-0258 — surfaces ALWAYS bordering the sky: vue rail left, séance panel right. Only these
+ * move visée centre. Matériel cards + plan de nuit excluded: they fold; visée moving on fold is
+ * worse than one offset once (cadre would jump when focale card opens).
  */
 export const BORDURES_SCENE = Object.freeze(['.coque-rail', '.coque-lateral'] as const)
 
-/** Une boîte mesurée à l'écran, en pixels CSS. Un `DOMRect` en est une. */
+/** Box measured on screen, CSS px. A `DOMRect` is one. */
 export interface BoiteEcran {
   readonly left: number
   readonly right: number
@@ -106,20 +88,12 @@ export interface BoiteEcran {
 }
 
 /**
- * T-0258 — l'écart, en pixels de rendu, entre le milieu du canevas et le milieu du ciel resté
- * libre.
- *
- * Le canevas couvre toute la coque, et deux surfaces TOUJOURS ouvertes se posent dessus : le
- * rail de la vue à gauche, le panneau de séance à droite. Viser au milieu du canevas plaçait
- * la visée sous le panneau, là où l'on ne peut ni juger un cadre ni lire une cible.
- *
- * Seules les surfaces permanentes comptent. Une carte qu'on replie — Boîtier, Optique, Plan de
- * nuit — déplacerait la visée à chaque geste : un cadre qui saute au moment où l'on ouvre la
- * carte où l'on saisit la focale se juge plus mal qu'un cadre décalé une fois pour toutes.
- *
- * Les boîtes sont MESURÉES, jamais déduites des largeurs de la feuille de style : sous le repli
- * les mêmes surfaces passent dans le flux, au-dessus et au-dessous de la scène, ne recouvrent
- * plus rien, et l'écart retombe à zéro sans qu'aucune media query ait à être redite ici.
+ * T-0258 — offset, render px, canvas middle → middle of free sky.
+ * Canvas covers whole coque; 2 ALWAYS-open surfaces overlay it (vue rail left, séance panel
+ * right). Aiming at canvas middle put visée under panel: can't judge cadre or read cible.
+ * Permanent surfaces only; folding cards (Boîtier, Optique, Plan de nuit) would move visée per
+ * gesture. Boxes MEASURED, never deduced from stylesheet widths: under repli the surfaces enter
+ * the flow above/below scène, cover nothing, offset → 0 with no media query repeated here.
  */
 export function decalageCentreScene(
   scene: BoiteEcran,
@@ -132,24 +106,22 @@ export function decalageCentreScene(
   let droite = 0
   for (const obstacle of obstacles) {
     if (obstacle.bottom <= scene.top || obstacle.top >= scene.bottom) continue
-    // De quel bord la surface mord : son milieu tranche. Le rail et le panneau sont décollés
-    // du bord d'un jour de carte, aucun ne l'atteint — un test d'affleurement les manquerait.
+    // Edge the surface bites: its middle decides. Rail/panel sit a gap off the edge, neither
+    // touches it — flush test would miss them.
     if (obstacle.left + obstacle.right < scene.left + scene.right)
       gauche = Math.max(gauche, obstacle.right - scene.left)
     else droite = Math.max(droite, scene.right - obstacle.left)
   }
   gauche = encadre(gauche, 0, largeurCss)
   droite = encadre(droite, 0, largeurCss)
-  // Deux surfaces qui se rejoignent ne laissent pas de ciel : le milieu du canevas vaut mieux
-  // qu'un centre posé au hasard de leur recouvrement.
+  // Two surfaces meeting leave no sky: canvas middle beats a centre set by overlap chance.
   if (gauche + droite >= largeurCss) return 0
   return (((gauche - droite) / 2) * largeurPx) / largeurCss
 }
 
 /**
- * La `Vue` de §3.3 pour la scène : sans roulis. Le cadre matériel tourne comme objet de la
- * scène (§3.5) ; la vue, elle, garde le zénith en haut, sans quoi tourner le boîtier ferait
- * tourner tout le ciel et le contour du cadre resterait immobile à l'écran.
+ * §3.3 `Vue` for scène: no roulis. Cadre matériel rotates as scène object (§3.5); vue keeps
+ * zénith up, else rotating boîtier turns whole sky, cadre outline stays still.
  */
 export function vuePlanetarium(vue: VueScene): Vue {
   return {
@@ -164,77 +136,66 @@ export function vuePlanetarium(vue: VueScene): Vue {
   }
 }
 
-/** Le temps : le mode du curseur temporel de §3.2, sa vitesse et son ancrage. */
+/** Time: §3.2 temporal cursor mode, speed, anchor. */
 export interface TempsScene {
   readonly modeTemps: ModeTemps
-  /** Facteur de défilement demandé, avant plafonnement par la lisibilité. */
+  /** Requested scroll factor, before cap by readability. */
   readonly facteur: number
   /**
-   * Écart CONSTANT entre l'instant affiché et l'horloge système, en millisecondes.
-   *
-   * `MAINTENANT` ne veut pas dire « aujourd'hui » mais « le temps s'écoule » : reprendre la
-   * lecture après avoir choisi le 21 août doit repartir du 21 août, pas sauter à ce soir.
-   * Nul au démarrage — l'app ouvre sur l'instant présent —, il est recalculé à chaque reprise
-   * et la resynchronisation par image continue d'interdire toute dérive.
+   * CONSTANT offset displayed instant ↔ system clock, ms. `MAINTENANT` = "time flows", not
+   * "today": resuming after picking 21 août restarts from 21 août, no jump to tonight. Null at
+   * start (app opens on now); recomputed per resume; per-frame resync still forbids drift.
    */
   readonly decalageMs: number
 }
 
 /**
- * Ce que la scène dessine. Les interrupteurs vivent ici et non dans le planétarium : depuis
- * le lot 6 ils sont actionnés depuis l'onglet Explorer, à l'autre bout de l'écran.
+ * What scène draws. Switches live here, not in planétarium: driven from Explorer tab (far
+ * across screen) since lot 6.
  */
 export interface RenduScene {
   readonly couches: CouchesActives
-  /** §3.3 — profondeur plafonnée par le fond de ciel plutôt que par le zoom. */
+  /** §3.3 — depth capped by fond de ciel rather than zoom. */
   readonly vueRealiste: boolean
   /**
-   * §8.4 / T-0324 — le trajet de pointage que la scène montre, `null` en temps normal.
-   *
-   * Il n'est pas une couche : une couche est un booléen que le rail commande, celui-ci porte
-   * des données qu'un seul panneau produit. Sa présence dépouille la scène de tout ce qui ne
-   * sert pas à suivre le trajet — c'est `dessineCiel` qui applique la règle, pas ce magasin.
+   * §8.4 / T-0324 — pointage trajet scène shows, `null` normally.
+   * Not a layer (boolean the rail drives): carries data one panel produces. Its presence strips
+   * scène of all that doesn't help follow the trajet — `dessineCiel` applies the rule, not store.
    */
   readonly parcours: ParcoursScene | null
 }
 
-/** §8.4 — le trajet à parcourir pour amener une cible dans le cadre, tel que la scène le peint. */
+/** §8.4 — trajet to bring a cible into the cadre, as scène paints it. */
 export interface ParcoursScene {
-  /** La cible du trajet : elle nomme le parcours dans l'interface. */
+  /** Trajet cible: names the parcours in UI. */
   readonly designation: string
-  /** Du départ visible à l'œil nu vers la cible ; un seul point en mode CARTE_DIRECTE. */
+  /** From naked-eye-visible start to cible; single point in CARTE_DIRECTE mode. */
   readonly etapes: readonly EtapeParcours[]
   readonly adCibleH: number
   readonly decCibleDeg: number
 }
 
-/** §3.4 — l'objet cliqué dans la scène, décrit en clair. */
+/** §3.4 — object clicked in scène, described in plain words. */
 export interface SelectionScene {
   readonly titre: string
   readonly lignes: readonly string[]
-  /** Renseigné pour un objet du ciel profond seulement : lui seul ouvre une fiche. */
+  /** Set for ciel profond objects only: only they open a fiche. */
   readonly objet: ObjetCielProfond | null
 }
 
 /**
- * T-0038 — ce que la scène a à dire sur ce qu'elle vient de rendre.
- *
- * Ces lectures étaient l'état local du planétarium tant qu'elles s'affichaient sous lui.
- * Depuis qu'elles sont posées dans le menu d'information de la barre haute — à l'autre bout
- * de l'arbre — elles suivent le même chemin que le pointage : le magasin de module, lisible
- * en rendu serveur comme dans le navigateur.
- *
- * T-0248 — le diagnostic de rendu (images par seconde, étoiles examinées) n'y est plus. Personne
- * ne le lisait depuis T-0153, et sa publication neuve toutes les 500 ms réveillait tous les
- * abonnés du magasin, temps figé compris.
+ * T-0038 — what scène says about what it just rendered. Was planétarium local state; now read
+ * in top-bar info menu (far in tree) → module store like pointage, readable in SSR + browser.
+ * T-0248 — render diagnostic (fps, stars examined) removed: unread since T-0153, its publish
+ * every 500 ms woke every subscriber, frozen time included.
  */
 export interface LecturesScene {
   readonly selection: SelectionScene | null
 }
 
 /**
- * La cible que la visée suit depuis « Cadrer ». Coordonnées équatoriales : ce sont elles qui
- * restent fixes quand le ciel tourne, l'azimut et la hauteur se recalculent à chaque image.
+ * Cible the visée follows since "Cadrer". Equatorial coords stay fixed as sky turns; azimut/
+ * hauteur recomputed per frame.
  */
 export interface SuiviScene {
   readonly designation: string
@@ -244,23 +205,22 @@ export interface SuiviScene {
 
 export interface EtatScene {
   readonly vue: VueScene
-  /** `null` dès que l'utilisateur déplace la visée : on ne lui reprend pas la main. */
+  /** `null` once user moves the visée: hand not taken back. */
   readonly suivi: SuiviScene | null
   readonly temps: TempsScene
   readonly rendu: RenduScene
   readonly lectures: LecturesScene
   /**
-   * Horloge d'affichage, en millisecondes : l'instant que la boucle a effectivement rendu.
-   * Elle est publiée deux fois par seconde, pas à chaque image — les panneaux datent leurs
-   * lectures sans être redessinés soixante fois par seconde.
+   * Display clock, ms: instant the loop actually rendered. Published 2×/s, not per frame: panels
+   * date readings without 60 redraws/s.
    */
   readonly msAffiche: number
 }
 
 /**
- * T-0360 — un instant ramené dans `DOMAINES.annee_affichee`, bornes incluses. Toute écriture de
- * l'instant affiché y passe : le compteur d'année, le transport et la scène relue. Le temps
- * universel fait foi, sans quoi la borne bougerait avec le fuseau du poste.
+ * T-0360 — instant clamped into `DOMAINES.annee_affichee`, bounds included. Every displayed-
+ * instant write goes through it: year counter, transport, reread scène. UTC rules, else bound
+ * moves with workstation timezone.
  */
 export function borneInstant(ms: number): number {
   const { min, max } = DOMAINES.annee_affichee
@@ -268,8 +228,8 @@ export function borneInstant(ms: number): number {
 }
 
 /**
- * L'instant affiché, en millisecondes. Réécrit à chaque image par la boucle de rendu : le
- * garder hors de l'état réactif est ce qui évite soixante rendus React par seconde (§3).
+ * Displayed instant, ms. Rewritten per frame by render loop; outside reactive state → no
+ * 60 React renders/s (§3).
  */
 export const instant = { ms: Date.now() }
 
@@ -282,8 +242,8 @@ const ETAT_INITIAL: EtatScene = {
     mode: 'MODE_PLANETARIUM',
     largeurPx: LARGEUR_SCENE_PX,
     hauteurPx: HAUTEUR_SCENE_PX,
-    // Rien n'est encore mesuré : la visée part du milieu et s'y tient tant que rien ne la
-    // recouvre — c'est aussi ce que rend un rendu serveur, qui n'a pas de boîtes à mesurer.
+    // Nothing measured yet: visée starts at middle, stays while nothing covers it; also SSR's
+    // result (no boxes to measure).
     decalageCentreXPx: 0,
   },
   suivi: null,
@@ -296,10 +256,10 @@ const ETAT_INITIAL: EtatScene = {
       cadre: true,
       horizon: true,
       voieLactee: true,
-      // §4.1 — la scène montre d'abord le ciel observable : le sol masque ce qui est dessous.
+      // §4.1 — scène shows observable sky first: sol masks what is below.
       sol: true,
     },
-    // T-0355 — la scène s'ouvre sur le ciel tel qu'on le voit depuis le site.
+    // T-0355 — scène opens on the sky as seen from the site.
     vueRealiste: true,
     parcours: null,
   },
@@ -308,12 +268,10 @@ const ETAT_INITIAL: EtatScene = {
 }
 
 /**
- * T-0355 — l'état de départ, retouché par ce que le stockage a gardé du dernier passage.
- *
- * L'instant se rend selon le mode : figé ou en défilement, on repart de l'instant quitté ;
- * en `MAINTENANT`, on repart de l'horloge avec le même décalage, sans quoi un rechargement
- * rejouerait les minutes écoulées depuis. La vue repasse par `majVue` à la première écriture,
- * qui rebornera un champ hors plafond ; il est borné ici aussi, pour le premier rendu.
+ * T-0355 — start state adjusted by what storage kept. Instant per mode: frozen/scrolling →
+ * restart from instant left; `MAINTENANT` → from clock with same offset, else reload replays
+ * elapsed minutes. Vue goes through `majVue` at first write, which reclamps over-cap field;
+ * clamped here too for first render.
  */
 function restaure(depart: EtatScene, lu: ScenePersistee): EtatScene {
   const temps = { ...depart.temps, ...lu.temps }
@@ -322,8 +280,8 @@ function restaure(depart: EtatScene, lu: ScenePersistee): EtatScene {
     temps.modeTemps === 'MAINTENANT' ? Date.now() + temps.decalageMs : (lu.ms ?? Date.now()),
   )
   instant.ms = ms
-  // Couche par couche plutôt qu'un `fromEntries` retypé : une couche ajoutée à `CouchesActives`
-  // ne compile pas tant qu'elle ne se relit pas ici.
+  // Layer by layer, not a retyped `fromEntries`: a new `CouchesActives` layer fails to compile
+  // until reread here.
   const lue = (c: keyof CouchesActives): boolean => lu.rendu?.couches?.[c] ?? depart.rendu.couches[c]
   const couches: CouchesActives = {
     figures: lue('figures'),
@@ -350,7 +308,7 @@ function restaure(depart: EtatScene, lu: ScenePersistee): EtatScene {
 let etat: EtatScene = restaure(ETAT_INITIAL, litScenePersistee())
 const { abonne, notifie } = creeAbonnes()
 
-/** Instantané courant. Son identité ne change qu'à une écriture : `useSyncExternalStore` s'y fie. */
+/** Current snapshot. Identity changes only on write (`useSyncExternalStore` relies on it). */
 export function etatScene(): EtatScene {
   return etat
 }
@@ -358,9 +316,8 @@ export function etatScene(): EtatScene {
 type Retouche<T> = Partial<T> | ((precedent: T) => Partial<T>)
 
 /**
- * T-0292 — une retouche qui ne change rien rend la tranche PRÉCÉDENTE, même identité. Sans
- * cela, chaque cran d'un compteur réécrivait `modeTemps: 'FIGE'` sur un temps déjà figé, et
- * tout abonné au magasin se redessinait pour rien.
+ * T-0292 — no-op patch returns PREVIOUS slice, same identity. Else each counter notch rewrote
+ * `modeTemps: 'FIGE'` on frozen time → every subscriber redrew for nothing.
  */
 function applique<T extends object>(precedent: T, retouche: Retouche<T>): T {
   const partiel = typeof retouche === 'function' ? retouche(precedent) : retouche
@@ -374,20 +331,17 @@ function pose(suivant: EtatScene): void {
 }
 
 /**
- * T-0095 — le champ est ramené sous le plafond de sa projection à l'écriture, pas au rendu.
- *
- * C'est le seul passage obligé : la molette, le pincement, les touches, le curseur du panneau
- * et le changement de projection écrivent tous ici. Poser la borne ailleurs laisserait le cas
- * qui l'a motivée — on regarde 180° en stéréographique, on bascule en gnomonique — sortir par
- * un chemin qui ne borne que le champ, jamais le mode.
+ * T-0095 — champ clamped under its projection's cap on write, not at render. Only mandatory
+ * path: wheel, pinch, keys, panel cursor, projection change all write here. Bounding elsewhere
+ * misses the motivating case: 180° stereographic → gnomonique switch bounds champ, never mode.
  */
 export function majVue(retouche: Retouche<VueScene>): void {
   ecritVue(retouche, false)
 }
 
 /**
- * Seul déplacer la visée rompt le suivi : zoomer ou tourner le boîtier garde la cible au
- * centre, et c'est précisément ce qu'on fait une fois la cible cadrée.
+ * Only moving the visée breaks suivi: zoom/boîtier rotation keeps cible centred, which is what
+ * one does once cible cadrée.
  */
 function ecritVue(retouche: Retouche<VueScene>, garderSuivi: boolean): void {
   const vue = applique(etat.vue, retouche)
@@ -401,13 +355,13 @@ function ecritVue(retouche: Retouche<VueScene>, garderSuivi: boolean): void {
   })
 }
 
-/** « Cadrer » : la visée part sur la cible et la suit jusqu'au prochain geste de pointage. */
+/** "Cadrer": visée goes to cible and follows it until next pointage gesture. */
 export function suisCible(suivi: SuiviScene, retouche: Partial<VueScene>): void {
   pose({ ...etat, suivi })
   ecritVue(retouche, true)
 }
 
-/** La boucle de rendu recale la visée sur la cible suivie, quand l'heure l'a fait dériver. */
+/** Render loop recentres visée on followed cible when time made it drift. */
 export function recaleSuivi(azimutDeg: number, hauteurDeg: number): void {
   if (etat.suivi !== null) ecritVue({ azimutDeg, hauteurDeg }, true)
 }
@@ -428,8 +382,8 @@ export function majLectures(retouche: Retouche<LecturesScene>): void {
 }
 
 /**
- * Publie l'instant rendu. L'égalité est testée avant de notifier : en temps figé, la boucle
- * republie le même instant deux fois par seconde et rien ne doit se redessiner pour autant.
+ * Publishes rendered instant. Equality tested before notifying: frozen time, loop republishes
+ * same instant 2×/s, nothing must redraw.
  */
 export function afficheInstant(ms: number): void {
   if (ms === etat.msAffiche) return
@@ -437,37 +391,28 @@ export function afficheInstant(ms: number): void {
 }
 
 /**
- * §3.2 — aller à un instant : l'horloge d'affichage saute, et le temps se met en pause.
- *
- * Sans la pause, `MAINTENANT` resynchroniserait sur l'horloge système à l'image suivante et
- * l'instant choisi n'aurait vécu que 40 ms.
+ * §3.2 — go to an instant: display clock jumps, time pauses. Without pause `MAINTENANT` resyncs
+ * to system clock next frame; chosen instant lived 40 ms.
  */
 export function vaA(ms: number): void {
-  // T-0210 — le compteur d'année de la barre de temps n'a pas de borne haute, et une date
-  // hors des instants représentables fait lever `astronomy-engine` depuis la boucle de rendu.
-  // Une destination inatteignable n'est pas un voyage : on reste où l'on est.
+  // T-0210 — year counter has no upper bound; date outside representable instants makes
+  // `astronomy-engine` throw from render loop. Unreachable destination isn't a trip: stay.
   if (!Number.isFinite(ms)) return
   const borne = borneInstant(ms)
   instant.ms = borne
   majTemps({ modeTemps: 'FIGE' })
-  // L'horloge d'affichage saute avec l'instant, sans attendre l'image suivante : seule la
-  // boucle du canevas republiait `msAffiche`, si bien qu'un écran rendu sans boucle — rendu
-  // serveur, test — datait ses lectures de l'instant de démarrage plutôt que de la destination.
+  // Display clock jumps with instant, not next frame: only canvas loop republished `msAffiche`
+  // → loop-less screen (SSR, test) dated readings at start, not destination.
   afficheInstant(borne)
 }
 
 /**
- * §8.4 / T-0324 — montrer un parcours de pointage, et aller à l'heure où on le suivra.
- *
- * Les deux gestes tiennent ensemble parce que le second est la condition du premier : le
- * trajet est un jeu d'étoiles fixes, mais le ciel tourne, et une visée calculée pour 22 h 47
- * rate le trajet d'autant que l'horloge de la scène en est loin. L'heure du pointage est aussi
- * celle de toute l'aide au pointage — table, schéma, angle parallactique de §8.4 : les laisser
- * diverger montrerait le ciel d'un autre moment sous des chiffres qui n'en parlent pas.
- *
- * L'état de temps d'avant est retenu ici, et `masqueParcours` le rend. `vaA` FIGE le temps —
- * c'est ce qu'on veut le temps de lire le trajet — mais une horloge arrêtée sans qu'on sache
- * quand ni pourquoi est un bug, pas un mode.
+ * §8.4 / T-0324 — show a pointage parcours + go to the time it will be followed. Gestures tied:
+ * 2nd conditions 1st. Trajet = fixed stars but sky turns; visée computed for 22 h 47 misses
+ * trajet by clock distance. Pointage time = time of all pointage aid (table, schéma, §8.4 angle
+ * parallactique): diverging shows another moment's sky under mismatched figures.
+ * Prior time state kept here, `masqueParcours` restores it. `vaA` FREEZES time (wanted while
+ * reading trajet), but a clock stopped with unknown when/why is a bug, not a mode.
  */
 let avantParcours: { readonly temps: TempsScene; readonly ms: number } | null = null
 
@@ -478,12 +423,9 @@ export function montreParcours(parcours: ParcoursScene, ms: number): void {
 }
 
 /**
- * Ferme le parcours et rend à l'horloge l'instant ET le mode qu'elle avait avant.
- *
- * `reprend` ne conviendrait pas : il repart de l'instant AFFICHÉ, qui est encore celui du
- * pointage, et il ne connaît que `MAINTENANT` — un défilement en cours ne se retrouverait pas.
- * Le décalage est reposé tel quel : c'est l'écart constant à l'horloge système, et le rendre
- * intact est ce qui fait reprendre la lecture là où elle serait arrivée.
+ * Closes parcours, gives clock back instant AND mode from before. Not `reprend`: it restarts
+ * from DISPLAYED instant (still pointage's) and knows only `MAINTENANT` — running scroll lost.
+ * Offset restored as-is (constant offset to system clock) → playback resumes where it would be.
  */
 export function masqueParcours(): void {
   if (etat.rendu.parcours === null) return
@@ -496,18 +438,16 @@ export function masqueParcours(): void {
 }
 
 /**
- * §3.2 — rendre le temps à son écoulement, DEPUIS l'instant affiché.
- *
- * Le décalage est figé ici plutôt que lu par image : c'est ce qui fait de la reprise un
- * geste, et de l'horloge système une cadence plutôt qu'une destination.
+ * §3.2 — give time back to flow, FROM displayed instant. Offset frozen here, not read per
+ * frame: resume = gesture, system clock = cadence, not destination.
  */
 export function reprend(): void {
   majTemps({ modeTemps: 'MAINTENANT', decalageMs: instant.ms - Date.now() })
 }
 
 /**
- * T-0355 — ce qui se garde d'un passage à l'autre. Un parcours ouvert n'en est pas : c'est
- * l'instant et le mode d'AVANT lui qui se gardent, ceux que `masqueParcours` aurait rendus.
+ * T-0355 — what persists between visits. Open parcours doesn't: persists the instant and mode
+ * from BEFORE it (what `masqueParcours` restores).
  */
 export function scenePersistee(courant: EtatScene, ms: number): ScenePersistee {
   const { azimutDeg, hauteurDeg, rotationCadreDeg, fovDeg, mode } = courant.vue
@@ -524,32 +464,24 @@ export function scenePersistee(courant: EtatScene, ms: number): ScenePersistee {
 
 gardeSceneAuDepart(() => scenePersistee(etat, instant.ms))
 
-/** Remet la scène dans son état de départ. Réservé aux tests : l'application n'en a pas besoin. */
+/** Resets scène to start state. Tests only: app doesn't need it. */
 export function reinitialiseScene(): void {
   instant.ms = Date.now()
   pose({ ...ETAT_INITIAL, msAffiche: instant.ms })
 }
 
 /**
- * T-0056 — s'abonner à une tranche du magasin plutôt qu'à sa totalité.
- *
- * `useScene` réveille son composant à chaque écriture, donc deux fois par seconde : c'est la
- * cadence à laquelle la boucle republie l'instant affiché et le diagnostic. Un composant qui
- * ne lit qu'une valeur dérivée — l'époque à l'année, la minute affichée — n'a rien à
- * redessiner entre deux publications identiques.
- *
- * Le sélecteur doit être défini au niveau du module (identité stable) et rendre une valeur
- * comparable par `Object.is` : c'est cette comparaison que `useSyncExternalStore` applique
- * pour décider de rendre ou non.
+ * T-0056 — subscribe to a store slice, not the whole. `useScene` wakes its component per write
+ * (2×/s: loop republishes displayed instant + diagnostic). Component reading only a derived
+ * value (epoch year, displayed minute) needs no redraw between identical publications.
+ * Selector: module-level (stable identity), `Object.is`-comparable return (what
+ * `useSyncExternalStore` compares to skip a render).
  */
 
 /**
- * La minute affichée par la scène. Les panneaux qui datent une lecture s'abonnent à elle
- * plutôt qu'à l'instant : entre deux publications de la même minute, ni la liste des
- * visibles ni la position de la Lune ne changent de façon lisible.
- *
- * Défini au niveau du module — donc d'identité stable — parce que c'est ce que
- * `useTrancheScene` exige de son sélecteur.
+ * Displayed minute. Panels dating a reading subscribe to it, not the instant: within a minute
+ * neither visibles list nor Lune position visibly changes. Module-level: `useTrancheScene`
+ * requires stable selector.
  */
 export function minuteAffichee(etat: EtatScene): number {
   return Math.floor(etat.msAffiche / MS_PAR_MINUTE)
@@ -560,7 +492,7 @@ export function useTrancheScene<T>(selecteur: (etat: EtatScene) => T): T {
   return useSyncExternalStore(abonne, lit, lit)
 }
 
-/** Tranches du pointage, du temps et du rendu : leur identité ne change qu'à leur écriture. */
+/** Pointage, time and render slices: identity changes only on their write. */
 export function vueRealisteScene(etat: EtatScene): boolean {
   return etat.rendu.vueRealiste
 }
@@ -578,9 +510,8 @@ export function renduScene(etat: EtatScene): RenduScene {
 }
 
 /**
- * T-0324 — le seul trajet montré. Tranche à part : l'aide au pointage recalcule un cheminement
- * complet à chaque rendu, s'abonner au rendu entier la ferait repartir à chaque interrupteur du
- * rail.
+ * T-0324 — the only trajet shown. Separate slice: pointage aid recomputes a full path per
+ * render; subscribing to whole render would restart it on every rail switch.
  */
 export function parcoursScene(etat: EtatScene): ParcoursScene | null {
   return etat.rendu.parcours
@@ -590,7 +521,7 @@ export function suiviScene(etat: EtatScene): SuiviScene | null {
   return etat.suivi
 }
 
-/** Les commandes du magasin, telles que la scène et ses gestes les reçoivent. */
+/** Store commands, as scène and its gestures receive them. */
 export interface ActionsScene {
   readonly majVue: typeof majVue
   readonly majTemps: typeof majTemps
@@ -600,7 +531,7 @@ export interface ActionsScene {
   readonly reprend: typeof reprend
 }
 
-/** Des fonctions de module : un seul objet suffit, et son identité ne relance aucun effet. */
+/** Module functions: one object suffices, identity relaunches no effect. */
 export const ACTIONS_SCENE: ActionsScene = Object.freeze({
   majVue,
   majTemps,

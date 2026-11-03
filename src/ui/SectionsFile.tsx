@@ -1,8 +1,6 @@
 /**
- * §9.1–§9.4 — les régions de l'onglet Panorama, nommées d'après ce qu'elles montrent.
- *
- * Aucune ne calcule : elles reçoivent les lectures de `useLecturesFile` et les réglages du
- * magasin de séance. Le rendu de l'image, lui, se voit dans le cadre matériel sur la scène.
+ * §9.1–§9.4 — Panorama tab regions, named after what they show. None computes: they receive
+ * `useLecturesFile` readings + séance store settings. Image render is seen in cadre matériel.
  */
 
 import { DOMAINES } from '../registry/domains.ts'
@@ -25,11 +23,9 @@ import { S_PAR_MIN } from '../core/unites.ts'
 
 
 /**
- * §9.1, T-0374 — la seule saisie du Panorama : combien de temps on photographie.
- *
- * Le rail porte la pose max du cadre (T-0169) : en deçà, le temps tient en une photo à
- * étoiles ponctuelles ; au-delà, des étoiles qui filent sont le but. Arrondie vers le bas :
- * une accroche au-dessus du seuil ovaliserait les étoiles de la photo unique.
+ * §9.1, T-0374 — Panorama's only saisie: how long to photograph.
+ * Rail carries cadre pose max (T-0169): below, time fits one photo with point stars; above,
+ * trailing stars are the goal. Rounded down: a hook above threshold would ovalise stars.
  */
 export function TempsDePriseDeVue({
   lectures,
@@ -64,9 +60,9 @@ export function TempsDePriseDeVue({
           sur={(dureeTotaleS) => majFile({ dureeTotaleS })}
         />
       </label>
-      {/* §9.1, T-0142 — la pose max se lit avec le rail qui la porte. Sa carte par déclinaison
-          se lit dans le cadre du capteur, sur la scène : ne restent ici que la pose retenue,
-          la bascule qui peint la carte et les avertissements qui portent une décision. */}
+      {/* §9.1, T-0142 — pose max read with the rail carrying it. Its déclinaison map is read in
+          sensor cadre on scène: only retained pose, map-painting toggle and decision-bearing
+          warnings remain here. */}
       <TracedValue terme="pose_max_cadre" trace={carte.tMaxCadreS} decimales={1} unite="s" />
       <Interrupteur
         actif={file.poseDansCadre}
@@ -79,16 +75,16 @@ export function TempsDePriseDeVue({
           {message}
         </Mention>
       ))}
-      {/* Entre la pose max et un filé lisible, les étoiles ne sont ni des points ni des arcs :
-          elles paraissent floues. L'avertissement se lit au curseur, là où on le franchit — et
-          jamais pour une photo unique, dont les étoiles sont ponctuelles par construction. */}
+      {/* Between pose max and a readable filé, stars are neither points nor arcs: they look
+          blurry. Warning read at the slider where one crosses it — never for a single photo,
+          whose stars are point-like by construction. */}
       {plan.mode === 'FILE' &&
         lectures.diagnostic.messages.map((message) => (
           <Mention ton="cause" key={message}>
             {message}
           </Mention>
         ))}
-      {/* §9.3 — ce que la durée dessine dans le cadre : elle se lit avec le curseur qui la règle. */}
+      {/* §9.3 — what the duration draws in cadre: read with the slider that sets it. */}
       <TracedValue
         terme="longueur_arc"
         suffixe="arc le plus long du cadre"
@@ -103,8 +99,8 @@ export function TempsDePriseDeVue({
         decimales={2}
         unite="°"
       />
-      {/* Hors du cadre, sa hauteur et son azimut ne disent rien de ce qu'on photographie : ils
-          ne servent qu'à le placer quand on le cadre. */}
+      {/* Off cadre, hauteur and azimut say nothing of what is photographed: only used to place
+          it when cadrant. */}
       <p className="etat">
         <Etiquette cle="pole_celeste" /> :{' '}
         {lectures.diagnostic.pole.dansCadre
@@ -117,12 +113,12 @@ export function TempsDePriseDeVue({
   )
 }
 
-/** « 25 s » sous la minute, « 45 min » ou « 2 h 05 » au-delà : les crans du rail s'y lisent. */
+/** "25 s" under a minute, "45 min" or "2 h 05" beyond: rail notches read in it. */
 function ecritDuree(secondes: number): string {
   return secondes < S_PAR_MIN ? `${nombre(secondes, 0)} s` : dureeLisible(secondes)
 }
 
-/** §9.4 — combien de photos, combien de gigaoctets, et ce qu'il faut avoir désactivé. */
+/** §9.4 — how many photos, how many GB, and what must be disabled. */
 export function SequenceDePrises({ lectures }: { readonly lectures: LecturesFile }) {
   const { sequence, plan } = lectures
   return (

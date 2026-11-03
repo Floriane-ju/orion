@@ -1,11 +1,8 @@
 /**
- * §12.5 — Matrice de dégradation hors-ligne.
- *
- * Contrat explicite, affiché dans l'interface. Le noyau — planétarium, cadrage, pose,
- * planification, filé, pédagogie — est intégralement hors-ligne. Ce qui tombe est de
- * l'agrément visuel ou du probabiliste, jamais du déterministe : le physique est
- * calculable donc offline, le probabiliste dépend d'un service donc en ligne. La frontière
- * technique coïncide avec la frontière épistémique.
+ * §12.5 — Offline degradation matrix: explicit contract, shown in UI. Core (planétarium, cadrage,
+ * pose, planification, filé, pédagogie) fully offline. What drops = visual comfort or
+ * probabilistic, never deterministic: physical = computable = offline, probabilistic = service =
+ * online. Technical border = epistemic border.
  */
 
 export type ModeReseau = 'EN_LIGNE' | 'HORS_LIGNE' | 'DEGRADE'
@@ -114,9 +111,8 @@ export const MATRICE_DEGRADATION: readonly LigneDegradation[] = Object.freeze([
 ].map(Object.freeze) as LigneDegradation[])
 
 export function modeReseauCourant(): ModeReseau {
-  // Hors navigateur — tests, rendu serveur — `onLine` n'existe pas : ne pas confondre
-  // « information indisponible » avec « hors ligne », sous peine de bloquer les
-  // téléchargements de paquets pour une raison fausse.
+  // No `onLine` outside browser (tests, server render): « info unavailable » ≠ « offline », else
+  // package downloads get blocked wrongly.
   if (typeof navigator === 'undefined' || typeof navigator.onLine !== 'boolean') {
     return 'EN_LIGNE'
   }
@@ -124,9 +120,8 @@ export function modeReseauCourant(): ModeReseau {
 }
 
 /**
- * §12.5 — `mode_reseau` reflète l'état réel : lu une fois au démarrage, il mentirait dès
- * la première perte de réseau, c'est-à-dire exactement au moment où il compte.
- * Retourne la fonction de désabonnement.
+ * §12.5 — `mode_reseau` reflects real state: read once at startup it would lie from first
+ * network loss, when it matters. Returns unsubscribe.
  */
 export function abonneModeReseau(surChangement: () => void): () => void {
   if (typeof window === 'undefined') return () => {}

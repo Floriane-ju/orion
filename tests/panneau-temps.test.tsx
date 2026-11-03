@@ -1,10 +1,8 @@
 /**
- * §3.2 / T-0411 — l'horloge et la frise de la nuit ne font qu'un réglage, dans la barre haute.
- *
- * Ce qui est vérifié n'est pas une apparence mais un câblage : six compteurs règlent l'instant,
- * la frise se pose entre l'horloge et le retour au présent, et le transport (lecture, pause,
- * chevrons) n'existe plus. Le rendu statique suffit — l'état du temps vit dans le magasin de
- * scène, réglable sans DOM.
+ * §3.2 / T-0411 — clock + nuit frise = one setting, top bar.
+ * Wiring, not look: 6 counters set the instant, frise between clock and return to present,
+ * transport (play, pause, chevrons) gone. Static render enough: time state lives in scène
+ * store, settable without DOM.
  */
 
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -21,8 +19,8 @@ function barre(): string {
 }
 
 /**
- * L'emplacement du libellé d'un contrôle. T-0147 — un bouton à glyphe seul n'écrit plus son
- * nom dans un `aria-label` : il le tient de la bulle qui le suit, via `aria-labelledby`.
+ * Where a control's label lives. T-0147 — glyph-only button takes its name from the following
+ * bubble via `aria-labelledby`, not `aria-label`.
  */
 function place(html: string, libelle: string): number {
   const bulle = html.indexOf(`role="tooltip" data-place="haut">${libelle}</span>`)
@@ -47,8 +45,8 @@ describe('T-0411 — l’horloge et la frise règlent le même instant', () => {
   })
 
   it('pose l’heure, la date, le retour au présent, l’astre, puis la frise', () => {
-    // L'ordre de la maquette : l'instant, sa destination « maintenant », l'astre de cet
-    // instant, et le ciel qui défile sous lui.
+    // Mockup order: the instant, its "maintenant" destination, that instant's body, sky
+    // scrolling beneath.
     const html = renderToStaticMarkup(
       <PanneauTemps
         surNuitIso={() => undefined}
@@ -68,15 +66,15 @@ describe('T-0411 — l’horloge et la frise règlent le même instant', () => {
   })
 
   it('offre un retour à l’instant présent, en un bouton', () => {
-    // Le défaut que ça corrige : retrouver ce soir depuis une date choisie demandait de tirer
-    // six compteurs jusqu'à l'heure qu'il est. Le glyphe passe par la police d'icônes.
+    // Fixed: getting back to tonight from a chosen date meant dragging 6 counters to current
+    // time. Glyph goes through icon font.
     const html = barre()
     expect(html).toContain('panneau-temps-maintenant')
     expect(html).toContain('Revenir à maintenant')
     expect(html).toContain('history')
   })
 
-  // T-0413 — le temps a quitté la barre haute pour le bas de la scène.
+  // T-0413 — time left the top bar for the bottom of scène.
   it('pose le temps et la frise en bas de la scène, hors de la barre haute', () => {
     const ecran = renderToStaticMarkup(<App />)
     const debut = ecran.indexOf('coque-topbar')
@@ -88,15 +86,14 @@ describe('T-0411 — l’horloge et la frise règlent le même instant', () => {
   })
 
   it('reprend la lecture DEPUIS l’instant choisi, sans sauter à l’heure du jour', () => {
-    // Le défaut que ça corrige : `MAINTENANT` resynchronisait sur `Date.now()` à chaque image,
-    // donc appuyer sur lecture effaçait la date qu'on venait de choisir.
+    // Fixed: `MAINTENANT` resynced on `Date.now()` every frame → play erased the chosen date.
     const choisi = Date.UTC(2026, 7, 21, 20, 41, 7)
     vaA(choisi)
     reprend()
     expect(etatScene().temps.modeTemps).toBe('MAINTENANT')
     expect(instant.ms).toBe(choisi)
-    // C'est l'expression même de la boucle de rendu : l'horloge système donne la cadence,
-    // le décalage donne l'ancrage. La tolérance couvre le temps passé dans le test.
+    // Render loop's own expression: system clock = cadence, offset = anchor. Tolerance covers
+    // test time.
     expect(Date.now() + etatScene().temps.decalageMs).toBeCloseTo(choisi, -3)
   })
 
@@ -105,9 +102,8 @@ describe('T-0411 — l’horloge et la frise règlent le même instant', () => {
   })
 
   it('date l’instant à la minute, en chiffres, sans jour de semaine', () => {
-    // T-0162 — chaque champ est un compteur : c'est le texte rendu, balises retirées, qui
-    // porte encore la date et l'heure. T-0327 — plus de jour de semaine. Le format reste celui
-    // de la locale, il n'est pas réécrit ici.
+    // T-0162 — each field = counter: rendered text, tags stripped, still carries date + hour.
+    // T-0327 — no weekday. Format stays locale's.
     const texte = barre().replaceAll('<!-- -->', '').replace(/<[^>]*>/g, '')
     const attendu = new Intl.DateTimeFormat('fr-FR', {
       day: '2-digit',
@@ -134,8 +130,8 @@ describe('T-0411 — l’horloge et la frise règlent le même instant', () => {
 
 describe('T-0138 — la date-heure se choisit sans confondre les fuseaux', () => {
   it('donne le jour du calendrier LOCAL, pas la tranche UTC', () => {
-    // Piège A1 — après minuit local en été, `toISOString()` désigne encore la veille à
-    // l'ouest de Greenwich, le lendemain à l'est.
+    // Trap A1 — after local midnight in summer, `toISOString()` names the day before west of
+    // Greenwich, after east.
     const apresMinuit = new Date(2026, 6, 15, 1, 30, 0)
     expect(jourLocalIso(apresMinuit)).toBe(apresMinuit.toLocaleDateString('sv-SE'))
     if (apresMinuit.getTimezoneOffset() !== 0) {

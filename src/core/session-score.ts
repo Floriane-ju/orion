@@ -1,8 +1,6 @@
 /**
- * §8.3 — Le scoring C-15, exposé plutôt qu'appris.
- *
- * Cinq critères indépendants, chacun ramené sur [0, 1], puis une somme pondérée dont la
- * trace porte les cinq termes. Aucun n'est caché : la fiche du plan les affiche tels quels.
+ * §8.3 — C-15 scoring, exposed not learned. Five independent criteria clamped to [0, 1], then a
+ * weighted sum whose trace carries the five terms. None hidden: plan fiche shows them as is.
  */
 
 import { K, type ConstantId } from '../registry/constants.ts'
@@ -33,7 +31,7 @@ export function scoreFenetre(dureeCreneauMin: number, dureeNuitMin: number): num
   return dureeNuitMin <= 0 ? 0 : borne(dureeCreneauMin / dureeNuitMin)
 }
 
-/** §8.3 « tolérance selon type d'objet » : la même Lune coûte plus à une galaxie qu'à une Hα. */
+/** §8.3 "tolérance selon type d'objet": same Moon costs a galaxy more than an Hα. */
 const DIVISEUR_LUNE = Object.freeze({
   FORTE: 'TOLERANCE_LUNE_DELTA_SB_MAG',
   MOYENNE: 'TOLERANCE_LUNE_MOYENNE_DELTA_SB_MAG',
@@ -46,7 +44,7 @@ export function scoreLune(deltaSb: number, tolerance: ToleranceLune): number {
 
 export type DegradationLune = 'AUCUNE' | 'FAIBLE' | 'MOYENNE' | 'FORTE'
 
-/** Ce que la Lune ôte à CETTE cible : la part de S_lune perdue, rangée en classe. */
+/** What Moon takes from THIS target: share of S_lune lost, classed. */
 export function degradationLune(deltaSb: number, tolerance: ToleranceLune): DegradationLune {
   const perte = 1 - scoreLune(deltaSb, tolerance)
   if (perte < K('DEGRADATION_LUNE_AUCUNE_MAX')) return 'AUCUNE'
@@ -65,8 +63,8 @@ export function scoreGlobal(detail: DetailScore, poids: PoidsScoring): Traced<nu
   return trace({
     value: valeur,
     formula: 'SCORE_CIBLE',
-    // Les poids entrent dans la trace : réglés, ils ne valent plus ceux du registre, et une
-    // décomposition qui n'afficherait que les C-15 mentirait sur le calcul qu'elle explique.
+    // Weights enter the trace: once tuned they differ from registry's; a breakdown showing only
+    // C-15 would lie about the calc it explains.
     inputs: {
       s_cadrage: detail.cadrage,
       s_hauteur: detail.hauteur,

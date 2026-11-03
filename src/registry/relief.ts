@@ -1,15 +1,10 @@
 /**
- * §4.1, §13.1 — le relief du terrain qui trace l'horizon du site.
- *
- * Source retenue (T-0359) : les tuiles d'altitude « Terrarium » du jeu Terrain Tiles d'AWS
- * Open Data. Sans clé, servies avec CORS, et lisibles sans dépendance : ce sont des PNG que le
- * navigateur décode lui-même. Un service d'élévation point par point a été écarté — 360
- * azimuts × 300 pas font cent mille altitudes, soit un millier d'appels à un service qui en
- * limite le débit. Les GeoTIFF Copernicus aussi : ils demandent un décodeur tiers.
- *
- * Ce qu'une requête transmet : le numéro de la tuile, donc la zone du site à une maille de
- * quelques dizaines de kilomètres. C'est ce que §13.1 énumère, et c'est pourquoi l'origine
- * s'ajoute à la liste d'où la politique de sécurité est tirée.
+ * §4.1, §13.1 — terrain relief tracing the site horizon.
+ * Source (T-0359): AWS Open Data Terrain Tiles "Terrarium" (no key, CORS, PNG decoded by browser,
+ * no dependency). Rejected: point elevation service (360 azimuts × 300 steps = 100k altitudes,
+ * ~1000 calls to a rate-limited service); Copernicus GeoTIFF (needs third-party decoder).
+ * Request sends tile number = site zone at a few tens of km mesh (§13.1); origin joins the list
+ * the CSP derives from.
  */
 
 import type { OrigineTiers } from './origines.ts'
@@ -26,12 +21,12 @@ export const ORIGINES_RELIEF: readonly OrigineTiers[] = Object.freeze(
   ].map(Object.freeze) as OrigineTiers[],
 )
 
-/** L'adresse d'une tuile Terrarium au zoom `z`. */
+/** Terrarium tile URL at zoom `z`. */
 export function urlTuileRelief(z: number, x: number, y: number): string {
   return `${HOTE_RELIEF}/terrarium/${z}/${x}/${y}.png`
 }
 
-/** Crédit exigé par le jeu Terrain Tiles : l'agrégateur et les modèles qu'il assemble. */
+/** Credit required by Terrain Tiles: aggregator + models it assembles. */
 export const CREDIT_RELIEF = Object.freeze({
   auteur:
     'Terrain Tiles (Mapzen, AWS Open Data) — SRTM (NASA), EU-DEM (Copernicus), GMTED2010 (USGS), ' +
@@ -60,8 +55,8 @@ const RELIEF = Object.freeze({
   }),
 
   /**
-   * Le pas le long de chaque azimut : un pixel de tuile au zoom retenu (≈ 107 m à 45° de
-   * latitude). Plus fin, on relirait le même pixel ; plus lâche, on sauterait des crêtes.
+   * Azimut ray step: 1 tile pixel at chosen zoom (≈ 107 m at 45°). Finer rereads a pixel; looser
+   * skips ridges.
    */
   PAS_RADIAL_RELIEF_M: valeur({
     valeur: 100,
@@ -71,10 +66,8 @@ const RELIEF = Object.freeze({
   }),
 
   /**
-   * En deçà, le terrain n'est pas lu. Un pixel de 100 m porte une erreur verticale de l'ordre
-   * de 10 m : à 100 m de l'œil, c'est 6° d'horizon inventé sur tout un secteur ; à 500 m, 1°.
-   * Ce qui est plus près — arbres, bâtiments, la butte d'à côté — relève du relevé à la main,
-   * que §4.1 pose justement « par-dessus ».
+   * Below, terrain unread. 100 m pixel has ~10 m vertical error: 6° fake horizon at 100 m, 1° at
+   * 500 m. Closer (trees, buildings, next hill) = manual survey, which §4.1 puts "par-dessus".
    */
   DISTANCE_MIN_RELIEF_M: valeur({
     valeur: 500,
@@ -85,9 +78,8 @@ const RELIEF = Object.freeze({
   }),
 
   /**
-   * Le zoom des tuiles : 30 km de rayon tiennent en 3 × 3 à 4 × 4 tuiles, ≈ 1,5 Mo par site.
-   * Le zoom 11 doublerait la résolution pour quatre fois plus de téléchargement, sur des
-   * modèles (SRTM 30 m, EU-DEM 25 m) déjà rééchantillonnés.
+   * Tile zoom: 30 km radius = 3×3–4×4 tiles, ≈ 1,5 Mo/site. Zoom 11: 2× resolution, 4× download,
+   * on models already resampled (SRTM 30 m, EU-DEM 25 m).
    */
   ZOOM_TUILE_RELIEF: valeur({
     valeur: 10,
@@ -97,9 +89,9 @@ const RELIEF = Object.freeze({
   }),
 
   /**
-   * Réfraction terrestre : le rayon lumineux rasant se courbe vers le sol, ce qui revient à
-   * voir sur une Terre de rayon R / (1 − k). Les hauteurs des cibles sont déjà réfractées
-   * (`Horizon(..., 'normal')`) : un masque géométrique leur serait comparé à tort.
+   * Terrestrial refraction: grazing ray bends to ground = Earth of radius R / (1 − k). Target
+   * heights already refracted (`Horizon(..., 'normal')`): a geometric mask compared to them is
+   * wrong.
    */
   COEF_REFRACTION_TERRESTRE: valeur({
     valeur: 0.13,
@@ -109,10 +101,8 @@ const RELIEF = Object.freeze({
   }),
 
   /**
-   * T-0395 — écart d'altitude entre deux courbes de niveau dessinées sur le sol. Celui des
-   * cartes au 1:25 000 est de 10 m ; vu en perspective, à 30 km, il ferait une hachure. Cinq
-   * fois plus lâche, un versant alpin garde des dizaines de lignes et une colline en garde
-   * deux ou trois.
+   * T-0395 — altitude gap between drawn contour lines. 1:25 000 maps use 10 m (hatching at 30 km
+   * in perspective); 5× looser: tens of lines on alpine slope, 2-3 on a hill.
    */
   EQUIDISTANCE_COURBES_M: valeur({
     valeur: 50,
@@ -122,8 +112,8 @@ const RELIEF = Object.freeze({
   }),
 
   /**
-   * T-0395 — pas d'azimut de la table qui décide si un point de courbe est caché : 260 m à
-   * 30 km, l'ordre du pas radial. Au degré, une courbe lointaine se masquait par plaques.
+   * T-0395 — azimut step of table deciding if a contour point is hidden: 260 m at 30 km (≈ radial
+   * step). At 1°, far contours hid in patches.
    */
   PAS_AZIMUT_COURBES_DEG: valeur({
     valeur: 0.5,
@@ -133,9 +123,8 @@ const RELIEF = Object.freeze({
   }),
 
   /**
-   * T-0397 — l'écart angulaire qu'une courbe simplifiée peut prendre avec son tracé d'origine.
-   * Sous le pixel jusqu'à 30° de champ sur 1 920 px ; il retire des milliers de points presque
-   * alignés que chaque image projetait et traçait pour rien.
+   * T-0397 — max angular deviation of simplified contour. Sub-pixel up to 30° field over 1 920 px;
+   * drops thousands of near-collinear points drawn each frame.
    */
   TOLERANCE_COURBES_DEG: valeur({
     valeur: 0.01,
@@ -145,10 +134,8 @@ const RELIEF = Object.freeze({
   }),
 
   /**
-   * T-0397 — la plus longue corde qu'une courbe simplifiée garde entre deux points. Une courbe
-   * de niveau droite est un grand cercle : sans borne, la simplification n'en laisserait que les
-   * deux bouts, et le trait droit tiré entre leurs projections couperait l'arc que la
-   * projection courbe.
+   * T-0397 — longest chord of simplified contour. Level contour = great circle: unbounded, only
+   * endpoints would stay and their projected straight line would cut the arc.
    */
   CORDE_MAX_COURBES_DEG: valeur({
     valeur: 1,
@@ -158,9 +145,8 @@ const RELIEF = Object.freeze({
   }),
 
   /**
-   * T-0438 — une ligne de silhouette — le bord d'un relief proche devant un terrain qu'il
-   * cache — ne se trace que si ce qu'elle cache est assez profond. Sous un kilomètre, c'est
-   * une ondulation du versant, ou le bruit du modèle : chaque pli en ferait un trait.
+   * T-0438 — silhouette line (near relief edge over terrain it hides) drawn only if hidden part is
+   * deep enough. <1 km = slope undulation / model noise: every fold would draw.
    */
   PROFONDEUR_MIN_SILHOUETTE_M: valeur({
     valeur: 1000,
@@ -170,9 +156,8 @@ const RELIEF = Object.freeze({
   }),
 
   /**
-   * T-0438 — deux points de silhouette d'azimuts voisins appartiennent à la même arête quand
-   * leurs distances diffèrent de moins de cette fraction. Au-delà, ce sont deux reliefs
-   * étagés : les relier tirerait un trait d'une crête à l'autre en travers du vide.
+   * T-0438 — neighbouring-azimut silhouette points share a ridge if distances differ by < this
+   * fraction. Beyond = stacked reliefs: joining would draw a line across the void.
    */
   ECART_RACCORD_SILHOUETTE: valeur({
     valeur: 0.1,
@@ -182,9 +167,8 @@ const RELIEF = Object.freeze({
   }),
 
   /**
-   * T-0438 — pas d'azimut de la crête DESSINÉE. Au degré du masque, un sommet à 20 km sous
-   * 23° de champ tenait en un triangle de 90 px de base ; au dixième, ses arêtes tombent sous
-   * la dizaine de pixels. Le masque de calcul reste au degré (§4.1).
+   * T-0438 — azimut step of the DRAWN ridge. At mask's 1°, a 20 km summit under 23° field = 90 px
+   * base triangle; at 0,1° edges < ~10 px. Mask calcul stays 1° (§4.1).
    */
   PAS_AZIMUT_CRETE_DEG: valeur({
     valeur: 0.1,
@@ -194,8 +178,8 @@ const RELIEF = Object.freeze({
   }),
 
   /**
-   * T-0438 — l'étendue en azimut sous laquelle une silhouette ne se trace pas. Plus courte,
-   * c'est un bout d'arête que le modèle n'a raccordé à rien : un tiret isolé sur le versant.
+   * T-0438 — azimut extent below which a silhouette isn't drawn: shorter = edge fragment linked to
+   * nothing, isolated dash on slope.
    */
   ETENDUE_MIN_SILHOUETTE_DEG: valeur({
     valeur: 2,
@@ -204,7 +188,7 @@ const RELIEF = Object.freeze({
     tolerance: 'sans objet — aucun calcul de visibilité n’en dépend',
   }),
 
-  /** L'œil — ou l'objectif sur trépied — au-dessus du sol que le modèle de terrain décrit. */
+  /** Eye (or tripod lens) above the ground the terrain model describes. */
   HAUTEUR_OEIL_M: valeur({
     valeur: 1.6,
     unite: 'm',
@@ -212,7 +196,7 @@ const RELIEF = Object.freeze({
     tolerance: 'sans objet — sous le bruit altimétrique du modèle de terrain',
   }),
 
-  /** Rayon équatorial de la projection Web Mercator des tuiles (EPSG:3857). */
+  /** Equatorial radius of tile Web Mercator (EPSG:3857). */
   RAYON_WEB_MERCATOR_M: valeur({
     valeur: 6378137,
     unite: 'm',
@@ -220,7 +204,7 @@ const RELIEF = Object.freeze({
     tolerance: 'sans objet — définition de la projection',
   }),
 
-  /** Côté d'une tuile, en pixels — c'est aussi la base de l'encodage Terrarium. */
+  /** Tile side, px; also the Terrarium encoding base. */
   COTE_TUILE_PX: valeur({
     valeur: 256,
     unite: 'px',
@@ -228,7 +212,7 @@ const RELIEF = Object.freeze({
     tolerance: 'sans objet — format',
   }),
 
-  /** Décalage de l'encodage Terrarium : h = R × 256 + V + B / 256 − 32 768. */
+  /** Terrarium encoding offset: h = R × 256 + V + B / 256 − 32 768. */
   DECALAGE_TERRARIUM_M: valeur({
     valeur: 32768,
     unite: 'm',
@@ -237,9 +221,8 @@ const RELIEF = Object.freeze({
   }),
 
   /**
-   * Plafond de tuiles par site. Aux latitudes moyennes, 30 km en demandent 9 à 16 ; près des
-   * pôles la maille Mercator s'écrase et le même rayon en demanderait des centaines. Au-delà,
-   * le relief est déclaré indisponible plutôt que de vider le forfait de l'utilisateur.
+   * Tile cap per site. Mid latitudes: 30 km = 9-16 tiles; near poles Mercator squashes, same radius
+   * = hundreds. Beyond: relief unavailable rather than drain user's data plan.
    */
   TUILES_RELIEF_MAX: valeur({
     valeur: 25,
@@ -248,7 +231,7 @@ const RELIEF = Object.freeze({
     tolerance: 'sans objet — plafond de garde',
   }),
 
-  /** Attente maximale d'une tuile : au-delà, le relief est déclaré indisponible. */
+  /** Max wait per tile; beyond, relief declared unavailable. */
   DELAI_MAX_TUILE_MS: valeur({
     valeur: 15000,
     unite: 'ms',
@@ -256,7 +239,7 @@ const RELIEF = Object.freeze({
     tolerance: 'sans objet — plafond de garde',
   }),
 
-  /** Délai de repos avant de demander le relief : la latitude se saisit chiffre par chiffre. */
+  /** Rest before requesting relief: latitude typed digit by digit. */
   DELAI_RELIEF_MS: valeur({
     valeur: 800,
     unite: 'ms',
@@ -265,9 +248,8 @@ const RELIEF = Object.freeze({
   }),
 
   /**
-   * T-0369 — durée du passage d'un horizon dessiné à l'autre : l'ancien relief qui s'aplatit
-   * au changement de lieu, puis le nouveau qui monte. Assez longue pour se suivre des yeux,
-   * assez courte pour qu'un relief en cache ne fasse pas attendre.
+   * T-0369 — duration of one horizon morphing to the next (old relief flattens on site change, new
+   * rises). Long enough to follow, short enough that cached relief doesn't wait.
    */
   DUREE_TRANSITION_RELIEF_MS: valeur({
     valeur: 600,
@@ -279,7 +261,7 @@ const RELIEF = Object.freeze({
 
 export type IdRelief = keyof typeof RELIEF
 
-/** Lecture d'une valeur, sur le modèle de `K()` du registre §2.1. */
+/** Value read, like `K()` of registre §2.1. */
 export function R(id: IdRelief): number {
   return RELIEF[id].valeur
 }

@@ -1,14 +1,12 @@
 /**
- * §5.2 — profil Suivi, et §9.1 — pose maximale à étoiles ponctuelles.
- *
- * Valeurs de référence : Annexe A du PRD.
+ * §5.2 — Suivi profile; §9.1 — max pose for point stars. Reference values: PRD Annexe A.
  */
 
 import { describe, expect, it } from 'vitest'
 import { npf, profilSuivi } from '../src/core/suivi.ts'
 import { dependDUnOrdreDeGrandeur } from '../src/core/traced.ts'
 
-/** Annexe A — configuration ciel profond, 120 mm f/2,8, pitch 5,12 µm. */
+/** Annexe A — deep-sky config, 120 mm f/2.8, pitch 5.12 µm. */
 const REFERENCE = { focaleMm: 120, ouvertureN: 2.8, pitchUm: 5.12 }
 
 describe('pose maximale sans suivi §9.1', () => {
@@ -65,7 +63,7 @@ describe('profil de suivi §5.2', () => {
       typeMonture: 'GEM',
       ...REFERENCE,
     })
-    // 45 × 200 / 120 = 75 s, contre 120 × 200 / 120 = 200 s.
+    // 45 × 200 / 120 = 75 s, vs 120 × 200 / 120 = 200 s.
     expect(approx.gainMiseEnStation).toMatch(/75/)
     expect(approx.gainMiseEnStation).toMatch(/200/)
   })
@@ -88,7 +86,7 @@ describe('profil de suivi §5.2', () => {
       typeMonture: 'GEM',
       focaleMm: 10,
     })
-    // 120 × 200 / 10 = 2400 s, ramenés au plafond C-07.
+    // 120 × 200 / 10 = 2400 s, capped to C-07.
     expect(courtes.tMaxSuiviS.value).toBe(240)
     expect(courtes.tMaxSuiviS.note).toMatch(/autoguidage/i)
   })

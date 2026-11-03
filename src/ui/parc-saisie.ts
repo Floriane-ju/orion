@@ -1,8 +1,7 @@
 /**
- * §5.1, T-0404 — la saisie d'un objectif du parc : du texte tapé à l'`Objectif` validé.
- *
- * Une focale fixe ne demande qu'une focale et une ouverture : le bout max laissé vide reprend
- * le min. Exiger deux fois « 135 » pour un 135 mm serait une question sans objet.
+ * §5.1, T-0404 — parc objectif input: typed text → validated `Objectif`.
+ * Fixed focale needs only focale + ouverture: empty max end reuses min (asking "135" twice for
+ * a 135 mm is pointless).
  */
 
 import { valideObjectif, type Objectif } from '../core/objectif.ts'
@@ -10,7 +9,7 @@ import type { TypeObjectif } from '../core/optics.ts'
 import { nombreDeTexte } from '../registry/domains.ts'
 import { nombreLibre } from '../registry/ecriture.ts'
 
-/** Une ligne du parc telle qu'elle se tape : les bouts max vides valent focale fixe, ouverture constante. */
+/** A parc row as typed: empty max ends = fixed focale, constant ouverture. */
 export interface SaisieObjectif {
   readonly focaleMin: string
   readonly focaleMax: string
@@ -18,7 +17,7 @@ export interface SaisieObjectif {
   readonly ouvertureTele: string
 }
 
-/** Le texte d'un objectif du parc, pour l'afficher dans sa ligne. */
+/** Text of a parc objectif, for its row. */
 export function saisieDe(objectif: Objectif): SaisieObjectif {
   const fixe = objectif.focaleMinMm === objectif.focaleMaxMm
   const constante = objectif.ouvertureGrandAngleN === objectif.ouvertureTeleN
@@ -31,8 +30,8 @@ export function saisieDe(objectif: Objectif): SaisieObjectif {
 }
 
 /**
- * Lève en nommant le champ fautif (`valideObjectif`) : rien d'incohérent n'entre au parc.
- * Le nom n'est plus saisi : c'est la notation de bague, que §6.1 cite telle quelle.
+ * Throws naming the faulty field (`valideObjectif`): nothing incoherent enters the parc.
+ * Name not typed: it is the ring notation, quoted as is by §6.1.
  */
 export function objectifDeSaisie(saisie: SaisieObjectif, id: string, typeObjectif: TypeObjectif): Objectif {
   const sinon = (texte: string, repli: string) => nombreDeTexte(texte.trim() === '' ? repli : texte)
@@ -48,7 +47,7 @@ export function objectifDeSaisie(saisie: SaisieObjectif, id: string, typeObjecti
   return valideObjectif({ ...objectif, nom: caracteristiques(objectif) })
 }
 
-/** « 18–55 mm f/3,5–5,6 », « 135 mm f/2 » : la notation gravée sur la bague. */
+/** "18–55 mm f/3,5–5,6", "135 mm f/2": notation engraved on the ring. */
 export function caracteristiques(objectif: Objectif): string {
   const plage = (a: number, b: number) => (a === b ? nombreLibre(a) : `${nombreLibre(a)}–${nombreLibre(b)}`)
   return (
@@ -57,14 +56,14 @@ export function caracteristiques(objectif: Objectif): string {
   )
 }
 
-/** Le parc avec cet objectif ajouté, ou remplacé à sa place s'il y était déjà. */
+/** Parc with this objectif added, or replaced in place if present. */
 export function parcAvec(parc: readonly Objectif[], objectif: Objectif): readonly Objectif[] {
   return parc.some((o) => o.id === objectif.id)
     ? parc.map((o) => (o.id === objectif.id ? objectif : o))
     : [...parc, objectif]
 }
 
-/** Ce que le profil relu dit de l'optique : son parc s'il en a un, sinon son seul réglage. */
+/** What the reloaded profile says of the optics: its parc if any, else its single setting. */
 export interface OptiqueDeDepart {
   readonly objectifs?: readonly Objectif[]
   readonly objectifId?: string
@@ -74,12 +73,11 @@ export interface OptiqueDeDepart {
 }
 
 /**
- * Le parc au démarrage. L'optique saisie avant le parc — ou celle de l'Annexe A au premier
- * démarrage — devient son premier objectif, une focale fixe qu'on peut ensuite éditer en zoom
- * ou retirer : sans cela, l'objectif de départ restait le seul qu'on ne pouvait ni l'un ni
- * l'autre. Un parc enregistré vide — vidé avant que le dernier objectif ne soit protégé, ou
- * importé tel — se reconstruit de même : une carte Optique sans objectif n'offre plus rien à
- * ajouter. Un objectif monté disparu du parc cède la place au premier.
+ * Parc at startup. Optics typed before the parc (or Annexe A's at first start) becomes its
+ * first objectif, a fixed focale later editable to zoom or removable (else the starting
+ * objectif was the one neither). A stored empty parc (emptied before the last objectif was
+ * protected, or imported so) rebuilds the same way: an Optique card with no objectif offers
+ * nothing to add. A mounted objectif gone from the parc yields to the first.
  */
 export function parcDeDepart(
   depart: OptiqueDeDepart,
@@ -94,7 +92,7 @@ export function parcDeDepart(
     const objectif = objectifDeSaisie(saisie, id, depart.fisheye ? 'FISHEYE' : 'RECTILINEAIRE')
     return { objectifs: [objectif], objectifId: id }
   } catch {
-    // Une optique de départ illisible ne fait pas d'objectif : l'objectif libre la laisse corriger.
+    // Unreadable starting optics makes no objectif: free objectif lets the user fix it.
     return { objectifs: [], objectifId: '' }
   }
 }

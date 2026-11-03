@@ -1,25 +1,16 @@
 /**
- * T-0188 — où va le focus quand le panneau change de contenu sans que rien ne bouge à l'écran.
- *
- * Le panneau latéral est à demeure (T-0181) : ouvrir une fiche ou revenir à la liste remplace
- * son corps en place. Au clavier, ces deux transitions sont invisibles — pire, le retour
- * DÉTRUIT le bouton qui portait le focus, qui retombe alors sur `<body>` et fait repartir la
- * tabulation du début du document.
- *
- * Motif « détail puis retour » de l'APG : on va DANS le détail, on revient D'OÙ l'on est parti.
- * D'où les deux décisions, et le repli :
- *
- * - LISTE → FICHE : le focus entre dans la fiche, sur son titre. Ouvrir une fiche est une
- *   demande délibérée — un clic sur une ligne, ou Entrée sur un objet de la scène ; la
- *   navigation du ciel aux flèches n'appelle pas `ouvreCible`, elle ne peut donc pas piéger
- *   le focus dans le panneau (`planetarium-gestes.ts`).
- * - FICHE → LISTE : le focus revient sur la LIGNE de la cible qu'on vient de consulter.
- * - Repli : cette ligne peut avoir disparu — les filtres ou la minute ont bougé pendant la
- *   consultation. Le focus va alors au champ de recherche, en tête du panneau, jamais nulle
- *   part.
- *
- * La bascule de mode ne figure pas ici : elle laisse le focus sur le bouton qui l'a déclenchée,
- * qui survit au changement. Rien à faire est aussi une décision.
+ * T-0188 — where focus goes when panel changes content with nothing moving on screen.
+ * Side panel is permanent (T-0181): opening a fiche or returning to list replaces its body in
+ * place. By keyboard both transitions are invisible — worse, return DESTROYS the focus-holding
+ * button: focus falls to `<body>`, Tab restarts from document top.
+ * APG « detail then return »: go INTO the detail, return WHERE we left from.
+ * - LISTE → FICHE: focus enters fiche, on its title. Opening a fiche is deliberate (row click,
+ *   Enter on a scène object); arrow-key sky navigation doesn't call `ouvreCible`, so can't trap
+ *   focus in panel (`planetarium-gestes.ts`).
+ * - FICHE → LISTE: focus returns to the ROW of the cible just consulted.
+ * - Fallback: row gone (filters or minute moved) → search field, panel head, never nowhere.
+ * Mode toggle absent: leaves focus on its triggering button, which survives. Doing nothing is also
+ * a decision.
  */
 
 import type { VueCibles } from './seance-etat.ts'
@@ -27,8 +18,8 @@ import type { VueCibles } from './seance-etat.ts'
 export type CibleFocus = 'TITRE_FICHE' | 'LIGNE_CIBLE' | 'CHAMP_RECHERCHE' | null
 
 /**
- * Décidé sans DOM : `lignePresente` dit si la ligne de la cible consultée est encore rendue.
- * `null` veut dire « ne touche pas au focus » — l'immense majorité des rendus.
+ * Decided without DOM: `lignePresente` = consulted cible's row still rendered. `null` = don't
+ * touch focus (vast majority of renders).
  */
 export function cibleFocus(
   precedente: VueCibles,
@@ -41,9 +32,8 @@ export function cibleFocus(
 }
 
 /**
- * L'identifiant du bouton d'une ligne. Une désignation porte des espaces et des points
- * (« NGC 7000 », « IC 1396A ») : ce qui n'est ni lettre ni chiffre devient un tiret, faute de
- * quoi `getElementById` reçoit un identifiant que le document n'écrira jamais tel quel.
+ * Row button id. A désignation has spaces and dots (« NGC 7000 », « IC 1396A »): non-alphanumerics
+ * → hyphen, else `getElementById` gets an id the document never writes as is.
  */
 export function idLigneCible(designation: string): string {
   return `cible-${designation.replace(/[^A-Za-z0-9-]/g, '-')}`

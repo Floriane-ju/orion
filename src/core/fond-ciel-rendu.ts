@@ -1,25 +1,22 @@
 /**
- * §3.3 — brillance du fond de ciel telle qu'elle se peint (T-0096 à T-0100).
+ * §3.3 — fond de ciel brillance as painted (T-0096 to T-0100).
  *
- * §3.3 ne dit du fond de ciel qu'une chose : il « plafonne mag_limite en vue réaliste ». La
- * COULEUR du fond n'y est pas spécifiée. Ce module est donc une extension de rendu assumée,
- * déclarée comme telle au registre — pas une lecture du PRD.
+ * §3.3 says only that fond de ciel "plafonne mag_limite en vue réaliste"; COLOUR unspecified.
+ * This module = declared render extension (registry), not a PRD reading.
  *
- * UNE SEULE RÈGLE DE COMPOSITION : les brillances s'additionnent en nanolamberts, jamais en
- * magnitudes. C'est déjà celle de ΔSB_lune (§8.1), et le module la réemploie au lieu de la
- * réécrire : `brillanceLuneNl` vient de `moon.ts`, `attenuationBrute` d'`exposure.ts`.
+ * ONE COMPOSITION RULE: brillances add in nanolamberts, never magnitudes. Same as ΔSB_lune
+ * (§8.1); reused: `brillanceLuneNl` from `moon.ts`, `attenuationBrute` from `exposure.ts`.
  *
  *   B_total(direction) = (B_site + B_crepuscule(φ)) × facteurHaloHorizon(h) + B_lune(ρ, h_lune, α)
  *   Y_ecran            = K_exposition × B_total
  *
- * L'exposition est la SEULE constante libre du modèle : le rapport de luminance entre deux
- * fonds de ciel est celui de leurs brillances, il n'est pas choisi.
+ * Exposure = model's ONLY free constant: luminance ratio between 2 fonds de ciel = ratio of
+ * their brillances, not chosen.
  *
- * ponytail: aucune valeur tracée ici. Ces fonctions sont appelées par IMAGE — une fois pour le
- * fond, une par palier de halo, une par cran du dégradé lunaire. Un `Traced` par appel
- * allouerait et gèlerait des dizaines d'objets à 30 im/s pour une valeur que rien n'affiche
- * encore. Le jour où la scène déplie son fond de ciel comme elle déplie
- * `magnitude_limite_rendue`, c'est un enrobage `trace()` à poser ici, pas un calcul à refaire.
+ * ponytail: no value traced here. Called per IMAGE (once for fond, once per halo step, once per
+ * lunar gradient stop): a `Traced` per call would allocate/freeze dozens of objects at 30 fps
+ * for a value nothing displays yet. Upgrade when scène unfolds its fond de ciel like
+ * `magnitude_limite_rendue`: wrap with `trace()` here, no recompute.
  */
 
 import { K } from '../registry/constants.ts'
@@ -39,8 +36,8 @@ import { QUART_TOUR_DEG as ANGLE_DROIT_DEG } from './unites.ts'
 import { attenuationBrute, rapportDeFlux } from './exposure.ts'
 
 /**
- * van Rhijn (1921) — épaisseur relative de la couche émissive vue à la hauteur `h`, rapportée
- * au zénith. Vaut exactement 1 au zénith et croît jusqu'à l'horizon.
+ * van Rhijn (1921) — relative thickness of emissive layer seen at hauteur `h`, vs zenith.
+ * Exactly 1 at zenith, grows to horizon.
  */
 export function vanRhijn(hauteurDeg: number): number {
   const rapport = K('RAYON_TERRE_KM') / (K('RAYON_TERRE_KM') + K('HAUTEUR_COUCHE_EMISSIVE_KM'))
@@ -49,14 +46,13 @@ export function vanRhijn(hauteurDeg: number): number {
 }
 
 /**
- * Facteur multiplicatif de la brillance du site à la hauteur `h`, zénith = 1.
+ * Multiplicative factor of site brillance at hauteur `h`, zenith = 1. Longer path through the
+ * emissive layer is itself more attenuated: van Rhijn alone gives ×6 at horizon, a value nobody
+ * observes.
  *
- * Le trajet plus long à travers la couche émissive est lui-même plus atténué : sans le terme
- * d'extinction, van Rhijn seul donnerait ×6 à l'horizon, valeur que personne n'observe.
- *
- * ponytail: le halo reste symétrique en azimut. Le dôme lumineux d'une ville est plus clair de
- * son côté, mais l'atlas qui le donnerait (VIIRS) exige le réseau et §4.1 l'écarte. Limite
- * déclarée, pas oubliée.
+ * ponytail: halo symmetric in azimut. A city's light dome is brighter on its side, but the atlas
+ * giving it (VIIRS) needs network and §4.1 rules it out. Declared limit; upgrade only with an
+ * offline atlas.
  */
 export function facteurHaloHorizon(hauteurDeg: number): number {
   const masseAir = masseAirKS(hauteurDeg)
@@ -66,10 +62,8 @@ export function facteurHaloHorizon(hauteurDeg: number): number {
 }
 
 /**
- * Bornes hautes des paliers du halo, du plus bas au plus haut ; la dernière est le zénith.
- *
- * Les régions « hauteur inférieure à cette borne » s'emboîtent : peintes de la plus grande à
- * la plus petite, chaque bande garde la teinte du palier qui la referme.
+ * Upper bounds of halo steps, lowest to highest; last = zenith. "Hauteur below this bound"
+ * regions nest: painted largest to smallest, each band keeps tint of the step closing it.
  */
 export function bornesPaliersHalo(): readonly number[] {
   const paliers = K('PALIERS_HALO_HORIZON')
@@ -78,30 +72,28 @@ export function bornesPaliersHalo(): readonly number[] {
   return bornes
 }
 
-/** Hauteur représentative du palier d'index `i` : le milieu de la bande qu'il referme. */
+/** Representative hauteur of step `i`: middle of the band it closes. */
 export function hauteurRepresentative(indexPalier: number): number {
   const paliers = K('PALIERS_HALO_HORIZON')
   return (ANGLE_DROIT_DEG * (2 * indexPalier + 1)) / (2 * paliers)
 }
 
 /**
- * T-0372 — luminance d'écran où l'œil commence à s'adapter : celle du zénith le plus clair de
- * la nuit (Bortle 9). Déduite de la table, pas choisie : aucun ciel nocturne n'en est changé.
+ * T-0372 — screen luminance where eye starts adapting: the night's brightest zenith (Bortle 9).
+ * Derived from table, not chosen: no night sky changes it.
  */
 function genouAdaptation(): number {
   return K('K_EXPOSITION_FOND_CIEL') * nanolamberts(SB_PLAFOND_TABLE)
 }
 
 /**
- * Facteur d'adaptation de l'œil à ce zénith : 1 la nuit, moins dès que le zénith dépasse
- * `genouAdaptation`. Il multiplie l'exposition de TOUTE la scène, donc garde les
- * rapports de brillance : le zénith reste bleu, ce qui est plus clair que lui — le Soleil et
- * son halo — blanchit.
+ * Eye adaptation factor for this zenith: 1 at night, less once zenith exceeds `genouAdaptation`.
+ * Multiplies exposure of the WHOLE scène → keeps brillance ratios: zenith stays blue, what is
+ * brighter (Soleil and halo) whitens.
  *
- * T-0372 — l'adaptation n'est que PARTIELLE : au-dessus du genou, la luminance d'écran du
- * zénith croît encore en puissance de sa brillance, jusqu'au plafond du jour. Complète, elle
- * figeait le zénith au plafond du coucher jusqu'à 8,5° de dépression : fin du crépuscule
- * civil aussi claire que midi, puis une chute brutale.
+ * T-0372 — adaptation only PARTIAL: above genou, screen luminance still grows as a power of
+ * brillance, up to day ceiling. Complete, it froze zenith at the sunset ceiling down to 8,5°
+ * dépression: end of civil twilight as bright as noon, then sudden drop.
  */
 export function adaptationEcran(sbZenithMag: number): number {
   const y = K('K_EXPOSITION_FOND_CIEL') * nanolamberts(sbZenithMag)
@@ -115,14 +107,11 @@ export function adaptationEcran(sbZenithMag: number): number {
 }
 
 /**
- * T-0372 — part du chemin de la nuit au jour parcourue par l'œil adapté à ce zénith : 0 sous
- * `genouAdaptation`, 1 au plafond du jour, linéaire en log de la luminance d'écran.
- *
- * C'est elle qui mélange les teintes, pas le facteur d'adaptation : la chromaticité de nuit est
- * plus lumineuse que celle du jour à bleu égal, et `1 − adaptation` la faisait revenir d'un
- * coup près du genou, là où la luminance d'écran ne baisse presque plus — un voile pâle
- * naissait puis s'éteignait. Suivre le log de la luminance garantit que la teinte ne change
- * jamais plus vite que la luminance ne baisse.
+ * T-0372 — share of night→day path the adapted eye has travelled at this zenith: 0 below
+ * `genouAdaptation`, 1 at day ceiling, linear in log screen luminance. Mixes tints, not the
+ * adaptation factor: night chromaticity is brighter than day's at equal blue, and
+ * `1 − adaptation` brought it back at once near genou, where luminance barely drops → pale veil
+ * appeared then faded. Following log luminance: tint never changes faster than luminance drops.
  */
 export function partJour(sbZenithMag: number): number {
   const genou = genouAdaptation()
@@ -133,8 +122,8 @@ export function partJour(sbZenithMag: number): number {
 }
 
 /**
- * Luminance d'écran, en lumière linéaire, correspondant à cette brillance de surface, l'œil
- * adapté au zénith `sbZenithMag` — par défaut la brillance elle-même.
+ * Screen luminance, linear light, for this surface brillance, eye adapted to zenith
+ * `sbZenithMag` (default: the brillance itself).
  */
 export function luminanceEcran(sbMagArcsec2: number, sbZenithMag = sbMagArcsec2): number {
   return (
@@ -143,13 +132,12 @@ export function luminanceEcran(sbMagArcsec2: number, sbZenithMag = sbMagArcsec2)
 }
 
 /**
- * Composantes linéaires du fond : la chromaticité passe du bleu-violet de la nuit au bleu du
- * jour à mesure que l'œil s'adapte, et la luminance l'échelonne. La nuit, l'adaptation vaut 1 :
- * la chromaticité reste exactement celle de C-39 à C-41.
+ * Linear components of the fond: chromaticity goes night blue-violet → day blue as eye adapts,
+ * luminance scales it. At night adaptation = 1: chromaticity exactly C-39 to C-41.
  *
- * ponytail: le mélange suit le facteur d'adaptation, pas la hauteur du Soleil. Il vaut 0,02 à
- * 5° de dépression : le crépuscule civil est déjà bleu de jour. Une teinte propre au
- * crépuscule (orangé côté Soleil) demanderait l'azimut solaire, hors périmètre de T-0096.
+ * ponytail: mix follows the adaptation factor, not Soleil hauteur. It is 0,02 at 5° dépression:
+ * civil twilight is already day-blue. A twilight-specific tint (orange on the Soleil side) needs
+ * solar azimut; upgrade when it is in scope (out of T-0096).
  */
 export function composantesFond(
   sbMagArcsec2: number,
@@ -165,7 +153,7 @@ export function composantesFond(
   ]
 }
 
-/** Inverse de `nanolamberts` : d'une brillance en nanolamberts vers sa magnitude surfacique. */
+/** Inverse of `nanolamberts`: nanolambert brillance → surface magnitude. */
 export function sbDepuisNanolamberts(brillanceNl: number): number {
   return (
     (K('NANOLAMBERT_OFFSET') - Math.log(brillanceNl / K('NANOLAMBERT_ECHELLE'))) /
@@ -174,31 +162,26 @@ export function sbDepuisNanolamberts(brillanceNl: number): number {
 }
 
 /**
- * §3.7 — brillance de surface de la Voie lactée dans cette direction galactique, en nanolamberts.
+ * §3.7 — Voie lactée surface brillance in this galactic direction, nanolamberts.
  *
- * La bande est un contributeur de lumière comme le halo lunaire, pas un calque : c'est ce qui
- * lui permet de s'effacer quand le site est pollué SANS seuil ni opacité de convention. Sa part
- * dans la brillance totale décide de son opacité, et la couleur de la somme décide de sa teinte
- * — les deux couplés, comme dans `dessineHaloLune` (T-0100).
+ * Bande = light contributor like the lunar halo, not a layer: fades at a polluted site WITHOUT
+ * threshold or conventional opacity. Its share of total brillance decides opacity, the sum's
+ * colour decides tint — coupled, as in `dessineHaloLune` (T-0100).
  *
- * Le profil en latitude réemploie l'échelle de la densité stellaire : la lumière intégrée et le
- * comptage d'étoiles décroissent du même plan, et dupliquer l'échelle en donnerait deux versions
- * à désaccorder.
+ * Latitude profile reuses star-density scale: integrated light and star counts fall from the
+ * same plane; duplicating the scale = two versions to desync.
  *
- * LE PROFIL EN LONGITUDE (T-0105) est le premier mode de Fourier, et pas une bosse posée sur le
- * Sagittaire. Un disque exponentiel regardé de l'intérieur donne une lumière intégrée maximale
- * vers le centre, minimale vers l'anticentre, et monotone entre les deux : sa première harmonique
- * est `(1 + cos l) / 2`. C'est ce qui permet de modéliser le bulbe SANS largeur en longitude à
- * choisir — une gaussienne aurait demandé un σ que rien ne source. Les deux bornes, elles, sont
- * des brillances observables, donc discutables sur pièce.
+ * LONGITUDE PROFILE (T-0105) = first Fourier mode, not a Sagittaire bump. Exponential disc seen
+ * from inside: max integrated light toward centre, min toward anticentre, monotone between →
+ * first harmonic `(1 + cos l) / 2`. Models the bulb WITHOUT a longitude width to choose (a
+ * Gaussian needs an unsourced σ). Both bounds are observable brillances → contestable.
  *
- * Elle n'entre PAS dans `brillanceFondNl` : verser la bande au fond de ciel ferait baisser la
- * magnitude limite à l'intérieur de la Voie lactée, donc afficher MOINS d'étoiles là où le ciel
- * en montre le plus.
+ * NOT in `brillanceFondNl`: adding bande to fond de ciel would lower magnitude limite inside the
+ * Voie lactée → FEWER stars shown where the sky shows most.
  *
- * ponytail: l'échelle de latitude ne dépend pas de la longitude, alors que le bulbe est plus
- * épais que le disque. La corriger demanderait une seconde échelle sans source ; l'échelle
- * unique de 20° est déjà large. Limite déclarée, pas oubliée.
+ * ponytail: latitude scale independent of longitude, though bulb is thicker than disc. Fixing it
+ * needs a second unsourced scale (single 20° scale already wide). Declared limit; upgrade if a
+ * sourced bulb scale appears.
  */
 export function brillanceVoieLacteeNl(
   longitudeGalactiqueDeg: number,
@@ -215,48 +198,45 @@ export function brillanceVoieLacteeNl(
 }
 
 /**
- * T-0099 — contribution du crépuscule à la brillance du ciel, en nanolamberts.
+ * T-0099 — twilight contribution to sky brillance, nanolamberts.
  *
- * C'est le plus gros écart de la vue réaliste : à Soleil −6° le vrai ciel est bleu franc et ne
- * montre qu'une poignée d'étoiles, là où l'app rendait le fond de la pleine nuit. La table de
- * `registry/crepuscule.ts` mesure un TOTAL — lueur crépusculaire diffusée plus lueur nocturne
- * de Paranal ; le crépuscule seul est la différence, et elle s'ajoute au site en nanolamberts
- * comme les autres contributeurs (§8.1).
+ * Biggest gap of the réaliste view: at Soleil −6° real sky is clearly blue with a handful of
+ * stars, app rendered full-night fond. `registry/crepuscule.ts` table measures a TOTAL
+ * (scattered twilight glow + Paranal night glow); twilight alone = difference, added to the site
+ * in nanolamberts like other contributors (§8.1).
  *
- * Elle tombe à zéro d'elle-même à 15,9° de dépression, où l'ajustement rejoint le fond
- * nocturne de son propre site : aucun raccord n'est posé à la main, donc aucun saut à la
- * frontière de la nuit astronomique — qui est franchie 2° plus tard, contribution déjà nulle.
+ * Falls to zero by itself at 15,9° dépression, where the fit meets the site's own night fond: no
+ * hand-placed join → no jump at nuit astronomique boundary (crossed 2° later, contribution
+ * already null).
  *
- * ponytail: la lueur crépusculaire hérite du facteur de halo d'horizon du site (voir
- * `brillanceFondNl`), alors que le ciel du crépuscule s'éclaircit vers l'horizon plus vite que
- * van Rhijn ne le dit, et surtout plus vite du côté du Soleil. La vraie géométrie dépend de
- * l'azimut solaire, que T-0096 met hors périmètre au même titre que le dôme lumineux d'une
- * ville. Le sens est bon, l'amplitude est prudente : limite déclarée, pas oubliée.
+ * ponytail: twilight glow inherits the site's horizon-halo factor (`brillanceFondNl`), but
+ * twilight sky brightens toward horizon faster than van Rhijn says, mostly on the Soleil side.
+ * True geometry needs solar azimut, out of T-0096 scope like a city's light dome. Direction
+ * right, amplitude conservative. Declared limit; upgrade when solar azimut is in scope.
  */
 export function brillanceCrepusculeNl(depressionSolaireDeg: number): number {
-  // `null` : la dépression a dépassé la fin du crépuscule, ou n'est pas un nombre. Le seuil
-  // vit au registre avec la table qui le produit, il n'est pas retesté ici.
+  // `null`: dépression past end of twilight, or NaN. Threshold lives in registry with the table
+  // producing it, not retested here.
   const sb = sbCrepusculeZenith(depressionSolaireDeg)
   if (sb === null) return 0
   return Math.max(0, nanolamberts(sb.value) - nanolamberts(SB_NUIT_SITE_REFERENCE_MAG))
 }
 
 export interface EntreeFondRendu {
-  /** Fond de ciel du site au zénith, Lune exclue (§2.2). */
+  /** Site fond de ciel at zenith, Lune excluded (§2.2). */
   readonly sbSiteMag: number
-  /** Hauteur de la direction rendue : elle décide du halo d'horizon. */
+  /** Hauteur of the rendered direction: decides horizon halo. */
   readonly hauteurDeg: number
-  /** Géométrie lunaire de cette direction. Absente : la Lune n'entre pas dans le calcul. */
+  /** Lunar geometry of this direction. Absent: Lune not in the computation. */
   readonly lune?: GeometrieLune | undefined
   /**
-   * T-0099 — dépression du Soleil sous l'horizon, en degrés (positive une fois couché).
-   * Absente : le crépuscule n'entre pas dans le calcul, comme un instant hors du domaine des
-   * séries n'éteint pas la scène (§12.5).
+   * T-0099 — Soleil dépression below horizon, degrees (positive once set). Absent: twilight not
+   * in the computation, as an out-of-domain instant doesn't switch off the scène (§12.5).
    */
   readonly depressionSolaireDeg?: number | undefined
 }
 
-/** Brillance totale du ciel dans cette direction, en nanolamberts. */
+/** Total sky brillance in this direction, nanolamberts. */
 function brillanceFondNl(entree: EntreeFondRendu): number {
   const bCrepuscule =
     entree.depressionSolaireDeg === undefined
@@ -268,10 +248,8 @@ function brillanceFondNl(entree: EntreeFondRendu): number {
 }
 
 /**
- * Fond de ciel effectif dans cette direction, en mag/arcsec².
- *
- * Un seul moteur, deux écrans (T-0089) : le plan de séance additionne les mêmes brillances
- * avec les mêmes fonctions, donc annonce le même fond de ciel à la même minute.
+ * Effective fond de ciel in this direction, mag/arcsec². One engine, two screens (T-0089): plan
+ * de séance adds the same brillances with the same functions → same fond de ciel at same minute.
  */
 export function sbEffectifRendu(entree: EntreeFondRendu): number {
   return sbDepuisNanolamberts(brillanceFondNl(entree))
@@ -284,9 +262,8 @@ export interface GeometrieSoleil {
 }
 
 /**
- * Kasten & Young (1989) — masse d'air jusqu'à l'horizon (≈ 38 à h = 0°). Celle de KS91 y
- * plafonne à 5 : juste pour la Lune et une cible au-dessus de 15°, elle laissait au Soleil
- * couchant tout son éclat et toute sa blancheur.
+ * Kasten & Young (1989) — masse d'air down to horizon (≈ 38 at h = 0°). KS91 caps at 5 there:
+ * right for Lune and cible above 15°, but left the setting Soleil all its brightness/whiteness.
  */
 export function masseAirKastenYoung(hauteurDeg: number): number {
   const h = Math.max(0, hauteurDeg)
@@ -298,10 +275,9 @@ export function masseAirKastenYoung(hauteurDeg: number): number {
 }
 
 /**
- * Transmission par canal (R, V, B) d'un trajet atmosphérique à cette hauteur, rapportée au
- * ROUGE, le canal le moins éteint : le rougissement retire du vert et du bleu, il n'ajoute
- * jamais de rouge — l'extinction commune, elle, est déjà dans `attenuationBrute`. Vaut ≈ (1, 1, 1)
- * au zénith, vire à l'orangé au ras de l'horizon — c'est tout le couchant.
+ * Per-channel (R, V, B) transmission of an atmospheric path at this hauteur, relative to RED
+ * (least extinct): reddening removes green and blue, never adds red — common extinction already
+ * in `attenuationBrute`. ≈ (1, 1, 1) at zenith, orange at horizon — all of the sunset.
  */
 export function rougissement(hauteurDeg: number): readonly [number, number, number] {
   const x = masseAirKastenYoung(hauteurDeg)
@@ -310,7 +286,7 @@ export function rougissement(hauteurDeg: number): readonly [number, number, numb
   return [1, relative(K('EXTINCTION_V_MAG_PAR_MASSE_AIR')), relative(K('EXTINCTION_B_MAG_PAR_MASSE_AIR'))]
 }
 
-/** Éclairement du Soleil éteint par sa masse d'air, sans la règle de l'horizon. */
+/** Soleil illuminance extinct by its masse d'air, without the horizon rule. */
 function eclairementSoleil(altitudeSoleilDeg: number): number {
   return (
     rapportDeFlux(K('KS_MAGNITUDE_SOLEIL')) *
@@ -319,14 +295,15 @@ function eclairementSoleil(altitudeSoleilDeg: number): number {
 }
 
 /**
- * Brillance ajoutée par le Soleil dans cette direction, en nanolamberts : le terme B_lune de
- * KS91 (`brillanceLuneNl`), la Lune remplacée par le Soleil. Même diffusion, même règle : un
- * Soleil couché n'éclaire rien — le crépuscule, lui, vient de Patat 2006. Seule l'extinction
- * du trajet solaire change de masse d'air (`masseAirKastenYoung`).
+ * Brillance added by the Soleil in this direction, nanolamberts: KS91's B_lune term
+ * (`brillanceLuneNl`) with Soleil for Lune. Same scattering, same rule: a set Soleil lights
+ * nothing — twilight comes from Patat 2006. Only solar path extinction changes masse d'air
+ * (`masseAirKastenYoung`).
  *
- * ponytail: KS91 est calibré sur la Lune. Appliqué au Soleil, il donne un zénith de jour de
- * 4 à 5,5 mag/as², l'ordre de grandeur mesuré ; mais la diffusion multiple, qui domine le ciel
- * de jour, n'y est pas. Assez pour peindre le ciel, pas pour un verdict.
+ * ponytail: KS91 is calibrated on the Lune. On the Soleil it gives a day zenith of 4-5,5
+ * mag/as², the measured order of magnitude, but multiple scattering (dominant in day sky) is
+ * missing. Enough to paint the sky, not for a verdict; upgrade if a verdict needs day-sky
+ * brightness.
  */
 export function brillanceSoleilNl(entree: GeometrieSoleil): number {
   if (entree.altitudeSoleilDeg <= 0 || entree.altitudeCibleDeg <= 0) return 0
@@ -337,24 +314,24 @@ export function brillanceSoleilNl(entree: GeometrieSoleil): number {
   )
 }
 
-/** Halo du Soleil décomposé : Rayleigh (bleu, large) et Mie (neutre, serré), en nanolamberts. */
+/** Decomposed Soleil halo: Rayleigh (blue, wide) and Mie (neutral, tight), nanolamberts. */
 export interface LueurSoleil {
   readonly rayleighNl: number
   readonly mieNl: number
 }
 
 /**
- * T-0356 — le halo peint du Soleil, en deux termes pour que chacun garde sa couleur.
+ * T-0356 — painted Soleil halo, 2 terms so each keeps its colour.
  *
- * - Rayleigh, large : son extinction de trajet se prend AU ZÉNITH, comme le terme que
- *   `sbZenithAvecCrepuscule` compte déjà — la hauteur de chaque direction, le halo d'horizon
- *   l'applique lui-même. Couché, le Soleil n'en a plus : c'est le crépuscule de Patat 2006.
- * - Mie, serré autour du Soleil : son trajet se prend à la hauteur de la cible — par défaut
- *   celle du Soleil, la seule que connaisse un dégradé radial. Couché, il reste peint comme au ras de l'horizon et s'éteint comme Patat au
- *   zénith, en plus vite : la lueur du couchant pâlit en rose, puis disparaît avant la nuit.
+ * - Rayleigh, wide: path extinction taken AT ZENITH, like the term `sbZenithAvecCrepuscule`
+ *   counts — each direction's hauteur is applied by the horizon halo itself. Set, Soleil has
+ *   none: that is Patat 2006 twilight.
+ * - Mie, tight around Soleil: path taken at target's hauteur — default the Soleil's, the only
+ *   one a radial gradient knows. Set, stays painted as at horizon and fades like Patat at
+ *   zenith, faster: sunset glow pales to pink, then vanishes before night.
  *
- * ponytail: la hauteur « du Soleil » ou « du zénith » pour tout un cercle de séparation, parce
- * qu'un dégradé radial ne sait pas faire mieux (voir `dessineHaloLune`). Rendu seul.
+ * ponytail: Soleil's (or zenith's) hauteur for a whole separation circle, since a radial gradient
+ * can't do better (see `dessineHaloLune`). Render only; upgrade if a computed value needs it.
  */
 export function lueurSoleil(
   altitudeSoleilDeg: number,
@@ -379,8 +356,8 @@ export function lueurSoleil(
 }
 
 /**
- * 1 tant que le Soleil est levé ; au-delà, la chute du crépuscule de Patat depuis l'horizon,
- * plus l'affaiblissement propre de la lueur (`LUEUR_COUCHANT_MAG_PAR_DEG`).
+ * 1 while Soleil is up; beyond, Patat twilight drop from horizon + glow's own fading
+ * (`LUEUR_COUCHANT_MAG_PAR_DEG`).
  */
 function affaiblissementCrepuscule(depressionSolaireDeg: number): number {
   if (depressionSolaireDeg <= 0) return 1
@@ -393,17 +370,14 @@ function affaiblissementCrepuscule(depressionSolaireDeg: number): number {
 }
 
 /**
- * T-0372 — part du crépuscule restant dans le fond, en log : 1 jusqu'au coucher, 0 quand le
- * fond est redevenu celui du site (fin de la table de Patat).
+ * T-0372 — share of twilight left in fond, in log: 1 until sunset, 0 when fond is back to the
+ * site's (end of Patat table). Removing viewing reddening BRIGHTENS the fond (only removes green
+ * and blue). Faded with the sunset glow it vanished during the first 5°, where fond held at
+ * table edge doesn't drop → horizon paled mid civil twilight. Following log of fond brillance
+ * itself fades slower than sky darkens, null the instant Soleil grid hands over to the steps.
  *
- * Retirer le rougissement de visée ÉCLAIRCIT le fond : il ne fait qu'ôter du vert et du bleu.
- * Éteint avec la lueur du couchant, il s'effaçait pendant les 5 premiers degrés où le fond,
- * tenu au bord de la table, ne baisse pas — l'horizon pâlissait en plein crépuscule civil.
- * Suivi en log de la brillance du fond elle-même, il s'efface moins vite que le ciel ne
- * s'assombrit, et il est nul à l'instant où la grille du Soleil passe la main aux paliers.
- *
- * ponytail: la monotonie tient tant que le rougissement de visée garde plus d'un quart de la
- * luminance (h ≳ 3°) ; plus bas, le sol recouvre le ciel.
+ * ponytail: monotonic while viewing reddening keeps > ¼ of luminance (h ≳ 3°); lower, ground
+ * covers the sky. Upgrade only if sky below 3° is ever painted.
  */
 function extinctionRougissementFond(depressionSolaireDeg: number, bFondNl: number): number {
   const bSite = bFondNl - brillanceCrepusculeNl(depressionSolaireDeg)
@@ -413,35 +387,34 @@ function extinctionRougissementFond(depressionSolaireDeg: number, bFondNl: numbe
 }
 
 /**
- * Ce qui ne dépend que du Soleil et du fond, pas de la direction : calculé une fois par image,
- * partagé par toutes les directions de la grille.
+ * Depends only on Soleil and fond, not direction: once per frame, shared by all grid directions.
  */
 export interface EclairageSoleil {
   readonly altitudeSoleilDeg: number
-  /** Fond du site au zénith, SANS le terme solaire, en nanolamberts. */
+  /** Site fond at zenith WITHOUT the solar term, nanolamberts. */
   readonly bFondNl: number
-  /** Zénith complet, Soleil compris : c'est lui qui règle l'adaptation de l'œil. */
+  /** Full zenith, Soleil included: sets eye adaptation. */
   readonly sbZenith: number
-  /** Rougissement de la lumière solaire sur son propre trajet. */
+  /** Reddening of solar light on its own path. */
   readonly soleil: readonly [number, number, number]
-  /** Exposant du rougissement de visée appliqué au Rayleigh, 0 Soleil haut, 1 Soleil rasant. */
+  /** Viewing-reddening exponent applied to Rayleigh, 0 high Soleil, 1 grazing Soleil. */
   readonly poidsVue: number
-  /** Le même pour le fond du site et le crépuscule, éteint à mesure que le zénith s'assombrit. */
+  /** Same for site fond and twilight, extinguished as zenith darkens. */
   readonly poidsFond: number
-  /** Facteur appliqué à la lueur de Mie pour que son pic reste dans l'écran. */
+  /** Factor applied to Mie glow so its peak stays on screen. */
   readonly exposition: number
 }
 
 /**
- * T-0356 — l'éclairage du ciel par ce Soleil.
+ * T-0356 — sky lighting by this Soleil.
  *
- * - `poidsVue` : un ciel bas éclairé par une lumière déjà rougie se lit rougi — c'est le
- *   jaune sous le bleu d'un couchant. Soleil haut, la diffusion multiple, absente du modèle,
- *   garde l'horizon blanc : le poids suit donc le rougissement du Soleil lui-même, élevé à
- *   `EXPOSANT_POIDS_COUCHANT` pour s'effacer vite quand il monte.
- * - `exposition` : comme un œil ou un boîtier, on expose sur la lueur. Sa luminance à
- *   `SEPARATION_REFERENCE_LUEUR_DEG` du Soleil est ramenée à `LUEUR_CIBLE_EXPOSITION` : sans
- *   cela, le Mie dépasse le fond de deux ordres de grandeur et tout sature au blanc.
+ * - `poidsVue`: low sky lit by already-reddened light reads reddened — the yellow under a
+ *   sunset's blue. High Soleil: multiple scattering (absent from model) keeps horizon white →
+ *   weight follows Soleil's own reddening, raised to `EXPOSANT_POIDS_COUCHANT` to fade fast as it
+ *   rises.
+ * - `exposition`: like an eye or boîtier, exposes on the glow. Luminance at
+ *   `SEPARATION_REFERENCE_LUEUR_DEG` from Soleil is brought to `LUEUR_CIBLE_EXPOSITION`; without
+ *   it Mie exceeds fond by 2 orders of magnitude and all saturates white.
  */
 export function eclairageSoleil(
   altitudeSoleilDeg: number,
@@ -468,14 +441,12 @@ export function eclairageSoleil(
 }
 
 /**
- * T-0356 — couleur du ciel dans une direction (h, ρ), prête à encoder (canaux dans [0, 1]).
- *
- * Le fond et le Rayleigh, relevés par le halo d'horizon (`facteurHaloHorizon`) et rougis par
- * le trajet de visée selon leur poids, gardent la teinte du ciel : compression à teinte
- * constante. La lueur de Mie, rougie DEUX fois — par le trajet du Soleil jusqu'à la diffusion,
- * puis par celui de la diffusion jusqu'à l'œil —, s'y ajoute et sature canal par canal. Ce
- * second trajet ne dépend que de la hauteur visée : c'est lui qui étage le couchant en bandes,
- * orangé au ras de l'horizon, jaune, crème, puis le bleu du ciel.
+ * T-0356 — sky colour in a direction (h, ρ), ready to encode (channels in [0, 1]).
+ * Fond and Rayleigh, lifted by horizon halo (`facteurHaloHorizon`) and reddened by viewing path
+ * per weight, keep the sky tint: constant-hue compression. Mie glow, reddened TWICE (Soleil path
+ * to the scattering, then scattering path to the eye), adds on and saturates per channel. The
+ * 2nd path depends only on aimed hauteur: it stages the sunset in bands — orange at horizon,
+ * yellow, cream, sky blue.
  */
 export function composantesCielSoleil(
   e: EclairageSoleil,
@@ -502,9 +473,9 @@ export function composantesCielSoleil(
 }
 
 /**
- * Compression douce à teinte constante : le canal le plus vif passe par `compresseCanal`, les
- * deux autres suivent dans le même rapport. Pour le fond, dont la teinte est le ciel lui-même :
- * un horizon trois fois plus clair que le zénith reste bleu pâle, il ne blanchit pas.
+ * Soft constant-hue compression: brightest channel goes through `compresseCanal`, other two
+ * follow at same ratio. For fond, whose tint is the sky itself: horizon 3× brighter than zenith
+ * stays pale blue, doesn't whiten.
  */
 export function compresseTeinte(
   c: readonly [number, number, number],
@@ -516,10 +487,9 @@ export function compresseTeinte(
 }
 
 /**
- * Compression douce des hautes lumières, canal par canal : sous `GENOU_HAUTES_LUMIERES` un
- * canal passe tel quel, au-dessus il tend vers 1 (pente continue au genou). Comme un film
- * surexposé, le rouge d'un couchant arrive le premier au plafond, le vert le rejoint : l'orangé
- * passe au jaune puis au blanc en approchant du Soleil, sans jamais s'écrêter net.
+ * Soft highlight compression per channel: below `GENOU_HAUTES_LUMIERES` passes as-is, above
+ * tends to 1 (continuous slope at genou). Like overexposed film: a sunset's red hits the
+ * ceiling first, green joins — orange → yellow → white nearing Soleil, never hard clipping.
  */
 export function compresseHautesLumieres(
   c: readonly [number, number, number],
@@ -534,7 +504,7 @@ function compresseCanal(lineaire: number): number {
   return genou + reste * (1 - Math.exp(-(lineaire - genou) / reste))
 }
 
-/** Brillance du Soleil au zénith, en nanolamberts, pour cette dépression solaire. */
+/** Soleil brillance at zenith, nanolamberts, for this solar dépression. */
 export function brillanceSoleilZenithNl(depressionSolaireDeg: number): number {
   return brillanceSoleilNl({
     altitudeSoleilDeg: -depressionSolaireDeg,
@@ -544,11 +514,10 @@ export function brillanceSoleilZenithNl(depressionSolaireDeg: number): number {
 }
 
 /**
- * T-0099 — fond de ciel du site AU ZÉNITH, crépuscule et Soleil compris : c'est la valeur dont
- * la scène a besoin, parce que ses couches — teinte du fond, paliers de halo, contraste de la
- * bande, adaptation de l'œil — partent toutes du zénith et appliquent le halo d'horizon
- * elles-mêmes. Le halo solaire, lui, se peint par-dessus et retire ce terme avant de
- * s'ajouter (`dessineHaloSoleil`), comme le halo lunaire, que ce zénith n'inclut pas.
+ * T-0099 — site fond de ciel AT ZENITH, twilight and Soleil included: what the scène needs, as
+ * its layers (fond tint, halo steps, bande contrast, eye adaptation) all start from zenith and
+ * apply horizon halo themselves. Solar halo painted on top removes this term before adding
+ * (`dessineHaloSoleil`), like the lunar halo, which this zenith excludes.
  */
 export function sbZenithAvecCrepuscule(sbSiteMag: number, depressionSolaireDeg: number): number {
   const bCiel = nanolamberts(

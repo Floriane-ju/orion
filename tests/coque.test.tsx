@@ -1,14 +1,9 @@
 /**
- * T-0113 — la coque planétarium : la scène occupe tout, le reste se pose dessus.
- *
- * Ce qui est vérifié ici n'est pas une apparence, c'est la structure : les cinq régions
- * existent, un seul contenu de panneau est monté à la fois, une carte repliée ne monte pas
- * son corps, un objet cliqué dans la scène déplie sa fiche, le mode Panorama fige le
- * temps, et le plan de session reste imprimable panneau fermé.
- *
- * Le rendu statique suffit : chaque bascule d'écran passe par un magasin de module, appelable
- * sans DOM. C'est précisément pourquoi l'état de la coque et la cible y vivent plutôt que
- * dans l'état local d'un composant.
+ * T-0113 — coque planétarium: scene fills all, rest laid over it. Tests structure, not look:
+ * five regions exist, one panel content mounted at a time, folded card mounts no body,
+ * clicked scene object unfolds its fiche, Panorama freezes time, plan de session printable
+ * with panel closed. Static render suffices: screen toggles go through a module store,
+ * callable without DOM (why coque state/target live there, not in component state).
  */
 
 import { readFileSync } from 'node:fs'
@@ -70,7 +65,7 @@ afterEach(() => {
   reinitialiseCatalogue()
 })
 
-/** Les réglages de poids n'ont pas d'état dans un rendu statique : commandes inertes. */
+/** Weight settings have no state in static render: inert controls. */
 const POIDS_INERTES = {
   poids: poidsParDefaut(),
   surPoids: () => undefined,
@@ -81,17 +76,17 @@ const REGLAGES_INERTES = {
   poids: POIDS_INERTES,
 } as const
 
-/** La barre haute : tout ce qui précède la scène dans le document. */
+/** Top bar: everything before the scene in the document. */
 function barreHaute(html: string): string {
   return html.slice(0, html.indexOf('coque-scene'))
 }
 
-/** T-0325 — la page info, montée en dernier dans la coque. */
+/** T-0325 — info page, mounted last in the coque. */
 function pageInfo(html: string): string {
   return html.slice(html.indexOf('class="page-info"'))
 }
 
-/** La tête du panneau latéral : tout ce qui précède son corps. */
+/** Side panel head: everything before its body. */
 function ongletsPanneau(html: string): string {
   const aside = html.slice(html.indexOf('<aside class="coque-lateral"'))
   return aside.slice(0, aside.indexOf('lateral-corps'))
@@ -108,15 +103,15 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
     expect(html).toContain('coque-cartes')
     expect(html).toContain('coque-lateral')
     expect(html).toContain('coque-visee')
-    // La barre basse est démontée : son contenu est monté dans la barre haute et la carte Site.
+    // Bottom bar unmounted: content mounted in top bar and Site card.
     expect(html).not.toContain('coque-barrebas')
     expect(html).not.toContain('<footer')
-    // La scène est bien le canevas du planétarium, pas une pile de sections.
+    // Scene is the planétarium canvas, not a stack of sections.
     expect(html).toContain('class="planetarium"')
   })
 
-  // T-0213 — la carte Vue est devenue le rail : ses bascules bordent la scène au lieu de se
-  // déplier. Le plan de nuit, lui, a quitté la scène pour l'onglet « Mon plan ».
+  // T-0213 — Vue card became the rail: toggles border the scene, no unfolding. Plan de nuit
+  // left scene for the "Mon plan" tab.
   it('pose le rail de la vue sur la scène, et plus aucune carte du plan', () => {
     const html = ecran()
     expect(html).toContain('coque-rail')
@@ -125,18 +120,14 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
     expect(html).not.toContain('coque-seance')
   })
 
-  // Le rail borde la scène à gauche : la tabulation le rencontre après elle et avant le
-  // panneau, comme la carte qu'il remplace.
+  // Rail on scene's left: tab order = after scene, before panel, like the card it replaces.
   it('range le rail entre la scène et le panneau latéral', () => {
     const html = ecran()
     expect(html.indexOf('coque-rail')).toBeGreaterThan(html.indexOf('coque-scene'))
     expect(html.indexOf('coque-rail')).toBeLessThan(html.indexOf('coque-lateral'))
   })
 
-  /**
-   * T-0437 — le lieu et le matériel ne sont plus des cartes posées sur la scène : trois menus du
-   * rail, sous les calques, fermés au chargement comme eux.
-   */
+  /** T-0437 — site/matériel = rail menus under calques, closed at load, not scene cards. */
   it('pose Site, Boîtier et Optique en trois menus du rail, sous les calques, fermés', () => {
     const html = ecran()
     expect(html).not.toContain('coque-materiel')
@@ -151,16 +142,13 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
     }
   })
 
-  /**
-   * T-0411 — le temps a quitté la colonne de droite pour la barre haute. La colonne garde la
-   * largeur : la barre et les cartes la lisent pour s'arrêter avant elle.
-   */
+  /** T-0411 — time moved to top bar; right column keeps width (bar, cards stop before it). */
   it('laisse la colonne de droite au seul panneau, et porte le temps hors d’elle', () => {
     const html = ecran()
     const colonne = html.slice(html.indexOf('coque-droite'), html.indexOf('coque-temps'))
     expect(colonne.indexOf('coque-lateral')).toBeGreaterThan(-1)
     expect(colonne).not.toContain('panneau-temps')
-    // T-0413 — en bas de la scène, dans sa propre région.
+    // T-0413 — scene bottom, own region.
     expect(html.indexOf('panneau-temps')).toBeGreaterThan(html.indexOf('coque-temps'))
 
     const debut = CSS_COQUE.indexOf('.coque-droite {')
@@ -169,17 +157,17 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
     expect(regle).toContain('width: var(--lateral)')
   })
 
-  // Le réglage se relit sans ouvrir le menu : la bulle le dit après le titre.
+  // Setting readable without opening the menu: tooltip states it after the title.
   it('résume le boîtier et l’objectif dans la bulle du menu', () => {
     const html = ecran()
-    // T-0282 — le boîtier et son suivi : ce qui décide de la pose.
+    // T-0282 — boîtier and its suivi: what decides pose.
     expect(html).toMatch(/role="tooltip"[^>]*>Boîtier — [^<]+ · [^<]+<\/span>/)
     expect(html).toMatch(/role="tooltip"[^>]*>Optique — [^<?]+ mm f\/[^<?]+<\/span>/)
   })
 
-  // T-0238 — un seul dessin pour tout ce qui se pose sur le ciel. La maquette filaire remplace
-  // les équerres par la fenêtre : filet complet, barre de titre pleine en --barre-fond sous un
-  // titre en --barre-encre — le couple que le mode nuit repeint une fois pour toutes les barres.
+  // T-0238 — one drawing for everything laid on the sky. Wireframe: window replaces corner
+  // brackets; full rule, title bar filled --barre-fond under --barre-encre title; night mode
+  // repaints that pair for all bars.
   it('donne aux cartes, aux rubriques et aux panneaux la même barre de titre', () => {
     const regleDe = (selecteur: string) => {
       const debut = CSS_COQUE.indexOf(`${selecteur} {`)
@@ -189,28 +177,28 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
     for (const selecteur of ['.tiroir-contenu > h2.tiroir-rail-titre:first-child', '.lateral-entete', 'section:not([class]) > h2:first-child']) {
       expect(regleDe(selecteur), selecteur).toMatch(/background: (linear-gradient\()?var\(--barre-fond\)/)
     }
-    // Le titre d'une section prend l'encre de la barre, et rien après lui ne la reprend : un
-    // `color: inherit` groupé plus bas le peignait en --texte, blanc sur l'aplat blanc.
+    // Section title takes bar ink, nothing repaints it after: grouped `color: inherit` below
+    // painted it --texte (white on white).
     const titre = 'section:not([class]) > h2:first-child'
     expect(regleDe(titre)).toContain('color: var(--barre-encre)')
     const suite = CSS_COQUE.slice(CSS_COQUE.indexOf(`${titre} {`) + titre.length)
     for (const bloc of suite.split('}').filter((b) => b.includes(titre))) {
       expect(bloc, 'une règle ultérieure recolore le titre de section').not.toMatch(/\bcolor:/)
     }
-    // Même barre qu'une carte repliable : même hauteur, filet compris.
+    // Same bar as a foldable card: same height, rule included.
     expect(regleDe(titre)).toContain('height: calc(var(--barre-titre) + var(--trait))')
     expect(CSS_COQUE).not.toContain('.coque-lateral::before')
   })
 
   it('décolle le panneau des bords comme une carte, filet complet', () => {
-    // T-0314 — le décollement est porté par la colonne qui le contient ; lui prend la hauteur
-    // qu'elle lui laisse sous le panneau du temps, et garde son filet.
+    // T-0314 — unsticking carried by containing column; takes height left under time panel,
+    // keeps rule.
     const debut = CSS_COQUE.indexOf('.coque-lateral {')
     const panneau = CSS_COQUE.slice(debut, CSS_COQUE.indexOf('}', debut))
     expect(panneau).toContain('flex: 1')
     expect(panneau).toContain('min-height: 0')
     expect(panneau).toContain('border: var(--trait) solid var(--bordure)')
-    // Il ne se replie pas : aucun en-tête-bouton, aucun signe de repli.
+    // Does not fold: no button header, no fold sign.
     const html = ecran()
     const aside = html.slice(html.indexOf('<aside class="coque-lateral"'))
     const entete = aside.slice(0, aside.indexOf('lateral-corps'))
@@ -218,21 +206,20 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
   })
 
   it('garde le lieu lisible et réglable dans les deux modes', () => {
-    // Les champs du site vivent dans la carte Site : ce qui devait survivre au déménagement
-    // n'est pas leur dépliement permanent, c'est leur accessibilité constante.
+    // Site fields live in Site card: constant accessibility must survive the move, not
+    // permanent unfolding.
     for (const mode of ['CIEL_PROFOND', 'PANORAMA'] as const) {
       poseMode(mode)
       const html = ecran()
       const barre = html.slice(html.indexOf('tiroir-site'))
       expect(barre, mode).toContain('Bortle')
-      // Relief en chargement : pas d'avertissement.
+      // Relief loading: no warning.
       expect(barre, mode).not.toContain('Horizon supposé plat')
     }
   })
 
   it('affiche les coordonnées du site, au dixième, sans ouvrir le menu', () => {
-    // Un en-tête qui n'afficherait rien rendrait le déménagement coûteux : il faudrait
-    // déplier une carte pour savoir sous quel ciel on calcule.
+    // Empty header makes the move costly: card would need unfolding to know which sky is computed.
     const html = ecran()
     const dixieme = (v: string) => `${nombre(Number(v), 1)}°`
     expect(html).toContain(`>Site — ${dixieme(DEFAUT.latitude)} / ${dixieme(DEFAUT.longitude)}</span>`)
@@ -254,8 +241,8 @@ describe('T-0113 — la scène occupe tout, le reste se pose dessus', () => {
     expect(pageInfo(html)).toContain('Registre de constantes')
   })
 
-  // T-0153 — la barre haute ne dit plus où pointe la vue : la phrase complète est en bas,
-  // et la répéter ici en abrégé faisait deux lectures pour un seul fait.
+  // T-0153 — top bar no longer states view target: full phrase is at bottom; abbreviating
+  // here = two readings of one fact.
   it('ne répète plus la visée : elle est au centre de la barre basse', () => {
     expect(barreHaute(ecran()).replaceAll('<!-- -->', '')).not.toMatch(/az \d+° · h \d+°/)
   })
@@ -273,8 +260,8 @@ describe('§11.2 — un seul jeu de réglages à la fois', () => {
     expect(panorama).not.toContain('Ne montrer que les objets photographiables')
   })
 
-  // T-0213 — les bascules de la vue ne se déplient plus : elles sont là dès l'ouverture, et
-  // c'est tout l'intérêt du rail. Une seule lecture du magasin, pas un abonnement complet.
+  // T-0213 — view toggles no longer unfold: present from opening (rail's point). One store
+  // read, not full subscription.
   it('monte les huit bascules de la vue, calques compris, dès l’ouverture', () => {
     const rail = ecran()
     const debut = rail.indexOf('coque-rail')
@@ -294,8 +281,8 @@ describe('§11.2 — un seul jeu de réglages à la fois', () => {
     expect((bloc.match(/aria-pressed=/g) ?? []).length).toBe(8)
   })
 
-  // Les couches d'habillage du ciel se rangent dans le tiroir « Calques » ; le cadre matériel,
-  // ce qu'on vise, reste seul sur le rail.
+  // Sky-dressing couches go in "Calques" drawer; cadre matériel (what is aimed at) stays alone
+  // on rail.
   it('range figures, frontières, astérismes, sol et voie lactée dans les calques, pas le cadre', () => {
     const html = ecran()
     const rail = html.slice(html.indexOf('coque-rail'), html.indexOf('tiroir-site'))
@@ -310,8 +297,8 @@ describe('§11.2 — un seul jeu de réglages à la fois', () => {
     expect(rail).toContain('aria-label="Cadre matériel"')
   })
 
-  // T-0403 — en Panorama, le rail retire ce qui n'agit plus sous l'aperçu, mais garde la Voie
-  // lactée : sa bascule commande encore le trait du plan galactique (T-0173).
+  // T-0403 — in Panorama rail drops what no longer acts under preview but keeps Voie lactée:
+  // its toggle still drives galactic-plane line (T-0173).
   it('en Panorama, retire figures, frontières et astérismes mais garde la Voie lactée', () => {
     poseMode('PANORAMA')
     const html = ecran()
@@ -328,9 +315,9 @@ describe('§11.2 — un seul jeu de réglages à la fois', () => {
   })
 
   /**
-   * T-0069 — « un raccourci qui n'est écrit que dans le code n'existe pas ». La carte Vue les
-   * affichait ; le rail les porte sur un bouton qui n'est pas une bascule — il annonce, il ne
-   * commande rien, et sa bulle s'ouvre au focus autant qu'au survol.
+   * T-0069 — "un raccourci qui n'est écrit que dans le code n'existe pas". Vue card showed
+   * them; rail: non-toggle button, announces, commands nothing, tooltip opens on focus as on
+   * hover.
    */
   it('garde les raccourcis clavier atteignables depuis le rail', () => {
     const html = ecran()
@@ -346,12 +333,7 @@ describe('§11.2 — un seul jeu de réglages à la fois', () => {
   })
 })
 
-/**
- * T-0181 — le panneau latéral n'est plus un tiroir, c'est une colonne.
- *
- * Ce qui se vérifie ici est la disparition de l'état fermé, et le fait que le mode — et lui
- * seul — décide de ce que la colonne porte.
- */
+/** T-0181 — side panel = column, not drawer: closed state gone, mode alone decides content. */
 describe('§11.3 — le panneau est toujours ouvert et son contenu suit le mode', () => {
   it('est visible au démarrage, sans attribut de fermeture ni bouton pour le fermer', () => {
     const html = ecran()
@@ -361,7 +343,7 @@ describe('§11.3 — le panneau est toujours ouvert et son contenu suit le mode'
     expect(html).not.toContain('Fermer le panneau')
   })
 
-  // T-0246 — les onglets nomment déjà ce que le panneau porte : un titre le répéterait.
+  // T-0246 — tabs already name what panel carries: a title would repeat.
   it('ne répète pas le mode dans un titre, sur la liste comme en Panorama', () => {
     for (const mode of ['CIEL_PROFOND', 'PANORAMA'] as const) {
       poseMode(mode)
@@ -372,7 +354,7 @@ describe('§11.3 — le panneau est toujours ouvert et son contenu suit le mode'
   })
 
   it('ne laisse plus aucun état fermé exister', () => {
-    // La feuille de style ne peut plus non plus décrire un panneau fermé.
+    // Stylesheet cannot describe a closed panel either.
     expect(CSS_COQUE).not.toContain('.coque-lateral[hidden]')
   })
 
@@ -386,12 +368,9 @@ describe('§11.3 — le panneau est toujours ouvert et son contenu suit le mode'
 })
 
 /**
- * T-0180 — la barre haute ne commandait plus des panneaux, elle commandait le MODE.
- * T-0246 — la bascule est descendue sur le panneau, dont elle forme les onglets.
- *
- * Ce qui se vérifie ici est le déménagement et son annonce : un état de premier rang porté par
- * deux boutons pressés en tête du panneau, et plus rien de tel dans la barre haute. Le contenu
- * que le mode décide, lui, est vérifié là où il se monte.
+ * T-0180 — top bar commanded the MODE, not panels. T-0246 — toggle moved to panel, forming
+ * its tabs. Tests move + announcement: first-rank state carried by two pressed buttons at
+ * panel head, nothing similar in top bar. Mode-decided content tested where mounted.
  */
 describe('§11.3 — la bascule de mode forme les onglets du panneau latéral', () => {
   it('porte les deux positions en tête du panneau, et plus aucune dans la barre haute', () => {
@@ -403,7 +382,7 @@ describe('§11.3 — la bascule de mode forme les onglets du panneau latéral', 
     const topbar = barreHaute(html)
     expect(topbar).not.toContain('Mode d’interface')
     expect(topbar).not.toContain('class="onglet')
-    // Les trois boutons de panneau sont partis avec le tiroir qu'ils ouvraient.
+    // The three panel buttons left with the drawer they opened.
     expect(topbar).not.toContain('barrehaut-panneaux')
     expect(topbar).not.toContain('Toutes les cibles')
     expect(topbar).not.toContain('Plan de nuit')
@@ -425,7 +404,7 @@ describe('§11.3 — la bascule de mode forme les onglets du panneau latéral', 
     expect(ongletsPanneau(ecran())).toMatch(
       /class="onglet actif"[^>]*aria-pressed="true">Panorama/,
     )
-    // Le fond, mais aussi le trait et la graisse.
+    // Background, but also rule and weight.
     const debut = CSS_COQUE.indexOf('.onglet.actif {')
     expect(debut).toBeGreaterThan(-1)
     const actif = CSS_COQUE.slice(debut, CSS_COQUE.indexOf('}', debut))
@@ -454,20 +433,19 @@ describe('§11.3 — la bascule de mode forme les onglets du panneau latéral', 
 
 describe('§3.4 — un objet cliqué ouvre sa fiche', () => {
   it('met la fiche à la place de la liste, garnie, sans autre geste', () => {
-    // La liste tient le panneau tant qu'aucun objet n'a été désigné : le clic sur la scène
-    // doit y mettre la fiche, sinon le geste se termine sans que rien ne se voie.
+    // List holds panel until an object is designated: scene click must put fiche there, else
+    // gesture shows nothing.
     expect(etatSeance().vueCibles).toBe('LISTE')
     expect(ecran()).toContain('Ne montrer que les objets photographiables')
     ouvreCible(M31)
     expect(etatSeance().vueCibles).toBe('FICHE')
     expect(etatSeance().cible?.designation).toBe('M31')
-    // C'est bien la fiche §6.2 / §6.3 / §7 qui s'ouvre, pas un simple nom affiché.
-    // (Le garnissage des champs par l'objet est posé par un effet de montage : il ne joue
-    // pas en rendu statique, seule la présence de la fiche est vérifiable ici.)
+    // §6.2 / §6.3 / §7 fiche opens, not a bare name. Mount effect fills fields from object:
+    // not run in static render, only fiche presence checkable.
     const html = ecran()
     expect(html).toContain('Photographie')
     expect(html).toContain('Cadrage')
-    // La liste est démontée : elle ne reste pas vivante derrière la fiche.
+    // List unmounted: not kept alive behind the fiche.
     expect(html).not.toContain('Ne montrer que les objets photographiables')
   })
 
@@ -478,7 +456,7 @@ describe('§3.4 — un objet cliqué ouvre sa fiche', () => {
     const html = ecran()
     expect(html).toContain('Ne montrer que les objets photographiables')
     expect(html).toContain('value="andro"')
-    // La cible reste désignée : c'est la LECTURE qui change, pas le choix.
+    // Target stays designated: READING changes, not the choice.
     expect(etatSeance().cible?.designation).toBe('M31')
   })
 
@@ -487,9 +465,9 @@ describe('§3.4 — un objet cliqué ouvre sa fiche', () => {
     ouvreCible(M31)
     const fiche = ecran()
     expect(fiche).toContain('lateral-retour')
-    // La bulle nomme le bouton (`BoutonGlyphe`) : son texte est le nom accessible.
+    // Tooltip names button (`BoutonGlyphe`): its text is the accessible name.
     expect(fiche).toContain('role="tooltip" data-place="bas">Revenir à la liste des cibles<')
-    // L'en-tête nomme la cible et porte sa note, hors de tout bouton : elle est annoncée.
+    // Header names target and carries its note, outside any button: announced.
     expect(fiche).toContain('<h2 tabindex="-1">M31 — ')
   })
 
@@ -526,16 +504,15 @@ describe('§9.3 — le mode Panorama fige le temps', () => {
     poseMode('PANORAMA')
     poseMode('CIEL_PROFOND')
     expect(etatSeance().mode).toBe('CIEL_PROFOND')
-    // Rendre le temps à l'horloge système est un geste, pas un effet de bord (§3.2).
+    // Handing time back to system clock is a gesture, not a side effect (§3.2).
     expect(etatScene().temps.modeTemps).toBe('FIGE')
   })
 })
 
 /**
- * T-0116 — le filé se peint par image ; ses compteurs ne se publient pas au même rythme.
- * `poseRenduFile` écrit dans le magasin de séance, donc déclenche un rendu React : publiés à
- * chaque peinture, ils en feraient trente par seconde (T-0056). La boucle n'appelle donc ce
- * publicateur qu'au rythme du diagnostic, et il coupe tout ce qui n'a pas bougé.
+ * T-0116 — filé painted per frame, its counters not published at same rate. `poseRenduFile`
+ * writes to séance store → React render: per-paint publish = 30/s (T-0056). Loop calls
+ * publisher only at diagnostic rate; it drops anything unchanged.
  */
 describe('T-0116 — les compteurs du filé ne rendent pas par image', () => {
   const RENDU: RenduFile = { reelles: 12 }
@@ -543,7 +520,7 @@ describe('T-0116 — les compteurs du filé ne rendent pas par image', () => {
   it('ne publie qu’une fois tant que les compteurs ne bougent pas', () => {
     const publies: (RenduFile | null)[] = []
     const publie = publicateurRenduFile((r) => publies.push(r))
-    // Une période de diagnostic entière de passes identiques : un seul rendu React.
+    // Whole diagnostic period of identical passes: one React render.
     for (let i = 0; i < 30; i++) publie({ ...RENDU })
     expect(publies).toHaveLength(1)
     expect(publies[0]).toEqual(RENDU)
@@ -561,8 +538,8 @@ describe('T-0116 — les compteurs du filé ne rendent pas par image', () => {
   })
 
   it('publie le premier état même quand le filé est éteint dès le départ', () => {
-    // Sans amorce, un `null` initial serait pris pour « rien n'a changé » et des compteurs
-    // laissés par une séance précédente resteraient affichés sur un cadre vide.
+    // Without primer, initial `null` reads "unchanged": previous séance's counters stay on
+    // empty cadre.
     const publies: (RenduFile | null)[] = []
     publicateurRenduFile((r) => publies.push(r))(null)
     expect(publies).toEqual([null])
@@ -578,7 +555,7 @@ describe('T-0183 — le plan de nuit est l’onglet « Mon plan », et il reste 
     for (const mode of ['CIEL_PROFOND', 'PANORAMA'] as const) {
       poseMode(mode)
       const html = ecran()
-      // Masqué, pas démonté : démonté, imprimer depuis un autre onglet sortirait une page blanche.
+      // Hidden, not unmounted: unmounted, printing from another tab yields a blank page.
       expect(html, mode).toMatch(/<div class="lateral-plan" hidden="">/)
       expect(html, mode).toContain('plan-session')
     }
@@ -602,10 +579,10 @@ describe('T-0183 — le plan de nuit est l’onglet « Mon plan », et il reste 
 
   it('sort le plan à l’impression, depuis n’importe quel onglet, et rien d’autre', () => {
     const impression = CSS_COQUE.slice(CSS_COQUE.indexOf('@media print'))
-    // Ni barres, ni scène, ni cartes, ni canevas.
+    // No bars, scene, cards, canvas.
     expect(impression).toMatch(/\.panneau-temps \{\n\s*display: none/)
     expect(impression).toContain('.planetarium')
-    // Sauf l'onglet du plan, même porteur de `hidden`, et rien d'autre du panneau.
+    // Except plan tab, even with `hidden`, nothing else of the panel.
     expect(impression).toContain('.lateral-plan[hidden]')
     expect(impression).toContain('.lateral-corps > :not(.lateral-plan)')
     expect(impression).toContain('.lateral-plan > :not(.plan-session)')
@@ -613,23 +590,21 @@ describe('T-0183 — le plan de nuit est l’onglet « Mon plan », et il reste 
 })
 
 /**
- * T-0153 — il ne reste qu'une lecture, et elle se lit dans la barre.
- *
- * Le tiroir d'information de T-0038 mêlait la phrase qui date l'image et quatre lectures
- * d'atelier — magnitude limite, époque, cadrage, diagnostic de rendu. Notre persona ne mesure
- * pas le rendu. Ce qui se vérifie ici est donc double : la phrase est visible sans un clic, et
- * le tiroir n'existe plus. La barre basse démontée, la phrase est montée dans la barre haute.
+ * T-0153 — only one reading left, in the bar. T-0038 info drawer mixed image-dating phrase
+ * with four workshop readings (limiting magnitude, époque, cadrage, render diagnostic);
+ * persona doesn't measure rendering. Tests: phrase visible without click, drawer gone.
+ * Bottom bar unmounted, phrase in top bar.
  */
 describe('T-0153 — la phrase de visée se lit sans un clic', () => {
-  // T-0414 — la phrase se pose en haut à droite de la scène, contre le panneau.
+  // T-0414 — phrase at scene top right, against the panel.
   it('pose la phrase en haut à droite, hors de la barre haute', () => {
     const html = ecran().replaceAll('<!-- -->', '')
     const visee = html.slice(html.indexOf('coque-visee'))
-    // Six champs à préfixe, dans l'ordre de la phrase qu'ils remplacent.
+    // Six prefixed fields, in the order of the phrase they replace.
     expect(visee).toMatch(/>AD<[\s\S]*>δ<[\s\S]*>AZ<[\s\S]*>H<[\s\S]*>CH<[\s\S]*>ROT</)
     const haut = barreHaute(html)
     expect(haut).not.toContain('coque-visee')
-    // T-0325 — la légende a quitté la barre pour la modale info.
+    // T-0325 — legend left the bar for the info modal.
     expect(haut).not.toContain('Couleur — famille')
     expect(haut).toContain('<h1')
     expect(haut).not.toContain('panneau-temps')
@@ -647,24 +622,21 @@ describe('T-0153 — la phrase de visée se lit sans un clic', () => {
     const html = ecran()
     expect(html).not.toContain('scene-lectures')
     expect(html).not.toContain('tiroir-infos')
-    // Les lectures d'atelier partent avec lui : plus de compteur d'images par seconde.
+    // Workshop readings left with it: no frames-per-second counter.
     expect(html).not.toContain('images/s')
     expect(html).not.toContain('étoiles tracées sur')
   })
 })
 
 /**
- * T-0040 — le canevas seul au centre, sans marges.
- *
- * Rien à observer sans moteur de rendu : ce qui se vérifie ici est la règle elle-même. La
- * rangée basse à hauteur réservée de T-0037 n'a plus d'objet une fois les lectures parties ;
- * ce qui reste indispensable est `min-height: 0`, sans quoi le canevas reprend sa hauteur
- * intrinsèque et le défilement de page revient.
+ * T-0040 — canvas alone in centre, no margins. No renderer → tests the rule itself. T-0037
+ * reserved-height bottom row moot once readings left; `min-height: 0` stays essential, else
+ * canvas regains intrinsic height, page scroll returns.
  */
 describe('T-0040 — la colonne centrale ne porte plus que la scène', () => {
   const CSS = readFileSync(join(import.meta.dirname, '..', 'src', 'ui', 'styles.css'), 'utf8')
 
-  /** Le corps d'une règle, isolé du reste de la feuille. */
+  /** Body of a rule, isolated from the rest of the stylesheet. */
   function regle(selecteur: string): string {
     const debut = CSS.indexOf(`${selecteur} {`)
     expect(debut).toBeGreaterThan(-1)
@@ -681,7 +653,7 @@ describe('T-0040 — la colonne centrale ne porte plus que la scène', () => {
     const scene = regle('.coque-scene > .scene')
     expect(scene).toContain('padding: 0')
     expect(scene).toContain('margin: 0')
-    // Sans lui, la piste de grille reprend la hauteur intrinsèque du canevas.
+    // Without it the grid track takes the canvas's intrinsic height.
     expect(scene).toContain('min-height: 0')
     expect(regle('.coque-scene')).toContain('padding: 0')
   })
@@ -690,15 +662,15 @@ describe('T-0040 — la colonne centrale ne porte plus que la scène', () => {
     const canevas = regle('.coque-scene .planetarium')
     expect(canevas).toContain('width: 100%')
     expect(canevas).toContain('height: 100%')
-    // `contain` logeait un 16/9 dans une boîte qui ne l'est pas : bandes noires en haut et
-    // en bas. La définition de rendu suit désormais la boîte, il n'y a plus rien à loger.
+    // `contain` fit a 16/9 in non-16/9 box: black bands top/bottom. Render definition now
+    // follows box.
     expect(canevas).not.toContain('object-fit')
-    // Un canevas en ligne réserve l'interligne sous sa ligne de base : la page défile.
+    // Inline canvas reserves line gap under baseline: page scrolls.
     expect(canevas).toContain('display: block')
   })
 
   it('fait suivre la définition de rendu à la boîte, sans déformer', () => {
-    // Le rapport de la définition est celui de la boîte : des étoiles rondes le restent.
+    // Definition ratio = box ratio: round stars stay round.
     const haute = resolutionRendu(1000, 1000, 1)
     expect(haute.largeurPx / haute.hauteurPx).toBeCloseTo(1, 6)
     const large = resolutionRendu(1600, 400, 1)
@@ -707,10 +679,10 @@ describe('T-0040 — la colonne centrale ne porte plus que la scène', () => {
 
   it('plafonne le nombre de pixels peints au budget de référence', () => {
     const budget = LARGEUR_SCENE_PX * HAUTEUR_SCENE_PX
-    // Dalle Retina sur grande fenêtre : suivre `devicePixelRatio` doublerait la charge.
+    // Retina panel, big window: following `devicePixelRatio` would double load.
     const retina = resolutionRendu(1600, 900, 2)
     expect(retina.largeurPx * retina.hauteurPx).toBeLessThanOrEqual(budget + 1)
-    // Petite boîte : la densité de l'écran reste la borne, pas le budget.
+    // Small box: screen density is the bound, not the budget.
     const petite = resolutionRendu(400, 300, 2)
     expect(petite).toStrictEqual({ largeurPx: 800, hauteurPx: 600 })
   })
@@ -719,18 +691,15 @@ describe('T-0040 — la colonne centrale ne porte plus que la scène', () => {
     const repli = CSS.slice(CSS.indexOf('@media (max-width: 1100px)'))
     expect(repli).toMatch(/\.coque-scene > \.scene \{[^}]*display: block/)
     expect(repli).toMatch(/\.coque-scene \.planetarium \{[^}]*aspect-ratio: 16 \/ 9/)
-    // Le menu reste utilisable : son contenu défile plutôt que d'allonger la page.
+    // Menu stays usable: content scrolls instead of lengthening the page.
     expect(repli).toMatch(/\.tiroir\[open\] > \.tiroir-contenu \{[^}]*max-height/)
   })
 })
 
 /**
- * T-0041 — une alerte se signale sur le tiroir fermé.
- *
- * Une cause rangée dans un tiroir fermé est une cause invisible : on règle quelque chose,
- * rien ne bouge à l'écran, et l'explication est derrière un clic qu'on ne pense pas à faire.
- * T-0153 a démonté le menu d'information ; la règle vaut toujours pour le tiroir de
- * vérification, dont T-0082 signale une écriture perdue.
+ * T-0041 — alert signalled on closed drawer. Cause in closed drawer invisible: user sets
+ * something, nothing moves, explanation behind an unthought click. T-0153 unmounted info
+ * menu; rule still holds for vérification drawer (T-0082 flags a lost write).
  */
 describe('T-0041 — un tiroir qui s’alerte ne le dit pas par la seule couleur', () => {
   const CSS = readFileSync(join(import.meta.dirname, '..', 'src', 'ui', 'styles.css'), 'utf8')
@@ -739,7 +708,7 @@ describe('T-0041 — un tiroir qui s’alerte ne le dit pas par la seule couleur
     const debut = CSS.indexOf(".tiroir[data-alerte='true'] > summary {")
     expect(debut).toBeGreaterThan(-1)
     const corps = CSS.slice(debut, CSS.indexOf('}', debut))
-    // Le rouge du mode nuit ne dit rien seul.
+    // Night-mode red says nothing alone.
     expect(corps).toContain('font-weight: var(--graisse-forte)')
     expect(corps).toContain('border-color: var(--alerte)')
   })
@@ -765,11 +734,11 @@ describe('T-0047 — la roue crantée reloge le choix brut dans le catalogue', (
 
   it('T-0087 — porte les cinq poids C-15 et le retour aux valeurs du registre', () => {
     const rendu = renderToStaticMarkup(<MenuReglages {...REGLAGES_INERTES} />)
-    // T-0169 — les rails sont ceux de `Curseur`, plus des `input[type=range]` : c'est le rôle
-    // qui les compte, et c'est aussi lui que la technologie d'assistance lit.
+    // T-0169 — rails are `Curseur`, not `input[type=range]`: role counts them; assistive tech
+    // reads it.
     expect(rendu.match(/role="slider"/g)).toHaveLength(5)
     expect(rendu).toContain('Revenir aux poids par défaut')
-    // Le poids effectif s'affiche : c'est lui que le plan utilise, pas la position brute.
+    // Effective weight displayed: what the plan uses, not raw position.
     expect(rendu).toContain('25 %')
   })
 
@@ -795,15 +764,12 @@ describe('T-0047 — la roue crantée reloge le choix brut dans le catalogue', (
 
 
 /**
- * T-0184 — Vérification et Réglages ne font plus qu'un tiroir.
- *
- * Deux tiroirs voisins répondaient au même geste — « ce qui sort du chemin principal ». Ce
- * qui se vérifie ici n'est pas la fusion pour elle-même, c'est ce qu'elle ne doit pas coûter :
- * l'alerte de persistance de T-0041, qui n'a de valeur que sur le tiroir FERMÉ, et l'accès
- * aux deux contenus, dont aucun ne doit avoir disparu en route.
+ * T-0184 — Vérification + Réglages merged in one drawer (two adjacent drawers answered the
+ * same "off the main path" gesture). Tests what merge must not cost: T-0041 persistence
+ * alert (valuable only on CLOSED drawer) and access to both contents.
  */
 describe('T-0184 — un seul tiroir pour la vérification et les réglages', () => {
-  /** Le bouton info hors application : seul un échec de persistance fabriqué révèle l'alerte. */
+  /** Info button outside the app: only a forged persistence failure reveals the alert. */
   function barreSeule(echec: boolean): string {
     const persistance = {
       message: echec ? 'écriture perdue' : null,
@@ -844,7 +810,7 @@ describe('T-0184 — un seul tiroir pour la vérification et les réglages', () 
     const resume = alerte.slice(alerte.indexOf('<a href="#info"'))
     expect(resume).toContain('data-alerte="true"')
     expect(resume.slice(0, resume.indexOf('</a>'))).toContain(ALERTE_VERIFICATION)
-    // La mention nomme la section : « Vérification », pas seulement l'échec.
+    // Mention names the section "Vérification", not just the failure.
     expect(ALERTE_VERIFICATION).toMatch(/^Vérification/)
     expect(barreSeule(false)).toContain('data-alerte="false"')
   })
@@ -859,12 +825,9 @@ describe('T-0184 — un seul tiroir pour la vérification et les réglages', () 
 })
 
 /**
- * T-0228 — la provenance des données se lit en un endroit.
- *
- * Elle était semée au contact des valeurs qu'elle couvre — sous les dimensions de la fiche,
- * sous le champ Bortle, sous le verdict de détectabilité, sous le conseil filtre. Ce qui se
- * vérifie ici est le regroupement ET son prix : les deux mentions que le PRD impose au
- * contact ne doivent pas être parties avec les autres.
+ * T-0228 — data provenance read in one place (was next to values it covers: fiche dimensions,
+ * Bortle field, detectability verdict, filter advice). Tests grouping AND its price: the two
+ * mentions PRD requires at contact must not leave with the others.
  */
 describe('T-0228 / T-0325 — la page « info » porte les sources', () => {
   it('T-0325 — la page info porte les sources', () => {
@@ -882,14 +845,14 @@ describe('T-0228 / T-0325 — la page « info » porte les sources', () => {
   it('T-0325 — ses huit rubriques sont des accordéons fermés à l’ouverture', () => {
     const page = pageInfo(ecran())
     expect(page.match(/<details class="accordeon"/g)).toHaveLength(8)
-    // La légende ouvre la liste.
+    // Legend opens the list.
     expect(page.indexOf('Légende')).toBeLessThan(page.indexOf('Vérification'))
     expect(page).not.toMatch(/<details class="accordeon"[^>]* open/)
-    // Un seul ouvert à la fois : les huit forment un groupe exclusif natif.
+    // One open at a time: the eight form a native exclusive group.
     expect(page.match(/<details class="accordeon" name="page-info"/g)).toHaveLength(8)
-    // T-0386 — la chaîne complète des valeurs tracées quitte leur bulle pour la page info.
+    // T-0386 — full chain of traced values left their tooltip for the info page.
     expect(page).toContain('<h2>Calcul</h2>')
-    // T-0368 — les seuils de déclinaison quittent la carte Site pour la page info.
+    // T-0368 — declination thresholds left the Site card for the info page.
     expect(page).toContain('Déclinaisons du site')
   })
 
@@ -903,29 +866,25 @@ describe('T-0228 / T-0325 — la page « info » porte les sources', () => {
   })
 
   it('n’a pas emporté les deux mentions que le PRD impose au contact', () => {
-    // §6.4 — l'attribution de l'image est une condition d'affichage, pas une bibliographie.
+    // §6.4 — image attribution is a display condition, not a bibliography.
     ouvreCible(M31)
     expect(CREDIT_RELEVE.licence).toContain('CDS')
-    // §10.2 niveau 3 — la source d'une CONSTANTE se lit désormais dans la rubrique « Calcul »
-    // de la page info (T-0386) : `traces-affichees.test.tsx` le vérifie, le rendu statique
-    // ne joue pas l'inscription des valeurs montées.
+    // §10.2 level 3 — a CONSTANTE's source read in info page "Calcul" section (T-0386):
+    // `traces-affichees.test.tsx` checks it; static render doesn't run value registration.
   })
 })
 
 /**
- * T-0128 — le catalogue a un écran, et il en a UN seul.
- *
- * Ce qui est vérifié ici est le remplacement, pas la recherche : `chercheCatalogue` a ses
- * propres tests, et le filtrage ceux de `cibles-liste`. Ce qui doit se constater au niveau
- * de la coque, c'est qu'aucun des deux chemins remplacés ne subsiste — un second chemin
- * vers le catalogue est exactement le défaut que ce lot corrige.
+ * T-0128 — catalogue has ONE screen. Tests replacement: `chercheCatalogue` has its own tests,
+ * filtering those of `cibles-liste`. At coque level: neither replaced path survives; a second
+ * catalogue path = the defect this lot fixes.
  */
 describe('T-0128 — le catalogue remplace les deux chemins vers les cibles', () => {
   it('est le contenu du panneau en Ciel profond, et le seul monté (§11.2)', () => {
     const ouvert = ecran()
     expect(ouvert).toContain('Ne montrer que les objets photographiables')
     expect(ouvert).not.toContain('Séquence de filé')
-    // T-0181 — il n'est plus derrière un bouton : le mode Ciel profond le porte.
+    // T-0181 — no longer behind a button: Ciel profond mode carries it.
     poseMode('PANORAMA')
     expect(ecran()).not.toContain('Ne montrer que les objets photographiables')
   })

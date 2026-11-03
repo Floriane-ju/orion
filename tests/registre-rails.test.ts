@@ -1,8 +1,7 @@
 /**
- * T-0335 — les curseurs lisent leurs bornes et leur cran dans le registre.
- *
- * Un `min=`, un `max=` ou un `pas=` littéral écrit sur un `<Curseur>` est une borne de saisie
- * réécrite hors de `DOMAINES` : le test lit les sources, comme les disciplines du design system.
+ * T-0335 — sliders read bounds + step from registry.
+ * A literal `min=`, `max=`, `pas=` on a `<Curseur>` = input bound rewritten outside `DOMAINES`:
+ * test reads sources, like design-system disciplines.
  */
 
 import { describe, expect, it } from 'vitest'

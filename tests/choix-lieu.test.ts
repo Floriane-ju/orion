@@ -1,8 +1,7 @@
 /**
- * §4.1 — la carte du site : ce qu'un clic, un glisser ou un zoom font du lieu (T-0363).
- *
- * Les lieux attendus viennent de la projection elle-même, jamais d'une coordonnée recopiée :
- * ce qui est vérifié, c'est que le point sous le curseur est celui qu'on écrit.
+ * §4.1 — site map: what a click, drag or zoom does to lieu (T-0363). Expected lieux come from
+ * the projection itself, never a copied coordinate: verified = point under cursor is the one
+ * written.
  */
 
 import { describe, expect, it } from 'vitest'

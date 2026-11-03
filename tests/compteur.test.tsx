@@ -1,12 +1,9 @@
 /**
- * T-0162 / T-0163 — les compteurs de la barre basse : un nombre se règle en le tirant.
- *
- * Ce qui se vérifie ici n'est pas un pixel de curseur mais trois promesses chiffrables : la
- * loi du glisser (impaire, accélérée, muette sous le premier cran), l'arithmétique des dates
- * quand un mois n'a pas le jour visé, et la RÉCIPROQUE de la visée — repointer la vue sur une
- * direction J2000 puis la relire doit rendre cette direction. Cette dernière est la seule qui
- * touche au ciel, et elle se teste par aller-retour : aucune coordonnée n'est recopiée, la
- * matrice est calculée à l'exécution pour le site et l'instant de l'Annexe A.
+ * T-0162 / T-0163 — bottom-bar counters: number set by dragging. Three promises: drag law
+ * (odd, accelerated, mute under first notch); date arithmetic when month lacks target day;
+ * aim RECIPROCAL — re-aim view on a J2000 direction, re-read must return it. Only the
+ * sky-touching one: round-trip, no copied coordinate, matrix computed at runtime for Annexe A
+ * site/instant.
  */
 
 import { readFileSync } from 'node:fs'
@@ -39,7 +36,7 @@ import {
 } from '../src/ui/scene-lecture.ts'
 import { reinitialiseSeance } from '../src/ui/seance-etat.ts'
 
-/** Annexe A : Bordeaux, 45° N. */
+/** Annexe A: Bordeaux, 45° N. */
 const SITE: Site = { latitudeDeg: 44.84, longitudeDeg: -0.58, altitudeM: 20 }
 const INSTANT = new Date('2026-08-18T22:00:00Z')
 const MATRICE = cielInstantane(SITE, INSTANT).matrice
@@ -50,7 +47,7 @@ function ecran(): string {
   return renderToStaticMarkup(<App />)
 }
 
-/** Le fragment d'un compteur, de son ouverture à sa fermeture — de quoi lire ce qu'il annonce. */
+/** Fragment of a counter, opening to closing: what it announces. */
 function compteur(html: string, libelle: string): string {
   const ancre = html.indexOf(`aria-label="${libelle}"`)
   expect(ancre, libelle).toBeGreaterThan(-1)
@@ -66,7 +63,7 @@ describe('T-0327 — le compteur se tape aussi', () => {
   it('propose en saisie le nombre qu’on lit, unité retirée', () => {
     expect(nombreDuTexte('221.02°', 221.0234)).toBe('221.02')
     expect(nombreDuTexte('-13.57°', -13.5712)).toBe('-13.57')
-    // Un mois en toutes lettres n'a pas de nombre à lire : on tape son rang.
+    // Month spelled out has no number to read: type its rank.
     expect(nombreDuTexte('sept.', 9)).toBe('9')
   })
 
@@ -105,7 +102,7 @@ describe('T-0327 — un champ ne change pas de taille avec sa valeur', () => {
 
 describe('T-0162 — la loi du glisser latéral', () => {
   it('ne compte rien tant que le premier cran n’est pas franchi', () => {
-    // C'est ce silence qui laisse exister le clic : sans lui, aucun geste ne serait un clic.
+    // Silence lets the click exist: without it no gesture is a click.
     expect(cransGlisse(0)).toBe(0)
     expect(cransGlisse(1)).toBe(0)
     expect(cransGlisse(-1)).toBe(0)
@@ -119,8 +116,7 @@ describe('T-0162 — la loi du glisser latéral', () => {
   })
 
   it('accélère : deux fois plus loin fait PLUS de deux fois plus de crans', () => {
-    // La différence avec un rail : un curseur `range` mappe une course finie sur une plage
-    // finie, un compteur n'a pas de course — c'est l'éloignement qui la fournit.
+    // Unlike a rail (`range` maps finite travel), a counter has no travel: distance supplies it.
     for (const dx of [12, 40, 100]) {
       expect(cransGlisse(2 * dx), `${dx} px`).toBeGreaterThan(2 * cransGlisse(dx))
     }
@@ -136,7 +132,7 @@ describe('T-0162 — la loi du glisser latéral', () => {
   })
 
   it('annonce le geste au survol, avant tout clic', () => {
-    // Rien ne distingue une valeur réglable d'une lecture sinon le curseur qui la survole.
+    // Only the hovering cursor tells settable value from reading.
     const debut = CSS.indexOf('.compteur {')
     expect(debut).toBeGreaterThan(-1)
     expect(CSS.slice(debut, CSS.indexOf('}', debut))).toContain('cursor: ew-resize')
@@ -147,7 +143,7 @@ describe('T-0162 — la loi du glisser latéral', () => {
     expect(debut).toBeGreaterThan(-1)
     const regle = CSS.slice(debut, CSS.indexOf('}', debut))
     expect(regle).toContain('--compteur-trait: var(--accent)')
-    // Seule la teinte change : une bordure ou un rembourrage pousserait les voisins.
+    // Only hue changes: border or padding would push neighbours.
     expect(regle).not.toMatch(/border|padding/)
   })
 
@@ -164,8 +160,8 @@ describe('T-0162 — un champ de l’instant réécrit', () => {
   const nuit = new Date(2026, 2, 31, 22, 41, 7)
 
   it('ramène le jour au dernier du mois visé plutôt que de déborder', () => {
-    // 31 mars → février : le geste règle un MOIS. Sans le rabattement, `new Date` glisserait
-    // au 3 mars et le compteur sauterait le mois qu'on visait.
+    // 31 March → February: gesture sets a MONTH. Unclamped, `new Date` slides to 3 March,
+    // skipping the target month.
     const fevrier = dateAvec(nuit, 'mois', 2)
     expect(fevrier.getMonth()).toBe(1)
     expect(fevrier.getDate()).toBe(new Date(2026, 2, 0).getDate())
@@ -188,8 +184,8 @@ describe('T-0162 — un champ de l’instant réécrit', () => {
   it('découpe l’instant sans en changer le format', () => {
     const recompose = (parties: readonly Intl.DateTimeFormatPart[]) =>
       parties.map((p) => p.value).join('')
-    // Le découpage suit la locale, il ne la réécrit pas, et c'est justement ce que cette
-    // recomposition vérifie. Le jour en chiffres, l'heure à la minute.
+    // Split follows locale, never rewrites it; recomposition checks that. Day in digits, time
+    // to minute.
     expect(recompose(partiesJour(nuit))).toBe(nuit.toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: '2-digit',
@@ -219,8 +215,7 @@ describe('T-0163 — la visée se règle par sa réciproque', () => {
   })
 
   it('rend la direction demandée quand on relit la visée après l’avoir posée', () => {
-    // Le sens qui compte pour le geste : on tire l'AD, la scène se repointe, la lecture doit
-    // afficher l'AD demandée — pas celle d'à côté.
+    // Direction matters: drag AD, scene re-aims, reading must show requested AD, not a neighbour's.
     const demande = { longitudeDeg: 210.5, latitudeDeg: 53.25 }
     const pointage = viseeVersVue(demande.longitudeDeg, demande.latitudeDeg, MATRICE)
     const relu = viseeJ2000({ ...etatScene().vue, ...pointage }, MATRICE)
@@ -242,8 +237,7 @@ describe('T-0163 — la visée se règle par sa réciproque', () => {
   })
 
   it('compose la phrase à partir des segments, sans la réécrire', () => {
-    // T-0068 tient à ce que le nom accessible du canevas et la barre basse citent le MÊME
-    // texte : la phrase reste la concaténation de ce que la barre affiche en compteurs.
+    // T-0068: canvas accessible name and bottom bar quote the SAME text = bar counters joined.
     majVue({ azimutDeg: 42 })
     const vue = etatScene().vue
     const assemblee = segmentsVisee(vue, MATRICE).reduce((p, s) => p + s.avant + s.texte, '')
@@ -253,15 +247,15 @@ describe('T-0163 — la visée se règle par sa réciproque', () => {
   })
 
   it('laisse l’instant à l’horloge : la visée ne le date pas deux fois', () => {
-    // Deux horloges côte à côte se contredisent à la seconde près, et celle de gauche n'était
-    // pas réglable. Les champs commencent donc à la visée.
+    // Two clocks side by side contradict within a second; left one not settable. Fields start
+    // at aim.
     const bas = ecran()
     const debut = bas.indexOf('>', bas.indexOf('coque-visee')) + 1
     const texte = bas
       .slice(debut, bas.indexOf('</div>', debut))
       .replaceAll('<!-- -->', '')
       .replace(/<[^>]*>/g, '')
-    // Les champs s'ouvrent sur la visée : l'AD, préfixe en tête.
+    // Fields open on aim: AD, prefix first.
     expect(texte.trimStart().startsWith('AD')).toBe(true)
     expect(texte).not.toMatch(/\d{2}:\d{2}:\d{2}/)
   })
@@ -279,7 +273,7 @@ describe('T-0163 — la visée se règle par sa réciproque', () => {
       const balise = compteur(bas, libelle)
       expect(balise, libelle).toContain('role="spinbutton"')
       if (borne === null) {
-        // L'AD et l'azimut se referment sur eux-mêmes : les borner arrêterait le geste.
+        // AD and azimuth wrap on themselves: bounding would stop the gesture.
         expect(balise, libelle).not.toContain('aria-valuemin=')
       } else {
         expect(balise, libelle).toContain(borne)

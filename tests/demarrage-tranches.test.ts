@@ -1,17 +1,11 @@
 /**
- * T-0296 — le ciel s'affiche avec ses étoiles, sans trou ni tâche longue.
- *
- * Quatre propriétés, qui sont les quatre critères du ticket :
- *
- *   1. un long balayage tranché rend RÉELLEMENT la main — ce qui attendait passe entre deux
- *      tranches — et rend exactement le même résultat que le même balayage d'un bloc ;
- *   2. la séquence de démarrage publie les étoiles et leur index AVANT le catalogue d'objets,
- *      qui est ce que la liste affiche ;
- *   3. hors Panorama, l'index de l'aperçu n'est pas construit ;
- *   4. les catalogues partent en même temps que la relecture de la saisie, pas après elle.
- *
- * Aucune valeur de ciel n'est écrite ici : le catalogue d'épreuve est fabriqué, et ce qui est
- * comparé est toujours un chemin contre l'autre.
+ * T-0296 — sky displays with its stars, no hole, no long task. Four ticket criteria:
+ *  1. long sliced sweep REALLY yields (waiting work runs between slices), result identical to
+ *     one-block sweep;
+ *  2. startup publishes stars + index BEFORE object catalogue (what list shows);
+ *  3. outside Panorama preview index not built;
+ *  4. catalogues start with saisie re-read, not after.
+ * No sky value: forged test catalogue, always compares one path against the other.
  */
 
 import 'fake-indexeddb/auto'
@@ -28,9 +22,8 @@ import { B } from '../src/registry/budgets.ts'
 import { chargeCatalogues } from '../src/ui/app-donnees.ts'
 
 /**
- * Un catalogue d'épreuve qui traverse plusieurs points de coupe : sous le pas, le découpage
- * ne se produirait pas et le test ne prouverait rien. Les positions sont fabriquées — il ne
- * s'agit pas d'un ciel, mais d'un volume de données.
+ * Test catalogue crossing several cut points (under the step: no slicing, proves nothing).
+ * Positions forged — data volume, not sky.
  */
 function catalogueEpreuve(): readonly Etoile[] {
   const n = B('PAS_TRANCHE') * 3 + 7
@@ -45,7 +38,7 @@ function catalogueEpreuve(): readonly Etoile[] {
 const ETOILES = catalogueEpreuve()
 const PAQUET = encodeEtoiles(ETOILES)
 
-/** Un balayage qui consomme un temps d'horloge connu par étape, découpé à chaque étape. */
+/** Sweep burning a known clock time per step, sliced at each step. */
 function* brule(etapes: number, msParEtape: number): Decoupable<number> {
   let tours = 0
   for (let i = 0; i < etapes; i++) {
@@ -64,8 +57,7 @@ describe('T-0296 — un long balayage rendu par tranches', () => {
       passe = true
     }, 0)
 
-    // Assez de travail pour dépasser le budget plusieurs fois, quelle que soit la machine :
-    // chaque étape consomme du TEMPS, pas un nombre d'opérations.
+    // Enough work to exceed budget several times anywhere: each step burns TIME, not op count.
     await parTranches(brule(6, budget / 2))
     expect(passe).toBe(true)
   })
@@ -78,7 +70,7 @@ describe('T-0296 — un long balayage rendu par tranches', () => {
 
     dUnBloc(brule(6, B('TRANCHE_MS') / 2))
     expect(passe).toBe(false)
-    // La promesse rendue ici ne sert qu'à laisser le minuteur repartir pour les tests suivants.
+    // Returned promise only lets the timer restart for later tests.
     await new Promise<void>((reprend) => setTimeout(reprend, 0))
   })
 
@@ -120,7 +112,7 @@ describe('T-0296 — tranché ou d’un bloc, le résultat est le même', () => 
       expect([...a.mag]).toEqual([...z.mag])
       expect(a.rayonDeg).toBe(z.rayonDeg)
     }
-    // Le découpage doit vraiment avoir eu lieu : sinon les égalités ci-dessus sont triviales.
+    // Slicing must really have happened, else equalities above are trivial.
     expect(ETOILES.length).toBeGreaterThan(B('PAS_TRANCHE'))
   })
 })
@@ -134,8 +126,8 @@ describe('T-0296 — l’ordre du démarrage', () => {
         publies.push(nom)
       }
 
-    // Aucun paquet n'est rangé en base ici : les chargeurs rendent du vide, et c'est leur
-    // ORDRE qui est mesuré — c'est lui que T-0296 change, pas leur contenu.
+    // No pack in DB: loaders return empty; their ORDER is measured (T-0296 changes it), not
+    // content.
     await chargeCatalogues({
       etat: note('etat'),
       etoiles: note('etoiles'),

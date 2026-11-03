@@ -1,10 +1,7 @@
 /**
- * §4.1 — la vue de la carte du site : où elle regarde, à quel zoom, et quel lieu est sous un
- * pixel (T-0363).
- *
- * La vue est rangée en coordonnées Mercator normalisées — le monde fait 1 de côté — : un
- * glisser ou un zoom n'ont pas à repasser par des degrés, et l'aller-retour ne dérive pas.
- * Le zoom est continu : le pincement l'est, et les tuiles se peignent à l'échelle.
+ * §4.1 — site map view: where it looks, zoom, lieu under a pixel (T-0363).
+ * View in normalised Mercator coords (world = 1 side): drag/zoom skip degrees, round trip doesn't
+ * drift. Zoom continuous (pinch is; tiles painted scaled).
  */
 
 import { cotePixelsMonde, lieuDePixel, pixelMonde, type Lieu } from '../core/mercator.ts'
@@ -13,7 +10,7 @@ import { C } from '../registry/lieu-carte.ts'
 import { nombre } from '../registry/ecriture.ts'
 
 export interface VueCarte {
-  /** Centre de la carte, dans le monde normalisé [0 ; 1[. */
+  /** Map centre, in normalised world [0 ; 1[. */
   readonly x: number
   readonly y: number
   readonly zoom: number
@@ -27,7 +24,7 @@ export function vueCentreeSur(latDeg: number, lonDeg: number, zoom: number): Vue
   return Object.freeze({ x: p.x, y: encadre(p.y, 0, 1), zoom })
 }
 
-/** La carte suit le doigt : glisser de (dx, dy) pixels déplace le centre à l'opposé. */
+/** Map follows the finger: dragging (dx, dy) px moves centre opposite. */
 export function deplaceVue(vue: VueCarte, dx: number, dy: number): VueCarte {
   const m = monde(vue.zoom)
   return Object.freeze({
@@ -37,7 +34,7 @@ export function deplaceVue(vue: VueCarte, dx: number, dy: number): VueCarte {
   })
 }
 
-/** Zoome de `crans` niveaux autour du pixel (px, py), qui reste sous le curseur. */
+/** Zooms `crans` levels around pixel (px, py), which stays under cursor. */
 export function zoomeVue(
   vue: VueCarte,
   crans: number,
@@ -49,7 +46,7 @@ export function zoomeVue(
   const zoom = encadre(vue.zoom + crans, C('ZOOM_CARTE_MIN'), C('ZOOM_CARTE_MAX'))
   const ox = px - largeur / 2
   const oy = py - hauteur / 2
-  // Le point sous le curseur, avant et après : le centre bouge de leur écart.
+  // Point under cursor before and after: centre moves by their gap.
   const ancreX = vue.x + ox / monde(vue.zoom)
   const ancreY = vue.y + oy / monde(vue.zoom)
   return Object.freeze({
@@ -59,7 +56,7 @@ export function zoomeVue(
   })
 }
 
-/** Le lieu sous le pixel (px, py) d'une carte de `largeur` × `hauteur`. */
+/** Lieu under pixel (px, py) of a `largeur` × `hauteur` map. */
 export function lieuSous(
   vue: VueCarte,
   px: number,
@@ -71,15 +68,12 @@ export function lieuSous(
   return lieuDePixel(vue.x * m + px - largeur / 2, vue.y * m + py - hauteur / 2, vue.zoom, cote())
 }
 
-/**
- * Autant de décimales qu'un pixel en distingue, pas davantage : un clic à 400 m par pixel
- * n'a pas six chiffres de précision à écrire dans le champ.
- */
+/** Decimals a pixel distinguishes: a click at 400 m/px has no six-digit precision. */
 export function decimalesPourZoom(zoom: number): number {
   return Math.max(0, Math.ceil(Math.log10(monde(zoom) / TOUR_DEG)))
 }
 
-/** Écrit à la française, comme on le taperait : `nombreDeTexte` relit la virgule. */
+/** French notation, as typed: `nombreDeTexte` rereads the comma. */
 export function ecritLieu(lieu: Lieu, zoom: number): { latitude: string; longitude: string } {
   const d = decimalesPourZoom(zoom)
   return { latitude: nombre(lieu.latitudeDeg, d), longitude: nombre(lieu.longitudeDeg, d) }

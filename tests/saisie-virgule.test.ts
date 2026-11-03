@@ -1,9 +1,7 @@
 /**
- * T-0274 — §4.1 et §5.1 : la virgule décimale est une écriture, pas une faute.
- *
- * La table est DÉRIVÉE de `DOMAINES` : aucune valeur n'est recopiée, et un domaine ajouté
- * demain est couvert sans qu'on y pense. Le seul littéral du fichier est « 2,8 » — la saisie
- * même que le ticket a mesurée refusée, et dont l'acceptation est le critère.
+ * T-0274 — §4.1 + §5.1: decimal comma = notation, not error.
+ * Table DERIVED from `DOMAINES`: nothing copied, tomorrow's domain covered. Only literal: "2,8" —
+ * the input the ticket measured refused; accepting it is the criterion.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -13,7 +11,7 @@ import { resoutBoitier, type SaisieBoitier } from '../src/data/equipment.ts'
 
 const TOUS = Object.keys(DOMAINES) as readonly DomaineId[]
 
-/** Une valeur du domaine qui porte une décimale : sans elle, le séparateur ne prouverait rien. */
+/** Domain value carrying a decimal: without it the separator proves nothing. */
 function valeurDecimale(d: DomaineSaisie): number {
   const milieu = (d.min + d.max) / 2
   return Number.isInteger(milieu) ? milieu + 0.5 : milieu

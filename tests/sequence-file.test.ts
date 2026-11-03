@@ -1,9 +1,7 @@
 /**
- * §9.4 — Logistique de séquence de filé.
- *
- * La séquence type du PRD sert de référence : 2 h à 25 s donnent 288 images et environ
- * 9,3 Go. Le reste du test porte sur ce qui évite une sortie ratée — la consigne de
- * désactivation du dark automatique — et sur ce que le temps de prise de vue prescrit (T-0374).
+ * §9.4 — filé sequence logistics.
+ * PRD reference sequence: 2 h at 25 s = 288 images, ~9.3 GB. Rest: what avoids a ruined output
+ * (instruction to disable automatic dark) + what shooting time prescribes (T-0374).
  */
 
 import { describe, expect, it } from 'vitest'
@@ -53,7 +51,7 @@ describe('T-0374 — ce que le temps de prise de vue prescrit', () => {
     const plan = planPanorama(POSE_MAX_S + 1, POSE_MAX_S)
     expect(plan.mode).toBe('FILE')
     expect(plan.intervalleS.value).toBe(K('INTERVALLE_INTER_POSE_FILE_MAX_S'))
-    // Plus court qu'une pose conseillée : une seule pose, qui file.
+    // Shorter than a recommended pose: single pose, which trails.
     expect(plan.tPoseS.value).toBe(POSE_MAX_S + 1)
     expect(planPanorama(2 * 3600, POSE_MAX_S).tPoseS.value).toBe(K('T_POSE_FILE_MAX_S'))
   })
@@ -72,7 +70,7 @@ describe('T-0374 — ce que le temps de prise de vue prescrit', () => {
         tPoseS: plan.tPoseS.value,
         intervalleS: plan.intervalleS.value,
       })
-      // 1 min et 45 s en poses de 30 s : deux photos dans les deux cas.
+      // 1 min 45 s in 30 s poses: two photos either way.
       expect(seq.nPoses.value).toBe(2)
     }
   })

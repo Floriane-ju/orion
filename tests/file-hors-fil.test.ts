@@ -1,9 +1,7 @@
 /**
- * T-0398 — le client de la passe de filé hors du fil principal.
- *
- * Le worker lui-même demande un `OffscreenCanvas`, que Node n'a pas : ce qui s'éprouve ici est
- * le contrat du client, avec un faux port. Une seule demande en vol, la plus récente seule
- * repart, chaque image reçue se signale, et une panne rend la passe au fil principal.
+ * T-0398 — filé pass client off main thread.
+ * Worker needs `OffscreenCanvas` (absent in Node) → tests client contract with fake port:
+ * 1 request in flight, only latest re-sent, each frame signals, failure → pass back to main.
  */
 
 import { describe, expect, it, vi } from 'vitest'
@@ -30,7 +28,7 @@ function fauxPort(): PortFile & { readonly envoyes: MessageVersFile[] } {
   }
 }
 
-/** Une demande reconnaissable à son champ : seul l'ordre des envois compte ici. */
+/** Request identified by its field: only send order matters. */
 const demande = (dureeS: number): DemandeImageFile =>
   ({ parametres: { dureeS } }) as unknown as DemandeImageFile
 

@@ -1,21 +1,13 @@
 /**
- * T-0098, T-0100 — les deux couches qui éclaircissent le fond de ciel en vue réaliste.
- *
- * Elles se peignent entre le `fillRect` du fond et tout le reste : sous la bande galactique,
- * sous le sol, sous les repères. Un fond peint par-dessus le repérage masque ce qui sert à
- * s'orienter (§3.7), et le relief doit recouvrir le halo quand la visée est basse (T-0094).
- *
- * DEUX GÉOMÉTRIES, PARCE QUE LES DEUX CONTRIBUTEURS N'ONT PAS LA MÊME SYMÉTRIE :
- *
- * - le halo du site est fonction de la HAUTEUR : ses courbes de niveau sont des parallèles
- *   d'altitude, qui ne sont des cercles à l'écran dans aucune des trois projections. Il se
- *   peint donc en paliers, par le balayage écran de `balayage-ecran.ts` ;
- * - le halo lunaire est fonction de la SÉPARATION à la Lune : `diffusionKS(ρ)` est radiale
- *   autour d'elle. Un dégradé radial centré sur sa position écran est la bonne géométrie, pas
- *   une approximation — au rayon près, qui est mesuré sur la projection elle-même.
- *
- * Aucune de ces deux couches ne calcule de physique : tout vient de `fond-ciel-rendu.ts`, qui
- * réemploie lui-même le modèle KS91 de `moon.ts`.
+ * T-0098, T-0100 — two layers brightening fond de ciel in vue réaliste.
+ * Painted between fond `fillRect` and all else (under band, sol, repères): fond over repérage
+ * masks orientation aids (§3.7); relief must cover halo when aim is low (T-0094).
+ * TWO GEOMETRIES (contributors differ in symmetry):
+ * - site halo = function of HEIGHT: altitude parallels, circles in none of the three projections
+ *   → paliers via `balayage-ecran.ts` screen sweep;
+ * - Lune halo = function of SEPARATION: `diffusionKS(ρ)` radial around it → radial gradient at
+ *   its screen position is the right geometry (radius aside, measured on the projection).
+ * No physics here: all from `fond-ciel-rendu.ts`, reusing `moon.ts` KS91 model.
  */
 
 import type { Mat3, Vec3 } from '../core/mat3.ts'
@@ -46,27 +38,21 @@ import { DEG_PAR_HEURE } from '../core/unites.ts'
 import { K } from '../registry/constants.ts'
 
 /**
- * Balayage allégé pour les paliers du halo : un bord de palier sépare deux teintes voisines,
- * là où la crête du sol sépare le ciel du noir. Un parallèle de hauteur est lisse : des mailles
- * trois fois plus larges que celles du sol suffisent, et les paliers sont lissés ensuite.
- * ponytail: si les paliers se voyaient, c'est le nombre de PALIERS qu'il faudrait monter
- * (PALIERS_HALO_HORIZON), pas la finesse de leur bord.
+ * Light sweep for halo paliers: a palier edge splits two close teintes (sol crest: sky vs black).
+ * A height parallel is smooth: meshes 3x wider than sol's suffice, paliers smoothed after.
+ * ponytail: if paliers show, raise PALIER COUNT (PALIERS_HALO_HORIZON), not edge fineness.
  */
 let paliersCaches: { cle: string; frontieres: readonly FrontiereEcran[] } | null = null
 
 const BALAYAGE_HALO: FinesseBalayage = { pasMaillePx: 12, pasBlocPx: 48, dichotomies: 4 }
 
 /**
- * T-0098 — le ciel s'éclaircit vers l'horizon : la couche émissive y est vue sous une
- * épaisseur croissante (van Rhijn 1921), atténuée par l'extinction du trajet.
- *
- * Le palier du zénith n'est pas peint : c'est le `fillRect` du fond, déjà à la bonne teinte.
- *
- * T-0352 — les paliers passent par le canevas réduit de `peintLisse` et s'agrandissent
- * lissés : le halo se lit en dégradé, plus en anneaux. La réduction prend DEUX paliers par
- * pixel au centre de l'écran, parce que la projection les étire vers le bord, là justement où
- * le halo est vif. Sur ce canevas, le palier du zénith est peint comme les autres : la copie
- * recouvre tout le fond. Sans `OffscreenCanvas`, les paliers se peignent directement.
+ * T-0098 — sky brightens toward horizon: emissive layer through growing thickness (van Rhijn
+ * 1921), attenuated by path extinction. Zenith palier unpainted: it's the fond `fillRect`.
+ * T-0352 — paliers go through `peintLisse` reduced canvas, upscaled smoothed: gradient, not
+ * rings. Reduction takes TWO paliers per pixel at screen centre (projection stretches them toward
+ * edge, where halo is vivid). Zenith palier painted there like others: copy covers whole fond. No
+ * `OffscreenCanvas`: paliers painted directly.
  */
 export function dessineHaloHorizon(
   ctx: CanvasRenderingContext2D,
@@ -75,8 +61,8 @@ export function dessineHaloHorizon(
   sbCiel: number,
 ): void {
   const bornes = bornesPaliersHalo()
-  // Même raison que le sol (`cleVue`) : les paliers sont des hauteurs, fixes dans le repère
-  // du site ; seule la visée les déplace à l'écran.
+  // Same reason as sol (`cleVue`): paliers = heights, fixed in site frame; only aim moves them on
+  // screen.
   const cle = cleVue(projecteur)
   if (paliersCaches === null || paliersCaches.cle !== cle) {
     paliersCaches = {
@@ -89,7 +75,7 @@ export function dessineHaloHorizon(
   const { frontieres } = paliersCaches
   const bSite = nanolamberts(sbCiel)
   const paliers = (cible: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D) => {
-    // Du plus haut palier au plus bas : les régions s'emboîtent, la dernière peinte l'emporte.
+    // Highest palier to lowest: regions nest, last painted wins.
     for (let i = bornes.length - 2; i >= 0; i--) {
       const sb = sbDepuisNanolamberts(bSite * facteurHaloHorizon(hauteurRepresentative(i)))
       remplitRegion(cible, frontieres[i]!, fondRealiste(sb, sbCiel))
@@ -99,7 +85,7 @@ export function dessineHaloHorizon(
   const palierPx = (bornes[0]! * largeurPx) / fovDeg
   const lisse = peintLisse(ctx, largeurPx, hauteurPx, 2 * palierPx, 'source-over', (reduite) => {
     reduite.fillStyle = fondRealiste(sbCiel)
-    // Jusqu'au bord du canevas réduit, marge comprise : un pixel non peint serait transparent.
+    // To reduced canvas edge, margin incl.: unpainted pixel would be transparent.
     reduite.fillRect(0, 0, largeurPx + 2 * palierPx, hauteurPx + 2 * palierPx)
     paliers(reduite)
   })
@@ -107,23 +93,23 @@ export function dessineHaloHorizon(
 }
 
 export interface LuneEcran {
-  /** Ascension droite de la Lune, en heures — la même que celle du corps dessiné. */
+  /** Lune right ascension, hours — same as the drawn body's. */
   readonly adH: number
   readonly decDeg: number
   readonly altitudeDeg: number
   readonly azimutDeg: number
   readonly anglePhaseDeg: number
-  /** Demi-diamètre apparent, en degrés : la taille réelle du disque sur le ciel. */
+  /** Apparent half-diameter, degrees: real disc size on sky. */
   readonly demiDiametreDeg: number
 }
 
-/** Crans du dégradé lunaire, de la Lune jusqu'à un quart de tour. */
+/** Lune gradient stops, from Lune to a quarter turn. */
 const CRANS_HALO_LUNE = 16
 const SEPARATION_MAX_DEG = 90
 
-/** Un vecteur unitaire orthogonal à `v`, choisi pour ne jamais dégénérer. */
+/** Unit vector orthogonal to `v`, chosen never to degenerate. */
 export function perpendiculaire(v: Vec3): Vec3 {
-  // Le produit vectoriel avec l'axe le MOINS aligné : sa norme ne descend jamais sous 1/√2.
+  // Cross product with LEAST aligned axis: norm never under 1/√2.
   const axe: Vec3 =
     Math.abs(v.z) < Math.abs(v.x) ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 }
   const x = v.y * axe.z - v.z * axe.y
@@ -134,8 +120,8 @@ export function perpendiculaire(v: Vec3): Vec3 {
 }
 
 /**
- * La direction de `cible` vue depuis `v`, dans le plan tangent en `v` : unitaire, orthogonale à
- * `v`. Si `cible` est `v` (ou son opposé), n'importe quelle orthogonale fait l'affaire.
+ * Direction of `cible` seen from `v`, in tangent plane at `v`: unit, orthogonal to `v`. If `cible`
+ * is `v` (or opposite), any orthogonal does.
  */
 function versLeCentre(v: Vec3, cible: Vec3): Vec3 {
   const cos = v.x * cible.x + v.y * cible.y + v.z * cible.z
@@ -147,7 +133,7 @@ function versLeCentre(v: Vec3, cible: Vec3): Vec3 {
   return { x: x / norme, y: y / norme, z: z / norme }
 }
 
-/** Un astre qui diffuse sa lumière dans le ciel : la Lune ou le Soleil. */
+/** Body scattering its light into the sky: Lune or Sun. */
 interface SourceHalo {
   readonly adH: number
   readonly decDeg: number
@@ -155,13 +141,12 @@ interface SourceHalo {
 }
 
 /**
- * T-0100 — un astre éclaircit le ciel autour de lui, radialement : `brillance(ρ)` est la
- * brillance qu'il ajoute à la séparation ρ, `bFond` celle du ciel sous lui, `teinte(b)` la
- * couleur du fond relevé de `b`.
+ * T-0100 — body brightens sky around it, radially: `brillance(ρ)` = brightness added at
+ * separation ρ, `bFond` = sky brightness under it, `teinte(b)` = fond colour raised by `b`.
  *
- * ponytail: le rayon écran d'une séparation est mesuré dans UNE direction et appliqué au
- * cercle entier. C'est exact en stéréographique visée sur l'astre, approché ailleurs — un
- * dégradé de canevas ne sait pas être une conique.
+ * ponytail: screen radius of a separation measured in ONE direction, applied to whole circle.
+ * Exact in stereographic aimed at the body, approximate elsewhere — a canvas gradient can't be a
+ * conic.
  */
 function dessineHalo(
   ctx: CanvasRenderingContext2D,
@@ -174,12 +159,11 @@ function dessineHalo(
   const direction = versVecteur(source.adH * DEG_PAR_HEURE, source.decDeg)
   const centre = projecteur.projette(direction)
   if (centre === null) return
-  // T-0356 — le rayon se mesure VERS le centre de visée : c'est le côté du halo que l'écran
-  // montre. Pris dans une direction quelconque, un astre au bord d'un grand champ donnait un
-  // rayon démesuré, et le cœur du halo couvrait tout l'écran.
+  // T-0356 — radius measured TOWARD aim centre: the halo side the screen shows. Any direction gave
+  // a body at the edge of a wide field a huge radius, halo core covering whole screen.
   const perp = versLeCentre(direction, projecteur.inverse(projecteur.centreXPx, projecteur.centreYPx))
 
-  // Rayon écran du plus grand cran : c'est lui qui fixe l'échelle du dégradé.
+  // Screen radius of the largest stop: sets gradient scale.
   const rayonDe = (separationDeg: number): number | null => {
     const a = separationDeg * DEG
     const cos = Math.cos(a)
@@ -198,9 +182,9 @@ function dessineHalo(
   for (let k = 0; k <= CRANS_HALO_LUNE; k++) {
     const separation = (SEPARATION_MAX_DEG * k) / CRANS_HALO_LUNE
     const b = brillance(separation)
-    // L'opacité est la PART de l'astre dans la brillance totale : là où il domine, le fond
-    // composé est exactement celui du modèle ; là où il s'efface, la couche du dessous —
-    // paliers d'horizon compris — reparaît intacte. Aucun seuil arbitraire n'est introduit.
+    // Opacity = body's SHARE of total brightness: where it dominates, composite fond = model's
+    // exactly; where it fades, underlying layer (horizon paliers incl.) reappears intact. No
+    // arbitrary threshold.
     const part = b / (bFond + b)
     const couleur = teinte(b, separation)
     const rvb = couleur.slice(couleur.indexOf('(') + 1, couleur.indexOf(')'))
@@ -211,13 +195,12 @@ function dessineHalo(
 }
 
 /**
- * T-0100 — la Lune éclaircit le ciel autour d'elle.
+ * T-0100 — Lune brightens sky around it.
  *
- * ponytail: la hauteur retenue pour l'extinction du trajet est celle de la Lune, la même sur
- * tout le dégradé. Le vrai terme dépend de la hauteur de CHAQUE direction, qui n'est pas
- * constante sur un cercle de séparation ; mais le halo compte là où il est vif, c'est-à-dire
- * près de la Lune, où cette hauteur est justement la sienne. Le jour où le halo lunaire devra
- * être juste à 90° d'elle, c'est un champ 2D qu'il faudra peindre, pas un dégradé.
+ * ponytail: extinction height = Lune's, same over whole gradient. True term depends on EACH
+ * direction's height, not constant on a separation circle; but halo matters where vivid, near
+ * Lune, where that height is its own. To get halo right at 90° from it, paint a 2D field, not a
+ * gradient.
  */
 export function dessineHaloLune(
   ctx: CanvasRenderingContext2D,
@@ -231,7 +214,7 @@ export function dessineHaloLune(
     separationDeg,
     anglePhaseDeg: lune.anglePhaseDeg,
   })
-  // Règle 1 de `moon.ts` : une Lune sous l'horizon n'éclaircit rien.
+  // `moon.ts` rule 1: Lune below horizon brightens nothing.
   if (lune.altitudeDeg <= 0) return
   const bSite = nanolamberts(sbCiel) * facteurHaloHorizon(lune.altitudeDeg)
   dessineHalo(
@@ -245,22 +228,19 @@ export function dessineHaloLune(
 }
 
 export interface SoleilEcran {
-  /** Ascension droite du Soleil, en heures — la même que celle du corps dessiné. */
+  /** Sun right ascension, hours — same as the drawn body's. */
   readonly adH: number
   readonly decDeg: number
   readonly altitudeDeg: number
 }
 
 /**
- * Le Soleil éclaircit le ciel autour de lui, comme la Lune (T-0100), par le même KS91.
+ * Sun brightens sky around it like Lune (T-0100), same KS91. `sbCiel` already counts Sun AT ZENITH
+ * (`sbZenithAvecCrepuscule`): that term is removed from fond before adding halo, else Sun counts
+ * twice. Same limits as Lune halo: body height for extinction, radius measured in one direction.
  *
- * `sbCiel` compte déjà le Soleil AU ZÉNITH (`sbZenithAvecCrepuscule`) : ce terme est retiré du
- * fond avant d'y ajouter le halo, sans quoi le Soleil compterait deux fois. Mêmes limites que
- * le halo lunaire : hauteur de l'astre pour l'extinction, rayon mesuré dans une direction.
- *
- * T-0356 — repli seulement : la scène peint le ciel du Soleil direction par direction
- * (`dessineCielSoleil`), et ce dégradé radial ne sert que sans `OffscreenCanvas`. Il n'en
- * donne qu'un disque, rougi par la masse d'air du Soleil, pas les bandes du couchant.
+ * T-0356 — fallback only: scène paints Sun sky per direction (`dessineCielSoleil`); this radial
+ * gradient serves only without `OffscreenCanvas`. Disc reddened by Sun air mass, not sunset bands.
  */
 export function dessineHaloSoleil(
   ctx: CanvasRenderingContext2D,

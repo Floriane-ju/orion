@@ -1,9 +1,7 @@
 /**
- * T-0248 — la boucle du planétarium ne peint que ce qui a changé.
- *
- * Ce que ce fichier garde : temps figé, une image identique n'est pas repeinte ; tout ce qui
- * change l'image — un rendu de la scène, le survol, la taille du canevas, le défilement — la
- * fait repeindre ; en `MAINTENANT`, la rotation du ciel ne repeint qu'au pixel de dérive.
+ * T-0248 — planetarium loop paints only what changed.
+ * Frozen time: identical frame not repainted. Anything altering the image (scene render, hover,
+ * canvas size, scroll) repaints. `MAINTENANT`: sky rotation repaints only at 1 px drift.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -27,7 +25,7 @@ function image(
   }
 }
 
-/** Les millisecondes qu'il faut au ciel pour dériver d'un pixel dans la vue. */
+/** ms for sky to drift 1 px in view. */
 function msParPixel(vue: VueScene): number {
   return 1000 / vitesseEcran(1, pxParDegre(vue.largeurPx, vue.fovDeg)).value
 }

@@ -1,14 +1,8 @@
 /**
- * Couleur de rendu d'une étoile d'après son indice B−V (§3.3).
- *
- * Table d'ancrage classique de la conversion indice de couleur → RVB, interpolée
- * linéairement. C'est une correspondance d'apparence, pas un calcul de physique : elle ne
- * nourrit aucun verdict et n'a donc pas sa place au registre §2.1, qui ne porte que les
- * valeurs consommées par une formule.
- *
- * Les couleurs sont quantifiées en quelques teintes : le rendu regroupe les étoiles par
- * teinte pour ne changer la couleur du contexte que quelques fois par image, au lieu de
- * plusieurs milliers.
+ * Star render colour from B−V (§3.3). Anchor table index → RVB, linear interpolation. Appearance
+ * mapping, not physics: feeds no verdict → not in registre §2.1 (formula-consumed values only).
+ * Quantized to few teintes: render groups stars by teinte → few context colour changes/frame, not
+ * thousands.
  */
 
 import { K } from '../registry/constants.ts'
@@ -32,7 +26,7 @@ const ANCRES: readonly (readonly [number, number, number, number])[] = [
   [2.0, 255, 180, 80],
 ]
 
-/** Nombre de teintes distinctes utilisées au rendu. */
+/** Distinct teintes at render. */
 export const TEINTES = 8
 
 export function teinte(bv: number): number {
@@ -64,16 +58,15 @@ function interpole(bv: number): readonly [number, number, number] {
 }
 
 /**
- * Couleur d'une teinte. En mode nuit, les canaux vert et bleu sont strictement nuls : la
- * même règle que la palette de §11.1, appliquée au canevas que la feuille de style
- * n'atteint pas.
+ * Teinte colour. Mode nuit: green/blue channels strictly 0 (§11.1 palette rule, for canvas the
+ * stylesheet can't reach).
  */
 export function couleurTeinte(index: number, modeNuit: boolean): string {
   const min = ANCRES[0]![0]
   const max = ANCRES[ANCRES.length - 1]![0]
   const bv = min + ((max - min) * index) / (TEINTES - 1)
-  // T-0402 — la teinte mêlée de blanc : sur une photo, le cœur d'une étoile sature et paraît
-  // blanc, la couleur ne subsiste qu'en frange. Elle est atténuée, pas supprimée.
+  // T-0402 — teinte mixed with white: photo star core saturates to white, colour survives only in
+  // fringe. Attenuated, not removed.
   const blanc = K('DESATURATION_ETOILE')
   const [r, v, b] = interpole(bv).map((c) => Math.round(c + (255 - c) * blanc)) as [
     number,
@@ -83,46 +76,37 @@ export function couleurTeinte(index: number, modeNuit: boolean): string {
   return modeNuit ? rougeEquivalent(r, v, b) : `rgb(${r} ${v} ${b})`
 }
 
-/** Coefficients de luminance BT.601 — une DÉFINITION, comme ceux de WCAG plus bas. */
+/** BT.601 luminance coefficients — a DEFINITION, like WCAG ones below. */
 const BT601_R = 0.299
 const BT601_V = 0.587
 const BT601_B = 0.114
 
 /**
- * §11.1 — la même luminance perçue, portée par le seul canal rouge.
- *
- * Une seule écriture de la règle du mode nuit sur le canevas : étoiles (§3.3) et marqueurs
- * d'objets (`apparence-objets.ts`) ne peuvent pas l'appliquer de deux façons.
+ * §11.1 — same perceived luminance on red channel only. Single statement of mode nuit canvas rule:
+ * stars (§3.3) and object markers (`apparence-objets.ts`) must not apply it two ways.
  */
 export function rougeEquivalent(r: number, v: number, b: number): string {
   return `rgb(${Math.round(BT601_R * r + BT601_V * v + BT601_B * b)} 0 0)`
 }
 
 /**
- * Couleur d'une teinte, à opacité donnée.
- *
- * T-0119 — l'opacité entre dans la COULEUR au lieu de passer par `globalAlpha`. Le résultat est
- * le même en composition source-over, mais un disque dont l'opacité est dans sa couleur peut
- * rejoindre un chemin partagé, là où `globalAlpha` impose un ordre de tracé par étoile. C'est ce
- * qui permet de peindre seize mille étoiles en quelques dizaines d'ordres.
+ * Teinte colour at given opacity.
+ * T-0119 — opacity in the COLOUR, not `globalAlpha`: same source-over result, but disc can join a
+ * shared path (`globalAlpha` forces per-star draw order) → 16000 stars in a few dozen orders.
  */
 export function couleurTeinteOpacite(index: number, opacite: number, modeNuit: boolean): string {
   return avecOpacite(couleurTeinte(index, modeNuit), opacite)
 }
 
-/**
- * La même couleur, à opacité donnée. Le canal alpha entre dans la COULEUR pour la raison dite
- * plus haut : une couleur porte son opacité, `globalAlpha` impose un ordre de tracé.
- */
+/** Same at given opacity; alpha in the COLOUR (see above). */
 export function avecOpacite(couleur: string, opacite: number): string {
   if (opacite >= 1) return couleur
   return `${couleur.slice(0, -1)} / ${opacite.toFixed(3)})`
 }
 
 /**
- * La famille des textes que la scène écrit — noms, chiffres de pose, étapes du parcours : celle
- * de l'interface (`--police-mono`), pas celle du système. Même lien que la palette ci-dessous,
- * tenu par `mode-nuit.test.tsx`.
+ * Font family of scène-written texts (names, pose figures, parcours steps): interface's
+ * (`--police-mono`). Same link as palette below, held by `mode-nuit.test.tsx`.
  */
 export const POLICE_SCENE = "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
 
@@ -132,44 +116,40 @@ export interface PaletteCiel {
   readonly frontieres: string
   readonly asterismes: string
   readonly corps: string
-  /** La part éclairée de la Lune : le texte de l'interface, comme le disque de la frise de nuit. */
+  /** Lit part of Lune: interface text, like frise de nuit disc. */
   readonly lune: string
   readonly cadre: string
   /**
-   * Le cadre que la cible ouverte ou survolée obtiendrait à sa focale de zoom. Il double un
-   * cadre du matériel : la teinte seule l'en distingue — l'ambre de l'interface, celui des
-   * corps, qui sont des points et non des contours. La nuit, le rouge des corps.
+   * Frame of opened/hovered cible at its zoom focale. Doubles matériel cadre: only teinte differs
+   * — interface amber, corps' (points, not outlines). Night: corps red.
    */
   readonly cadreCible: string
   readonly horizon: string
   /**
-   * T-0395 — les courbes de niveau du sol : sous l'horizon, qui reste la ligne qui compte, et
-   * au-dessus du sol, qu'elles doivent étager sans l'éclairer. Peintes sur le sol et non sur
-   * le fond, elles ne se compensent pas en vue réaliste : le sol ne s'éclaircit pas.
+   * T-0395 — sol contour lines: below horizon (counts); above sol they layer without lighting.
+   * Painted on sol not fond → no compensation in vue réaliste (sol doesn't brighten).
    */
   readonly courbes: string
-  /** §4.1 — le sol : opaque et très foncé, il se distingue du fond de ciel sans l'éclairer. */
+  /** §4.1 — sol: opaque, very dark; distinct from fond de ciel without lighting it. */
   readonly sol: string
   /**
-   * T-0409 — le sol tant que le Soleil de la scène est levé : un gris bleuté, sous un ciel de
-   * jour clair où le sol de nuit faisait un trou noir. La nuit rouge garde son sol : il n'y a
-   * pas de jour sous §11.1.
+   * T-0409 — sol while scène Soleil is up: blue-grey (black night sol = hole under day sky). Red
+   * night keeps its sol: no day under §11.1.
    */
   readonly solJour: string
-  /** T-0033 — plan galactique : rose en vue normale, rouge pur en mode nuit comme le reste. */
+  /** T-0033 — galactic plane: pink in normal view, pure red in mode nuit. */
   readonly voieLactee: string
   /**
-   * §8.4 / T-0324 — le trajet de pointage. Il ne peut pas se distinguer du cadre par la teinte :
-   * en mode nuit tout est rouge. Il s'en distingue par la FORME — trait tireté contre contour
-   * plein — et la teinte ne fait que le poser au premier plan de sa scène dépouillée.
+   * §8.4 / T-0324 — pointage path. Can't differ from cadre by teinte (mode nuit all red): differs
+   * by FORM — dashed vs solid; teinte only puts it foreground in its stripped scène.
    */
   readonly parcours: string
   readonly texte: string
 }
 
 /**
- * T-0065 — deux palettes gelées, pas deux littéraux par image. Elles ne dépendent que du
- * mode nuit : les reconstruire à chaque passe de rendu n'apporte rien et alloue.
+ * T-0065 — two frozen palettes, not two literals per frame. Depend only on mode nuit; per-render
+ * rebuild allocates for nothing.
  */
 const PALETTE_NUIT: PaletteCiel = Object.freeze({
   fond: '#000000',
@@ -190,32 +170,20 @@ const PALETTE_NUIT: PaletteCiel = Object.freeze({
 })
 
 /**
- * T-0113 — la scène partage la palette de l'interface, là où elle peint de l'interface.
- *
- * Le canevas et la feuille de style peignent le même écran : deux familles de teintes y
- * font deux applications superposées. Ce que la scène EMPRUNTE à l'interface reprend donc son
- * jeton : le fond (`--fond`), le cadre visé (`--accent`), le parcours et la Lune (`--texte`), et de jour
- * les corps du système solaire (`--avertissement`, l'ambre).
- *
- * T-0330 — le reste est une GRADUATION PROPRE À LA SCÈNE, et le dit : figures, frontières,
- * astérismes et horizon sont des traits filaires étagés entre eux pour se hiérarchiser sur le
- * ciel, pas des nuances de `--base-neutre`. Ce sont des VOILES de blanc, pas des gris : un gris
- * opaque tranche sur un fond de ciel relevé (halo d'horizon, Lune) comme une découpe plus sombre
- * que lui, là où un voile s'y ajoute et reste un trait plus clair que ce qu'il traverse. Sur le
- * noir, chaque opacité redonne le gris qu'elle remplace ; les noms peints (`texte`) restent sous le texte de
- * l'interface pour ne pas lutter avec lui ; la nuit, les corps descendent sous l'ambre-rouge de
- * l'interface pour la même raison que tout le reste de la scène. La Voie lactée garde une teinte
- * froide : c'est la seule structure peinte qui ne soit ni un tracé de l'instrument ni un objet
- * pointé, et l'écart de teinte est ce qui la sépare des astérismes sans la rendre plus lumineuse.
- *
- * Les couleurs d'étoile ne sont pas ici : elles viennent de l'indice B−V (§3.3), c'est une
- * mesure, pas une décision de dessin.
- *
- * CE QUE LA SCÈNE EMPRUNTE À L'INTERFACE EST TENU ÉGAL À SON JETON, et chaque autre teinte est
- * déclarée hors kit dans `mode-nuit.test.tsx` : une teinte nouvelle doit choisir son camp.
- * Le canevas ne lit pas la feuille de style : c'est `mode-nuit.test.tsx` qui compare, et une
- * origine changée dans `styles.css` sans être reportée ici fait échouer `pnpm test`. Le cadre
- * avait dérivé de l'accent sans que rien ne le dise.
+ * T-0113 — scène shares interface palette where it paints interface: fond (`--fond`), aimed cadre
+ * (`--accent`), parcours and Lune (`--texte`), day solar-system corps (`--avertissement`, amber).
+ * T-0330 — rest = scène-own GRADUATION: figures, frontières, astérismes, horizon = wireframe
+ * strokes tiered to hierarchize on sky, not `--base-neutre` shades. White VEILS not greys: opaque
+ * grey cuts darker on raised fond (horizon halo, Lune); veil adds, stays lighter than what it
+ * crosses; on black each opacity gives the grey it replaces. Painted names (`texte`) stay under
+ * interface text; night corps below interface amber-red likewise. Voie lactée keeps cold teinte:
+ * only painted structure that is neither instrument trace nor pointed object; hue gap separates
+ * it from astérismes without brightening.
+ * Star colours not here: from B−V (§3.3), a measure not a drawing choice.
+ * WHAT SCÈNE BORROWS FROM INTERFACE = ITS TOKEN; every other teinte declared hors kit in
+ * `mode-nuit.test.tsx` (new teinte must pick a side). Canvas can't read stylesheet: the test
+ * compares; origin changed in `styles.css` without update here fails `pnpm test` (cadre had
+ * drifted from accent unnoticed).
  */
 const BLANC = 'rgb(255 255 255)'
 
@@ -241,15 +209,12 @@ export function palette(modeNuit: boolean): PaletteCiel {
   return modeNuit ? PALETTE_NUIT : PALETTE_JOUR
 }
 
-// ---------------------------------------------------------------------------
-// T-0097 — fond de ciel réaliste et compensation de contraste
-// ---------------------------------------------------------------------------
+// T-0097 — realistic fond de ciel and contrast compensation
 
 /**
- * Les coefficients qui suivent sont des DÉFINITIONS de l'espace sRGB et du calcul de
- * contraste WCAG 2.1, au même titre que 180° est un demi-tour. Ce ne sont ni des seuils de
- * projet ni des valeurs mesurées : le registre §2.1 ne porte que les grandeurs consommées par
- * une formule d'astronomie, et les y ranger laisserait croire qu'elles se règlent.
+ * Coefficients below are DEFINITIONS of sRGB and WCAG 2.1 contrast (like 180° = half turn): not
+ * project thresholds nor measured. Registre §2.1 holds only astronomy-formula quantities; putting
+ * them there would suggest they're tunable.
  */
 const SRGB_SEUIL_LINEAIRE = 0.0031308
 const SRGB_SEUIL_ENCODE = 0.04045
@@ -259,7 +224,7 @@ const SRGB_GAMMA = 2.4
 const WCAG_R = 0.2126
 const WCAG_V = 0.7152
 const WCAG_B = 0.0722
-/** Le 0,05 du rapport WCAG : la réflexion d'ambiance ajoutée aux deux luminances. */
+/** WCAG 0.05: ambient reflection added to both luminances. */
 const WCAG_AMBIANCE = 0.05
 const OCTET_MAX = 255
 
@@ -285,7 +250,7 @@ const HEXA = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i
 const RVB = /^rgb\((\d+) (\d+) (\d+)\)$/
 const VOILE = /^(rgb\((\d+) (\d+) (\d+)) \/ ([\d.]+)\)$/
 
-/** Composantes linéaires d'une couleur CSS de la palette — `#rrggbb` ou `rgb(r v b)`. */
+/** Linear components of a palette CSS colour: `#rrggbb` or `rgb(r v b)`. */
 export function composantesDeCss(css: string): Composantes {
   const hexa = HEXA.exec(css)
   if (hexa !== null) {
@@ -308,27 +273,24 @@ function css(composantes: Composantes): string {
   return `rgb(${versOctet(composantes[0])} ${versOctet(composantes[1])} ${versOctet(composantes[2])})`
 }
 
-/** Luminance relative WCAG d'une couleur donnée en lumière linéaire. */
+/** WCAG relative luminance of a colour in linear light. */
 export function luminanceRelative(composantes: Composantes): number {
   return WCAG_R * composantes[0] + WCAG_V * composantes[1] + WCAG_B * composantes[2]
 }
 
-/** Rapport de contraste WCAG entre deux luminances relatives. */
+/** WCAG contrast ratio between two relative luminances. */
 export function rapportContraste(claire: number, sombre: number): number {
   return (claire + WCAG_AMBIANCE) / (sombre + WCAG_AMBIANCE)
 }
 
-/** Luminance du fond de référence : celui sur lequel la palette de jour a été choisie. */
+/** Reference fond luminance: the one day palette was chosen on. */
 export const LUMINANCE_FOND_REFERENCE = luminanceRelative(composantesDeCss(PALETTE_JOUR.fond))
 
 /**
- * T-0102 — chromaticité de la lumière stellaire intégrée, normalisée pour que sa luminance WCAG
- * égale celle du fond de ciel.
- *
- * Sans cette normalisation, bande et fond à brillance de surface ÉGALE ne rendraient pas la même
- * luminance : `K_EXPOSITION_FOND_CIEL` — seule constante libre du modèle de fond — cesserait de
- * s'appliquer aux deux, et le contraste de la bande deviendrait un artefact du choix de teinte.
- * C'est le rapport R/V/B qui porte l'information physique (la teinte perçue, C-45 à C-47), pas son échelle.
+ * T-0102 — chromaticity of integrated starlight, normalized so WCAG luminance = fond de ciel's.
+ * Else band and fond at EQUAL surface brightness differ in luminance: `K_EXPOSITION_FOND_CIEL`
+ * (sole free fond-model constant) would stop applying to both; band contrast = teinte-choice
+ * artefact. R/V/B ratio carries the physics (perceived teinte, C-45 to C-47), not its scale.
  */
 const CHROMA_BANDE: Composantes = (() => {
   const brut: Composantes = [
@@ -346,27 +308,20 @@ const CHROMA_BANDE: Composantes = (() => {
 })()
 
 /**
- * T-0102 — le mode nuit ne cherche pas la fidélité photométrique mais la préservation de
- * l'adaptation à l'obscurité (§11.1) : la bande y passe au rouge pur, sans normalisation. Une
- * chromaticité (1, 0, 0) ne PEUT pas atteindre la luminance du fond — le rouge n'apporte que
- * 0,2126 de la luminance — et la forcer saturerait le canal au lieu d'éclairer.
+ * T-0102 — mode nuit preserves dark adaptation (§11.1), not photometric fidelity: band pure red,
+ * unnormalized. Chromaticity (1, 0, 0) CAN'T reach fond luminance (red = 0.2126 of luminance);
+ * forcing it saturates the channel instead of lighting.
  */
 const CHROMA_BANDE_NUIT: Composantes = [1, 0, 0]
 
 /**
- * T-0102 — la Voie lactée composée sur le fond de ciel : sa part de la brillance totale, et la
- * couleur de cette totale.
- *
- * Même patron que `dessineHaloLune` (T-0100) : la part sert d'opacité, la somme sert de couleur.
- * Les deux sont couplées, et c'est ce couplage qui fait le rendu juste — là où la bande domine,
- * la couleur composée est exactement celle du modèle ; là où elle s'efface, sa part multiplie
- * une couleur devenue indiscernable du fond, donc ne se voit pas. Aucun seuil n'est introduit.
- *
- * `deltaPeintOctets` dit ce que la tranche CHANGE réellement à l'écran : le canevas compose en
- * octets, donc le pixel obtenu vaut fond + part × (couleur − fond), et l'écart au fond se lit
- * en niveaux d'octet. Sous un demi-niveau, la tranche se peint sur elle-même — l'appelant s'en
- * sert pour ne pas la tracer. Ce n'est pas un seuil de rendu de plus : c'est la résolution de
- * la cible, et elle se mesure.
+ * T-0102 — Voie lactée composited on fond de ciel: its share of total brightness, and colour of
+ * that total. Same pattern as `dessineHaloLune` (T-0100): share = opacity, sum = colour. Where band
+ * dominates, composite = model colour exactly; where it fades, share multiplies a colour
+ * indistinguishable from fond → invisible. No threshold.
+ * `deltaPeintOctets` = what slice CHANGES on screen: canvas composes in bytes, pixel = fond + part
+ * × (couleur − fond), gap in byte levels. Under half a level slice paints over itself → caller
+ * skips drawing. Not a render threshold: target resolution, measurable.
  */
 export function bandeRealiste(
   brillanceCielNl: number,
@@ -381,8 +336,7 @@ export function bandeRealiste(
   const chroma = modeNuit ? CHROMA_BANDE_NUIT : CHROMA_BANDE
   const yCiel = K('K_EXPOSITION_FOND_CIEL') * brillanceCielNl
   const yBande = K('K_EXPOSITION_FOND_CIEL') * brillanceBandeNl
-  // Le fond garde sa chromaticité propre : le mode nuit peint un canevas noir (§11.1), donc
-  // seule la bande y apporte de la lumière.
+  // Fond keeps own chromaticity: mode nuit paints black canvas (§11.1), only band brings light.
   const fond: Composantes = modeNuit
     ? [0, 0, 0]
     : [
@@ -402,24 +356,23 @@ export function bandeRealiste(
     couleur: css(composee),
     part,
     deltaPeintOctets: part * Math.max(...ecarts.map(Math.abs)),
-    // Ce que la bande AJOUTE au fond, en octets : peint en `lighter` à l'opacité `part`, il
-    // redonne exactement `couleur` sur le fond du zénith, et ne peut qu'éclaircir un fond
-    // déjà relevé par les halos — la lumière s'additionne, elle ne recouvre pas.
+    // What band ADDS to fond, in bytes: painted `lighter` at opacity `part` gives back exactly
+    // `couleur` on zenith fond, only brightens a fond already raised by halos (light adds).
     ajoutOctets: [Math.max(0, ecarts[0]), Math.max(0, ecarts[1]), Math.max(0, ecarts[2])],
   }
 }
 
 /**
- * Couleur du fond de ciel pour cette brillance de surface, en vue réaliste, l'œil adapté au
- * zénith `sbZenith` — par défaut la brillance elle-même.
+ * Fond de ciel colour at this surface brightness, realistic view, eye adapted to zenith
+ * `sbZenith` (default: itself).
  */
 export function fondRealiste(sbCiel: number, sbZenith = sbCiel): string {
   return cssFond(composantesFond(sbCiel, sbZenith))
 }
 
 /**
- * Écrit une couleur linéaire déjà ramenée dans [0, 1] en octets sRGB opaques à `out[i..i+3]`.
- * Pour les couches peintes pixel par pixel : rien n'est alloué, pas même la chaîne CSS.
+ * Writes linear colour in [0, 1] as opaque sRGB bytes to `out[i..i+3]`. Per-pixel: no allocation,
+ * not even CSS string.
  */
 export function ecritOctets(
   c: readonly [number, number, number],
@@ -432,24 +385,23 @@ export function ecritOctets(
   out[i + 3] = OCTET_MAX
 }
 
-/** Hautes lumières compressées à teinte constante (`GENOU_HAUTES_LUMIERES`), pas écrêtées. */
+/** Highlights compressed at constant teinte (`GENOU_HAUTES_LUMIERES`), not clipped. */
 function cssCompresse(c: readonly [number, number, number]): string {
   return css(compresseHautesLumieres(c) as Composantes)
 }
 
-/** Le fond seul : compressé à teinte constante, un horizon clair reste bleu pâle. */
+/** Fond alone: compressed at constant teinte, bright horizon stays pale blue. */
 function cssFond(c: readonly [number, number, number]): string {
   return css(compresseTeinte(c) as Composantes)
 }
 
 /**
- * T-0356 — fond relevé par la lumière du Soleil. Le fond `bFondNl` et le terme de Rayleigh
- * gardent la teinte du ciel ; celui de Mie, neutre, passe par le `rougissement` du trajet
- * solaire (`rougissement`). Soleil bas : Mie orangé autour de lui, rosé là où il se
- * mêle au bleu — le couchant sort de là, sans teinte choisie à la main.
+ * T-0356 — fond raised by Sun light. Fond `bFondNl` and Rayleigh term keep sky teinte; neutral Mie
+ * goes through solar path `rougissement`. Low Sun: orange Mie around it, pink where it mixes with
+ * blue → sunset emerges, no hand-picked teinte.
  *
- * ponytail: le Rayleigh n'est pas rougi, sinon le zénith du couchant virerait à l'orange ; il
- * reste bleu dans la réalité par l'absorption de Chappuis de l'ozone, que rien ne modélise ici.
+ * ponytail: Rayleigh not reddened, else sunset zenith turns orange; reality keeps it blue via
+ * ozone Chappuis absorption, unmodelled here.
  */
 export function fondRealisteSoleil(
   bFondNl: number,
@@ -465,18 +417,15 @@ export function fondRealisteSoleil(
 }
 
 /**
- * Retient une teinte de repère à SON rapport de contraste actuel contre le fond de jour
- * (`PALETTE_JOUR.fond`, celui de `LUMINANCE_FOND_REFERENCE`).
+ * Holds a repère teinte at ITS current contrast ratio vs day fond (`PALETTE_JOUR.fond`, that of
+ * `LUMINANCE_FOND_REFERENCE`). Else `frontieres` goes 2.14:1 → 1.15:1 on Bortle 9 fond and
+ * vanishes (§3.7 forbids). Keeping each teinte's ratio avoids arbitrary threshold and
+ * re-litigating the palette.
  *
- * Sans cela, `frontieres` passe de 2,14:1 à 1,15:1 sur un fond de Bortle 9 et disparaît —
- * exactement ce que §3.7 interdit. Préserver le rapport que chaque teinte a déjà évite
- * d'introduire un seuil arbitraire et de re-litiger la palette.
- *
- * ponytail: la luminance est relevée par une homothétie sur les trois canaux, donc à
- * chromaticité constante, puis chaque canal est écrêté à 1. Une teinte déjà proche du blanc —
- * `cadre`, `corps`, `texte` — ne PEUT pas garder un rapport de 10:1 ou 16:1 sur un fond de
- * Bortle 9 : le maximum atteignable y est 8,2:1, blanc pur compris. Elle sature donc, et
- * `saturee` le dit. C'est une limite du gamut de l'écran, pas un défaut du modèle.
+ * ponytail: luminance raised by homothety on 3 channels (constant chromaticity), then each channel
+ * clipped to 1. Near-white teinte (`cadre`, `corps`, `texte`) CAN'T keep 10:1 or 16:1 on Bortle 9
+ * fond: max reachable 8.2:1, pure white included → saturates, `saturee` says so. Screen gamut
+ * limit, not model defect.
  */
 export function ajusteContrasteSurFond(
   teinte: string,
@@ -494,10 +443,9 @@ export function ajusteContrasteSurFond(
 }
 
 /**
- * Même retenue pour un voile (`rgb(r v b / a)`) : on compense le gris qu'il donne sur le fond
- * de référence (noir), puis on relève l'OPACITÉ jusqu'à ce que le voile posé sur `fond` atteigne
- * ce gris sur chaque canal. Le canevas compose en sRGB encodé : `f + a·(t − f)` par octet. Le
- * trait reste un voile, donc reste plus clair que les halos qu'il traverse.
+ * Same retention for a veil (`rgb(r v b / a)`): compensate its grey on reference fond (black),
+ * then raise OPACITY until veil on `fond` reaches that grey per channel. Canvas composes in
+ * encoded sRGB: `f + a·(t − f)` per byte. Stays a veil → lighter than halos it crosses.
  */
 function compenseVoile(teinte: string, fond: Composantes, luminanceFond: number): string {
   const voile = VOILE.exec(teinte)
@@ -520,18 +468,16 @@ function compenseVoile(teinte: string, fond: Composantes, luminanceFond: number)
 }
 
 /**
- * Palette de vue réaliste : le fond prend la luminance du site, les repères la compensent.
+ * Realistic-view palette: fond takes site luminance, repères compensate. `sol` not compensated
+ * (masks, doesn't orient; brightening undoes T-0094). Fond neither: it's the reference.
  *
- * `sol` n'est pas compensé — le sol masque, il n'oriente pas, et l'éclaircir défait T-0094.
- * Le fond n'est pas compensé non plus : c'est lui la référence.
- *
- * ponytail: un seul résultat gardé en cache. La boucle de rendu appelle cette fonction par
- * image avec le même `sbCiel` pendant des milliers d'images ; recomposer neuf teintes à
- * chaque fois allouerait pour rien, et un cache par valeur n'aurait jamais plus d'une entrée.
+ * ponytail: one result cached. Render loop calls this per frame with same `sbCiel` for thousands
+ * of frames; recomposing nine teintes each time allocates for nothing, and per-value cache would
+ * never hold more than one entry.
  */
 let cacheRealiste: { sb: number; palette: PaletteCiel } | null = null
 
-/** Luminance du fond de ciel à cette brillance de surface : la référence de la compensation. */
+/** Fond de ciel luminance at this surface brightness: compensation reference. */
 export function luminanceFondRealiste(sbCiel: number): number {
   return luminanceRelative(composantesFond(sbCiel))
 }
@@ -562,9 +508,8 @@ export function paletteRealiste(sbCiel: number): PaletteCiel {
 }
 
 /**
- * La palette de la scène : mode nuit d'abord — il protège l'adaptation à l'obscurité, et
- * éclaircir tout le canevas le rendrait inutile. En mode nuit, la vue réaliste ne change donc
- * que la magnitude limite (§11.1).
+ * Scène palette: mode nuit first — protects dark adaptation, brightening whole canvas would defeat
+ * it. In mode nuit, vue réaliste changes only limiting magnitude (§11.1).
  */
 export function paletteScene(modeNuit: boolean, vueRealiste: boolean, sbCiel: number): PaletteCiel {
   if (modeNuit || !vueRealiste) return palette(modeNuit)

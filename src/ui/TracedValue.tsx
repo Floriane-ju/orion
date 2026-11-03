@@ -1,13 +1,10 @@
 /**
- * §1.5 critère 2, §10.2 — tout nombre affiché porte sa formule et sa constante source, et
- * §10.1 — le libellé porte sa définition au contact.
- *
- * T-0386 — la bulle du libellé ne porte que la glose, et ce que le glossaire y garde
- * (`bulle`). La chaîne complète — valeur, formule, entrées, constantes — s'inscrit dans
- * `traces-affichees.ts`, et la rubrique « Calcul » de la modale info la rend (§10.2 N3).
- *
- * Quand une constante consommée est un ordre de grandeur, la valeur s'accompagne de sa
- * plage : l'affichage ne présente jamais comme exacte une sortie qui ne peut pas l'être.
+ * §1.5 critère 2, §10.2 — every displayed number carries formula + source constant;
+ * §10.1 — label carries its definition on contact.
+ * T-0386 — label bulle = glose + what glossaire keeps (`bulle`). Full chain (value, formula,
+ * inputs, constants) registers in `traces-affichees.ts`; info modal "Calcul" section renders it
+ * (§10.2 N3). Consumed constant = ordre de grandeur → value comes with its plage: never present
+ * as exact an output that can't be.
  */
 
 import { useEffect, useId } from 'react'
@@ -23,25 +20,25 @@ import { inscritTrace, retireTrace } from './traces-affichees.ts'
 import { MENTION_DONNEE_MANQUANTE, libelleEntree, libelleFlag } from '../registry/libelles.ts'
 
 interface TracedValueProps {
-  /** Clé de glossaire : un libellé sans définition ne compile pas (§10.1). */
+  /** Glossaire key: label without definition doesn't compile (§10.1). */
   readonly terme: TermeGlossaire
   readonly trace: Traced<number | null>
   readonly decimales?: number
   readonly unite?: string
-  /** Précision non technique quand un même terme sert deux fois (largeur / hauteur). */
+  /** Non-technical precision when one term serves twice (largeur / hauteur). */
   readonly suffixe?: string
-  /** T-0276 — une fraction se lit en pour cent : « 0,261 » sans unité ne dit rien. */
+  /** T-0276 — a fraction reads as percent: "0,261" without unit says nothing. */
   readonly pourcent?: boolean
 }
 
-/** Le degré se colle au nombre ; toute autre unité s'en détache d'une espace. */
+/** Degree sticks to number; any other unit detaches by a space. */
 function formate(valeur: number | null, decimales: number, unite?: string): string | null {
   if (valeur === null) return null
   if (unite === '°') return degres(valeur, decimales)
   return `${nombre(valeur, decimales)}${unite === undefined ? '' : ` ${unite}`}`
 }
 
-/** `{cle}` de l'explication, remplacé par l'entrée tracée de même clé. */
+/** `{cle}` of the explication, replaced by the traced entry of same key. */
 function explicationAvec(
   explication: string | undefined,
   inputs: Traced<number | null>['inputs'],
@@ -59,7 +56,7 @@ interface DetailTraceProps {
   readonly valeur: string | null
 }
 
-/** Ce que la bulle garde : la glose, puis ce que le glossaire y ajoute. */
+/** What bulle keeps: glose, then what glossaire adds. */
 function BulleTrace({ terme, trace }: Omit<DetailTraceProps, 'valeur'>) {
   const entree = GLOSSAIRE[terme]
   const ajouts = entree.bulle ?? []
@@ -76,7 +73,7 @@ function BulleTrace({ terme, trace }: Omit<DetailTraceProps, 'valeur'>) {
   )
 }
 
-/** La chaîne complète, en lignes : des `span`, la rubrique les pose dans un `<p>`. */
+/** Full chain, as lines: `span`s, the section sets them in a `<p>`. */
 export function DetailTrace({
   terme,
   trace,
@@ -133,8 +130,7 @@ export function TracedValue({
   const echelle = pourcent ? POURCENT : 1
   const unite = pourcent ? '%' : uniteDemandee
   const valeur = formate(trace.value === null ? null : trace.value * echelle, decimales, unite)
-  // La plage encadre la valeur au lieu de la remplacer : la sortie reste lisible sans
-  // jamais se présenter comme exacte (§2.1).
+  // Plage brackets value, never replaces it: stays readable, not presented as exact (§2.1).
   const plage =
     trace.range === undefined
       ? null

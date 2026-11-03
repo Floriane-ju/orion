@@ -1,10 +1,7 @@
 /**
- * §8.1 — Lune, dégradation du fond de ciel et fenêtre utile, plus le mode dégradé de la
- * nuit nautique.
- *
- * Deux affirmations du PRD sont vérifiées ici parce qu'elles sont contre-intuitives :
- * une Lune sous l'horizon ne dégrade RIEN quelle que soit sa phase, et une nuit de Lune
- * n'est pas perdue — elle est chiffrée.
+ * §8.1 — Moon, fond de ciel degradation, fenêtre utile, nautical-night degraded mode.
+ * 2 counter-intuitive PRD claims: Moon below horizon degrades NOTHING whatever its phase;
+ * a Moon nuit isn't lost, it's priced.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -132,7 +129,7 @@ describe('grandeurs intermédiaires du modèle', () => {
 
 describe('fenêtre utile §8.1', () => {
   it('expose séparément la fenêtre sans Lune et la nuit complète', () => {
-    // Pleine Lune du 29 août 2026 : elle traverse une grande part de la nuit.
+    // Full Moon 29 Aug 2026: crosses a large part of the nuit.
     const nuit = fenetreNocturne(SITE_REFERENCE, midiUtc('2026-08-29'))
     const utile = fenetreUtile(SITE_REFERENCE, nuit)
     expect(utile.dureeNuitH).toBeCloseTo(nuit.dureeNuitH, 6)

@@ -1,18 +1,15 @@
 /**
- * Rotations du ciel — support de §3.1 et §3.3.
- *
- * Le pipeline de rendu tient dans une promesse de §3.1 : « une seule matrice par image,
- * appliquée à l'ensemble du catalogue ». Tout ce qui tourne — précession, rotation
- * terrestre, latitude du site, orientation de la vue — se compose ici en un seul produit
- * de matrices, calculé une fois par image. Le nombre d'étoiles n'entre jamais dans ce coût.
- *
- * Matrices 3×3 en ligne d'abord, vecteurs unitaires équatoriaux. Ce sont des rotations
- * pures : leur inverse est leur transposée, ce qui évite toute inversion numérique.
+ * Sky rotations — backs §3.1, §3.3.
+ * §3.1 promise: one matrix per frame applied to whole catalogue. All rotations (precession,
+ * Earth rotation, site latitude, view orientation) compose into one matrix product per frame;
+ * star count never enters cost.
+ * 3×3 row-major, equatorial unit vectors. Pure rotations: inverse = transpose, no numeric
+ * inversion.
  */
 
 import { DEG_PAR_HEURE, TOUR_DEG, encadre, ramene } from './unites.ts'
 
-/** Neuf coefficients, ligne par ligne : m[0..2] est la première ligne. */
+/** Nine coefficients, row by row: m[0..2] = first row. */
 export type Mat3 = readonly [
   number, number, number,
   number, number, number,
@@ -26,19 +23,16 @@ export interface Vec3 {
 }
 
 /**
- * Conversion degré → radian, unique dans `src/` : diviser par `DEG` fait le chemin inverse.
- * Domiciliée ici plutôt que dans `src/registry/` — une identité mathématique n'a ni source
- * ni tolérance, et c'est le module que consomme déjà tout ce qui tourne un angle.
+ * Degree → radian, sole one in `src/`; divide by `DEG` for reverse. Here not in `src/registry/`:
+ * math identity has no source/tolerance, and every angle consumer already imports this module.
  */
 export const DEG = Math.PI / 180
 
 export const IDENTITE: Mat3 = Object.freeze([1, 0, 0, 0, 1, 0, 0, 0, 1])
 
 /**
- * Produit a · b : appliquer le résultat revient à appliquer b puis a.
- *
- * Écrit coefficient par coefficient plutôt qu'en double boucle indexée : le §2.1 interdit
- * les littéraux numériques dans les moteurs, et un produit 3×3 déplié se lit aussi bien.
+ * Product a · b: result applies b then a.
+ * Unrolled, not indexed loop: §2.1 forbids numeric literals in engines.
  */
 export function multiplie(a: Mat3, b: Mat3): Mat3 {
   const [a11, a12, a13, a21, a22, a23, a31, a32, a33] = a
@@ -65,7 +59,7 @@ export function applique(m: Mat3, v: Vec3): Vec3 {
   }
 }
 
-/** Inverse d'une rotation : sa transposée. Aucune inversion numérique n'est nécessaire. */
+/** Rotation inverse = transpose; no numeric inversion. */
 export function transpose(m: Mat3): Mat3 {
   const [m11, m12, m13, m21, m22, m23, m31, m32, m33] = m
   return [m11, m21, m31, m12, m22, m32, m13, m23, m33]
@@ -90,9 +84,8 @@ export function rotationZ(angleDeg: number): Mat3 {
 }
 
 /**
- * Rotation d'un angle autour d'un axe quelconque (formule de Rodrigues). Le filé de §9.3
- * tourne autour du pôle céleste DE L'ÉPOQUE, qui n'est pas l'axe z du repère J2000 : sans
- * cette rotation générale, les arcs seraient centrés à un demi-degré du vrai centre en 2026.
+ * Rotation about arbitrary axis (Rodrigues). §9.3 filé turns about celestial pole OF DATE, not
+ * J2000 z: without it arcs centred 0.5° off true centre in 2026.
  */
 export function rotationAutourDe(axe: Vec3, angleDeg: number): Mat3 {
   const norme = Math.hypot(axe.x, axe.y, axe.z)
@@ -115,7 +108,7 @@ export function rotationAutourDe(axe: Vec3, angleDeg: number): Mat3 {
   ]
 }
 
-/** Direction unitaire d'une position sphérique, angles en degrés. */
+/** Unit direction of a spherical position, degrees. */
 export function versVecteur(longitudeDeg: number, latitudeDeg: number): Vec3 {
   const lon = longitudeDeg * DEG
   const lat = latitudeDeg * DEG
@@ -124,8 +117,8 @@ export function versVecteur(longitudeDeg: number, latitudeDeg: number): Vec3 {
 }
 
 /**
- * T-0336 — l'angle d'un cosinus ou d'un sinus, en degrés. Borné d'abord : un produit scalaire
- * de deux vecteurs unitaires sort de [−1 ; 1] d'un ulp, et `acos` en fait un NaN.
+ * T-0336 — angle of a cosine or sine, degrees. Clamped first: dot of two unit vectors can leave
+ * [−1 ; 1] by 1 ulp → `acos` NaN.
  */
 export function angleDeCosDeg(cos: number): number {
   return Math.acos(encadre(cos, -1, 1)) / DEG
@@ -135,7 +128,7 @@ export function angleDeSinDeg(sin: number): number {
   return Math.asin(encadre(sin, -1, 1)) / DEG
 }
 
-/** Position sphérique d'une direction, longitude ramenée dans [0 ; 360[. */
+/** Spherical position of a direction, longitude wrapped to [0 ; 360[. */
 export function versSpherique(v: Vec3): { longitudeDeg: number; latitudeDeg: number } {
   return {
     longitudeDeg: ramene(Math.atan2(v.y, v.x) / DEG, TOUR_DEG),
@@ -143,12 +136,12 @@ export function versSpherique(v: Vec3): { longitudeDeg: number; latitudeDeg: num
   }
 }
 
-/** Séparation angulaire entre deux directions unitaires, en degrés. */
+/** Angular separation of two unit directions, degrees. */
 export function separationDeg(a: Vec3, b: Vec3): number {
   return angleDeCosDeg(a.x * b.x + a.y * b.y + a.z * b.z)
 }
 
-/** Séparation entre deux positions équatoriales, ascensions droites en HEURES. */
+/** Separation of two equatorial positions, RA in HOURS. */
 export function separationEquatorialeDeg(
   adAH: number,
   decADeg: number,

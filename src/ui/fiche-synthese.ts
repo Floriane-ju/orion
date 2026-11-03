@@ -1,12 +1,9 @@
 /**
- * T-0282, §6.4 — ce qu'on vient chercher dans une fiche, réuni en tête : combien de temps
- * poser, combien d'images, et quand. Ces trois réponses étaient éparses dans « Détectabilité »,
- * « Pose » et « Combien de photos », jamais à l'écran ensemble.
- *
- * Une cible inscrite au plan reprend les valeurs de SON étape : le plan peut ne lui allouer
- * qu'une part de l'intégration, ou un créneau plus court que sa fenêtre. Annoncer ici autre
- * chose que le plan ferait deux réponses à une seule question. Hors du plan, la fiche répond
- * avec son propre calcul — le même moteur, sur la même nuit (T-0268).
+ * T-0282, §6.4 — what one comes to a fiche for, gathered at top: pose time, image count, when.
+ * Were scattered in « Détectabilité », « Pose », « Combien de photos », never on screen together.
+ * Cible in the plan takes ITS étape's values: plan may allot only part of integration, or a
+ * créneau shorter than fenêtre; else two answers to one question. Outside plan, fiche answers with
+ * own calc — same engine, same night (T-0268).
  */
 
 import type { Intervalle } from '../core/creneaux.ts'
@@ -17,7 +14,7 @@ export interface SyntheseFiche {
   readonly poseS: number | null
   readonly nPoses: number | null
   readonly creneau: Intervalle | null
-  /** Vrai quand les trois valeurs sont celles de l'étape du plan. */
+  /** True when the three values are the plan étape's. */
   readonly auPlan: boolean
 }
 
@@ -42,7 +39,7 @@ export function syntheseFiche(
   }
 }
 
-/** Un créneau GEM coupé au méridien se résume à son début et à sa fin : le détail reste plus bas. */
+/** A GEM créneau cut at meridian is summarized by start and end: detail stays below. */
 function enveloppe(creneau: CreneauFiche): Intervalle | null {
   if (!creneau.chiffre || creneau.creneau.causeExclusion !== undefined) return null
   const sous = creneau.creneau.creneaux

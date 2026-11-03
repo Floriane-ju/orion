@@ -1,13 +1,10 @@
 /**
  * Onglet « Filé » — §9.1 pose maximale, §9.2 prévisualisation, §9.3 filé, §9.4 séquence.
- *
- * Les quatre features partagent le même pointage et le même projecteur, parce qu'elles
- * décrivent la même photographie. Ce qui a changé au lot 6 : ce panneau n'a plus de canevas.
- * Le rendu se voit dans le cadre matériel, sur la scène (§3.5), avec le projecteur de la
- * scène — ici ne restent que les réglages et les nombres qu'ils produisent.
- *
- * Ce fichier n'assemble que les régions : les nombres viennent de `useLecturesFile`, et
- * chaque région est un composant nommé dans `SectionsFile.tsx`.
+ * Four features share one pointing and one projector (same photograph). Lot 6: no canvas here;
+ * render is seen in the matériel cadre on the scène (§3.5) with its projector — only settings
+ * and their numbers remain.
+ * Assembles regions only: numbers from `useLecturesFile`, each region a named component in
+ * `SectionsFile.tsx`.
  */
 
 import type { ModeProjection } from '../core/projection.ts'
@@ -30,22 +27,22 @@ export interface PanneauFileProps {
   readonly fovLDeg: number
   readonly fovHDeg: number
   readonly tailleRawMo: number
-  /** §5.1 — la projection imposée par le type d'objectif, réglé au panneau matériel. */
+  /** §5.1 — projection imposed by objectif type, set in the matériel panel. */
   readonly modeObjectif: ModeProjection
 }
 
 export function PanneauFile(props: PanneauFileProps) {
-  // Le pointage est celui de la scène : cadrer ici cadre le planétarium de §3, et l'inverse.
+  // Pointing is the scène's: framing here frames the §3 planétarium, and conversely.
   const vue = useTrancheScene(vueScene)
   const file = useTrancheSeance(fileSeance)
   const lectures = useLecturesFile(props, vue, file)
 
   return (
     <>
-      {/* T-0374 — une seule saisie en tête, ce qu'elle prescrit dessous. */}
+      {/* T-0374 — single input on top, what it prescribes below. */}
       <TempsDePriseDeVue lectures={lectures} file={file} />
-      {/* Sous la pose max, le temps tient en une photo : il n'y a pas de séquence à cadencer,
-          et les compteurs de §9.4 y annonceraient une seule pose comme un budget calculé. */}
+      {/* Under pose max the time fits one photo: no sequence to pace; §9.4 counters would
+          present a single pose as a computed budget. */}
       {lectures.plan.mode === 'FILE' && <SequenceDePrises lectures={lectures} />}
     </>
   )

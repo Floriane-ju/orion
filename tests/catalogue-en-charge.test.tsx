@@ -1,8 +1,6 @@
 /**
- * T-0297 — pendant le chargement, l'interface dit qu'elle charge.
- *
- * Sous le rendu serveur, aucun effet ne part : `useCatalogues` reste dans son état initial,
- * exactement celui de la première seconde d'un vrai démarrage — catalogues pas encore décodés.
+ * T-0297 — while loading, UI says it loads. Under SSR no effect runs: `useCatalogues` stays in
+ * initial state = a real start's first second (catalogues not yet decoded).
  */
 
 import { renderToStaticMarkup } from 'react-dom/server'

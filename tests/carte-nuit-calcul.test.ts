@@ -1,6 +1,6 @@
 /**
- * T-0346 — l'aimant du survol de la frise : un pointeur proche d'un lever ou d'un coucher de
- * Lune s'y accroche, un pointeur loin de tout trait reste où il est.
+ * T-0346 — frise hover magnet: pointer near a Lune lever/coucher snaps to it; far from any line,
+ * stays put.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -92,7 +92,7 @@ describe('T-0390 — la frise règle l’instant', () => {
 
   it('glisser la frise fait défiler le temps sous le curseur, comme on tire un ruban', () => {
     const duree = fin - debut
-    // Tirer vers la droite ramène le passé sous le curseur ; vers la gauche, l'avenir.
+    // Dragging right brings the past under the cursor; left, the future.
     expect(instantGlisse(vue, centre, 0.25)).toBe(centre - duree / 4)
     expect(instantGlisse(vue, centre, -0.5)).toBe(centre + duree / 2)
     expect(instantGlisse(vue, centre, 0)).toBe(centre)
@@ -121,7 +121,7 @@ describe('la frise défile', () => {
     }
   })
 
-  // T-0418 — l'aplat de l'étiquette suit la phase sous son repère : clair de jour seulement.
+  // T-0418 — label background follows the phase under its repère: clair de jour only.
   it('dit de jour le repère qui tombe dans le jour, et lui seul', () => {
     const vue = fenetreFrise(centre)
     const reperes = reperesHeures(vue, frise)
@@ -132,7 +132,7 @@ describe('la frise défile', () => {
     }
     expect(reperes.some((r) => r.jour)).toBe(true)
     expect(reperes.some((r) => !r.jour)).toBe(true)
-    // Sans frise, rien n'est de jour.
+    // Without frise, nothing is daytime.
     expect(reperesHeures(vue).some((r) => r.jour)).toBe(false)
   })
 

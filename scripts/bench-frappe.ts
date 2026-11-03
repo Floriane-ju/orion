@@ -1,28 +1,19 @@
 /**
- * T-0291 — ce qu'une frappe coûte, chiffré, et le budget qu'elle ne doit pas dépasser.
+ * T-0291 — cost of one keystroke vs its budget. Run: `pnpm bench:frappe`. Exit != 0 above budget.
  *
- * L'audit annonçait 486 à 692 ms par caractère en configuration télescope à CPU ×4. Un chiffre
- * pris au navigateur ne se rejoue pas : ce banc mesure hors navigateur les MOTEURS que la
- * chaîne de calcul enchaîne, et les range dans les deux chemins que T-0291 a séparés.
+ * Audit claimed 486-692 ms/char in télescope config at CPU ×4; browser numbers don't replay →
+ * measures off-browser the MOTEURS of the chain, split in T-0291's two paths:
  *
- *   - LE CHEMIN DE FRAPPE : ce qui reste dans le rendu de la touche. Le bornage des saisies,
- *     le ciel du site, la fenêtre utile, le profil optique et le cadre. C'est lui qui porte le
- *     budget, parce que c'est lui que l'utilisateur attend avant de voir son caractère.
- *   - LE CHEMIN DIFFÉRÉ : le plan de la nuit, les notes du catalogue et les lectures de la
- *     liste, que `useDeferredValue` sort du rendu de la touche. Il est chiffré et affiché —
- *     il n'a pas disparu, il a changé de place — mais il ne porte pas le budget.
+ *   - CHEMIN DE FRAPPE: stays in the key's render (input clamping, site sky, fenêtre utile,
+ *     optical profile, cadre). Carries the budget: user waits on it to see the character.
+ *   - CHEMIN DIFFÉRÉ: plan de la nuit, catalogue notes, list reads, moved out by
+ *     `useDeferredValue`. Shown, not budgeted.
  *
- * CE QUE CE BANC NE MESURE PAS, et pourquoi. Le rendu React, la mise en page et la peinture
- * restent au navigateur : `app-calcul.ts` importe un composant, donc ne s'exécute pas sous
- * `node`. C'est la même limite que `bench-catalogue.ts`, et elle est acceptable parce que les
- * millisecondes sont dans les moteurs — le chemin de frappe passe de ~70 ms à ~4 ms, et aucun
- * arbre React ne se rend en soixante-six millisecondes.
+ * Not measured: React render, layout, paint (`app-calcul.ts` imports a component → no `node`;
+ * same limit as `bench-catalogue.ts`; ms live in engines: frappe path ~70 → ~4 ms).
  *
- * Le budget vient du registre (`registry/budgets.ts`), jamais d'ici : un seuil écrit dans le
- * banc qui le mesure n'est plus un seuil. Il est donné pour la tablette de §11.2, mesurée au
- * bridage ×4 du navigateur ; ce banc tourne sans bridage et divise donc d'autant.
- *
- * Usage : `pnpm bench:frappe`. Sortie non nulle au-delà du budget.
+ * Budget from `registry/budgets.ts`, never here: given for §11.2 tablet at browser ×4 throttle;
+ * this bench is unthrottled → divided accordingly.
  */
 
 import { decodeObjets, type ObjetCielProfond } from '../src/data/deepsky.ts'
@@ -48,13 +39,12 @@ import { B, BUDGETS } from '../src/registry/budgets.ts'
 import { lit, mediane } from './bench-commun.ts'
 
 
-/** Le budget du chemin de frappe sur CETTE machine : celui de la tablette, débridé. */
+/** Frappe-path budget on THIS machine: tablet budget, unthrottled. */
 const BUDGET_MS = B('FRAPPE_MS') / B('BRIDAGE_CPU')
 
 /**
- * Les deux configurations que T-0291 a mesurées au navigateur, reprises telles quelles pour
- * que les chiffres se comparent : la longue focale sur équatoriale, qui ne retient qu'une
- * centaine de cibles mais les évalue toutes, et le grand champ sur tracker.
+ * T-0291's 2 browser configs, kept for comparison: long focale on équatoriale (keeps ~100
+ * cibles, evaluates all) and grand champ on tracker.
  */
 interface Configuration {
   readonly nom: string
@@ -69,7 +59,7 @@ const CONFIGURATIONS: readonly Configuration[] = [
   { nom: 'objectif 135 mm f/2 sur tracker', focale: '135', ouverture: '2', monture: 'TRACKER', qualiteMes: 'SOIGNEE' },
 ]
 
-/** Le site et la nuit de référence des autres bancs : les chiffres restent comparables. */
+/** Same site and night as other benches. */
 const LATITUDE = '46.391'
 const LONGITUDE = '6.697'
 const ALTITUDE = '500'
@@ -91,18 +81,15 @@ const CATALOGUE: readonly ObjetCielProfond[] = decodeObjets({
 })
 
 /**
- * La FRAPPE simulée : une latitude qui change vraiment à chaque touche.
- *
- * Le cas mesuré est le pire, pas le moyen. Un caractère sans effet sur la valeur ne relance
- * plus rien depuis T-0291 — c'est `frappe-sans-recalcul.test.ts` qui le tient —, donc le
- * chiffre qui décide est celui d'une touche qui change bel et bien le lieu.
+ * Simulated FRAPPE: latitude really changes each key. Worst case: a no-effect char reruns
+ * nothing since T-0291 (held by `frappe-sans-recalcul.test.ts`).
  */
 const FRAPPES: readonly string[] = Array.from(
   { length: 12 },
   (_, i) => (Number(LATITUDE) + i * 0.001).toFixed(3),
 )
 
-/** Le temps d'un étage, en millisecondes, mesuré sur toute la série de frappes. */
+/** Time of one étage in ms over the keystroke series. */
 function chrono(travail: (latitude: string) => void): number {
   for (const latitude of FRAPPES) travail(latitude)
   return mediane(
@@ -117,7 +104,7 @@ function chrono(travail: (latitude: string) => void): number {
 const nombre = (champ: Parameters<typeof borne>[0], texte: string): number =>
   borne(champ, nombreDeTexte(texte)).valeur
 
-/** Le site, tel que `grandeursLieu` le borne dans la chaîne. */
+/** Site as `grandeursLieu` clamps it in the chain. */
 function site(latitude: string) {
   return {
     latitudeDeg: nombre('latitude_deg', latitude),
@@ -126,7 +113,7 @@ function site(latitude: string) {
   }
 }
 
-/** Le matériel, tel que `evalueMateriel` le chiffre. */
+/** Matériel as `evalueMateriel` computes it. */
 function materiel(config: Configuration) {
   const boitier = resoutBoitier(BOITIER)
   const capteur = capteurEffectif(boitier, 'FULL_FRAME')
@@ -151,7 +138,7 @@ function materiel(config: Configuration) {
   }
 }
 
-/** §8.3 — le contexte de séance, assemblé comme la chaîne l'assemble. */
+/** §8.3 — séance context, assembled as the chain does. */
 function contexte(config: Configuration, latitude: string): ContexteSession {
   const s = site(latitude)
   const m = materiel(config)
@@ -216,17 +203,16 @@ for (const config of CONFIGURATIONS) {
       .map(([designation]) => designation),
   )
   /**
-   * Le plan n'ordonne que la sélection (§8.3), jamais le catalogue : `app-calcul.ts` le lui
-   * filtre. Le pire cas réaliste est d'avoir tout choisi de ce que la liste dit photographiable.
+   * Plan orders only the selection (§8.3), not the catalogue (`app-calcul.ts` filters).
+   * Worst case: every cible the list calls photographiable.
    */
   const choisies = CATALOGUE.filter((objet) => designations.has(objet.designation))
 
   console.log(`${config.nom} — ${choisies.length} cible(s) photographiable(s)`)
 
   /**
-   * Le chemin de frappe mesuré d'un bloc : c'est le chiffre qui décide. Les étages ci-dessous
-   * le détaillent, mais ils se recouvrent — chacun recalcule la nuit dont il a besoin —, donc
-   * leur somme dépasse le total. Seule la mesure de bout en bout vaut comparaison au budget.
+   * Whole frappe path = deciding number. Étages detail it but overlap (each recomputes the night
+   * it needs) → sum > total.
    */
   const totalFrappe = chrono((lat) => {
     const s = site(lat)
@@ -262,8 +248,8 @@ for (const config of CONFIGURATIONS) {
 
   const differe: readonly Etage[] = [
     {
-      // T-0294 — les deux partagent leurs évaluations par contexte : un contexte NEUF à chaque
-      // tour, sinon le banc ne mesurerait que le mémo. Chiffrés ensemble, comme la chaîne les paie.
+      // T-0294 — both share evaluations per context: NEW context each round, else bench measures
+      // only the memo. Measured together, as the chain pays them.
       nom: 'notes du catalogue et plan de la nuit',
       ms: chrono(() => {
         const neuf = { ...reference }
@@ -307,7 +293,7 @@ for (const config of CONFIGURATIONS) {
     totalDiffere,
     'total reporté par useDeferredValue',
   )
-  // Avant T-0291, les deux chemins n'en faisaient qu'un : c'est la somme qu'une touche payait.
+  // Before T-0291 both paths were one: this sum is what a key paid.
   const avant = totalFrappe + totalDiffere
   console.log(
     `  avant T-0291 (tout dans le rendu de la touche) : ${avant.toFixed(2)} ms, ` +

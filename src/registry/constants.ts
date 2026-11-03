@@ -1,36 +1,32 @@
 /**
- * §2.1 — Registre de constantes de référence.
- *
- * Toute valeur qui n'est pas le résultat d'une formule vient d'ici. Chaque entrée porte
- * sa valeur, son unité, sa source nommée, sa tolérance et les sections consommatrices.
- *
- * Le registre est en lecture seule à l'exécution. Il n'existe aucun mécanisme
- * d'ajustement automatique : ni apprentissage, ni retour utilisateur, ni télémétrie.
- * Une prédiction reproductible est vérifiable ; une prédiction qui dérive ne l'est pas.
+ * §2.1 — Reference-constants registry.
+ * Every value not from a formula comes from here, with value, unit, named source, tolerance,
+ * consuming sections.
+ * Read-only at runtime. No automatic adjustment (no learning, feedback, telemetry): a
+ * reproducible prediction is verifiable, a drifting one is not.
  */
 
 export interface ConstantEntry {
-  /** Référence au tableau du PRD : « C-03 » pour les conventionnelles, « A-… » pour les exactes. */
+  /** PRD table reference: « C-03 » conventional, « A-… » exact. */
   readonly ref: string
   readonly libelle: string
   readonly valeur: number
   readonly unite: string
   readonly source: string
-  /** `null` pour une constante exacte, sans tolérance. */
+  /** `null` for an exact constant (no tolerance). */
   readonly tolerance: string | null
   /**
-   * Vrai quand la tolérance est « ordre de grandeur » : toute sortie qui en dépend
-   * s'affiche avec sa plage, jamais comme une valeur exacte (§2.1, dernier critère).
+   * True when tolerance is « ordre de grandeur »: dependent outputs show their range, never
+   * exact (§2.1, last criterion).
    */
   readonly ordreDeGrandeur: boolean
   /**
-   * Bornes déclarées de la tolérance, quand le PRD les chiffre. La plage générique de
-   * `plageOrdreDeGrandeur` — un facteur deux — est une convention de repli : elle serait
-   * fausse pour une constante dont le PRD annonce un intervalle plus étroit (§7.6, L-04).
+   * Declared tolerance bounds when PRD quantifies them. Generic `plageOrdreDeGrandeur` (×2) is a
+   * fallback, wrong for a constant with a narrower PRD interval (§7.6, L-04).
    */
   readonly plage?: readonly [number, number]
   readonly sections: readonly string[]
-  /** Constante conservée pour mémoire mais qu'aucun moteur ne doit consommer. */
+  /** Kept for the record; no engine may consume it. */
   readonly deprecie?: string
 }
 
@@ -38,7 +34,7 @@ function entree(e: ConstantEntry): ConstantEntry {
   return Object.freeze(e)
 }
 
-/** Constantes astronomiques exactes — aucune tolérance. */
+/** Exact astronomical constants, no tolerance. */
 const EXACTES = {
   ROTATION_CIEL_DEG_H: entree({
     ref: 'A-ROT',
@@ -70,8 +66,8 @@ const EXACTES = {
     ordreDeGrandeur: false,
     sections: ['3.1'],
   }),
-  // §2.1 — conservées pour mémoire depuis que §3.2 ne propose plus de sauts par période :
-  // une constante exacte et sourcée ne coûte rien à garder, et la table du PRD la cite.
+  // §2.1 — kept for the record (§3.2 no longer offers period jumps): exact, sourced, cited by
+  // PRD table.
   MOIS_SYNODIQUE_J: entree({
     ref: 'A-SYN',
     libelle: 'Mois synodique',
@@ -250,7 +246,7 @@ const EXACTES = {
   }),
 } as const
 
-/** Constantes conventionnelles — sourcées, avec tolérance. */
+/** Conventional constants: sourced, with tolerance. */
 const CONVENTIONNELLES = {
   MIDI_JOUR_OBSERVATIONNEL_H: entree({
     ref: 'C-49',
@@ -624,11 +620,9 @@ const CONVENTIONNELLES = {
 } as const
 
 /**
- * §8.1 — Modèle de brillance lunaire de Krisciunas & Schaefer (1991).
- *
- * Les coefficients viennent de la publication, telle que le PRD la cite. Ils sont ici
- * plutôt qu'en dur dans le moteur pour la même raison que le reste du registre : une
- * constante recopiée dans un moteur devient invérifiable.
+ * §8.1 — Moon brightness model, Krisciunas & Schaefer (1991).
+ * Coefficients as PRD cites the publication. In registry, not engine: a constant copied into an
+ * engine becomes unverifiable.
  */
 const LUNE = {
   KS_MAGNITUDE_LUNE_PLEINE: entree({
@@ -845,7 +839,7 @@ const LUNE = {
   }),
 } as const
 
-/** §8.3 — plan de session ordonné : budget de nuit et scoring. */
+/** §8.3 — ordered session plan: night budget and scoring. */
 const PLANIFICATION = {
   TEMPS_MISE_EN_STATION_MIN: entree({
     ref: 'C-19',
@@ -877,8 +871,8 @@ const PLANIFICATION = {
     ordreDeGrandeur: false,
     sections: ['8.3'],
   }),
-  // §8.3 nomme « tolérance selon type d'objet » sans la chiffrer : 3,0 est la tolérance
-  // FORTE (émission, planétaire, filtre bi-bande), les deux autres en sont des parts.
+  // §8.3 names « tolérance selon type d'objet » unquantified: 3,0 = STRONG tolerance (émission,
+  // planétaire, filtre bi-bande); other two are fractions of it.
   TOLERANCE_LUNE_MOYENNE_DELTA_SB_MAG: entree({
     ref: 'C-15',
     libelle: 'Dégradation lunaire annulant le score de Lune — tolérance moyenne (amas)',
@@ -899,10 +893,9 @@ const PLANIFICATION = {
     ordreDeGrandeur: false,
     sections: ['6.3', '8.3'],
   }),
-  // La fiche dit la gêne lunaire en mots, pas en magnitudes. Les classes coupent la
-  // part de S_lune perdue (1 − S_lune) : la même ΔSB_lune pèse donc selon la tolérance du
-  // type. La borne « forte » vaut 0,5 pour qu'une galaxie écartée par SEUIL_GENE_LUNE (0,5 mag
-  // sur un diviseur de 1) se lise toujours « forte », jamais « moyenne ».
+  // Fiche states Moon nuisance in words. Classes cut the lost share of S_lune (1 − S_lune): same
+  // ΔSB_lune weighs by type tolerance. « forte » bound = 0,5 so a galaxy dropped by
+  // SEUIL_GENE_LUNE (0,5 mag / divisor 1) always reads « forte », never « moyenne ».
   DEGRADATION_LUNE_AUCUNE_MAX: entree({
     ref: 'C-15',
     libelle: 'Part de note de Lune perdue en deçà de laquelle la dégradation lunaire est nulle',
@@ -933,10 +926,9 @@ const PLANIFICATION = {
     ordreDeGrandeur: false,
     sections: ['6.3', '8.1', '8.3'],
   }),
-  // Le poids de la Lune dans C-15 (0,1) ne peut ôter qu'un dixième du score : une cible haute
-  // et bien cadrée restait « idéale » sous une Lune à 10°. La note se plafonne donc par la
-  // classe de dégradation, qui pèse déjà la tolérance du type (§6.3) — une Hα sous Lune
-  // gibbeuse n'y tombe pas.
+  // Moon weight in C-15 (0,1) removes only a tenth of score: high, well-framed target stayed
+  // « idéale » under Moon at 10°. Note capped by degradation class, which already weighs type
+  // tolerance (§6.3): Hα under gibbous Moon doesn't fall there.
   FACILITE_NOTE_MAX_LUNE_FORTE: entree({
     ref: 'C-20',
     libelle: 'Note de facilité maximale sous une dégradation lunaire forte',
@@ -957,9 +949,9 @@ const PLANIFICATION = {
     ordreDeGrandeur: false,
     sections: ['6.3', '6.4', '8.3'],
   }),
-  // §8.1 « Lune sous l'horizon OU tolérance du type » : appliqué au pied de la lettre, un fin
-  // croissant bas et loin de la cible écarterait une galaxie. Le seuil porte sur ΔSB_lune de
-  // Krisciunas & Schaefer, qui compte déjà phase, hauteur et séparation.
+  // §8.1 « Lune sous l'horizon OU tolérance du type »: applied literally, a thin low crescent far
+  // from target would drop a galaxy. Threshold is on Krisciunas & Schaefer ΔSB_lune, which
+  // already counts phase, height, separation.
   SEUIL_GENE_LUNE_DELTA_SB_MAG: entree({
     ref: 'C-15',
     libelle: 'Gêne lunaire au-delà de laquelle une tolérance faible exige la Lune couchée',
@@ -1054,7 +1046,7 @@ const PLANIFICATION = {
   }),
 } as const
 
-/** §8.4 — cheminement d'étoiles et carte de pointage. */
+/** §8.4 — star cheminement and pointing map. */
 const POINTAGE = {
   FOV_SEUIL_CARTE_DIRECTE_DEG: entree({
     ref: 'C-21',
@@ -1154,7 +1146,7 @@ const POINTAGE = {
   }),
 } as const
 
-/** §7.5, §10.3 — conseil filtre chiffré, et §11.1 — mode nuit. */
+/** §7.5, §10.3 — quantified filter advice, and §11.1 — night mode. */
 const TERRAIN = {
   LARGEUR_BANDE_LARGE_NM: entree({
     ref: 'C-22',
@@ -1200,7 +1192,7 @@ const TERRAIN = {
   }),
 } as const
 
-/** §3.1 à §3.5 — pipeline temporel, moteur de rendu, tracés et cadre matériel. */
+/** §3.1 to §3.5 — time pipeline, render engine, paths and equipment frame. */
 const RENDU = {
   EPOQUE_J2000_ANNEE: entree({
     ref: 'A-J2K',
@@ -1798,9 +1790,9 @@ const RENDU = {
       'siècle au plus de J2000, bien en deçà de cet horizon — aucun avertissement n’a lieu d’être.',
   }),
   /**
-   * T-0097 — extension de rendu. §3.3 ne dit du fond de ciel que « plafonne mag_limite en vue
-   * réaliste » : la couleur du fond n'y est pas spécifiée. Ces quatre entrées sont donc une
-   * convention produit assumée, comme FOV_MAX_GNOMONIQUE_DEG (T-0095), et prd.md reste intact.
+   * T-0097 — render extension. §3.3 says of fond de ciel only « plafonne mag_limite en vue
+   * réaliste »: colour unspecified. These 4 entries = assumed product convention, like
+   * FOV_MAX_GNOMONIQUE_DEG (T-0095); prd.md untouched.
    */
   K_EXPOSITION_FOND_CIEL: entree({
     ref: 'C-38',
@@ -1974,7 +1966,7 @@ const RENDU = {
   }),
 } as const
 
-/** §9.1 à §9.4 — grand champ, prévisualisation et filé d'étoiles. */
+/** §9.1 to §9.4 — grand champ, preview and filé d'étoiles. */
 const GRAND_CHAMP = {
   CELLULES_CARTE_POSE: entree({
     ref: 'C-32',
@@ -2813,8 +2805,8 @@ const GRAND_CHAMP = {
 } as const
 
 /**
- * Domaine de validité des séries analytiques (§12.4). Hors de ces bornes, les corps du
- * système solaire sont masqués avec la cause nommée, jamais extrapolés en silence.
+ * Validity domain of analytic series (§12.4). Outside: solar-system bodies masked with named
+ * cause, never silently extrapolated.
  */
 const DOMAINE = {
   ANNEE_MIN_SERIES: entree({
@@ -2839,7 +2831,7 @@ const DOMAINE = {
   }),
 } as const
 
-/** Le registre complet, gelé. Aucun ajustement à l'exécution (§2.1). */
+/** Full registry, frozen; no runtime adjustment (§2.1). */
 export const REGISTRE = Object.freeze({
   ...EXACTES,
   ...CONVENTIONNELLES,
@@ -2855,9 +2847,8 @@ export const REGISTRE = Object.freeze({
 export type ConstantId = keyof typeof REGISTRE
 
 /**
- * Lecture de la valeur d'une constante. Passer par cette fonction plutôt que par
- * `REGISTRE.X.valeur` garde le point de consommation traçable et refuse les entrées
- * dépréciées.
+ * Reads a constant's value. Prefer over `REGISTRE.X.valeur`: traceable consumption, refuses
+ * deprecated entries.
  */
 export function K(id: ConstantId): number {
   const entree = REGISTRE[id]
@@ -2867,7 +2858,7 @@ export function K(id: ConstantId): number {
   return entree.valeur
 }
 
-/** Référence citable dans un résultat tracé (§10.2). */
+/** Citable reference in a traced result (§10.2). */
 export interface ConstantRef {
   readonly id: ConstantId
   readonly ref: string
@@ -2896,9 +2887,8 @@ export function ref(id: ConstantId): ConstantRef {
 }
 
 /**
- * Bornes déclarées d'une constante d'ordre de grandeur, quand le PRD les chiffre. Une
- * sortie qui consomme la constante encadre alors son résultat par ces bornes plutôt que
- * par la convention générique du facteur deux (§2.1, dernier critère).
+ * Declared bounds of an order-of-magnitude constant when PRD quantifies them: outputs bracket
+ * with these, not the generic ×2 (§2.1, last criterion).
  */
 export function plageK(id: ConstantId): readonly [number, number] | null {
   return REGISTRE[id].plage ?? null

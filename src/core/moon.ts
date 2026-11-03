@@ -1,16 +1,9 @@
 /**
- * §8.1 — Lune : phase, position, dégradation du fond de ciel et fenêtre utile.
- *
- * Deux règles du PRD gouvernent ce module :
- *
- *   1. UNE LUNE SOUS L'HORIZON NE DÉGRADE RIEN, quelle que soit sa phase. La phase seule
- *      n'est jamais un motif d'exclusion : c'est la hauteur qui décide.
- *   2. UNE NUIT DE LUNE N'EST PAS « PERDUE ». Elle a un fond de ciel plus élevé, donc des
- *      poses plus courtes et une intégration plus longue. Le moteur le chiffre au lieu de
- *      barrer la nuit.
- *
- * La dégradation vient du modèle de Krisciunas & Schaefer (1991), implémenté localement :
- * aucun appel réseau, aucune table externe.
+ * §8.1 — Moon: phase, position, fond de ciel degradation, fenêtre utile. PRD rules:
+ *   1. Moon below horizon degrades nothing, any phase; altitude decides, never phase alone.
+ *   2. A Moon night is not "lost": higher fond de ciel → shorter poses, longer integration;
+ *      engine quantifies, doesn't strike the night.
+ * Degradation = Krisciunas & Schaefer (1991) model, local: no network, no external table.
  */
 
 import { Body, Equator, Illumination, KM_PER_AU, SearchRiseSet } from 'astronomy-engine'
@@ -29,27 +22,22 @@ const JOURS_DE_RECHERCHE = 2
 const DESCENTE = -1
 const MONTEE = 1
 
-// ---------------------------------------------------------------------------
 // Position et phase
-// ---------------------------------------------------------------------------
 
 export interface EtatLuneInstant {
   readonly altitudeDeg: number
   readonly azimutDeg: number
   readonly adH: number
   readonly decDeg: number
-  /** Fraction illuminée du disque, de 0 (nouvelle) à 1 (pleine). */
+  /** Lit disc fraction, 0 (new) → 1 (full). */
   readonly illumination: number
-  /** Angle de phase, en degrés : 0 à la pleine Lune, 180 à la nouvelle. */
+  /** Phase angle, degrees: 0 at full Moon, 180 at new. */
   readonly anglePhaseDeg: number
-  /**
-   * Demi-diamètre apparent, en degrés, vu du SITE : la distance topocentrique, pas la
-   * géocentrique — la Lune est 1 à 2 % plus grosse au zénith qu'à l'horizon.
-   */
+  /** Apparent half-diameter, degrees, topocentric (Moon 1-2 % larger at zenith than geocentric). */
   readonly demiDiametreDeg: number
   readonly lever: Date | null
   readonly coucher: Date | null
-  /** Vrai quand la Lune est sous l'horizon : elle n'entre alors dans aucun calcul. */
+  /** True when Moon below horizon: enters no calculation. */
   readonly sousHorizon: boolean
 }
 
@@ -78,7 +66,7 @@ function demiDiametreLuneDeg(date: Date, site: Site): number {
   return Math.asin(K('RAYON_MOYEN_LUNE_KM') / distanceKm) / DEG
 }
 
-/** Position de la Lune en coordonnées équatoriales de la date, sans calcul horizontal. */
+/** Moon equatorial coordinates of date; no horizontal calculation. */
 function positionEquatorialeLune(date: Date, site: Site): {
   readonly adH: number
   readonly decDeg: number
@@ -87,18 +75,16 @@ function positionEquatorialeLune(date: Date, site: Site): {
   return { adH: eq.ra, decDeg: eq.dec }
 }
 
-// ---------------------------------------------------------------------------
-// §8.1 — dégradation lunaire, modèle de Krisciunas & Schaefer (1991)
-// ---------------------------------------------------------------------------
+// §8.1 — dégradation lunaire, KS91 (Krisciunas & Schaefer 1991)
 
-/** Masse d'air du modèle KS91, valide jusqu'à l'horizon contrairement à 1 / sin(alt). */
+/** KS91 masse d'air, valid down to horizon unlike 1 / sin(alt). */
 export function masseAirKS(hauteurDeg: number): number {
   const zenithal = (ANGLE_DROIT_DEG - hauteurDeg) * DEG
   const sin = Math.sin(zenithal)
   return 1 / Math.sqrt(1 - K('KS_MASSE_AIR_COEF') * sin * sin)
 }
 
-/** Brillance de surface en nanolamberts — l'unité dans laquelle le modèle additionne. */
+/** Surface brightness in nanolamberts: unit in which the model sums. */
 export function nanolamberts(sbMagArcsec2: number): number {
   return (
     K('NANOLAMBERT_ECHELLE') *
@@ -106,7 +92,7 @@ export function nanolamberts(sbMagArcsec2: number): number {
   )
 }
 
-/** Illuminance hors atmosphère de la Lune à l'angle de phase donné. */
+/** Moon illuminance outside atmosphere at given phase angle. */
 export function illuminanceLune(anglePhaseDeg: number): number {
   const a = Math.abs(anglePhaseDeg)
   const magnitude =
@@ -114,18 +100,18 @@ export function illuminanceLune(anglePhaseDeg: number): number {
   return rapportDeFlux(magnitude)
 }
 
-/** Terme de Rayleigh de la diffusion KS91 : large, bleu. */
+/** KS91 Rayleigh scattering term: broad, blue. */
 export function diffusionRayleighKS(separation: number): number {
   const cos = Math.cos(separation * DEG)
   return K('BASE_MAGNITUDE') ** K('KS_RAYLEIGH_LOG') * (K('KS_RAYLEIGH_CONSTANTE') + cos * cos)
 }
 
-/** Terme de Mie de la diffusion KS91 : serré autour de l'astre, neutre. */
+/** KS91 Mie scattering term: tight around the body, neutral. */
 export function diffusionMieKS(separation: number): number {
   return K('BASE_MAGNITUDE') ** (K('KS_MIE_LOG') - separation / K('KS_MIE_ECHELLE_DEG'))
 }
 
-/** Fonction de diffusion : Rayleigh près de la Lune, Mie au-delà. */
+/** Scattering function: Rayleigh near Moon, Mie beyond. */
 export function diffusionKS(separation: number): number {
   return diffusionRayleighKS(separation) + diffusionMieKS(separation)
 }
@@ -142,15 +128,12 @@ export interface EntreeDeltaSbLune extends GeometrieLune {
 }
 
 /**
- * Brillance ajoutée par la Lune dans cette direction, en nanolamberts — le terme B_lune du
- * modèle KS91, avant toute conversion en magnitudes.
- *
- * Exposée séparément parce que le rendu du planétarium (T-0100) ADDITIONNE cette brillance à
- * celles du site et du crépuscule : additionner des magnitudes n'a pas de sens, et refaire ce
- * produit ailleurs donnerait deux halos lunaires pour un seul modèle.
+ * Brightness added by Moon toward this direction, nanolamberts: KS91 B_lune term before magnitude
+ * conversion. Separate export: planétarium render (T-0100) ADDS it to site + twilight brightness
+ * (summing magnitudes is meaningless); redoing it elsewhere = two Moon halos for one model.
  */
 export function brillanceLuneNl(entree: GeometrieLune): number {
-  // Règle 1 de ce module : une Lune sous l'horizon n'ajoute rien, quelle que soit sa phase.
+  // Module rule 1: Moon below horizon adds nothing.
   if (entree.altitudeLuneDeg <= 0 || entree.altitudeCibleDeg <= 0) return 0
   return (
     diffusionKS(entree.separationDeg) *
@@ -160,10 +143,7 @@ export function brillanceLuneNl(entree: GeometrieLune): number {
   )
 }
 
-/**
- * Dégradation du fond de ciel imputable à la Lune, en mag/arcsec². Positive : le ciel est
- * plus clair d'autant. Nulle dès que la Lune est sous l'horizon, quelle que soit sa phase.
- */
+/** Moon fond de ciel degradation, mag/arcsec²: positive = brighter sky; 0 once Moon is down. */
 export function deltaSbLune(entree: EntreeDeltaSbLune): Traced<number> {
   const inputs = {
     sb_ciel_noir: entree.sbCielNoirMag,
@@ -212,22 +192,21 @@ export function deltaSbLune(entree: EntreeDeltaSbLune): Traced<number> {
   })
 }
 
-/** Fond de ciel effectif sous la Lune : plus la Lune éclaire, plus le ciel est clair. */
+/** Effective fond de ciel under Moon. */
 export function sbCielAvecLune(sbCielNoirMag: number, deltaSb: number): number {
   return sbCielNoirMag - deltaSb
 }
 
 export interface EntreeCielSousLaLune {
   readonly site: Site
-  /** Instant auquel la Lune est évaluée. L'appelant le choisit, et l'annonce. */
+  /** Instant of Moon evaluation; caller chooses and announces it. */
   readonly instant: Date
-  /** Coordonnées de la cible : ascension droite en heures, déclinaison en degrés. */
+  /** Target coordinates: right ascension hours, declination degrees. */
   readonly adH: number
   readonly decDeg: number
   /**
-   * Hauteur de la cible retenue pour l'extinction sur son trajet. Le plan y met la
-   * culmination (§8.1) : c'est la convention, et la fiche doit employer la même, sans quoi
-   * les deux écrans dosent la même nuit différemment.
+   * Target altitude for extinction along its path. Plan uses culmination (§8.1); fiche must too,
+   * else two screens dose one night differently.
    */
   readonly altitudeCibleDeg: number
   readonly sbCielNoirMag: number
@@ -239,20 +218,18 @@ export interface CielSousLaLune {
   readonly altLuneDeg: number
   readonly separationDeg: number
   /**
-   * La hauteur de cible employée pour l'extinction sur son trajet, renvoyée telle que
-   * l'appelant l'a fournie. §7.6 éteint le flux de l'objet à cette même hauteur : deux
-   * conventions pour une seule grandeur donneraient deux poses sur un même écran.
+   * Extinction altitude, returned as given. §7.6 extinguishes object flux at the same altitude:
+   * two conventions for one quantity = two poses on one screen.
    */
   readonly altitudeCibleDeg: number
-  /** Fraction illuminée : ce qui se lit à l'écran, la phase nommée n'étant pas un nombre. */
+  /** Lit fraction: what screen reads (named phase isn't a number). */
   readonly illumination: number
 }
 
 /**
- * §8.1 — le fond de ciel qu'une cible voit sous la Lune, à un instant donné.
- *
- * Partagé entre le plan de séance et la fiche cible (T-0089) : deux écrans qui évaluent la
- * même cible la même nuit doivent appeler le même moteur, sinon ils annoncent deux poses.
+ * §8.1 — fond de ciel a target sees under the Moon at an instant.
+ * Shared by plan de séance and fiche cible (T-0089): same target, same night → same engine, else
+ * two poses announced.
  */
 export function cielSousLaLune(entree: EntreeCielSousLaLune): CielSousLaLune {
   const lune = etatLune(entree.site, entree.instant)
@@ -275,16 +252,14 @@ export function cielSousLaLune(entree: EntreeCielSousLaLune): CielSousLaLune {
   }
 }
 
-// ---------------------------------------------------------------------------
 // §8.1 — fenêtre utile
-// ---------------------------------------------------------------------------
 
 export interface FenetreUtile {
-  /** Sous-intervalle de la nuit où la Lune est sous l'horizon. */
+  /** Night sub-interval with Moon below horizon. */
   readonly debut: Date | null
   readonly fin: Date | null
   readonly dureeH: number
-  /** Durée de la nuit de référence, affichée séparément de la fenêtre utile (§8.1). */
+  /** Reference night duration, shown apart from fenêtre utile (§8.1). */
   readonly dureeNuitH: number
   readonly luneInterfere: boolean
   readonly note: string
@@ -295,12 +270,9 @@ function heuresEntre(debut: Date, fin: Date): number {
 }
 
 /**
- * Fenêtre utile : la part de la nuit où la Lune est couchée. Les deux durées sont rendues
- * séparément — une fenêtre utile réduite doit rester lisible à côté de la nuit complète,
- * sinon l'utilisateur ne comprend pas ce que la Lune lui coûte.
- *
- * Un objet tolérant à la Lune (§6.3) reste planifiable sur toute la nuit : c'est
- * l'appelant qui arbitre, avec la dégradation chiffrée par `deltaSbLune`.
+ * Fenêtre utile: part of night with Moon set. Both durations returned separately, else user can't
+ * see what Moon costs.
+ * Moon-tolerant object (§6.3) stays plannable all night: caller arbitrates with `deltaSbLune`.
  */
 export function fenetreUtile(site: Site, nuit: FenetreNocturne): FenetreUtile {
   const debut = nuit.debutReference

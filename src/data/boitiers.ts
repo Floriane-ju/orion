@@ -1,14 +1,10 @@
 /**
- * §5.1 — Base matériel : les boîtiers qui se choisissent dans une liste.
- *
- * La base vit dans `boitiers.md`, un tableau markdown lu tel quel. Un fichier de données qu'on
- * édite à la main doit rester lisible à la main : ajouter son boîtier ne demande pas d'écrire du
- * TypeScript, et il n'y a aucun artefact généré qui puisse dériver de sa source.
- *
- * Une ligne se projette sur `SaisieBoitier`, donc `resoutBoitier` la résout comme n'importe
- * quelle saisie : dimensions tirées du format, pitch dérivé de la résolution, bornes du registre,
- * replis du registre pour ce qui manque. Aucune validation n'est réécrite ici — une base mal
- * remplie est refusée exactement comme une saisie mal tapée.
+ * §5.1 — Equipment base: camera bodies picked from a list.
+ * Base = `boitiers.md`, markdown table read as is: hand-editable, no TS to add a body, no
+ * generated artifact able to drift.
+ * A row projects onto `SaisieBoitier`, so `resoutBoitier` resolves it like any input (format →
+ * dimensions, resolution → pitch, registry bounds/fallbacks): no validation rewritten, a badly
+ * filled base is refused like a badly typed input.
  */
 
 import source from './boitiers.md?raw'
@@ -21,18 +17,17 @@ export interface LigneBoitier {
   readonly libelle: string
   readonly marque: string
   readonly saisie: SaisieBoitier
-  /** Courbe complète du bruit de lecture, par ISO. Vide quand la base ne la donne pas. */
+  /** Full read-noise curve per ISO; empty when base lacks it. */
   readonly readNoiseE: Readonly<Record<number, number>>
   readonly source: string
 }
 
-/** Ordre des colonnes du tableau. Le lecteur refuse une ligne qui n'en a pas autant. */
+/** Table column order; reader refuses a row with fewer. */
 const COLONNES = 10
 
 /**
- * Les lignes du tableau : celles qui commencent par `|` et ne sont ni l'en-tête ni son trait.
- * Le fichier porte aussi une table de documentation des colonnes ; la ligne d'en-tête `| id |`
- * marque le début de la base, et c'est elle qui sépare les deux.
+ * Table rows: lines starting with `|`, minus header and its rule. File also holds a column
+ * documentation table; header `| id |` marks base start and separates the two.
  */
 function lignes(texte: string): readonly (readonly string[])[] {
   const debut = texte.indexOf('\n| id |')
@@ -44,7 +39,7 @@ function lignes(texte: string): readonly (readonly string[])[] {
     .filter((c) => c.length === COLONNES && c[0] !== 'id' && !c[0]!.startsWith('---'))
 }
 
-/** `ISO:valeur` séparés par des espaces. Chaque valeur passe la borne du registre. */
+/** `ISO:valeur` space-separated; each value passes registry bound. */
 function courbeReadNoise(cellule: string): Readonly<Record<number, number>> {
   const points: Record<number, number> = {}
   for (const point of cellule.split(/\s+/).filter((p) => p !== '')) {
@@ -55,25 +50,24 @@ function courbeReadNoise(cellule: string): Readonly<Record<number, number>> {
 }
 
 function ligneBoitierDepuis(cellules: readonly string[]): LigneBoitier {
-  // La capacité de saturation reste une colonne de la base, mais aucun calcul ne la lit :
-  // elle n'entre pas dans la saisie.
+  // Saturation capacity: base column, read by no computation, absent from input.
   const [id, libelle, formatCapteur, resolutionMpx, tailleRawMo, seuilDoubleGainIso, courbe, , zpSys, src] =
     cellules as [string, string, string, string, string, string, string, string, string, string]
   const readNoiseE = courbeReadNoise(courbe)
-  // T-0343 — la base est un fichier : un format mal orthographié y devenait plein format.
+  // T-0343 — base is a file: misspelled format used to become plein format.
   if (!estFormatCapteur(formatCapteur)) {
     throw new Error(`Base boîtiers, ligne ${id} : format de capteur inconnu « ${formatCapteur} ».`)
   }
   return Object.freeze({
     id,
     libelle,
-    // La marque groupe le sélecteur : c'est le premier mot du modèle, pas une colonne de plus.
+    // Brand (selector group) = first word of model, no extra column.
     marque: libelle.split(' ')[0]!,
     saisie: Object.freeze({
       formatCapteur,
       resolutionMpx,
-      // La saisie ne porte qu'un bruit de lecture ; la courbe complète voyage à côté. Celui-ci
-      // sert au repassage en mode personnalisé, où il n'y a qu'un champ à remplir.
+      // Input carries one read noise, full curve alongside; this one serves return to custom
+      // mode (single field).
       readNoiseE: String(readNoiseE[Number(seuilDoubleGainIso)] ?? ''),
       seuilDoubleGainIso,
       zpSys,
@@ -93,14 +87,11 @@ export function ligneBoitier(id: string): LigneBoitier | null {
 }
 
 /**
- * Le boîtier résolu d'une ligne de la base. Le même chemin que la saisie manuelle, à ceci près
- * que la courbe de bruit de lecture est complète : un ISO forcé hors du palier recommandé garde
- * sa vraie valeur au lieu de retomber sur le générique du registre — l'écart va jusqu'à un
- * facteur trois sur la pose, bien au-delà de ce que la plage utile absorbe.
- *
- * T-0205 — `tailleRawMo` est la seule grandeur que l'utilisateur peut reprendre à la ligne :
- * elle ne décrit pas le capteur mais le réglage RAW du moment (compressé, sans perte, non
- * compressé), qui change d'un déclenchement à l'autre sur le même boîtier.
+ * Resolved body of a base row. Same path as manual input, but read-noise curve complete: ISO
+ * forced outside recommended tier keeps true value, not registry generic (gap up to ×3 on pose,
+ * far beyond useful-range absorption).
+ * T-0205 — `tailleRawMo` = only per-row user override: current RAW setting
+ * (compressed/lossless/uncompressed), not sensor; varies per shot.
  */
 export function boitierDeBase(ligne: LigneBoitier, tailleRawMo?: string): Boitier {
   const saisie =

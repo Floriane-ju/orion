@@ -1,19 +1,12 @@
 /**
- * §3.3 — Moteur de rendu unifié.
- *
- * UN MOTEUR, TROIS MODES. Le planétarium (§3), la prévisualisation de champ (§9.2) et le
- * filé (§9.3) passent tous par `projecteur()`. Le mode ne change qu'une chose : la fonction
- * radiale R(θ). Si ces trois modes divergeaient en deux bases de code, le cadre affiché
- * dans le planétarium ne correspondrait pas à la prévisualisation — défaut invisible en
- * développement, fatal sur le terrain.
- *
- *   MODE_PLANETARIUM  stéréographique   R = 2·tan(θ/2)   conforme, champ 1° à 180°
- *   MODE_CADRE        gnomonique        R = tan(θ)       projection d'un objectif rectilinéaire
- *   MODE_FISHEYE      équidistante      R = θ            objectifs fisheye (§5.1)
- *
- * Les deux premiers modes s'écrivent sans une seule fonction transcendante : à partir du
- * vecteur unitaire (X, Y, Z) exprimé dans le repère de la vue, R/sin(θ) vaut 1/Z en
- * gnomonique et 2/(1 + Z) en stéréographique. C'est ce qui rend le coût par étoile constant.
+ * §3.3 — unified render engine. ONE ENGINE, THREE MODES: planétarium (§3), field preview (§9.2),
+ * filé (§9.3) all go through `projecteur()`; mode changes only radial function R(θ). Two
+ * codebases → planétarium frame ≠ preview: invisible in dev, fatal in the field.
+ *   MODE_PLANETARIUM  stereographic   R = 2·tan(θ/2)   conformal, field 1° to 180°
+ *   MODE_CADRE        gnomonic        R = tan(θ)       rectilinear lens projection
+ *   MODE_FISHEYE      equidistant     R = θ            fisheye lenses (§5.1)
+ * First two need no transcendental function: unit vector (X, Y, Z) in view frame gives
+ * R/sin(θ) = 1/Z (gnomonic), 2/(1 + Z) (stereographic) → constant per-star cost.
  */
 
 import { K } from '../registry/constants.ts'
@@ -27,23 +20,20 @@ export type ModeProjection = 'MODE_PLANETARIUM' | 'MODE_CADRE' | 'MODE_FISHEYE'
 
 export interface Vue {
   readonly mode: ModeProjection
-  /** Champ horizontal, en degrés. */
+  /** Horizontal field, degrees. */
   readonly fovDeg: number
   readonly largeurPx: number
   readonly hauteurPx: number
-  /** Centre de visée, en coordonnées horizontales du site. */
+  /** Aim centre, site horizontal coordinates. */
   readonly azimutDeg: number
   readonly hauteurDeg: number
-  /** Roulis de la vue, en degrés. */
+  /** View roll, degrees. */
   readonly rotationDeg: number
   /**
-   * T-0258 — écart, en pixels de rendu, entre le centre de visée et le milieu du canevas.
-   *
-   * Le canevas couvre toute la coque, mais deux surfaces toujours ouvertes se posent dessus :
-   * le rail de la vue à gauche, le panneau de séance à droite. Viser au milieu du canevas
-   * plaçait donc la visée sous le panneau — on changeait la focale sans voir le cadre qu'elle
-   * produit, ce que §11.3 interdit. Absent, la visée reste au milieu : c'est ce que veut une
-   * vue hors écran (§9.2, §9.3), qui n'a rien au-dessus d'elle.
+   * T-0258 — render-pixel offset aim centre ↔ canvas middle. Canvas spans the shell but two
+   * always-open surfaces overlay it (view rail left, séance panel right): aiming at canvas middle
+   * put aim under the panel → focal changed unseen, forbidden by §11.3. Absent: aim centered, as
+   * offscreen views want (§9.2, §9.3).
    */
   readonly decalageCentreXPx?: number
 }
@@ -54,29 +44,24 @@ export interface PointEcran {
 }
 
 /**
- * T-0065 — le même point, écrit en place. Une passe de rendu en réutilise un seul pour
- * toute une image : sans lui, `projette` alloue un objet par étoile et par polyligne, et le
- * ramasse-miettes rend l'addition sous forme de saccades pendant un panoramique — invisible
- * sur une moyenne d'images par seconde, visible à l'œil.
- *
- * T-0111 — un point projeté ne porte plus que ses pixels. La distance angulaire au centre
- * de visée y figurait aussi, et son `atan2` coûtait le tiers de la passe de filé pour un
- * seul lecteur dans tout le code, appelé une fois par image. Cet écart-là se mesure entre
- * DIRECTIONS, par `separationDeg` : le point projeté n'avait pas à le porter.
+ * T-0065 — same point, written in place. Render pass reuses one per frame: else `projette`
+ * allocates per star and polyline, GC shows as pan jitter (invisible in mean fps, visible to eye).
+ * T-0111 — projected point carries pixels only. Angular distance to aim centre dropped: its
+ * `atan2` cost a third of the filé pass for one reader called once per frame. Measure between
+ * DIRECTIONS with `separationDeg`.
  */
 export interface PointEcranMut {
   xPx: number
   yPx: number
 }
 
-/** Point de travail d'une passe de rendu, à hisser hors de la boucle qui le remplit. */
+/** Render-pass work point, hoisted out of the filling loop. */
 export function pointEcran(): PointEcranMut {
   return { xPx: 0, yPx: 0 }
 }
 
 /**
- * Repère de la vue : x vers la droite de l'écran, y vers le haut, z vers le centre de visée.
- * Aucune singularité au zénith — l'azimut y tient lieu de roulis, ce qu'il est réellement.
+ * View frame: x screen right, y up, z toward aim centre. No zenith singularity: azimuth = roll.
  */
 export function matriceVue(azimutDeg: number, hauteurDeg: number, rotationDeg: number): Mat3 {
   const a = azimutDeg * DEG
@@ -109,7 +94,7 @@ export function matriceVue(azimutDeg: number, hauteurDeg: number, rotationDeg: n
   ]
 }
 
-/** Rayon projeté d'un angle au centre, en unités de projection (θ en radians). */
+/** Projected radius of an angle from centre, projection units (θ radians). */
 export function rayonProjete(mode: ModeProjection, thetaRad: number): number {
   if (mode === 'MODE_CADRE') return Math.tan(thetaRad)
   if (mode === 'MODE_FISHEYE') return thetaRad
@@ -117,10 +102,8 @@ export function rayonProjete(mode: ModeProjection, thetaRad: number): number {
 }
 
 /**
- * Réciproque de `rayonProjete`. Un clic la traverse une fois, jamais une étoile.
- *
- * T-0220 — l'équidistante est bornée à l'antipode : au-delà de R = π il n'y a plus de ciel,
- * et un angle de 190° désignerait en douce la direction à 170° de l'autre côté.
+ * Inverse of `rayonProjete`. A click crosses it once, never a star.
+ * T-0220 — equidistant bounded at antipode: R > π = no sky; 190° would silently name 170° opposite.
  */
 export function angleProjete(mode: ModeProjection, rayon: number): number {
   if (mode === 'MODE_CADRE') return Math.atan(rayon)
@@ -129,9 +112,9 @@ export function angleProjete(mode: ModeProjection, rayon: number): number {
 }
 
 /**
- * Direction, dans le repère de la vue, d'un point du plan de projection (u, v en unités de
- * R). C'est l'inverse commune du clic (§3.3) et du cadre matériel (§3.5, §9.1) : le cadre
- * d'un fisheye s'inverse en équidistante, pas en gnomonique (T-0219).
+ * View-frame direction of a projection-plane point (u, v in R units). Common inverse of click
+ * (§3.3) and hardware frame (§3.5, §9.1): fisheye frame inverts as equidistant, not gnomonic
+ * (T-0219).
  */
 export function directionDuPlan(mode: ModeProjection, u: number, v: number): Vec3 {
   const rayon = Math.hypot(u, v)
@@ -141,15 +124,15 @@ export function directionDuPlan(mode: ModeProjection, u: number, v: number): Vec
   return { x: (sin * u) / rayon, y: (sin * v) / rayon, z: Math.cos(theta) }
 }
 
-/** Échelle pixel : le champ horizontal demandé remplit exactement la largeur du canevas. */
+/** Pixel scale: requested horizontal field fills canvas width exactly. */
 export function echelleProjection(vue: Vue): number {
   return vue.largeurPx / 2 / rayonProjete(vue.mode, (vue.fovDeg / 2) * DEG)
 }
 
 /**
- * T-0258 — le point du canevas où tombe la direction visée : le milieu, décalé vers le ciel
- * resté libre. Un seul endroit le dit ; tout ce qui lit « le centre » passe par lui ou par le
- * projecteur qui le republie, sinon la phrase de visée désigne un point et l'image un autre.
+ * T-0258 — canvas point where aimed direction lands: middle shifted toward free sky. Single
+ * source; anything reading "the centre" goes through it or the projecteur republishing it, else
+ * aim sentence and image name different points.
  */
 function centreViseePx(vue: Vue): PointEcran {
   return {
@@ -159,22 +142,17 @@ function centreViseePx(vue: Vue): PointEcran {
 }
 
 /**
- * Rayon, en degrés au centre de visée, de la calotte céleste que le canevas montre — coin
- * compris. C'est le domaine que partagent la sélection d'étoiles (§3.3), l'écart des segments
- * de la Voie lactée (§3.7) et le budget du filé (§9.3) : un seul calcul, sinon trois
- * définitions du même champ.
- *
- * Le rayon passe par R(θ) et sa réciproque, jamais par `(fov / 2) × diagonale` : cette
- * approximation petit-angle SOUS-ESTIME le champ dès qu'il s'ouvre, et un écart qui rejette
- * sur une calotte trop petite efface de la géométrie visible — mesuré à 170° de champ, les
- * frontières disparaissaient du bord (T-0110). Elle demandait un plafond arbitraire pour ne
- * pas dépasser le ciel entier ; la réciproque exacte n'en a pas besoin, aucune des trois
- * fonctions radiales ne dépasse 180° dans son domaine.
+ * Radius, degrees from aim centre, of the sky cap the canvas shows, corner included. Domain shared
+ * by star selection (§3.3), Voie lactée segment gap (§3.7), filé budget (§9.3): one computation,
+ * else three definitions of one field.
+ * Via R(θ) and inverse, never `(fov / 2) × diagonal`: small-angle approx UNDERESTIMATES the field
+ * as it opens, too-small cap erases visible geometry (at 170° borders vanished at edge, T-0110).
+ * That needed an arbitrary cap to stay within the sky; exact inverse doesn't: no radial function
+ * exceeds 180° in its domain.
  */
 export function rayonChampDeg(vue: Vue): number {
-  // T-0258 — le centre décalé n'est plus à égale distance des deux bords : c'est le plus
-  // éloigné qui fixe le champ. Garder la demi-largeur effacerait la géométrie du bord opposé,
-  // exactement le défaut que T-0110 a corrigé sur l'approximation petit-angle.
+  // T-0258 — offset centre isn't equidistant from both edges: the farther sets the field. Keeping
+  // half-width would erase opposite-edge geometry (T-0110 defect).
   const centreX = centreViseePx(vue).xPx
   const demiLargeurPx = Math.max(centreX, vue.largeurPx - centreX)
   const rayonCoin =
@@ -185,18 +163,11 @@ export function rayonChampDeg(vue: Vue): number {
 }
 
 /**
- * §8.4 / T-0324 — le champ qu'il faut pour qu'une calotte de rayon `rayonDeg` autour de la
- * visée tienne ENTIÈREMENT dans le canevas.
- *
- * Réciproque partielle de `rayonChampDeg`, et son contraire de bout : celle-là mesure le coin,
- * celle-ci vise le bord le PLUS PROCHE. `fovDeg` est le champ horizontal — il remplit la
- * largeur (`echelleProjection`) —, or un canevas est plus large que haut et la visée y est
- * décalée (T-0258). Dimensionner sur la largeur laisserait donc sortir par le haut et par le
- * bas ce qu'on prétendait montrer en entier.
- *
- * Le passage par R(θ) et sa réciproque, jamais par une règle de trois sur les degrés : la
- * proportionnalité entre angle et pixels est une approximation petit-angle, et c'est elle que
- * T-0110 a chassée du calcul de champ.
+ * §8.4 / T-0324 — field needed so a cap of radius `rayonDeg` around aim fits ENTIRELY in canvas.
+ * Partial inverse of `rayonChampDeg`, opposite end: that one measures the corner, this one the
+ * NEAREST edge. `fovDeg` = horizontal field (fills width, `echelleProjection`) but canvas is wider
+ * than tall and aim offset (T-0258): sizing on width lets content exit top and bottom.
+ * Via R(θ) and inverse, never rule of three on degrees (small-angle approx, chased out by T-0110).
  */
 export function fovPourRayonDeg(vue: Vue, rayonDeg: number): number {
   const centreX = centreViseePx(vue).xPx
@@ -207,48 +178,41 @@ export function fovPourRayonDeg(vue: Vue, rayonDeg: number): number {
 }
 
 /**
- * Portée utile d'un point projeté, en diagonales de canevas.
- *
- * Au-delà, une position n'est plus une position : c'est le voisinage de la singularité de la
- * projection, où le facteur radial diverge. Deux sommets voisins d'une polyligne s'y retrouvent
- * à des dizaines de milliers de pixels de part et d'autre du canevas, et la corde qui les relie
- * TRAVERSE l'image — une droite fantôme en travers du ciel, un maillage qui recouvre ce qu'il
- * devait border. Ces points sont donc déclarés non projetables, au même titre que ceux que la
- * formule refuse : ils sont hors du champ affiché de plusieurs écrans, et rien de ce qui s'y
- * appuie n'était visible autrement que par accident.
+ * Useful reach of a projected point, in canvas diagonals, pixels for a given view.
+ * Beyond, a position isn't one: near projection singularity radial factor diverges; neighbour
+ * polyline vertices land tens of thousands of px apart and their chord CROSSES the image (phantom
+ * line, mesh covering what it should border). Declared unprojectable like formula refusals:
+ * outside displayed field of several screens.
  */
-/** Portée utile, en pixels, pour une vue donnée. */
 export function porteeUtilePx(vue: Vue): number {
   return K('PORTEE_PROJECTION_DIAGONALES') * Math.hypot(vue.largeurPx, vue.hauteurPx)
 }
 
 export interface Projecteur {
   readonly vue: Vue
-  /** J2000 équatorial → repère de la vue. Une seule matrice pour toute l'image (§3.1). */
+  /** J2000 equatorial → view frame. One matrix per frame (§3.1). */
   readonly matrice: Mat3
   readonly echelle: number
   /**
-   * T-0258 — le point du canevas où tombe la direction visée. Republié ici pour que rien
-   * n'ait à le recalculer : `largeurPx / 2` écrit ailleurs redeviendrait un second centre.
+   * T-0258 — canvas point of aimed direction. Republished so nothing recomputes it: `largeurPx / 2`
+   * elsewhere = second centre.
    */
   readonly centreXPx: number
   readonly centreYPx: number
-  /** `null` quand la direction n'est pas projetable : jamais un point à l'infini. */
+  /** `null` when direction unprojectable: never a point at infinity. */
   projette(v: Vec3): PointEcran | null
   /**
-   * Même projection, sans rien allouer : la direction entre en scalaires, le résultat
-   * s'écrit dans `out`. `false` quand la direction n'est pas projetable. C'est la forme
-   * que prennent les boucles chaudes ; `projette` n'en est que l'emballage, pour que les
-   * deux ne puissent pas diverger (§3.3).
+   * Same projection, no allocation: scalars in, result written to `out`; `false` if unprojectable.
+   * Hot-loop form; `projette` merely wraps it so the two can't diverge (§3.3).
    */
   projetteEn(x: number, y: number, z: number, out: PointEcranMut): boolean
-  /** Direction J2000 sous un point de l'écran, pour le pointage à la souris. */
+  /** J2000 direction under a screen point, for mouse picking. */
   inverse(xPx: number, yPx: number): Vec3
 }
 
 /**
- * Compose la matrice de l'image et retourne le projecteur. `matriceCiel` va du repère
- * équatorial J2000 au repère horizontal du site ; la matrice de vue enchaîne vers l'écran.
+ * Composes frame matrix, returns projecteur. `matriceCiel`: J2000 equatorial → site horizontal;
+ * view matrix chains to screen.
  */
 export function projecteur(vue: Vue, matriceCiel: Mat3): Projecteur {
   const matrice = multiplie(matriceVue(vue.azimutDeg, vue.hauteurDeg, vue.rotationDeg), matriceCiel)
@@ -257,23 +221,21 @@ export function projecteur(vue: Vue, matriceCiel: Mat3): Projecteur {
   const k = echelleProjection(vue)
   const { xPx: centreX, yPx: centreY } = centreViseePx(vue)
   const mode = vue.mode
-  // Comparée au carré : une racine par étoile pour une borne, alors que la borne se compare
-  // aussi bien au carré (T-0065).
+  // Compared squared: no sqrt per star (T-0065).
   const porteeCarree = porteeUtilePx(vue) ** 2
-  // T-0220 — l'équidistante n'a pas de singularité à l'infini : l'antipode se projette sur
-  // tout le cercle R = π. La portée en pixels n'y arrête rien, la borne est donc angulaire.
+  // T-0220 — equidistant has no singularity at infinity: antipode projects onto whole circle R = π.
+  // Pixel reach stops nothing → bound is angular.
   const thetaMaxEquidistante = Math.PI - K('MARGE_ANTIPODE_EQUIDISTANTE_DEG') * DEG
 
-  // Fermeture nommée plutôt que méthode : `projette` l'appelle sans passer par `this`, et
-  // un projecteur déstructuré garde donc le même comportement.
+  // Named closure, not method: `projette` calls it without `this` → destructured projecteur
+  // behaves the same.
   const projetteEn = (vx: number, vy: number, vz: number, out: PointEcranMut): boolean => {
     const x = m11 * vx + m12 * vy + m13 * vz
     const y = m21 * vx + m22 * vy + m23 * vz
     const z = m31 * vx + m32 * vy + m33 * vz
 
-    // Facteur R/sin(θ), écrit sous la forme qui ne divise jamais par zéro dans son
-    // domaine. Hors domaine, la direction n'est pas projetable : on répond false
-    // plutôt que d'écrire un point à l'infini (§3.3, dernier critère).
+    // R/sin(θ) factor, never divides by zero in its domain. Outside: unprojectable → false, not a
+    // point at infinity (§3.3, last criterion).
     let facteur: number
     if (mode === 'MODE_CADRE') {
       if (z <= Number.EPSILON) return false
@@ -282,9 +244,8 @@ export function projecteur(vue: Vue, matriceCiel: Mat3): Projecteur {
       if (1 + z <= Number.EPSILON) return false
       facteur = 2 / (1 + z)
     } else {
-      // `sqrt` et non `hypot` : `Math.hypot` met ses arguments à l'échelle pour survivre à
-      // un dépassement que des directions unitaires ne peuvent pas produire, et ce soin se
-      // payait à chaque point de chaque arc (T-0111).
+      // `sqrt` not `hypot`: `Math.hypot` rescales against overflow unit directions can't produce,
+      // paid at every arc point (T-0111).
       const s = Math.sqrt(x * x + y * y)
       if (s <= Number.EPSILON) {
         out.xPx = centreX
@@ -326,25 +287,19 @@ export function projecteur(vue: Vue, matriceCiel: Mat3): Projecteur {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Profondeur du catalogue asservie au zoom
-// ---------------------------------------------------------------------------
+// Catalogue depth tied to zoom
 
 /**
- * §3.3 — mag_limite = mag_base + 5 × log10(fov_ref / fov_courant), à pente réduite au dézoom.
- *
- * ESSAI — la formule de §3.3 vide le ciel au dézoom : à 180° de champ elle tombe à la
- * magnitude 4,1, soit 212 étoiles à l'écran, au moment même où l'on dézoome pour se repérer.
- * Un plancher à mag_base en garde 3 335 et coûte trop cher à tracer. Au-delà du champ de
- * référence la pente passe donc à UN coefficient de Pogson au lieu de deux — 2,5 magnitudes
- * par décade de champ plutôt que 5 : magnitude 5,3 et 850 étoiles à 180°, quatre fois plus
- * qu'au PRD, quatre fois moins qu'au plancher. Le zoom, lui, garde la pente de §3.3.
- *
- * Écart assumé au PRD, à valider avant d'être gardé.
+ * §3.3 — mag_limite = mag_base + 5 × log10(fov_ref / fov_courant), reduced slope when zooming out.
+ * TRIAL — §3.3 formula empties the sky zoomed out: 180° field → magnitude 4.1, 212 stars, just
+ * when user zooms out to orient. Floor at mag_base keeps 3 335, too costly to draw.
+ * Beyond reference field: ONE Pogson coefficient instead of two — 2.5 mag per field decade
+ * instead of 5: magnitude 5.3, 850 stars at 180° (4x PRD, 4x fewer than floor). Zoom in keeps §3.3
+ * slope.
+ * Deliberate PRD deviation, to validate before keeping.
  */
 export function magnitudeLimite(fovDeg: number): Traced<number> {
-  // Le « 5 » du PRD est le double du coefficient de Pogson : cinq magnitudes pour un
-  // rapport de flux de cent. Il se dérive, il ne s'écrit pas en dur (§2.1).
+  // PRD's "5" = 2 × Pogson coefficient (5 mag per flux ratio 100). Derived, not hardcoded (§2.1).
   const decades = Math.log10(K('FOV_REFERENCE_RENDU_DEG') / fovDeg)
   const coefficients = decades < 0 ? 1 : 2
   return trace({
@@ -356,15 +311,12 @@ export function magnitudeLimite(fovDeg: number): Traced<number> {
 }
 
 /**
- * Vue réaliste : le fond de ciel EFFECTIF plafonne la profondeur affichée. Le rendu montre
- * alors le ciel tel qu'il serait vu, non le catalogue complet (§3.3).
- *
- * T-0100 — le paramètre est la brillance du fond de ciel, pas la magnitude limite à l'œil nu.
- * Cette fonction plafonnait auparavant sur un `mLimOeil` déjà résolu, et ne plafonnait donc
- * plus rien dès qu'il valait `null`. Or `null` veut dire « hors table » : sous la Lune, un
- * ciel PLUS CLAIR que Bortle 9 montrait alors plus d'étoiles qu'un ciel de banlieue. La
- * brillance, elle, dit de quel côté de la table on est sorti, et `mLimOeilBorne` borne au bord
- * en le déclarant.
+ * Realistic view: EFFECTIVE fond de ciel caps displayed depth; render shows sky as seen, not full
+ * catalogue (§3.3).
+ * T-0100 — parameter = sky brightness, not naked-eye limiting magnitude: capping on resolved
+ * `mLimOeil` capped nothing when `null` ("out of table") → sky BRIGHTER than Bortle 9 under Moon
+ * showed more stars than suburbs. Brightness says which side of the table was left;
+ * `mLimOeilBorne` clamps to the edge and declares it.
  */
 export function magnitudeRendue(
   fovDeg: number,
@@ -374,9 +326,8 @@ export function magnitudeRendue(
   const zoom = magnitudeLimite(fovDeg)
   if (!vueRealiste || sbEffectif === null) return zoom
   const borne = mLimOeilBorne(sbEffectif)
-  // T-0357 — plus clair que la table, c'est le crépuscule ou la Lune : le seuil de Schaefer
-  // prend le relais au lieu de figer la limite au bord, sans quoi le coucher du Soleil
-  // allumait d'un coup toutes les étoiles jusqu'à la magnitude 4.
+  // T-0357 — brighter than table = twilight or Moon: Schaefer threshold takes over, not a limit
+  // frozen at the edge (sunset lit all stars to magnitude 4 at once).
   const oeil =
     borne.borne === 'CIEL_PLUS_CLAIR' && Number.isFinite(sbEffectif)
       ? { ...borne, value: mLimOeilCielClair(sbEffectif) }
@@ -400,22 +351,18 @@ export function magnitudeRendue(
 export interface BornesZoom {
   readonly fovMinDeg: number
   readonly fovMaxDeg: number
-  /** Renseignée quand le plancher de zoom vient de l'absence du paquet Gaia (§3.3). */
+  /** Set when zoom floor comes from missing Gaia packet (§3.3). */
   readonly cause?: string
 }
 
 /**
- * T-0095 — le plafond de champ appartient à la projection, pas à la vue.
- *
- * En gnomonique, R = tan(θ) : l'échelle pixel est (largeur/2) / R(fov/2), donc elle tend vers
- * zéro quand fov tend vers 180° et tout le ciel s'effondre sur le pixel central. Rien ne
- * plante — c'est exactement ce qui rend le défaut coûteux.
- *
- * La stéréographique, elle, ne diverge qu'à 360° : son plafond n'a jamais été celui de §3.3,
- * il était celui de la gnomonique appliqué aux trois modes. Elle va donc à 300°, où le ciel
- * entier moins une calotte de 60° tient à l'écran. L'équidistante va aussi à 300° (T-0220) :
- * le champ d'une VUE n'est pas celui de l'objectif, que §5.1 borne à part
- * (`CHAMP_MAX_FISHEYE_DEG`), et dézoomer autour du cadre sert à se repérer.
+ * T-0095 — field cap belongs to the projection, not the view.
+ * Gnomonic R = tan(θ): pixel scale (width/2) / R(fov/2) → 0 as fov → 180°, whole sky collapses on
+ * centre pixel. Nothing crashes — why the defect is costly.
+ * Stereographic diverges only at 360°: its cap was never §3.3's, it was gnomonic's applied to all
+ * modes → 300° (whole sky minus a 60° cap fits). Equidistant also 300° (T-0220): VIEW field ≠ lens
+ * field, bounded apart by §5.1 (`CHAMP_MAX_FISHEYE_DEG`); zooming out around frame helps
+ * orientation.
  */
 export function fovMaxSelonMode(mode: ModeProjection): number {
   if (mode === 'MODE_CADRE') return K('FOV_MAX_GNOMONIQUE_DEG')
@@ -423,7 +370,7 @@ export function fovMaxSelonMode(mode: ModeProjection): number {
   return K('FOV_MAX_EQUIDISTANTE_DEG')
 }
 
-/** §3.3 — sans le paquet Gaia, l'application plafonne à 15° de champ et le déclare. */
+/** §3.3 — without Gaia packet, app floors zoom at 15° field and declares it. */
 export function bornesZoom(gaiaCharge: boolean, mode: ModeProjection): BornesZoom {
   const fovMaxDeg = fovMaxSelonMode(mode)
   if (gaiaCharge) return { fovMinDeg: K('FOV_MIN_AVEC_GAIA_DEG'), fovMaxDeg }
@@ -438,16 +385,16 @@ export function bornesZoom(gaiaCharge: boolean, mode: ModeProjection): BornesZoo
 
 export interface EtatProfondeur {
   readonly magLimite: Traced<number>
-  /** Magnitude la plus faible réellement présente dans le catalogue chargé. */
+  /** Faintest magnitude actually present in loaded catalogue. */
   readonly profondeurCatalogue: number
   readonly catalogueEpuise: boolean
   readonly cause?: string
 }
 
 /**
- * §3.3 — `catalogue_epuise` doit être affiché. Sous la borne du catalogue chargé, le semis
- * génératif de §9.2 complèterait le rendu, TOUJOURS en le déclarant : tant qu'il n'existe
- * pas, l'application déclare le manque plutôt que d'inventer des étoiles.
+ * §3.3 — `catalogue_epuise` must be displayed. Under loaded-catalogue bound, §9.2 generative seed
+ * would complete the render, ALWAYS declared; until it exists, app declares the gap rather than
+ * invent stars.
  */
 export function etatProfondeur(
   fovDeg: number,
@@ -471,7 +418,7 @@ export function etatProfondeur(
   }
 }
 
-/** §3.3 — rayon de rendu d'une étoile, modèle commun avec la prévisualisation §9.2. */
+/** §3.3 — star render radius, model shared with §9.2 preview. */
 export function rayonEtoilePx(magV: number): number {
   return (
     K('RAYON_ETOILE_R0_PX') *
@@ -479,5 +426,5 @@ export function rayonEtoilePx(magV: number): number {
   )
 }
 
-// Le rayon n'a pas de trace §10.2 : il s'applique à des étoiles dessinées au canevas, où
-// rien ne se déplie. La formule `RAYON_ETOILE` reste au formulaire de l'Annexe B (T-0063).
+// No §10.2 trace for radius: canvas-drawn stars, nothing unfolds. Formula `RAYON_ETOILE` stays in
+// Annexe B (T-0063).

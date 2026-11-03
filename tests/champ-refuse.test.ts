@@ -1,9 +1,7 @@
 /**
- * T-0305 — un champ refusé se distingue de son voisin valide autrement que par la teinte
- * (§11.1 : la nuit, `--alerte` et `--bordure-controle` sont deux rouges), et son message de
- * refus prend la largeur de la grille au lieu de s'empiler dans une demi-colonne.
- *
- * La suite tourne sous `node` : on lit la feuille, comme `echelles.test.ts`.
+ * T-0305 — refused champ differs from valid neighbour by more than tint (§11.1: at night
+ * `--alerte` and `--bordure-controle` are two reds); refusal message spans grid width, not a
+ * half column. Suite under `node`: reads stylesheet, like `echelles.test.ts`.
  */
 
 import { readFileSync } from 'node:fs'
@@ -19,7 +17,7 @@ const REGLES = readFileSync(join(import.meta.dirname, '..', 'src', 'ui', 'styles
   '',
 )
 
-/** Les déclarations du premier bloc dont la liste de sélecteurs contient exactement `selecteur`. */
+/** Declarations of the first block whose selector list contains exactly `selecteur`. */
 function bloc(selecteur: string): Readonly<Record<string, string>> {
   for (const m of REGLES.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
     const selecteurs = m[1]!.split(',').map((s) => s.trim())
@@ -35,7 +33,7 @@ function bloc(selecteur: string): Readonly<Record<string, string>> {
   return {}
 }
 
-/** Couleur et épaisseur du filet, avec ce que la règle surcharge sur la règle de base. */
+/** Rule colour + thickness, with what it overrides on the base rule. */
 function filet(base: Readonly<Record<string, string>>, sur: Readonly<Record<string, string>> = {}) {
   const [epaisseur, , couleur] = base['border']!.split(/\s+/)
   return {
@@ -64,7 +62,7 @@ describe('T-0305 — un champ refusé se voit', () => {
     const refuse = filet(base, bloc("input[aria-invalid='true']"))
     expect(refuse.couleur).toBe('var(--alerte)')
     expect(refuse.couleur).not.toBe(valide.couleur)
-    // L'épaisseur porte seule la différence la nuit, où les deux couleurs sont du rouge.
+    // Thickness alone carries the difference at night, where both colours are red.
     expect(refuse.gauche).not.toBe(valide.gauche)
   })
 

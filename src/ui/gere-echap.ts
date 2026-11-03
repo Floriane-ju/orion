@@ -1,28 +1,20 @@
 /**
- * T-0189 — Échap congédie la surface ouverte : la bulle d'abord, le tiroir ensuite.
- *
- * WCAG 2.2, 1.4.13 « Contenu au survol ou au focus » exige d'un contenu révélé au survol
- * qu'il soit CONGÉDIABLE sans déplacer le pointeur ni le focus. La bulle (T-0147) n'a pas de
- * JavaScript : elle s'ouvre en `:hover` / `:focus-visible`. Elle ne peut donc pas porter
- * l'écoute elle-même — au survol seul, aucun de ses nœuds n'a le focus et la touche part
- * ailleurs. L'écoute est donc UNE, posée sur le document, et c'est aussi ce qui permet la
- * règle de priorité : une glose ouverte au-dessus d'un tiroir se congédie sans emporter le
- * tiroir qui la porte.
- *
- * T-0262 — le tiroir se referme aussi quand le pointeur ou le focus en SORT. Échap n'existe
- * pas au doigt, et un tiroir resté ouvert recouvre la scène que la tabulation suivante
- * atteindrait. L'objection d'origine — `tiroir-site` et ses six champs, qu'un clic dehors
- * aurait refermés en pleine saisie — est tombée avec lui : le lieu est une carte à demeure,
- * et le seul tiroir restant (mode nuit) ne porte qu'une case et un curseur.
- *
- * Ouvrir un tiroir est un geste hors de celui qui était ouvert : il n'y en a jamais deux à
- * la fois, sans règle de plus.
- *
- * Le tiroir visé est celui qui CONTIENT le focus : Échap ne referme pas un tiroir resté
- * ouvert à l'autre bout de l'écran, dont le `<summary>` volerait le focus au passage.
+ * T-0189 — Échap dismisses the open surface: bulle first, tiroir next.
+ * WCAG 2.2, 1.4.13 « Contenu au survol ou au focus »: hover-revealed content must be DISMISSIBLE
+ * without moving pointer or focus. Bulle (T-0147) has no JavaScript: opens on `:hover` /
+ * `:focus-visible`, so can't carry the listener — on hover alone no node has focus and the key
+ * goes elsewhere. Hence ONE listener on document, enabling the priority rule: a gloss opened above
+ * a tiroir dismisses without taking its tiroir.
+ * T-0262 — tiroir also closes when pointer or focus LEAVES it. Échap doesn't exist on touch, and
+ * an open tiroir covers the scène the next Tab would reach. Original objection (`tiroir-site`, six
+ * fields, outside click closing mid-entry) went with it: lieu is a permanent card, the only
+ * remaining tiroir (mode nuit) holds a checkbox and a slider.
+ * Opening a tiroir is a gesture outside the open one: never two at once, no extra rule.
+ * Targeted tiroir = the one CONTAINING focus: Échap doesn't close a tiroir left open elsewhere,
+ * whose `<summary>` would steal focus.
  */
 
-/** Ce qu'Échap ferme, décidé sans DOM — c'est la règle, et c'est elle que le test porte. */
+/** What Échap closes, decided without DOM — the rule, and what the test carries. */
 export type CibleEchap = 'BULLE' | 'TIROIR' | 'RIEN'
 
 export function cibleEchap(
@@ -36,9 +28,9 @@ export function cibleEchap(
 }
 
 /**
- * L'ancre survolée ou tenant le focus — celle dont la bulle est à l'écran, s'il y en a une.
- * Page info ouverte, seules ses bulles comptent : le bouton qui l'a ouverte garde le focus et
- * sa bulle, cachée sous le voile, absorbait le premier Échap.
+ * Anchor hovered or holding focus — the one whose bulle is on screen, if any. Page info open: only
+ * its bulles count (opening button keeps focus and its bulle, hidden under the veil, absorbed the
+ * first Échap).
  */
 function ancreOuverte(portee: ParentNode): HTMLElement | null {
   return portee.querySelector<HTMLElement>('.bulle-ancre:hover, .bulle-ancre:has(:focus-visible)')
@@ -49,7 +41,7 @@ function bulleDe(ancre: HTMLElement | null): HTMLElement | null {
   return bulle instanceof HTMLElement ? bulle : null
 }
 
-/** Le tiroir déplié qui contient le focus, s'il y en a un. */
+/** Open tiroir containing focus, if any. */
 function tiroirFocalise(doc: Document): HTMLDetailsElement | null {
   const actif = doc.activeElement
   if (!(actif instanceof Element)) return null
@@ -57,10 +49,9 @@ function tiroirFocalise(doc: Document): HTMLDetailsElement | null {
 }
 
 /**
- * La bulle se masque en place, sans toucher au focus ni au pointeur — et se rouvre d'elle-même
- * dès qu'on la quitte, pour que `:hover` et `:focus-visible` reprennent la main au prochain
- * passage. Les deux écoutes de retour se retirent ensemble : congédier deux fois de suite ne
- * doit pas laisser la bulle éteinte pour de bon.
+ * Bulle hides in place, touching neither focus nor pointer, and reopens itself on leaving so
+ * `:hover` / `:focus-visible` resume at next pass. Both return listeners removed together:
+ * dismissing twice in a row mustn't leave the bulle off for good.
  */
 function congedieBulle(ancre: HTMLElement, bulle: HTMLElement): void {
   bulle.style.display = 'none'
@@ -73,7 +64,7 @@ function congedieBulle(ancre: HTMLElement, bulle: HTMLElement): void {
   ancre.addEventListener('focusout', rend)
 }
 
-/** Referme le tiroir et ramène le focus sur son `<summary>`, d'où il était parti. */
+/** Closes tiroir and returns focus to its `<summary>`, where it came from. */
 function fermeTiroir(tiroir: HTMLDetailsElement): void {
   tiroir.removeAttribute('open')
   const resume = tiroir.querySelector('summary')
@@ -81,9 +72,9 @@ function fermeTiroir(tiroir: HTMLDetailsElement): void {
 }
 
 /**
- * T-0325 — la page info s'ouvre par son ancre (`:target`) : la refermer, c'est quitter
- * l'ancre, et le focus revient au bouton de la barre qui l'avait ouverte. Elle passe après
- * la bulle, comme un tiroir : une glose ouverte sur la page se congédie sans la fermer.
+ * T-0325 — page info opens via its anchor (`:target`): closing = leaving the anchor, focus returns
+ * to the barre button that opened it. After bulle, like a tiroir: a gloss open on the page
+ * dismisses without closing it.
  */
 function fermePageInfo(doc: Document): boolean {
   const vue = doc.defaultView
@@ -93,7 +84,7 @@ function fermePageInfo(doc: Document): boolean {
   return true
 }
 
-/** Pose l'écoute unique. Rend la fonction qui la retire — c'est le nettoyage d'un `useEffect`. */
+/** Sets the single listener. Returns its remover — a `useEffect` cleanup. */
 export function installeEchap(doc: Document): () => void {
   const surTouche = (evt: KeyboardEvent) => {
     const ancre = ancreOuverte(doc.querySelector('.page-info:target') ?? doc)
@@ -120,17 +111,16 @@ export function installeEchap(doc: Document): () => void {
 }
 
 /**
- * T-0262 — les tiroirs ouverts qui ne contiennent pas la cible du geste : ceux qu'un pointeur
- * posé ailleurs ou un focus parti ailleurs referme. Décidé sans DOM, comme `cibleEchap`.
+ * T-0262 — open tiroirs not containing the gesture target: those a pointer set elsewhere or focus
+ * gone elsewhere closes. Decided without DOM, like `cibleEchap`.
  */
 export function tiroirsAFermer<T>(ouverts: readonly T[], contientCible: (t: T) => boolean): T[] {
   return ouverts.filter((t) => !contientCible(t))
 }
 
 /**
- * Pose l'écoute du geste dehors. `pointerdown` couvre le toucher et le clic sur un élément
- * non focalisable (le canevas) ; `focusin` couvre la tabulation. Le focus n'est PAS ramené :
- * il est déjà là où l'utilisateur l'a envoyé.
+ * Sets the outside-gesture listener. `pointerdown` covers touch and click on a non-focusable
+ * element (canvas); `focusin` covers Tab. Focus NOT returned: already where user sent it.
  */
 export function installeFermetureDehors(doc: Document): () => void {
   const surGeste = (evt: Event) => {

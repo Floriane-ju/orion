@@ -1,36 +1,25 @@
 /**
- * §3.2, §12.1, T-0296 — un long balayage, rendu par tranches.
- *
- * Décoder quatre-vingt mille étoiles ou en indexer la sphère tient le fil principal deux
- * cents millisecondes sur une tablette : pendant ce temps le ciel ne tourne plus, la frappe
- * ne s'affiche plus, et le geste en cours saute. Le travail ne peut pas être supprimé — il
- * faut bien lire le catalogue — mais il peut être rendu, morceau par morceau.
- *
- * LE MOTEUR NE CONNAÎT AUCUN BUDGET. Il dit seulement OÙ il peut s'interrompre, par un
- * `yield` à ses points de coupe naturels. C'est le pilote qui décide quoi en faire :
- * `dUnBloc` les ignore — c'est le chemin des bancs, des tests et de `node`, où rendre la
- * main n'a aucun sens —, `parTranches` rend la main dès qu'une tranche a consommé son
- * budget. Un même moteur sert donc les deux, sans seconde écriture à tenir d'accord.
- *
- * LE BUDGET SE MESURE EN TEMPS D'HORLOGE, pas en nombre d'éléments : un bridage CPU ralentit
- * le travail accompli dans la tranche, il n'allonge pas la tranche. Le découpage est donc
- * juste sur une station comme sur un téléphone bridé, sans facteur à régler.
+ * §3.2, §12.1, T-0296 — long sweep rendered in slices.
+ * Decoding 80k stars / indexing the sphere holds main thread ~200 ms on tablet: sky stops
+ * rotating, typing not shown, gesture jumps. Work can't be removed, only sliced.
+ * ENGINE KNOWS NO BUDGET: only says WHERE it may be interrupted (`yield` at natural cuts).
+ * Driver decides: `dUnBloc` ignores them (benches, tests, `node`), `parTranches` yields once a
+ * slice used its budget. One engine serves both.
+ * BUDGET = WALL-CLOCK, not element count: throttling slows work per slice, not slice length →
+ * right on workstation and throttled phone, no factor to tune.
  */
 
 import { B } from '../registry/budgets.ts'
 
-/** Un calcul qui nomme ses points de coupe : `yield` là où il accepte d'être interrompu. */
+/** Computation naming cut points: `yield` where interruption is accepted. */
 export type Decoupable<T> = Generator<void, T, void>
 
-/**
- * Vrai aux indices où un balayage peut rendre la main. Le test est ce que coûte le
- * découpage : il doit rester négligeable devant le travail d'un élément.
- */
+/** True at indices where a sweep may yield. Test cost = slicing cost: negligible vs 1 element. */
 export function pointDeCoupe(i: number): boolean {
   return i % B('PAS_TRANCHE') === 0
 }
 
-/** Déroule d'un bloc, sans jamais rendre la main : hors navigateur, il n'y a rien à rendre. */
+/** One block, never yields: outside browser nothing to yield to. */
 export function dUnBloc<T>(pas: Decoupable<T>): T {
   let etape = pas.next()
   while (!etape.done) etape = pas.next()
@@ -38,10 +27,9 @@ export function dUnBloc<T>(pas: Decoupable<T>): T {
 }
 
 /**
- * `scheduler.yield()` reprend la suite en tête de file, avant les tâches arrivées entretemps :
- * c'est ce qui garde le décodage prioritaire sur ce qui n'est pas encore demandé. À défaut,
- * `setTimeout` — son palier de quatre millisecondes après imbrication est le prix d'un repli
- * qui marche partout.
+ * `scheduler.yield()` resumes at queue head, ahead of tasks arrived meanwhile: decoding stays
+ * ahead of not-yet-requested work. `setTimeout` fallback: 4 ms nesting clamp = price of working
+ * everywhere.
  */
 interface Ordonnanceur {
   readonly yield?: () => Promise<void>
@@ -52,25 +40,20 @@ function rendLaMain(): Promise<void> {
   return ordonnanceur?.yield?.() ?? new Promise<void>((reprend) => setTimeout(reprend, 0))
 }
 
-/** Ce qu'une exécution tranchée a réellement tenu : de quoi le mesurer au banc. */
+/** What a sliced run held, for bench measurement. */
 export interface Tranchage {
   readonly tranches: number
-  /** Le travail seul, sommé sur les tranches : le temps rendu au fil principal n'y est pas. */
+  /** Work summed over slices, yielded time excluded. */
   readonly travailMs: number
-  /** La plus longue tranche, en millisecondes : c'est elle qui décide, pas la moyenne. */
+  /** Longest slice, ms: decides, not the mean. */
   readonly plusLongueMs: number
-  /**
-   * Le plus grand dépassement du budget, en millisecondes. C'est la part qui suit la vitesse
-   * de la machine : sous bridage, elle est la seule à s'allonger.
-   */
+  /** Largest budget overrun, ms: tracks machine speed, only one growing under throttling. */
   readonly depassementMs: number
 }
 
 /**
- * Déroule en rendant la main dès qu'une tranche a tenu le fil plus longtemps que son budget.
- *
- * `surTranchage` est appelé à la fin, avec ce que l'exécution a tenu : l'application ne s'en
- * sert pas, le banc de démarrage si — une mesure qu'on ne peut pas rejouer ne prouve rien.
+ * Runs, yielding once a slice held the thread past its budget. `surTranchage` gets what the run
+ * held at the end: unused by app, used by startup bench (non-replayable measure proves nothing).
  */
 export async function parTranches<T>(
   pas: Decoupable<T>,

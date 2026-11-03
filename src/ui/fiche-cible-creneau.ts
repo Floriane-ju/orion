@@ -1,15 +1,11 @@
 /**
- * §8.2 côté fiche — T-0222 : quand photographier la cible cette nuit, et sous quel ciel.
- *
- * Rien n'est recalculé à la façon de la fiche : fenêtre, masque, seuil, monture, fond de ciel
- * de base et instant lunaire passent par `prepareEvaluation`, `entreeCreneau` et `instantLune`,
- * les mêmes portes que le plan de séance. Une fiche qui annoncerait 22 h – 3 h quand le plan
- * alloue 23 h – 2 h serait un désaccord de plus, de ceux que T-0089 a déjà dû corriger.
- *
- * T-0268 — la fiche ne lit plus l'horloge de la scène. Elle le faisait pour dater sa Lune, ce
- * qui donnait deux gênes lunaires pour une seule nuit selon l'heure de consultation : préparer
- * à midi chiffrait la Lune de midi. Un créneau est une propriété de la NUIT, pas de l'instant
- * où on la regarde ; la Lune de la fiche l'est désormais aussi.
+ * §8.2 fiche side — T-0222: when to photograph cible tonight, under which sky.
+ * Nothing recomputed fiche-style: fenêtre, masque, seuil, monture, base fond de ciel, Lune instant
+ * go through `prepareEvaluation`, `entreeCreneau`, `instantLune` — plan de séance's doors. Fiche
+ * announcing 22 h – 3 h where plan allots 23 h – 2 h = one more disagreement (T-0089 had to fix).
+ * T-0268 — fiche no longer reads scène clock (it dated its Lune with it → two lunar gênes per
+ * night by consultation time: noon preparation priced noon's Lune). Créneau is a property of the
+ * NIGHT, not of viewing instant; so is fiche's Lune.
  */
 
 import { prepareEvaluation } from '../core/cibles-liste.ts'
@@ -27,7 +23,7 @@ export type CreneauFiche =
   | { readonly chiffre: true; readonly creneau: CreneauCible }
   | { readonly chiffre: false; readonly cause: string }
 
-/** Tout ce que la nuit du plan impose à la fiche, assemblé en un seul endroit. */
+/** All the plan night imposes on fiche, assembled in one place. */
 export interface NuitFiche {
   readonly creneau: CreneauFiche
   readonly lune: LuneFiche
@@ -38,11 +34,9 @@ export const CAUSE_NUIT_NON_CHIFFREE =
   'Pas de créneau photo : complétez le lieu, la date ou le matériel.'
 
 /**
- * T-0268 — le créneau, la Lune et la masse d'air de la fiche, tirés de la MÊME nuit.
- *
- * Sans nuit chiffrable, rien n'est supposé : la Lune n'est pas évaluée et la masse d'air est
- * inconnue. `fluxObjetReel` traite déjà ce cas — la durée annoncée se présente en minimum, et
- * le dit à l'écran (§7.6, §12.5).
+ * T-0268 — fiche créneau, Lune and masse d'air, from the SAME night.
+ * No priceable night: nothing assumed — Lune not evaluated, masse d'air unknown. `fluxObjetReel`
+ * handles it: duration shown as minimum, says so on screen (§7.6, §12.5).
  */
 export function nuitFiche(
   contexte: ContexteSession | null,
@@ -53,14 +47,14 @@ export function nuitFiche(
     return {
       creneau: { chiffre: false, cause: CAUSE_NUIT_NON_CHIFFREE },
       lune: { evaluee: false, cause: CAUSE_NUIT_NON_CHIFFREE },
-      // Nuit non chiffrable : ce n'est pas une cible écartée, c'est une saisie incomplète. La
-      // durée annoncée se présente donc en minimum plutôt qu'en refus (§7.6, §12.5).
+      // Unpriceable night: incomplete saisie, not an écartée cible. Duration shown as minimum, not
+      // refusal (§7.6, §12.5).
       capture: { masseAir: masseAir(null), dureeCreneauS: null, plusHaut: null, exclusion: null },
     }
   }
 
-  // T-0382 — recoupé par la fenêtre utile comme au plan : une galaxie sous la Lune n'a pas le
-  // même créneau qu'une nébuleuse en émission la même nuit.
+  // T-0382 — intersected with useful fenêtre as in plan: a galaxy under Lune has not the same
+  // créneau as an emission nebula that night.
   const { creneau, exclusionLune } = creneauSousLaLune(
     contexte,
     objet,
@@ -71,15 +65,14 @@ export function nuitFiche(
     site: contexte.site,
     instant: instantLune(creneau, entree.fenetre.debut),
     objet,
-    // Le fond de ciel de base du plan : ciel noir du site MOINS la pénalité de crépuscule
-    // (§2.2). La fiche employait le ciel noir seul, donc une nuit un peu plus sombre que
-    // celle que le plan dose.
+    // Plan base fond de ciel: site black sky MINUS crépuscule penalty (§2.2). Fiche used black sky
+    // alone → night slightly darker than plan's.
     sbCielNoirMag: entree.sbCielBase,
   })
 
-  // Créneau exclu ou vide : le plan et la liste écartent la cible, et la fiche porte la même
-  // cause plutôt que de replier sur la culmination. Le repli chiffrait une intégration pour
-  // une nuit qui n'en offre aucune — la cible cachée par le relief affichait 24 h de pose.
+  // Excluded/empty créneau: plan and list écartent cible; fiche carries same cause, not fallback
+  // to culmination (priced an integration for a night offering none: relief-hidden cible showed
+  // 24 h pose).
   const sansCreneau = creneau.causeExclusion !== undefined || creneau.dureeTotaleMin.value <= 0
   const exclusion = sansCreneau ? creneau.message : exclusionLune
 

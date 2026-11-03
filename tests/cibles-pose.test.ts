@@ -1,16 +1,9 @@
 /**
- * §6.4 — la pose annoncée par la liste du catalogue est celle du plan de séance.
- *
- * C'est le seul point qui compte ici, et c'est une anti-régression : deux écrans qui dosent
- * la même cible avec deux conventions d'extinction annoncent deux poses différentes pour la
- * même nuit. T-0089 a corrigé ce désaccord une fois entre la fiche et le plan ; réemployer
- * `evalueCandidate` est ce qui empêche la liste de le réintroduire.
- *
- * Aucun temps n'est écrit en dur : le test compare deux sorties de moteur.
- *
- * Depuis T-0161, `etatsCibles` porte aussi la NOTE de facilité (§6.4), et les cibles écartées
- * entrent dans la map avec la note 0 au lieu d'en être absentes. « Aucune pose » se lit donc
- * `pose === null`, jamais `has() === false` : l'absence d'entrée veut dire « pas évaluée ».
+ * §6.4 — pose announced by catalogue list = pose of plan de séance.
+ * Regression: two screens, two extinction conventions → two poses for same night (T-0089
+ * fixed it; reusing `evalueCandidate` keeps it fixed). No hard-coded time: compares 2 engine
+ * outputs. T-0161: `etatsCibles` also carries facilité note (§6.4); discarded targets enter
+ * map with note 0. "No pose" = `pose === null`, never `has() === false` (absent = not evaluated).
  */
 
 import { describe, expect, it, vi } from 'vitest'
@@ -27,7 +20,7 @@ import { K } from '../src/registry/constants.ts'
 import type { ObjetCielProfond } from '../src/data/deepsky.ts'
 import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
-// T-0294 — un espion traversant : le moteur reste le vrai, seuls ses appels se comptent.
+// T-0294 — pass-through spy: real engine, calls counted only.
 vi.mock('../src/core/session-candidates.ts', async (importeReel) => {
   const reel = await importeReel<typeof import('../src/core/session-candidates.ts')>()
   return { ...reel, evalueCandidate: vi.fn(reel.evalueCandidate) }
@@ -35,7 +28,7 @@ vi.mock('../src/core/session-candidates.ts', async (importeReel) => {
 
 const NUIT = fenetreNocturne(SITE, new Date('2026-08-14T12:00:00Z'))
 
-/** Setup ciel profond de l'Annexe A : 120 mm f/2,8 sur plein format. */
+/** Annexe A deep-sky setup: 120 mm f/2,8 full frame. */
 const CONTEXTE: ContexteSession = {
   site: SITE,
   nuit: NUIT,
@@ -81,24 +74,22 @@ const CATALOGUE: readonly ObjetCielProfond[] = [
   objet({ designation: 'NGC7000', nomsCommuns: 'Amérique du Nord' }),
   objet({ designation: 'M31', adDeg: 10.68, decDeg: 41.27, type: 'GALAXIE', majAxArcmin: 190, minAxArcmin: 60, vMag: 3.4 }),
   objet({ designation: 'M27', adDeg: 299.9, decDeg: 22.72, type: 'NEB_PLANETAIRE', majAxArcmin: 8, minAxArcmin: 6, vMag: 7.4 }),
-  // Déclinaison australe extrême : jamais levée depuis 46° N, donc jamais photographiable.
+  // Extreme south declination: never rises at 46° N.
   objet({ designation: 'INVISIBLE', adDeg: 100, decDeg: -80, vMag: 5 }),
 ]
 
 /**
- * §12.5 — un moteur qui refuse une entrée hors domaine ne fait pas tomber l'écran.
- *
- * Le cas réel : une optique de 300 mm rétrécit la fenêtre de cadrage, donc laisse entrer au
- * calcul des objets étendus et très faibles dont la brillance de surface dépasse les
- * 26 mag/as² du domaine de §7.1. `fluxObjet` refuse — c'est son rôle — et la liste doit
- * écarter la cible avec sa cause, comme le plan de séance le fait depuis toujours.
+ * §12.5 — engine refusing out-of-domain input must not crash the screen.
+ * Case: 300 mm narrows cadrage window → extended faint objects whose surface brightness
+ * exceeds §7.1's 26 mag/as² domain; `fluxObjet` refuses; list must discard target with its
+ * cause, like plan de séance.
  */
 describe('etatsCibles — un refus de domaine écarte la cible, il ne casse pas l’écran', () => {
-  // 300 mm sur le même plein format : la fenêtre de cadrage descend, et des objets que le
-  // grand champ écartait sur leur taille arrivent jusqu'aux moteurs de flux.
+  // 300 mm, same full frame: smaller cadrage window; objects grand champ dropped on size
+  // reach flux engines.
   const LONGUE_FOCALE: ContexteSession = { ...CONTEXTE, fovHDeg: 4.56, echApx: 3.5 }
 
-  /** Étendue et très faible : sa brillance de surface sort du domaine par construction. */
+  /** Extended, very faint: surface brightness out of domain by construction. */
   const DIFFUSE = objet({
     designation: 'DIFFUSE_HORS_DOMAINE',
     adDeg: 314.75,
@@ -110,8 +101,7 @@ describe('etatsCibles — un refus de domaine écarte la cible, il ne casse pas 
   })
 
   it('forge bien une cible hors du domaine de brillance de surface', () => {
-    // La prémisse du test se calcule, elle ne se recopie pas : sans elle, le test passerait
-    // encore le jour où la cible cesserait d'être hors domaine.
+    // Premise computed, not copied: else test still passes once target leaves the domain.
     const sbObj = detectabilite({
       mInt: DIFFUSE.vMag,
       aArcmin: DIFFUSE.majAxArcmin,
@@ -176,8 +166,8 @@ describe('etatsCibles — la liste et le plan annoncent la même pose', () => {
   })
 
   it('n’annonce aucune pose pour une cible qui ne se lève jamais depuis ce site', () => {
-    // Elle est bien DANS la map — écartée, notée 0 — mais sans pose : le pré-filtrage l'a
-    // refusée sur sa culmination, ce qui est un verdict et pas une absence de réponse.
+    // In map (discarded, note 0), no pose: pré-filtrage refused on culmination = verdict,
+    // not absence.
     expect(POSES.get('INVISIBLE')?.pose ?? null).toBeNull()
   })
 
@@ -195,13 +185,10 @@ describe('etatsCibles — la liste et le plan annoncent la même pose', () => {
 })
 
 /**
- * §6.4 — la note de facilité, et sa COUVERTURE.
- *
- * Aucune note n'est recopiée : le test vérifie les invariants de l'échelle et le fait que
- * chaque cible refusée au pré-filtrage reçoive quand même sa note. C'est cette couverture qui
- * a manqué : sur un 120 mm plein format, onze objets du catalogue seulement vont jusqu'au
- * calcul de créneau — noter ces onze seuls laissait la liste presque vide de notes pendant que
- * la carte Cible en affichait une pour tout ce qu'on clique.
+ * §6.4 — facilité note and its COVERAGE.
+ * No copied note: checks scale invariants + every target refused at pré-filtrage still gets
+ * one. Past gap: at 120 mm full frame only 11 objects reach créneau calc; noting only those
+ * left list nearly noteless while Cible card showed one for any click.
  */
 describe('etatsCibles — la note de facilité', () => {
   const ETATS = etatsCibles(CONTEXTE, CATALOGUE)
@@ -229,8 +216,8 @@ describe('etatsCibles — la note de facilité', () => {
   })
 
   it('note TOUTE cible refusée au pré-filtrage, et pas seulement les candidates', () => {
-    // La borne d'écartées du pré-filtrage est celle du catalogue entier : nommer un refus ne
-    // coûte qu'une chaîne, alors que retenir une candidate coûte une éphéméride.
+    // Pré-filtrage discard bound = whole catalogue: naming a refusal costs a string, keeping a
+    // candidate costs an ephemeris.
     const { candidates, ecartees } = preFiltre(CONTEXTE, CATALOGUE, CATALOGUE.length, CATALOGUE.length)
     expect(ecartees.length).toBeGreaterThan(0)
 
@@ -242,12 +229,12 @@ describe('etatsCibles — la note de facilité', () => {
       expect(etat!.cause, ecartee.designation).toBe(ecartee.cause)
     }
 
-    // La couverture dépasse donc les candidates : c'est tout l'objet du correctif.
+    // Coverage > candidates: that is the fix.
     expect(ETATS.size).toBeGreaterThan(candidates.length)
   })
 
   it('ne note aucune cible dont le catalogue ne donne ni magnitude ni dimensions', () => {
-    // Non documenté n'est pas difficile : ces cibles n'ont pas de note, ni ici ni sur la carte.
+    // Undocumented ≠ hard: no note here or on card.
     for (const objet of CATALOGUE) {
       if (objet.majAxArcmin !== null && objet.vMag !== null) continue
       expect(ETATS.has(objet.designation), objet.designation).toBe(false)
@@ -264,15 +251,11 @@ describe('etatsCibles — la note de facilité', () => {
 })
 
 /**
- * §5.2 — sans suivi, le domaine ciel profond est VERROUILLÉ, pas seulement plafonné.
- *
- * L'ancien comportement ne fermait rien : `tMaxS` retombait sur la NPF, donc la pose unitaire
- * tenait en secondes, et les cibles brillantes restaient sous le plafond d'intégration de §7.3.
- * La liste les annonçait « photographiables » — en milliers de poses de deux secondes sur un
- * trépied fixe, ce qu'aucune séance ne peut exécuter.
- *
- * Le verrou se lit sur `pose === null` partout, et sur une cause qui vient de `profilSuivi` :
- * la phrase n'est pas réécrite ici, sinon deux écrans diraient deux choses.
+ * §5.2 — without suivi deep-sky domain is LOCKED, not just capped.
+ * Old behaviour closed nothing: `tMaxS` fell back to NPF, pose unitaire = seconds, bright
+ * targets stayed under §7.3 integration cap, listed "photographable" as thousands of 2 s
+ * poses on fixed tripod. Lock = `pose === null` everywhere; cause from `profilSuivi`, phrase
+ * not rewritten here (else two screens say two things).
  */
 describe('§5.2 — sans suivi, aucune cible ciel profond n’est photographiable', () => {
   const sansSuivi = profilSuivi({ suiviActif: false, typeMonture: 'TRACKER', focaleMm: 120 })
@@ -284,7 +267,7 @@ describe('§5.2 — sans suivi, aucune cible ciel profond n’est photographiabl
   })
 
   it('n’annonce aucune pose, et donne au suivi la cause de chaque refus', () => {
-    // La prémisse : le MÊME catalogue produit des poses dès que le suivi est actif.
+    // Premise: SAME catalogue yields poses once suivi on.
     const avecSuivi = etatsCibles(CONTEXTE, CATALOGUE)
     expect([...avecSuivi.values()].some((e) => e.pose !== null)).toBe(true)
 
@@ -304,14 +287,12 @@ describe('§5.2 — sans suivi, aucune cible ciel profond n’est photographiabl
 })
 
 /**
- * T-0294 — le plan et la liste partent du même contexte : une cible n'est chiffrée qu'une fois.
- *
- * Avant, `planSession` et `etatsCibles` évaluaient chacun leurs candidates, et un changement de
- * contexte payait deux fois la même éphéméride par cible.
+ * T-0294 — plan and list start from same context: target priced once (before, `planSession`
+ * and `etatsCibles` each evaluated candidates → same ephemeris paid twice per context change).
  */
 describe('etatsCibles et planSession — une seule évaluation par candidate et par contexte', () => {
   it('n’appelle evalueCandidate qu’une fois par cible pour les deux surfaces réunies', () => {
-    // Un contexte neuf : ce qu'un changement de saisie livre à la chaîne.
+    // Fresh context: what an input change delivers to the chain.
     const contexte: ContexteSession = { ...CONTEXTE }
     const espion = vi.mocked(evalueCandidate)
     espion.mockClear()

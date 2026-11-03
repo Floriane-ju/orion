@@ -1,18 +1,10 @@
 /**
- * §9.1, T-0169 — un rail maison, parce qu'un `range` natif ne sait pas montrer un seuil.
- *
- * Le seul rail de l'interface qui porte une décision — la pose unitaire — a besoin de deux
- * choses qu'aucun `input[type=range]` ne donne : un repère peint à une valeur arbitraire, et
- * une détente qui aimante le geste dessus. Les autres rails passent ici pour la même raison
- * qu'on ne garde pas deux grammaires de curseur à l'écran.
- *
- * Le geste est ABSOLU comme celui d'un `range` : la valeur est celle que désigne l'abscisse du
- * pointeur dans la course, donc un clic sur le rail y saute. Le pointeur est capturé au
- * `pointerdown`, ce qui laisse le glisser continuer hors du rail sans rien écouter sur
- * `window`.
- *
- * Le clavier n'accroche pas : une flèche est une intention précise, l'aimant lui volerait le
- * cran qu'elle vient de demander.
+ * §9.1, T-0169 — home-made rail: native `range` can't show a threshold. Pose unitaire rail needs
+ * marker at arbitrary value + detente magnet; no native input gives them. Other rails use it too
+ * (one cursor grammar).
+ * ABSOLUTE gesture like `range`: value = pointer x in course; click jumps. Pointer captured at
+ * `pointerdown` (drag continues off rail, nothing on `window`).
+ * Keyboard doesn't snap: arrow = precise intent, magnet would steal the requested cran.
  */
 
 import { useRef, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react'
@@ -29,24 +21,21 @@ import { pourcentCss } from './carte-nuit-calcul.ts'
 
 export interface AccrocheCurseur {
   readonly valeur: number
-  /** Ce que le trait vaut, écrit sous lui. */
+  /** What tick is worth, written under it. */
   readonly libelle: string
 }
 
 export interface CurseurProps {
-  /** Nom accessible : le rail montre une position, jamais ce qu'elle règle. */
+  /** Accessible name: rail shows a position, never what it sets. */
   readonly libelle: string
   readonly valeur: number
   readonly min: number
   readonly max: number
   readonly pas: Rail['pas']
   readonly echelle?: Rail['echelle']
-  /** La valeur telle qu'elle s'écrit — « 25 s », « 40 % ». */
+  /** Value as written — « 25 s », « 40 % ». */
   readonly texte: string
-  /**
-   * Le seuil qui aimante le geste. Sa légende est peinte sous le trait, en clair : un repère
-   * qui ne s'expliquerait qu'au survol n'existerait pas au doigt.
-   */
+  /** Threshold magneting gesture. Legend under tick, in clear (hover-only: absent on touch). */
   readonly accroche?: AccrocheCurseur
   readonly sur: (valeur: number) => void
 }
@@ -55,7 +44,7 @@ function position(fraction: number): CSSProperties {
   return { left: pourcentCss(fraction) }
 }
 
-/** L'abscisse du repère, donnée à la feuille de style : c'est elle qui répartit les entretoises. */
+/** Marker x, handed to stylesheet which spreads the spacers. */
 function abscisse(fraction: number): CSSProperties {
   return { '--curseur-x': pourcentCss(fraction) } as CSSProperties
 }
@@ -78,7 +67,7 @@ export function Curseur(props: CurseurProps) {
   }
 
   function surPointerDown(e: PointerEvent<HTMLDivElement>): void {
-    // Le bouton secondaire ouvre le menu contextuel : le capturer priverait d'un clic droit.
+    // Secondary button = context menu: capture would deny right-click.
     if (e.button !== 0) return
     e.currentTarget.setPointerCapture(e.pointerId)
     tire.current = true
@@ -138,9 +127,7 @@ export function Curseur(props: CurseurProps) {
             style={position(fractionDuRail(marque, rail))}
             aria-hidden="true"
           />
-          {/* La légende n'est pas dans le trait : elle occupe toute la largeur du rail, et
-              deux entretoises la poussent à l'abscisse du repère. C'est ce qui l'arrête au
-              bord de la colonne de texte au lieu de la laisser déborder. */}
+          {/* Legend off-tick: rail-wide, 2 spacers push it to marker x (stops at text edge). */}
           <span
             className="curseur-legendes"
             style={abscisse(fractionDuRail(marque, rail))}

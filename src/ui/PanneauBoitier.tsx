@@ -1,32 +1,21 @@
 /**
- * §5.1 + §7.2 — le corps de la carte Boîtier : quel appareil, l'ISO qu'il justifie, et comment
- * il suit. T-0238 — sans `<section>` ni `h2` : la `Carte` qui l'héberge porte déjà le cadre et
- * le nom.
- *
- * T-0234 — le format du capteur y a rejoint le reste : plein format ou recadrage APS-C décrit
- * l'appareil, pas l'objectif posé devant, et le ranger sous « Optique » séparait deux moitiés
- * de la même description. Le suivi y est venu pour la raison inverse : seul dans sa carte, il
- * n'occupait pas son cadre. Il arrive par `suivi` plutôt qu'en huit propriétés de plus —
- * c'est `PanneauMateriel` qui tient l'état de la monture, cette section l'héberge.
- *
- * T-0280 — et il OUVRE la section, au lieu de la fermer. C'est ce champ qui décide si le ciel
- * profond est ouvert (§5.2), donc celui qui lève la liste vide d'un profil neuf ; dernier d'un
- * corps qui défile, il était hors de vue au moment précis où l'écran demandait de le régler.
- * Le boîtier passe après sans rien perdre : son résumé se relit sur la carte repliée.
- *
- * Deux modes, un seul sélecteur. Un boîtier de la base apporte ses grandeurs capteur : il n'y
- * a alors plus rien à régler, donc plus rien à afficher — les champs disparaissent au lieu de
- * rester là, remplis par autre chose que l'utilisateur. Reste l'ISO, qui cesse d'être une
- * question posée pour devenir une réponse.
- *
- * T-0205 — le poids d'une image fait exception et reste saisissable dans les deux modes. Il ne
- * décrit pas le capteur mais le réglage RAW du moment : compressé, sans perte ou non compressé
- * changent le fichier du simple au triple sans changer d'appareil. La ligne de la base ne donne
- * donc qu'un départ, pas une réponse.
- *
- * Le mode personnalisé, lui, est inchangé : type de capteur et résolution, le pitch dérivé,
- * et les grandeurs avancées repliées. C'est le chemin de première classe pour un boîtier
- * absent de la base, pas un rattrapage — aucune base matériel n'est exhaustive.
+ * §5.1 + §7.2 — Boîtier card body: which camera, the ISO it justifies, how it tracks.
+ * T-0238 — no `<section>`/`h2`: hosting `Carte` carries frame and name.
+ * T-0234 — sensor format here: plein format vs APS-C crop describes the camera, not the lens;
+ * under "Optique" it split one description. Suivi joined for the inverse reason (alone in its
+ * card it did not fill its frame); comes via `suivi`, not 8 more props — `PanneauMateriel`
+ * holds mount state, this section hosts it.
+ * T-0280 — suivi OPENS the section: it decides whether ciel profond is open (§5.2), i.e. lifts
+ * a new profile's empty list; last in a scrolling body it was off-screen exactly when the
+ * screen asked to set it. Boîtier loses nothing: summary readable on the folded card.
+ * Two modes, one selector. DB boîtier brings its sensor quantities: nothing left to set →
+ * fields disappear instead of being filled by something other than the user. ISO remains,
+ * from a question to an answer.
+ * T-0205 — image weight is the exception, editable in both modes: not a sensor property but
+ * the current RAW setting (compressed/lossless/uncompressed = 1× to 3× file on one camera).
+ * DB row gives a start, not an answer.
+ * Custom mode unchanged: sensor type + resolution, derived pitch, folded advanced quantities.
+ * First-class path for a boîtier absent from the DB, not a fallback — no gear DB is exhaustive.
  */
 
 import type { ReactNode } from 'react'
@@ -56,19 +45,17 @@ import { Icone } from './Icone.tsx'
 import { Mention } from './Mention.tsx'
 
 /**
- * T-0199 — pourquoi remplir un dépliant qu'on peut laisser fermé. Chaque champ porte déjà la
- * conséquence de son absence ; le dépliant, lui, dit ce que remplir fait gagner — sans quoi
- * le mode avancé n'a l'air que d'un recoin technique qu'on referme.
+ * T-0199 — why fill a disclosure one can leave closed. Each field already carries the
+ * consequence of its absence; the disclosure says what filling gains, else advanced mode
+ * looks like a technical corner to close.
  */
 const AIDE_AVANCEES =
   'Facultatif. Rend la pose et l’ISO propres à votre boîtier. Valeurs sur Photons to Photos.'
 
 /**
- * §5.1 — les grandeurs du mode avancé, dans l'ordre où elles se saisissent.
- *
- * Une seule liste : les champs la parcourent, et le dépliant fermé s'en sert pour dire
- * lesquelles manquent. Deux énumérations séparées finiraient par diverger, et c'est le
- * résumé — celui qu'on lit sans ouvrir — qui mentirait.
+ * §5.1 — advanced-mode quantities, input order.
+ * Single list: fields traverse it, closed disclosure says which are missing. Two enumerations
+ * would diverge, and the summary (read unopened) would lie.
  */
 const CHAMPS_AVANCES = Object.freeze([
   { champ: 'readNoiseE', domaine: 'read_noise_e', cle: 'bruit_de_lecture' },
@@ -81,9 +68,8 @@ const CHAMPS_AVANCES = Object.freeze([
 }[])
 
 /**
- * §5.1 — le recadrage tel qu'on le choisit. Une seule table : le sélecteur la lit, et la carte
- * repliée aussi (T-0238) — deux libellés écrits séparément finiraient par ne plus nommer la
- * même option.
+ * §5.1 — cropping as chosen. Single table read by the selector and the folded card (T-0238):
+ * two separate labels would stop naming the same option.
  */
 export const LIBELLE_RECADRAGE: Readonly<Record<CapteurMode, string>> = Object.freeze({
   FULL_FRAME: 'Plein format',
@@ -93,9 +79,8 @@ export const LIBELLE_RECADRAGE: Readonly<Record<CapteurMode, string>> = Object.f
 type NotesEstimation =Readonly<Partial<Record<keyof SaisieBoitier, string>>>
 
 /**
- * T-0199 — ce que le dépliant FERMÉ doit dire. Sans ce résumé, les alertes de champ ne se
- * voient qu'une fois ouvert : une grandeur manquante n'aurait aucune chance d'être remarquée
- * par qui ne déplie jamais le mode avancé.
+ * T-0199 — what the CLOSED disclosure must say. Without it field alerts show only once open:
+ * a missing quantity goes unnoticed by whoever never unfolds advanced mode.
  */
 function resumeManquantes(notes: NotesEstimation): string | undefined {
   const manquantes = CHAMPS_AVANCES.filter((c) => notes[c.champ] !== undefined)
@@ -108,7 +93,7 @@ function resumeManquantes(notes: NotesEstimation): string | undefined {
   )
 }
 
-/** §5.1 — les grandeurs du mode avancé : facultatives, repliées derrière un dépliant. */
+/** §5.1 — advanced-mode quantities: optional, folded behind a disclosure. */
 function ChampsAvances({
   boitier,
   surChamp,
@@ -136,9 +121,8 @@ function ChampsAvances({
 }
 
 /**
- * §5.1 — retour immédiat sur le pitch dérivé, dès que la résolution saisie est exploitable.
- * Pas de `TracedValue` ici : ce n'est pas une formule de moteur tracée, juste un aperçu de
- * saisie — cohérent avec « chaque nombre reste dépliable » sans en être une instance.
+ * §5.1 — immediate feedback on derived pitch once the typed resolution is usable.
+ * No `TracedValue`: input preview, not a traced engine formula.
  */
 function ApercuPitch({
   formatCapteur,
@@ -154,10 +138,8 @@ function ApercuPitch({
 }
 
 /**
- * T-0204 — le sélecteur de modèle, groupé par marque.
- *
- * Les groupes gardent l'ordre du fichier plutôt qu'un tri alphabétique : la base se lit de
- * haut en bas, et on retrouve son boîtier là où on l'a écrit.
+ * T-0204 — model selector, grouped by brand. Groups keep file order, not alphabetical: DB reads
+ * top-down, a boîtier is found where it was written.
  */
 function SelecteurBoitier({
   boitierId,
@@ -185,21 +167,14 @@ function SelecteurBoitier({
 }
 
 /**
- * T-0204 — ce qui manque encore à un boîtier de la base.
- *
- * Les champs disparaissent, pas le contrat T-0199 : une grandeur absente de la ligne choisie
- * a les mêmes conséquences que laissée vide à la main, et doit se dire quelque part.
- *
- * `notesEstimation` ne convient pas ici : elle décrit une SAISIE, qui ne porte qu'un bruit de
- * lecture rattaché à un seul ISO. Une ligne de la base porte une courbe — la lui faire juger
- * par le contrat de la saisie lui reprocherait une absence qui n'existe pas.
- *
- * Le seuil de double gain n'y figure pas : son absence est déjà dite, et mieux, par le message
- * de l'ISO juste en dessous. Deux fois la même chose vaut moins qu'une.
- *
- * T-0205 — le poids d'une image n'y figure plus non plus : son champ est resté à l'écran, et
- * c'est lui qui porte l'alerte. Une colonne vide n'est pas une base incomplète quand la
- * grandeur n'était de toute façon pas à la base de la donner.
+ * T-0204 — what is still missing from a DB boîtier.
+ * Fields vanish, not the T-0199 contract: a quantity absent from the chosen row has the same
+ * consequences as one left empty by hand, and must be said somewhere.
+ * `notesEstimation` does not fit: it describes an INPUT (one read noise tied to one ISO). A DB
+ * row carries a curve — the input contract would blame an absence that does not exist.
+ * Double-gain threshold not listed: the ISO message just below says it better.
+ * T-0205 — image weight not listed either: its field stays on screen and carries the alert.
+ * An empty column is not an incomplete DB when the DB was not the one to give it.
  */
 function ManquesDeLaBase({ ligne }: { readonly ligne: LigneBoitier }) {
   if (Object.keys(ligne.readNoiseE).length > 0) return null
@@ -216,16 +191,13 @@ function ManquesDeLaBase({ ligne }: { readonly ligne: LigneBoitier }) {
 }
 
 /**
- * §7.2 — l'ISO. Boîtier de la base : un fait, pas une question.
- *
- * L'ISO du double gain ne se choisit pas, il se constate — demander à quelqu'un de taper le
- * chiffre qu'on vient de lui calculer est une question dont on connaît déjà la réponse.
- *
- * T-0206 — il ne se modifie donc plus du tout. Le seuil de la ligne désigne un palier et un
- * seul : en dessous le bruit de lecture impose des poses plus longues, au-dessus la dynamique
- * est sacrifiée sans rien gagner. Garder la main dessus offrait un réglage dont toutes les
- * valeurs sont moins bonnes que celle affichée, et le forcer faussait la pose calculée. Un
- * boîtier absent de la base garde son champ : là, aucune courbe ne répond à sa place.
+ * §7.2 — ISO. DB boîtier: a fact, not a question.
+ * Double-gain ISO is observed, not chosen — asking to type the figure just computed answers a
+ * question already answered.
+ * T-0206 — no longer editable at all. Row threshold designates one step only: below it read
+ * noise forces longer poses, above it dynamic range is wasted. Keeping control offered a
+ * setting whose every value is worse than the displayed one, and forcing it skewed the
+ * computed pose. A boîtier absent from the DB keeps its field: no curve answers for it.
  */
 function LigneIso({
   iso,
@@ -236,7 +208,7 @@ function LigneIso({
   readonly iso: string
   readonly surIso: (v: string) => void
   readonly lecture?: IsoRetenu | undefined
-  /** Vrai quand un boîtier de la base répond déjà à la question. */
+  /** True when a DB boîtier already answers the question. */
   readonly fige: boolean
 }) {
   return (
@@ -268,21 +240,21 @@ export interface PanneauBoitierProps {
   readonly surBoitier: (v: SaisieBoitier) => void
   readonly iso: string
   readonly surIso: (v: string) => void
-  /** §5.1 — plein format ou recadrage APS-C : une propriété du boîtier, pas de l'objectif. */
+  /** §5.1 — plein format or APS-C crop: a boîtier property, not the objectif's. */
   readonly capteurMode: CapteurMode
   readonly surCapteurMode: (v: CapteurMode) => void
-  /** §5.1 — le message anti-confusion du recadrage, quand il s'applique. */
+  /** §5.1 — crop anti-confusion message, when it applies. */
   readonly noteRecadrage?: string | undefined
-  /** §7.2 — l'ISO retenu et sa justification. Absent tant que la saisie est refusée. */
+  /** §7.2 — retained ISO + justification. Absent while input is refused. */
   readonly lectureIso?: IsoRetenu | undefined
-  /** §5.2 — le suivi, monté par `PanneauMateriel` qui en tient l'état. */
+  /** §5.2 — suivi, mounted by `PanneauMateriel` which holds its state. */
   readonly suivi?: ReactNode
 }
 
 export function PanneauBoitier(props: PanneauBoitierProps) {
   const ligne = ligneBoitier(props.boitierId)
-  // T-0199 — les notes viennent de la SAISIE, pas des lectures : c'est quand la saisie est
-  // refusée qu'il importe le plus de voir ce qui manque, et les lectures sont alors absentes.
+  // T-0199 — notes come from the INPUT, not readings: with input refused, seeing what is
+  // missing matters most, and readings are absent.
   const notes = notesEstimation(props.boitier)
   const resumeAvancees = resumeManquantes(notes)
   const surChamp = (champ: keyof SaisieBoitier) => (v: string) =>
@@ -299,7 +271,7 @@ export function PanneauBoitier(props: PanneauBoitierProps) {
               cle="format_capteur"
               valeur={props.boitier.formatCapteur}
               surChangement={(v) => {
-                // Un `<select>` rend une chaîne : seule une valeur de la table entre.
+                // A `<select>` renders a string: only a table value gets in.
                 if (estFormatCapteur(v)) props.surBoitier({ ...props.boitier, formatCapteur: v })
               }}
             >
@@ -319,11 +291,11 @@ export function PanneauBoitier(props: PanneauBoitierProps) {
             />
           </>
         )}
-        {/* T-0155 — §7.3 tient le budget de stockage pour « bloquant en pratique ». Un chiffre
-            qui décide de la sortie ne se range pas sous un dépliant : il varie d'un boîtier à
-            l'autre, et c'est la seule grandeur avancée dont l'absence fausse un volume affiché.
-            T-0205 — il survit au choix d'un boîtier de la base, prérempli par sa ligne : le
-            réglage RAW change le poids sans changer d'appareil. */}
+        {/* T-0155 — §7.3 deems the storage budget "blocking in practice". A figure deciding the
+            outcome does not hide under a disclosure: varies per boîtier, only advanced quantity
+            whose absence skews a displayed volume.
+            T-0205 — survives choosing a DB boîtier (prefilled): RAW setting changes weight
+            without changing camera. */}
         <ChampDomaine
           domaine="taille_raw_mo"
           cle="poids_image"
@@ -332,8 +304,8 @@ export function PanneauBoitier(props: PanneauBoitierProps) {
           surValeur={surChamp('tailleRawMo')}
           note={notes.tailleRawMo}
         />
-        {/* T-0234 — il survit au choix d'un boîtier de la base, comme le poids : le recadrage
-            est un MODE de prise de vue, pas une caractéristique de la ligne choisie. */}
+        {/* T-0234 — survives choosing a DB boîtier, like weight: crop is a shooting MODE, not a
+            characteristic of the chosen row. */}
         <ChampChoix
           cle="recadrage_capteur"
           valeur={props.capteurMode}
@@ -350,18 +322,18 @@ export function PanneauBoitier(props: PanneauBoitierProps) {
             formatCapteur={props.boitier.formatCapteur}
             resolutionMpx={props.boitier.resolutionMpx}
           />
-          {/* T-0199 — l'absence de ces grandeurs se signale à chaque champ, plus dans un bloc
-              d'encadrés sous la section : une alerte loin de sa cause ne désigne rien. La ligne
-              `zp_source` part avec eux — §7.1 l'exige partout où une pose est affichée, et ce
-              panneau n'en affiche aucune ; elle vit dans les verdicts, le filé et la séance. */}
+          {/* T-0199 — absence of these quantities is signalled at each field, no longer in a
+              block under the section: an alert far from its cause designates nothing. The
+              `zp_source` line leaves too — §7.1 requires it wherever a pose is displayed, this
+              panel displays none; it lives in verdicts, filé and séance. */}
           <details className="avancees">
             <summary>
               <Bulle texte={AIDE_AVANCEES} place="bas">
                 <span className="aide">Grandeurs du capteur — mode avancé</span>
               </Bulle>
               {resumeAvancees !== undefined && <AlerteChamp note={resumeAvancees} />}
-              {/* Le chevron remplace le marqueur natif : celui-ci se pose avant le texte, à
-                  gauche, et une étiquette qui passe à la ligne le laissait seul sur la sienne. */}
+              {/* Chevron replaces the native marker (left of text; a wrapping label left it
+                  alone on its line). */}
               <Icone nom="expand_more" classe="chevron" />
             </summary>
             <ChampsAvances boitier={props.boitier} surChamp={surChamp} notes={notes} />

@@ -1,15 +1,14 @@
 /**
- * Lecteur WOFF2 minimal pour les tests de polices (T-0389).
- *
- * Il ne lit que ce qu'un test demande à une fonte livrée : les points de code de sa `cmap`
- * et sa chasse (`hhea.advanceWidthMax` rapportée à `head.unitsPerEm`). Le brotli est celui de
- * Node : pas de fontTools, pas de dépendance. `glyf`/`loca` transformés ne sont jamais lus.
+ * Minimal WOFF2 reader for font tests (T-0389).
+ * Reads only what a test asks of a shipped font: `cmap` code points + advance width
+ * (`hhea.advanceWidthMax` / `head.unitsPerEm`). Brotli from Node: no fontTools, no dependency.
+ * Transformed `glyf`/`loca` never read.
  */
 
 import { readFileSync } from 'node:fs'
 import { brotliDecompressSync } from 'node:zlib'
 
-// WOFF2 §5.1 : index des étiquettes connues, dans l'ordre de la spécification.
+// WOFF2 §5.1: known-tag index, spec order.
 const ETIQUETTES: readonly string[] = Object.freeze(
   [
     'cmap', 'head', 'hhea', 'hmtx', 'maxp', 'name', 'OS/2', 'post', 'cvt ', 'fpgm', 'glyf',
@@ -23,7 +22,7 @@ const ETIQUETTES: readonly string[] = Object.freeze(
 
 export interface Fonte {
   readonly points: ReadonlySet<number>
-  /** Avance maximale en fraction de cadratin : 0,6 pour une mono de 600 / 1000. */
+  /** Max advance as fraction of em: 0.6 for a 600 / 1000 mono. */
   readonly chasse: number
 }
 
@@ -68,7 +67,7 @@ function tables(octets: Uint8Array): ReadonlyMap<string, DataView> {
   return resultat
 }
 
-/** Formats 4 et 12, les seuls que servent les sous-ensembles Google Fonts. */
+/** Formats 4 + 12, the only ones Google Fonts subsets serve. */
 function pointsDeCmap(cmap: DataView): ReadonlySet<number> {
   const points = new Set<number>()
   const nombre = cmap.getUint16(2)
@@ -86,8 +85,8 @@ function pointsDeCmap(cmap: DataView): ReadonlySet<number> {
       for (let g = 0; g < segments; g++) {
         const fin = cmap.getUint16(debut + 14 + g * 2)
         const depart = cmap.getUint16(debut + 16 + segments * 2 + g * 2)
-        // ponytail: plage supposée pleine sans lire glyphIdArray ; un trou vers .notdef
-        // passerait pour couvert. Lire glyphIdArray si un sous-ensemble en fabrique un.
+        // ponytail: range assumed full without reading glyphIdArray; a hole to .notdef would pass
+        // as covered. Upgrade: read glyphIdArray if a subset ever builds one.
         for (let c = depart; c <= fin && c !== 0xffff; c++) points.add(c)
       }
     }

@@ -1,9 +1,6 @@
 /**
- * T-0334 — une même donnée se lit pareil partout : le nom commun d'un objet, un nombre tapé
- * avec la virgule française.
- *
- * L'objet est forgé — ni sa position ni sa magnitude ne comptent ici, seul son champ de noms,
- * écrit comme OpenNGC l'écrit (plusieurs noms séparés par une virgule).
+ * T-0334 — same datum reads same everywhere: object common name, number typed with French
+ * comma. Forged object: only names field matters (OpenNGC style, comma-separated).
  */
 
 import { describe, expect, it } from 'vitest'

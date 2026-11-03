@@ -1,12 +1,7 @@
 /**
- * §2.2, §4.1 — établissement du fond de ciel d'un site.
- *
- * Deux sources, par ordre de priorité décroissante :
- *   1. sqm_mesure      saisi par l'utilisateur → prévaut toujours
- *   2. bortle_declare  saisi à la main, échelle 1 à 9
- *
- * L'atlas de pollution lumineuse aux coordonnées est écarté par le PRD 1.2 (Annexe C,
- * décision 18) : il exigerait le réseau là où §4.1 veut une saisie exacte et hors ligne.
+ * §2.2, §4.1 — site fond de ciel. Sources by priority: 1. sqm_mesure (user) always wins;
+ * 2. bortle_declare (manual, 1-9).
+ * Light-pollution atlas rejected (PRD 1.2 Annexe C, décision 18): needs network, §4.1 = offline.
  */
 
 import {
@@ -20,23 +15,20 @@ import { trace } from './traced.ts'
 export type SourceSb = 'TABLE_BORTLE' | 'SQM_MESURE'
 
 export interface EntreeFondDeCiel {
-  /** Mesure au sky quality meter, mag/arcsec². Prioritaire sur tout le reste. */
+  /** SQM reading, mag/arcsec²; overrides all. */
   readonly sqmMesure?: number | undefined
-  /** Bortle saisi à la main. */
+  /** Manual Bortle. */
   readonly bortleDeclare?: number | undefined
-  /** L'utilisateur a confirmé un SQM plus sombre que le fond de ciel naturel. */
+  /** User confirmed SQM darker than natural sky. */
   readonly sqmConfirme?: boolean | undefined
 }
 
 export interface FondDeCiel {
   readonly sbCiel: Traced<number>
-  /** `null` quand la mesure sort du domaine de la table : aucune valeur n'est extrapolée. */
+  /** `null` = measure outside table domain; never extrapolated. */
   readonly mLimOeil: Traced<number | null>
   readonly sourceSb: SourceSb
-  /**
-   * Renseigné quand la saisie doit être confirmée avant d'être exploitée — un SQM plus
-   * sombre que le fond de ciel naturel le plus sombre connu (§2.2).
-   */
+  /** Needs confirmation first: SQM darker than darkest natural sky (§2.2). */
   readonly confirmationRequise?: string
 }
 
@@ -66,10 +58,7 @@ function depuisBortle(bortle: number): FondDeCiel {
   }
 }
 
-/**
- * Établit le fond de ciel du site. Lève `BortleHorsTableError` si un Bortle hors [1 ; 9]
- * est fourni : la saisie est refusée plutôt qu'extrapolée.
- */
+/** Throws `BortleHorsTableError` for Bortle ∉ [1 ; 9]; no extrapolation. */
 export function fondDeCiel(entree: EntreeFondDeCiel): FondDeCiel {
   const { sqmMesure, bortleDeclare, sqmConfirme } = entree
 

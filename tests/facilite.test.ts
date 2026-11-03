@@ -1,10 +1,7 @@
 /**
- * §6.4 — la note de facilité : les invariants de l'échelle, sans une seule éphéméride.
- *
- * Le module se teste sur de l'arithmétique parce qu'il ne fait que ça : la physique est en
- * amont, dans les cinq sous-scores de §8.3. Aucune borne de classe n'est écrite ici — elles se
- * dérivent de `FACILITE_NOTE_MAX`, exactement comme dans le moteur. Un test qui recopierait
- * 0,2 et 0,4 verrouillerait l'échelle au lieu de la vérifier.
+ * §6.4 — note de facilité: scale invariants, no ephemeris.
+ * Pure arithmetic (physics upstream, 5 sub-scores §8.3). Class bounds derived from
+ * `FACILITE_NOTE_MAX` as in engine; copying 0,2/0,4 would lock the scale, not check it.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -29,8 +26,7 @@ describe('noteDepuisScore — une cible évaluée est notée de 1 à l’échell
   })
 
   it('ne sort jamais de [1, échelle], quel que soit le score', () => {
-    // Le pas d'échantillonnage est plus fin que la largeur d'une classe : chaque classe est
-    // donc traversée, sans que le test connaisse ses bornes.
+    // Step finer than class width: every class crossed, bounds unknown.
     const pas = 1 / (MAX * 20)
     for (let score = 0; score <= 1 + pas; score += pas) {
       const note = noteDepuisScore(score)
@@ -59,7 +55,7 @@ describe('noteDepuisScore — une cible évaluée est notée de 1 à l’échell
   })
 
   it('découpe l’échelle en parts égales', () => {
-    // La borne basse de chaque classe se calcule depuis l'échelle, jamais depuis une table.
+    // Class lower bound derived from scale, not a table.
     for (let note = 1; note <= MAX; note += 1) {
       expect(noteDepuisScore((note - 1) / MAX), `borne basse de ${note}`).toBe(note)
     }

@@ -1,8 +1,6 @@
 /**
- * §12.3 — l'export JSON est la seule protection contre l'éviction pour ce qui ne se
- * retélécharge pas. Il n'a de valeur que si le réimport restaure sans perte.
- *
- * `fake-indexeddb/auto` fournit l'implémentation IndexedDB manquante à Node.
+ * §12.3 — JSON export = only protection against eviction for non-re-downloadable data; worth it
+ * only if reimport is lossless. `fake-indexeddb/auto` supplies IndexedDB for Node.
  */
 
 import 'fake-indexeddb/auto'
@@ -30,7 +28,7 @@ const SITE: SiteEnregistre = {
   altitudeM: 500,
   fuseau: 'Europe/Zurich',
   bortleDeclare: 4.5,
-  // Le masque édité à la main est précisément ce qu'une éviction détruirait sans retour.
+  // Hand-edited mask = what eviction destroys irrecoverably.
   masqueHorizon: Array.from({ length: 360 }, (_, azimut) => (azimut < 90 ? 12 : 3)),
   masqueEstHypothese: false,
 }
@@ -58,8 +56,7 @@ const PLAN: PlanEnregistre = {
   contenu: { creneaux: [{ cible: 'M31', debut: '22:41', poses: 120 }] },
 }
 
-/** `db()` mémorise sa connexion : chaque test réécrit le jeu de départ plutôt que de
- * rouvrir une base neuve. */
+/** `db()` memoises its connection: tests rewrite the seed set instead of reopening. */
 beforeEach(async () => {
   const base = await db()
   const tx = base.transaction(['sites', 'profils', 'plans'], 'readwrite')
@@ -82,7 +79,7 @@ describe('export et réimport §12.3', () => {
   })
 
   it('restaure sans perte après une éviction du stockage', async () => {
-    // Sérialisation réelle : c'est un fichier qui transite, pas des objets en mémoire.
+    // Real serialisation: a file travels, not in-memory objects.
     const fichier = JSON.stringify(await exporteDonneesUtilisateur())
 
     const base = await db()
@@ -119,8 +116,8 @@ describe('export et réimport §12.3', () => {
     expect(apres.sites[0]?.nom).toBe('Site renommé')
   })
 
-  // Le produit s'appelait Astrofort : un fichier sauvé sous ce nom reste la seule copie de
-  // données que rien ne retélécharge. Le renommage ne doit pas la rendre illisible.
+  // Product was named Astrofort: a file saved under that name may be the only copy of
+  // non-re-downloadable data. Rename must not make it unreadable.
   it('relit un export écrit sous l’ancien nom du produit', async () => {
     const ancien = { ...SITE, id: 'site-ancien-format', nom: 'Site d’avant' }
     await importeDonneesUtilisateur({
@@ -133,8 +130,7 @@ describe('export et réimport §12.3', () => {
     })
     const apres = await exporteDonneesUtilisateur()
     expect(apres.sites.map((site) => site.id)).toContain('site-ancien-format')
-    // `beforeEach` réécrit le jeu de départ sans vider la base : ce site en plus fausserait
-    // les tests suivants, qui comptent les leurs.
+    // `beforeEach` rewrites seed without clearing DB: this extra site would skew later site counts.
     await (await db()).delete('sites', ancien.id)
   })
 
@@ -150,7 +146,7 @@ describe('export et réimport §12.3', () => {
   })
 })
 
-/** Un export bien formé autour de la section que le test veut abîmer. */
+/** Well-formed export around the section to corrupt. */
 function exportAvec(sections: Partial<Record<'sites' | 'profils' | 'plans', readonly unknown[]>>) {
   return {
     format: 'orion-export',
@@ -266,8 +262,8 @@ describe('validation du réimport §12.3', () => {
 })
 
 /**
- * §8.3 — les poids de scoring ne se retéléchargent pas non plus : réglés puis perdus, le plan
- * suivant serait réordonné par les valeurs C-15 sans que rien ne l'annonce.
+ * §8.3 — poids de scoring also not re-downloadable: tuned then lost → next plan silently
+ * reordered by C-15 values.
  */
 describe('poids de scoring §8.3 → §12.3', () => {
   it('part dans l’export, normalisé comme le plan l’a utilisé', async () => {

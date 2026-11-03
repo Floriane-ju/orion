@@ -1,18 +1,14 @@
 /**
- * §6.1, §6.2 — T-0408 : sous un zoom, la fiche a sa propre bague.
- *
- * La focale réglée ici est LOCALE à la fiche : essayer 200 mm sur une galaxie ne doit pas
- * changer les cadres de la bague dans le planétarium, ni la liste, ni le plan — ils restent à
- * la focale optimale de chaque cible. Seul le cadre de la cible, peint d'une autre teinte,
- * suit l'essai. Le curseur s'ouvre sur cette focale et l'aimante : c'est la réponse à
- * « où régler la bague ? », les autres crans sont des essais. Le repère suffit à y revenir :
- * un bouton de plus redirait ce que l'aimant fait déjà.
- *
- * T-0436 — et son propre objectif : la fiche s'ouvre sur l'objectif du parc qui cadre le mieux
- * la cible, et en laisse essayer un autre, toujours sans toucher l'objectif monté. Changer
- * d'objectif rouvre sur SA focale optimale ; la bague n'existe que sur un zoom.
- *
- * La fiche ne recalcule rien : la chaîne fournit le contexte de chaque focale (`Zoom.aFocale`).
+ * §6.1, §6.2 — T-0408: under a zoom, fiche has its own ring.
+ * Focale set here is LOCAL to fiche: trying 200 mm on a galaxy must not change planétarium ring
+ * cadres, list, nor plan — they stay at each cible's optimal focale. Only cible cadre (other
+ * teinte) follows the trial. Slider opens on that focale and magnets it: answer to « where to set
+ * the ring? », other crans are trials. Marker suffices to return: another button would restate
+ * what magnet does.
+ * T-0436 — own objectif too: fiche opens on parc objectif best framing cible, lets try another,
+ * never touching mounted objectif. Changing objectif reopens on ITS optimal focale; ring exists
+ * only on a zoom.
+ * Fiche recomputes nothing: chain supplies each focale's context (`Zoom.aFocale`).
  */
 
 import { nombre, pourcentage } from '../registry/ecriture.ts'
@@ -28,7 +24,7 @@ import { Lecture } from './ChampsCible.tsx'
 import { choixFiche, focaleSous, type Zoom } from './zoom-calcul.ts'
 import { essaieFocale, essaiZoomSeance, useTrancheSeance } from './seance-etat.ts'
 
-/** Une bague de zoom se règle au millimètre, comme `focaleOptimale` l'arrondit. */
+/** A zoom ring is set to the mm, as `focaleOptimale` rounds. */
 export const PAS_FOCALE_MM = 1
 
 interface ReglageZoomProps {
@@ -37,7 +33,7 @@ interface ReglageZoomProps {
   readonly optimal: Objectif | null
   readonly focaleMm: number
   readonly optimaleMm: number
-  /** Le remplissage de la fiche à cette focale ; `null` sans cadrage calculé. */
+  /** Fiche fill at this focale; `null` without computed cadrage. */
   readonly remplissage: number | null
   readonly surObjectif: (objectif: Objectif) => void
   readonly sur: (focaleMm: number) => void
@@ -92,8 +88,8 @@ export interface FicheSousZoomProps extends FicheCibleProps {
 }
 
 /**
- * La fiche, à l'objectif et la focale qu'elle désigne. L'essai est retenu PAR CIBLE : changer
- * de cible rouvre sur les optimaux de la nouvelle, un essai sur l'une ne suit pas l'autre.
+ * Fiche at objectif and focale it designates. Trial kept PER CIBLE: changing cible reopens on the
+ * new one's optima; trial doesn't follow.
  */
 export function FicheSousZoom({ zoom, ...fiche }: FicheSousZoomProps) {
   const essai = useTrancheSeance(essaiZoomSeance)

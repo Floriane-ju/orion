@@ -1,14 +1,11 @@
 /**
- * T-0099 — le crépuscule éclaircit le fond du ciel.
- *
- * Trois choses se vérifient ici :
- *
- *   1. la TABLE — le domaine de Patat 2006 est respecté aux deux bords, et le polynôme n'est
- *      jamais prolongé : son sommet est à 18,3° de dépression, puis il redescend ;
- *   2. le RACCORD — la contribution tombe à zéro d'elle-même avant la nuit astronomique, sans
- *      saut, et reste nulle quelle que soit la profondeur de la nuit ;
- *   3. ce que L'UTILISATEUR voit — la magnitude limite suit le fond effectif, la teinte ne
- *      vire pas, et une nuit d'été à haute latitude est rendue au lieu d'être noire.
+ * T-0099 — crépuscule brightens the fond de ciel. Three checks:
+ *  1. TABLE — Patat 2006 domain respected at both edges, polynomial never extended: peak at
+ *     18,3° depression, then descends;
+ *  2. RACCORD — contribution reaches zero by itself before nuit astronomique, no jump, stays
+ *     zero at any night depth;
+ *  3. USER view — limiting magnitude follows effective fond, hue doesn't drift, high-latitude
+ *     summer night rendered, not black.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -50,10 +47,9 @@ describe('la table du crépuscule', () => {
   })
 
   /**
-   * Le raccord n'est pas posé sur le bord de la table : c'est la racine de
-   * μ(ζ) = fond nocturne de Paranal. L'article annonce par ailleurs que le niveau du ciel
-   * nocturne est atteint vers ζ = 105°-106°, soit 15° à 16° de dépression — la racine doit
-   * tomber dedans, sinon l'un des deux chiffres est mal lu.
+   * Raccord ≠ table edge: it is the root of μ(ζ) = Paranal night background. Paper: night
+   * level reached near ζ = 105°-106° (15°-16° depression); root must fall inside, else one of
+   * the two figures is misread.
    */
   it('finit là où la source dit que la nuit commence, entre 15° et 16°', () => {
     expect(DEPRESSION_FIN_CREPUSCULE_DEG).toBeGreaterThan(15)
@@ -67,7 +63,7 @@ describe('la table du crépuscule', () => {
     expect(bord).not.toBeNull()
     expect(bord?.value).toBeCloseTo(CREPUSCULE_V.a0, 10)
     expect(bord?.borne).toBe('AUCUNE')
-    // Crépuscule civil, et Soleil encore au-dessus de l'horizon : même valeur, borne déclarée.
+    // Civil twilight, Sun still above horizon: same value, declared bound.
     for (const depression of [DEPRESSION_MIN_TABLE_DEG - 1e-9, 0, -5]) {
       const sous = sbCrepusculeZenith(depression)
       expect(sous?.value).toBeCloseTo(CREPUSCULE_V.a0, 10)
@@ -87,7 +83,7 @@ describe('la contribution du crépuscule', () => {
     for (const depression of [HAUTEUR_CREPUSCULE_ASTRONOMIQUE_DEG, 20, 40, 90]) {
       expect(brillanceCrepusculeNl(depression)).toBe(0)
     }
-    // Le fond redevient celui du site au pixel près : la valeur, pas un arrondi voisin.
+    // Fond returns to site's exactly, to the pixel: not a neighbouring rounding.
     expect(
       sbEffectifRendu({
         sbSiteMag: SB_B1,
@@ -98,9 +94,8 @@ describe('la contribution du crépuscule', () => {
   })
 
   /**
-   * Le polynôme a son sommet à 18,3° de dépression puis REDESCEND : prolongé, il rendrait un
-   * ciel de crépuscule en pleine nuit. Ce test est là pour que personne ne « corrige » le
-   * garde-fou en croyant élargir le domaine.
+   * Polynomial peaks at 18,3° depression then DESCENDS: extended, it gives twilight sky at
+   * full night. Guards against "fixing" the guard-rail to widen the domain.
    */
   it('ne réapparaît pas au-delà du sommet du polynôme', () => {
     const { a1, a2 } = CREPUSCULE_V
@@ -117,16 +112,16 @@ describe('la contribution du crépuscule', () => {
       expect(b).toBeGreaterThanOrEqual(precedent)
       precedent = b
     }
-    // Continuité au raccord : de part et d'autre, l'écart au fond du site le plus sombre de la
-    // table reste sous le centième de magnitude — donc invisible au glissement du curseur.
+    // Continuity at raccord: both sides, gap to darkest table site fond < 0.01 mag, invisible
+    // while sliding cursor.
     const juste = sbZenithAvecCrepuscule(SB_B1, DEPRESSION_FIN_CREPUSCULE_DEG - 1e-2)
     expect(SB_B1 - juste).toBeLessThan(0.01)
     expect(SB_B1 - juste).toBeGreaterThan(0)
   })
 
   /**
-   * Le crépuscule est une lueur ATMOSPHÉRIQUE : elle s'ajoute à celle du site, elle ne la
-   * remplace pas. Un ciel de ville reste plus clair qu'un col de montagne à la même dépression.
+   * Crépuscule = ATMOSPHERIC glow: adds to site's fond, doesn't replace it. City sky stays
+   * brighter than mountain pass at same depression.
    */
   it('s’ajoute au site en nanolamberts, sans jamais l’assombrir', () => {
     for (const depression of [6, 10, 14]) {
@@ -145,9 +140,9 @@ describe('la contribution du crépuscule', () => {
 
 describe('ce que l’utilisateur voit', () => {
   /**
-   * Le critère du ticket : à Soleil −6°, la vue réaliste ne montre qu'une poignée d'étoiles.
-   * Le fond effectif sort alors par le bas de la table Bortle — T-0357 : la magnitude limite
-   * suit le seuil de Schaefer, SOUS le bord de table, et le DIT (précédent T-0100).
+   * Ticket criterion: at Sun −6°, realistic view shows a handful of stars. Effective fond
+   * falls below Bortle table bottom — T-0357: limiting magnitude follows Schaefer threshold,
+   * BELOW table edge, and SAYS so (precedent T-0100).
    */
   it('à Soleil −6°, plafonne la magnitude limite sous le bord de table et le déclare', () => {
     const sb = sbZenithAvecCrepuscule(SB_B1, 6)
@@ -156,7 +151,7 @@ describe('ce que l’utilisateur voit', () => {
     expect(rendue.value).toBeLessThan(M_LIM_OEIL_PLANCHER)
     expect(rendue.flags).toContain('HORS_DOMAINE')
     expect(rendue.note).toContain('plus clair que Bortle 9')
-    // Et en pleine nuit sur le même site, la scène montre bien plus d'étoiles.
+    // Full night at same site: scene shows far more stars.
     expect(magnitudeRendue(FOV_DEG, SB_B1, true).value).toBeGreaterThan(rendue.value)
   })
 
@@ -179,19 +174,18 @@ describe('ce que l’utilisateur voit', () => {
     const sb = sbZenithAvecCrepuscule(SB_B1, 6)
     expect(adaptationEcran(sb)).toBeLessThan(1)
     const [r, v, b] = composantesFond(sb)
-    // T-0372 — adaptation partielle : le plafond est celui du jour, pas du crépuscule.
+    // T-0372 — partial adaptation: ceiling is the day's, not twilight's.
     expect(b).toBeLessThan(K('LUMINANCE_ECRAN_ZENITH_ADAPTE'))
-    // Plus bleu que la nuit : le rouge perd sur le bleu.
+    // Bluer than night: red loses to blue.
     expect(r / b).toBeLessThan(K('CHROMA_FOND_CIEL_R'))
     expect(v / b).toBeLessThan(K('CHROMA_FOND_CIEL_V'))
   })
 
   /**
-   * Le cas dégradé du ticket : nuit d'été à haute latitude. À 50°, le Soleil descend à 16,6°
-   * sous l'horizon au milieu de nuit — la nuit ASTRONOMIQUE est nulle, mais la dépression a
-   * déjà dépassé la fin du crépuscule mesuré : la contribution est nulle, et le fond est celui
-   * du site. Ni noir, ni absent. À 58°, le crépuscule NAUTIQUE est permanent et la
-   * contribution ne s'annule jamais : le fond y reste plus clair toute la nuit.
+   * Ticket degraded case: high-latitude summer night. At 50° Sun reaches −16,6° at midnight —
+   * nuit astronomique null, but depression already past measured twilight end: contribution
+   * null, fond = site's. Neither black nor absent. At 58°, NAUTICAL twilight is permanent,
+   * contribution never cancels: fond brighter all night.
    */
   it('rend la nuit d’été à haute latitude sans fond noir ni valeur absente', () => {
     const solstice = new Date('2026-06-21T12:00:00Z')

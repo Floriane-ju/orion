@@ -1,14 +1,9 @@
 /**
- * §9.1 — Pose maximale à étoiles ponctuelles, par région du ciel.
- *
- * IL N'EXISTE PAS UNE POSE MAX, MAIS UNE POSE MAX PAR DÉCLINAISON. Sur un grand champ, la
- * déclinaison varie de plusieurs dizaines de degrés d'un bord du cadre à l'autre : la sortie
- * est une carte, et la valeur retenue est celle de la zone la plus contraignante, c'est-à-dire
- * de plus faible déclinaison absolue.
- *
- * La grille est celle du cadre matériel, projetée par la même inverse que §3.5 — celle de
- * l'objectif, gnomonique ou équidistante (T-0219) : la déclinaison d'une cellule n'est pas
- * interpolée, elle est calculée.
+ * §9.1 — pose max for point stars, per sky region.
+ * No single pose max, one per declination. Grand champ spans tens of degrees of declination →
+ * output = map; retained value = most constraining zone (lowest |dec|).
+ * Grid = hardware frame, projected by same inverse as §3.5 (lens: gnomonic or equidistant,
+ * T-0219): cell declination computed, not interpolated.
  */
 
 import { K } from '../registry/constants.ts'
@@ -23,25 +18,25 @@ export interface EntreeCartePose {
   readonly focaleMm: number
   readonly ouvertureN: number
   readonly pitchUm: number
-  /** Champs du cadre matériel (§5.1), grande puis petite dimension. */
+  /** Hardware frame fields (§5.1), long then short dimension. */
   readonly fovLDeg: number
   readonly fovHDeg: number
-  /** Projection physique de l'objectif : `MODE_CADRE` (rectilinéaire) ou `MODE_FISHEYE`. */
+  /** Lens projection: `MODE_CADRE` (rectilinear) or `MODE_FISHEYE`. */
   readonly modeObjectif: ModeProjection
   readonly centreAdDeg: number
   readonly centreDecDeg: number
   readonly rotationDeg: number
   readonly tolerance?: ToleranceNpf
-  /** §5.2 — renseigné quand le suivi est actif : la pose opérante cesse d'être la NPF. */
+  /** §5.2 — set when suivi active: operating pose stops being NPF. */
   readonly tMaxSuiviS?: number | null
 }
 
 export interface CellulePose {
-  /** Position dans le cadre, de −1 (gauche, bas) à +1 (droite, haut). */
+  /** Frame position, −1 (left, bottom) → +1 (right, top). */
   readonly uFrac: number
   readonly vFrac: number
   readonly decDeg: number
-  /** `null` au pôle exact : la NPF y diverge et cesse d'être la contrainte. */
+  /** `null` at exact pole: NPF diverges, stops constraining. */
   readonly tNpfS: number | null
 }
 
@@ -49,19 +44,19 @@ export type RegimeGrandChamp = 'NPF' | 'SUIVI'
 
 export interface CartePoseMax {
   readonly cellules: readonly CellulePose[]
-  /** Côté de la grille : les cellules sont rangées ligne par ligne, du haut vers le bas. */
+  /** Grid side; cells row by row, top to bottom. */
   readonly cote: number
   readonly tMaxCadreS: Traced<number | null>
   readonly zoneLimitante: string
   readonly decMinAbsDeg: number
   readonly decMaxAbsDeg: number
-  /** Pose réellement opérante : NPF sans suivi, plafond de monture avec (§5.2). */
+  /** Operating pose: NPF without suivi, mount ceiling with (§5.2). */
   readonly poseOperanteS: number | null
   readonly regime: RegimeGrandChamp
   readonly messages: readonly string[]
 }
 
-/** Pose d'une cellule pour la comparaison : au pôle exact, la NPF ne borne plus rien. */
+/** Cell pose for comparison: at exact pole NPF bounds nothing. */
 function pose(tNpfS: number | null): number {
   return tNpfS ?? Infinity
 }
@@ -72,10 +67,7 @@ function nommeZone(uFrac: number, vFrac: number, decDeg: number): string {
   return `${vertical} ${horizontal}, δ = ${degres(decDeg, 0)}`
 }
 
-/**
- * Carte de pose maximale du cadre. Chaque cellule porte sa déclinaison réelle, obtenue par
- * l'inverse du cadre dans la projection physique de l'objectif, la même qu'en §3.5.
- */
+/** Frame pose-max map; each cell's real declination via lens-projection inverse (§3.5). */
 export function cartePoseMax(entree: EntreeCartePose): CartePoseMax {
   const cote = Math.max(1, Math.round(K('CELLULES_CARTE_POSE')))
   const uMax = rayonProjete(entree.modeObjectif, (entree.fovLDeg / 2) * DEG)
@@ -91,7 +83,7 @@ export function cartePoseMax(entree: EntreeCartePose): CartePoseMax {
   let decMaxAbs = 0
 
   for (let ligne = 0; ligne < cote; ligne++) {
-    // Ligne 0 en haut du cadre : v décroît quand la ligne augmente.
+    // Row 0 = frame top: v decreases as row grows.
     const vFrac = cote === 1 ? 0 : 1 - (2 * ligne) / (cote - 1)
     for (let colonne = 0; colonne < cote; colonne++) {
       const uFrac = cote === 1 ? 0 : (2 * colonne) / (cote - 1) - 1
@@ -117,8 +109,7 @@ export function cartePoseMax(entree: EntreeCartePose): CartePoseMax {
       if (tNpfS !== null && (limitante === null || tNpfS < (limitante.tNpfS ?? Infinity))) {
         limitante = cellule
       }
-      // Le pôle exact, sans NPF définie, tient les poses les plus longues du cadre : sa
-      // cellule l'emporte sur toutes les autres.
+      // Exact pole (no NPF) holds longest poses: its cell beats all others.
       if (plusLongue === null || pose(tNpfS) > pose(plusLongue.tNpfS)) plusLongue = cellule
     }
   }
@@ -153,8 +144,7 @@ export function cartePoseMax(entree: EntreeCartePose): CartePoseMax {
 
   const messages: string[] = []
   const longue = plusLongue
-  // L'avertissement porte sur la zone la plus polaire du cadre, celle où la NPF cesse d'être
-  // la contrainte — c'est là qu'il est utile, que le reste du cadre la suive ou non.
+  // Warning targets most polar zone (NPF stops constraining), whatever the rest of the frame.
   if (longue !== null && pose(longue.tNpfS) >= K('POSE_LONGUE_AVERTISSEMENT_S')) {
     const global = zone === null || zone.tNpfS! >= K('POSE_LONGUE_AVERTISSEMENT_S')
     messages.push(
@@ -182,13 +172,9 @@ export function cartePoseMax(entree: EntreeCartePose): CartePoseMax {
   }
 }
 
-/**
- * §9.1 — traînée réellement inscrite sur le capteur pour une pose donnée. C'est elle qui
- * ovalise les étoiles dans la prévisualisation de §9.2 quand la pose dépasse la pose max.
- */
+/** §9.1 — trail recorded on sensor for a pose; ovalizes §9.2 preview stars beyond pose max. */
 export function traceePx(tPoseS: number, decDeg: number, echApx: number): Traced<number> {
-  // Un degré par heure vaut une arcseconde par seconde : la rotation du ciel se lit
-  // directement en arcsecondes par seconde de pose, sans conversion.
+  // 1 °/h = 1 arcsec/s: rotation in arcsec per pose second, no conversion.
   const traceArcsec = K('ROTATION_CIEL_DEG_H') * tPoseS * Math.cos(decDeg * DEG)
   return trace({
     value: traceArcsec / echApx,

@@ -1,10 +1,8 @@
 /**
- * §12.1, §12.3 — Persistance locale sur IndexedDB.
- *
- * Deux natures de données, à ne pas confondre :
- *   - les paquets de catalogues et les vignettes d'objets sont retéléchargeables ;
- *   - les profils, sites, masques d'horizon édités et plans de session ne le sont pas.
- * C'est cette seconde catégorie que l'export JSON de `persistence.ts` doit protéger.
+ * §12.1, §12.3 — Local persistence on IndexedDB. Two data natures:
+ *   - catalogue packages, object thumbnails: re-downloadable;
+ *   - profils, sites, edited horizon masks, session plans: NOT — what `persistence.ts` JSON
+ *     export must protect.
  */
 
 import { deleteDB, openDB, type DBSchema, type IDBPDatabase } from 'idb'
@@ -15,14 +13,14 @@ import type { ReliefConnu } from './relief.ts'
 
 export const NOM_BASE = 'orion'
 /**
- * 2 — ajout du magasin `images` (§6.4). Une montée de version ne détruit rien : les magasins
- * existants traversent la mise à niveau, seul le nouveau est créé.
+ * 2 — added `images` store (§6.4). Bump destroys nothing: existing stores pass through upgrade,
+ * only the new one is created.
  */
 const VERSION_BASE = 2
 
-/** Nom porté avant que le produit s'appelle Orion. Voir `reprendAncienneBase`. */
+/** Pre-Orion product name. See `reprendAncienneBase`. */
 const NOM_BASE_ANCIEN = 'astrofort'
-/** Drapeau de reprise, rangé dans `reglages` de la base d'arrivée. */
+/** Migration flag, in `reglages` of destination base. */
 const CLE_REPRISE = 'reprise-ancienne-base'
 
 export interface SiteEnregistre {
@@ -34,9 +32,9 @@ export interface SiteEnregistre {
   readonly fuseau: string
   readonly sqmMesure?: number
   readonly bortleDeclare?: number
-  /** 360 valeurs, une par degré d'azimut. Absent tant que le relief n'est pas connu. */
+  /** 360 values, one per azimuth degree; absent until relief known. */
   readonly masqueHorizon?: readonly number[]
-  /** Vrai quand le masque est le repli plat à 0°, faute de donnée de relief (§4.1). */
+  /** True = flat 0° fallback, no relief data (§4.1). */
   readonly masqueEstHypothese?: boolean
 }
 
@@ -47,23 +45,20 @@ export interface ProfilMateriel {
   readonly ouvertureN: number
   readonly typeObjectif: 'RECTILINEAIRE' | 'FISHEYE'
   /**
-   * T-0404 — le parc d'objectifs, et celui qui est monté. `focaleMm` et `ouvertureN` restent
-   * le réglage du moment : l'objectif borne ce réglage, il ne le remplace pas. Absents d'un
-   * profil antérieur, ou `objectifId` disparu du parc : l'objectif libre s'applique.
+   * T-0404 — lens park + mounted one. `focaleMm`/`ouvertureN` stay the current setting (lens
+   * bounds it, not replaces). Absent in older profil, or `objectifId` gone from park: free lens.
    */
   readonly objectifs?: readonly Objectif[]
   readonly objectifId?: string
   /**
-   * T-0204 — identifiant d'une ligne de la base `boitiers.md`. Absent, ou disparu de la base :
-   * le mode personnalisé s'applique, avec les champs ci-dessous. Le boîtier n'est pas recopié
-   * dans le profil — seul son identifiant l'est, pour qu'une correction de la base profite
-   * aussi aux profils déjà enregistrés (§2.1).
+   * T-0204 — id of a `boitiers.md` row. Absent or gone from base: custom mode with fields below.
+   * Only the id is stored (not the body), so base fixes reach saved profils (§2.1).
    */
   readonly boitierId?: string
   /**
-   * Format de capteur et résolution saisis (§5.1, mode personnalisé) — le pitch s'en déduit,
-   * il ne se persiste pas séparément. Ne se retéléchargent pas : sans eux dans l'export, un
-   * profil réimporté décrirait le capteur d'un autre appareil (§12.3).
+   * Sensor format + resolution entered (§5.1, custom mode); pitch derived, not persisted.
+   * Not re-downloadable: missing from export, a re-imported profil would describe another
+   * device's sensor (§12.3).
    */
   readonly formatCapteur: FormatCapteur
   readonly resolutionMpx?: number
@@ -71,7 +66,7 @@ export interface ProfilMateriel {
   readonly seuilDoubleGainIso?: number
   readonly zpSys?: number
   readonly tailleRawMo?: number
-  /** §7.2 — ISO de capture retenu, quand il n'est pas celui du seuil de double gain. */
+  /** §7.2 — chosen capture ISO, if not the dual-gain threshold one. */
   readonly isoCapture?: number
   readonly capteurMode: 'FULL_FRAME' | 'APSC_CROP'
   readonly suiviActif: boolean
@@ -85,10 +80,7 @@ export interface PlanEnregistre {
   readonly dateIso: string
   readonly siteId: string
   readonly profilId: string
-  /**
-   * Version du registre §2.1 ayant produit ce plan. Une mise à jour du registre déclenche
-   * un recalcul, jamais une conservation avec les anciennes valeurs (§2.1).
-   */
+  /** §2.1 registry version that produced this plan; update → recompute, old values never kept. */
   readonly versionRegistre: string
   readonly contenu: unknown
 }
@@ -100,22 +92,18 @@ export interface PaquetStocke {
 }
 
 /**
- * §6.4 — l'image d'une cible, rangée par sa désignation.
- *
- * Les octets sont stockés, pas l'adresse : c'est ce qui rend l'image visible après la
- * coupure réseau (§12.5). `origine` et `credit` voyagent avec eux, sans quoi une image
- * relue du cache s'afficherait sans son attribution — donc sans le droit de s'afficher.
- *
- * Le crédit n'est jamais absent : une image encyclopédique dont l'auteur ou la licence n'a
- * pas pu être lu n'est pas rangée, et une découpe de relevé porte le crédit fixe du registre.
- * Une image relue sans crédit serait une image qu'on n'a pas le droit d'afficher.
+ * §6.4 — a target's image, stored by designation.
+ * Bytes stored, not address: image survives network loss (§12.5). `origine` + `credit` travel
+ * with them, else a cached image shows without attribution = without right to be shown.
+ * Credit never absent: encyclopedic image with unreadable author/licence is not stored; survey
+ * cutout carries registry's fixed credit.
  */
 export interface ImageStockee {
   readonly designation: string
   readonly origine: 'ENCYCLOPEDIE' | 'RELEVE'
   readonly octets: Blob
   readonly credit: CreditImage
-  /** Adresse d'où les octets viennent, pour pouvoir remonter à la source affichée. */
+  /** Address the bytes came from: traces displayed source. */
   readonly source: string
   readonly obtenueIso: string
 }
@@ -138,8 +126,8 @@ interface OrionDB extends DBSchema {
 let instance: Promise<IDBPDatabase<OrionDB>> | null = null
 
 /**
- * §12.5 — une ouverture qui échoue n'est pas mise en cache : la base bloquée par un autre onglet,
- * ou refusée une fois, doit pouvoir être retentée au geste suivant plutôt que condamner la session.
+ * §12.5 — failed open not cached: base blocked by another tab or refused once must be retryable
+ * at next gesture, not condemn the session.
  */
 export function db(): Promise<IDBPDatabase<OrionDB>> {
   instance ??= ouvre().catch((erreur: unknown) => {
@@ -152,8 +140,8 @@ export function db(): Promise<IDBPDatabase<OrionDB>> {
 async function ouvre(): Promise<IDBPDatabase<OrionDB>> {
   const base = await openDB<OrionDB>(NOM_BASE, VERSION_BASE, {
     upgrade(base) {
-      // Chaque magasin est créé s'il manque : la mise à niveau depuis une base en version 1
-      // doit ajouter `images` sans toucher aux profils, sites et plans déjà rangés (§12.3).
+      // Create each store if missing: v1 upgrade adds `images` without touching stored profils,
+      // sites, plans (§12.3).
       const cree = (nom: 'sites' | 'profils' | 'plans' | 'paquets' | 'images', cle?: string) => {
         if (base.objectStoreNames.contains(nom)) return
         base.createObjectStore(nom, cle === undefined ? undefined : { keyPath: cle })
@@ -172,7 +160,7 @@ async function ouvre(): Promise<IDBPDatabase<OrionDB>> {
 
 type MagasinCle = 'sites' | 'profils' | 'plans' | 'paquets' | 'images'
 
-/** Les magasins à clé en ligne se recopient valeur par valeur : la clé voyage avec elle. */
+/** Inline-key stores: key travels with value. */
 async function copie<N extends MagasinCle>(
   source: IDBPDatabase<OrionDB>,
   cible: IDBPDatabase<OrionDB>,
@@ -183,42 +171,38 @@ async function copie<N extends MagasinCle>(
 }
 
 /**
- * Le produit s'appelait Astrofort, la base portait son nom. IndexedDB n'a pas d'opération de
- * renommage : la seule reprise possible est une copie, puis la suppression de la source. Ce
- * qu'elle sauve — sites, profils, plans, masques d'horizon édités — ne se retélécharge pas
- * (§12.3), donc la perdre au renommage aurait été la perdre tout court.
- *
- * Le drapeau vit dans la base d'arrivée : une fois posé, plus aucun démarrage n'ouvre l'ancienne.
+ * Product was called Astrofort, base carried its name. IndexedDB has no rename: copy then delete
+ * source. Saves sites, profils, plans, edited masks: not re-downloadable (§12.3).
+ * Flag in destination base: once set, no startup opens the old one.
  */
 async function reprendAncienneBase(base: IDBPDatabase<OrionDB>): Promise<void> {
   if ((await base.get('reglages', CLE_REPRISE)) === true) return
 
-  // Sans version : on prend la base telle qu'elle est. Absente, elle naît vide — sans magasin,
-  // donc sans rien à copier — et la suppression qui suit la fait disparaître aussitôt.
+  // No version: take base as is. Absent → born empty (no store, nothing to copy); delete
+  // removes it at once.
   const ancienne = await openDB<OrionDB>(NOM_BASE_ANCIEN)
   await copie(ancienne, base, 'sites')
   await copie(ancienne, base, 'profils')
   await copie(ancienne, base, 'plans')
   await copie(ancienne, base, 'paquets')
   await copie(ancienne, base, 'images')
-  // `reglages` est à clé hors ligne : elle ne se déduit pas de la valeur, il faut la porter.
+  // `reglages`: out-of-line key, not derivable from value → carried.
   if (ancienne.objectStoreNames.contains('reglages')) {
     for (const cle of await ancienne.getAllKeys('reglages')) {
       await base.put('reglages', await ancienne.get('reglages', cle), cle)
     }
   }
   ancienne.close()
-  // Non attendue : un autre onglet ouvert sur l'ancienne base la bloquerait, et l'ouverture de
-  // la nouvelle avec elle. Tout est déjà copié ; une suppression différée ne perd rien.
+  // Not awaited: another tab on old base would block it, and opening the new one. All already
+  // copied; deferred delete loses nothing.
   void deleteDB(NOM_BASE_ANCIEN).catch(() => undefined)
   await base.put('reglages', true, CLE_REPRISE)
 }
 
 /**
- * §12.5 — les paquets sont retéléchargeables : sans IndexedDB (navigation privée, quota, base
- * refusée), ceux que le réseau vient de servir restent en mémoire pour la session. Le ciel
- * s'affiche ; seul le prochain démarrage hors réseau est perdu, et l'avertissement de stockage
- * le dit.
+ * §12.5 — packages re-downloadable: without IndexedDB (private browsing, quota, refused base),
+ * just-served ones stay in memory for the session. Sky displays; only next offline startup is
+ * lost, storage warning says so.
  */
 const paquetsEnMemoire = new Map<string, ArrayBuffer>()
 
@@ -241,7 +225,7 @@ export async function ecritPaquet(paquet: PaquetStocke): Promise<void> {
   }
 }
 
-/** Vrai quand la base s'ouvre : sans elle, rien de ce qui est saisi ne survit à la session. */
+/** True when base opens: otherwise nothing entered survives the session. */
 export async function baseDisponible(): Promise<boolean> {
   try {
     await db()
@@ -252,19 +236,15 @@ export async function baseDisponible(): Promise<boolean> {
 }
 
 /**
- * §12.3 — les cibles que l'utilisateur a choisies pour sa nuit (§8.3), rangées par désignation.
- *
- * Dans `reglages` plutôt que dans un magasin à part : c'est un réglage de séance, pas une
- * entité — une liste de clés du catalogue, qui ne se retélécharge pas mais ne vaut rien sans
- * lui. Aucune montée de `VERSION_BASE` n'est donc nécessaire.
+ * §12.3 — targets chosen for the night (§8.3), stored by designation. In `reglages`, not a
+ * separate store: séance setting, not entity (catalogue key list, worthless without catalogue).
+ * No `VERSION_BASE` bump.
  */
 const CLE_CIBLES_CHOISIES = 'cibles-choisies'
 
 /**
- * Ce que la base rend est VALIDÉ, jamais cru sur parole : un export retouché, une version
- * antérieure ou la console du navigateur peuvent y avoir laissé autre chose qu'une liste de
- * chaînes. Une valeur non conforme rend une sélection vide — l'écran redemande le geste, il
- * ne tombe pas.
+ * Base output is VALIDATED, never trusted: tampered export, earlier version or console may leave
+ * a non-string-list. Non-conforming → empty selection; screen re-asks the gesture, no crash.
  */
 export async function litCiblesChoisies(): Promise<readonly string[]> {
   const brut = await (await db()).get('reglages', CLE_CIBLES_CHOISIES)
@@ -277,21 +257,18 @@ export async function ecritCiblesChoisies(designations: readonly string[]): Prom
 }
 
 /**
- * §4.1, §12.5 — le relief d'un site, mis en cache sous ses coordonnées au millième de degré
- * (≈ 110 m, la précision que §4.1 juge suffisante) : un site voisin de moins de 55 m relit le
- * profil calculé depuis le premier, écart sous la résolution des tuiles. Dans `reglages` pour la même raison que
- * les cibles choisies : aucune montée de `VERSION_BASE` pour 360 nombres par site.
- *
- * Ce qui revient de la base est validé : une valeur qui n'est pas un profil complet rend null,
- * et le relief se redemande au réseau.
+ * §4.1, §12.5 — site relief cached under coords at 0.001° (≈ 110 m, §4.1 precision): neighbour
+ * under 55 m rereads the first profile, gap below tile resolution. In `reglages` like chosen
+ * targets: no `VERSION_BASE` bump for 360 numbers/site. Output validated: not a complete profile
+ * → null, relief re-requested from network.
  */
 const MILLIEMES = 1000
 /**
- * Version du calcul qui a produit le profil. Un profil caché survit aux mises à jour : sans
- * elle, un calcul corrigé ne s'appliquerait jamais aux sites déjà visités. À monter à chaque
- * changement de `profilRelief` ou de ses constantes.
+ * Version of the computation that produced the profile. Cached profile survives updates; without
+ * it a fixed computation never applies to visited sites. Bump on any change of `profilRelief` or
+ * its constants.
  */
-// v4 (T-0365) : le cache garde aussi l'altitude du sol au site, à côté du profil.
+// v4 (T-0365): cache also keeps site ground altitude, beside the profile.
 const VERSION_PROFIL = 4
 
 export function cleRelief(latDeg: number, lonDeg: number): string {
@@ -304,7 +281,7 @@ export async function litRelief(cle: string): Promise<ReliefConnu | null> {
   const { profil, solM, courbes, silhouettes, crete, signatureCourbes } = brut as Record<string, unknown>
   if (!estProfil(profil)) return null
   if (typeof solM !== 'number' || !Number.isFinite(solM)) return null
-  // T-0395 — des courbes illisibles ne coûtent que les courbes : le masque, lui, est valide.
+  // T-0395 — unreadable contours cost only the contours; mask is valid.
   const courbesLues =
     courbes instanceof Float32Array &&
     courbes.length % 2 === 0 &&

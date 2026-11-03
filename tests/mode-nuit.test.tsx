@@ -1,13 +1,8 @@
 /**
- * §11.1 — Mode nuit, et §11.2 — ergonomie de consultation nocturne.
- *
- * Le critère d'acceptation du PRD est une propriété de la feuille de style, pas une
- * impression visuelle : aucun pixel ne doit présenter de composante verte ou bleue non
- * nulle. Deux conditions le garantissent et sont vérifiées ici —
- *
- *   1. la palette du mode nuit n'écrit que du rouge pur ;
- *   2. AUCUNE couleur n'est écrite en dur ailleurs dans la feuille, sans quoi elle
- *      survivrait au basculement.
+ * §11.1 — Mode nuit, §11.2 — night consultation ergonomics.
+ * PRD acceptance = stylesheet property: no pixel with non-zero green/blue. Checks: (1) night
+ * palette writes pure red only; (2) NO colour hardcoded elsewhere in sheet, else it survives
+ * the switch.
  */
 
 import { readdirSync, readFileSync } from 'node:fs'
@@ -30,7 +25,7 @@ import { POLICE_SCENE, palette, type PaletteCiel } from '../src/ui/couleurs.ts'
 
 const CSS = readFileSync(join(import.meta.dirname, '..', 'src', 'ui', 'styles.css'), 'utf8')
 
-/** Le bloc de palette du mode nuit, isolé du reste de la feuille. */
+/** Night palette block, isolated from rest of sheet. */
 function blocModeNuit(): string {
   const debut = CSS.indexOf(":root[data-mode-nuit='true']")
   expect(debut).toBeGreaterThan(-1)
@@ -46,9 +41,9 @@ function declarationsCouleur(bloc: string): readonly string[] {
 }
 
 /**
- * Les jetons d'un bloc de palette, avec leur valeur résolue : `var(--x)` prend la valeur de
- * `--x`, et `color-mix(in srgb, var(--a) P%, var(--b))` est calculé en `#rrggbb` — les nuances
- * du neutre et de l'accent dérivent de leur origine, et c'est leur couleur RENDUE qui doit tenir.
+ * Tokens of a palette block, resolved: `var(--x)` → `--x`'s value, `color-mix(in srgb,
+ * var(--a) P%, var(--b))` → `#rrggbb`. Neutral/accent shades derive from origin; their
+ * RENDERED colour must hold.
  */
 function jetonsDuBloc(bloc: string): Readonly<Record<string, string>> {
   const bruts: Record<string, string> = Object.fromEntries(
@@ -77,8 +72,8 @@ const paletteParDefaut = (): Readonly<Record<string, string>> =>
 const paletteDeNuit = (): Readonly<Record<string, string>> => jetonsDuBloc(blocModeNuit())
 
 /**
- * T-0409 — la palette claire ne réécrit que ses origines et ce qui ne s'en déduit pas : ses
- * jetons sont ceux du premier bloc, recalculés sous ses surcharges.
+ * T-0409 — light palette rewrites only its origins + what can't be deduced: its tokens = first
+ * block's, recomputed under its overrides.
  */
 const SELECTEUR_JOUR_CLAIR = ":root[data-jour-clair='true']:not([data-mode-nuit='true']) {"
 function blocJourClair(): string {
@@ -92,9 +87,8 @@ const paletteClaire = (): Readonly<Record<string, string>> =>
   )
 
 /**
- * Les canaux 0-255 d'une valeur de palette : `#rrggbb`, ou `rgb(N 0 0)`. La palette est écrite
- * au facteur de luminance nominal — le masque applique le facteur par-dessus — donc la lire
- * telle quelle revient à mesurer le meilleur cas, celui où le seuil doit tenir.
+ * 0-255 channels of a palette value: `#rrggbb` or `rgb(N 0 0)`. Palette written at nominal
+ * luminance factor (mask applies factor on top) → as-is = best case, where threshold must hold.
  */
 function canaux(valeur: string): readonly [number, number, number] {
   const court = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(valeur)
@@ -109,22 +103,22 @@ function canaux(valeur: string): readonly [number, number, number] {
   return [Number(rouge![1]), 0, 0]
 }
 
-/** Luminance relative WCAG 2.2, https://www.w3.org/TR/WCAG22/#dfn-relative-luminance. */
+/** WCAG 2.2 relative luminance, https://www.w3.org/TR/WCAG22/#dfn-relative-luminance. */
 function luminance(valeur: string): number {
   const lineaire = (c: number): number => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
   const [r, v, b] = canaux(valeur)
   return 0.2126 * lineaire(r / 255) + 0.7152 * lineaire(v / 255) + 0.0722 * lineaire(b / 255)
 }
 
-/** Ratio de contraste WCAG 2.2, https://www.w3.org/TR/WCAG22/#dfn-contrast-ratio. */
+/** WCAG 2.2 contrast ratio, https://www.w3.org/TR/WCAG22/#dfn-contrast-ratio. */
 function contraste(a: string, b: string): number {
   const [clair, sombre] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number]
   return (clair + 0.05) / (sombre + 0.05)
 }
 
-/** Le corps d'une règle, désignée par son sélecteur en début de ligne. */
+/** Rule body, designated by selector at line start. */
 function regle(selecteur: string): string {
-  // Seul, ou en tête d'une liste de sélecteurs groupés (T-0337).
+  // Alone, or heading a grouped selector list (T-0337).
   const seul = CSS.indexOf(`\n${selecteur} {`)
   const debut = seul > -1 ? seul : CSS.indexOf(`\n${selecteur},\n`)
   expect(debut, selecteur).toBeGreaterThan(-1)
@@ -141,9 +135,8 @@ describe('palette du mode nuit §11.1', () => {
   })
 
   /**
-   * T-0185 — la garantie qui ne dépend d'aucun inventaire : une couche plein écran multiplie
-   * chaque pixel par (255, 0, 0). Ce qui est peint dessous — canevas, photo, ornement natif —
-   * perd son vert et son bleu, quel que soit le chemin qui l'a peint.
+   * T-0185 — independent of any inventory: a full-screen layer multiplies each pixel by
+   * (255, 0, 0). Whatever is painted below (canvas, photo, native ornament) loses green and blue.
    */
   it('pose sur toute la page un masque qui annule le vert et le bleu', () => {
     const masque = CSS.slice(
@@ -156,7 +149,7 @@ describe('palette du mode nuit §11.1', () => {
     expect(masque).toMatch(/pointer-events:\s*none;/)
     expect(masque).toMatch(/z-index:\s*var\(--plan-masque\);/)
     expect(masque).toMatch(/background:\s*var\(--masque-nuit\);/)
-    // Rouge plein au facteur de luminance : le seul endroit où le curseur agit.
+    // Full red at luminance factor: only place the slider acts.
     expect(paletteDeNuit()['masque-nuit']).toBe('rgb(calc(var(--luminance-nuit) * 255) 0 0)')
   })
 
@@ -179,7 +172,7 @@ describe('palette du mode nuit §11.1', () => {
     const parDefaut = CSS.slice(CSS.indexOf(':root {'), CSS.indexOf('}', CSS.indexOf(':root {')))
     const variables = (texte: string): readonly string[] =>
       [...texte.matchAll(/--([a-z-]+):/g)].map((m) => m[1]!)
-    // Les variables de mesure — pas de couleur, rien à repeindre en rouge.
+    // Measurement variables: no colour, nothing to repaint red.
     const mesures = ['cible-clic']
     const couleursParDefaut = variables(parDefaut).filter((v) => !mesures.includes(v))
     const couleursNuit = variables(blocModeNuit())
@@ -189,7 +182,7 @@ describe('palette du mode nuit §11.1', () => {
   })
 
   it('inclut le jeton --bordure-controle en mode nuit', () => {
-    // T-0186 - le nouveau jeton reserve aux controles doit etre defini en rouge pur.
+    // T-0186 — new control-reserved token must be pure red.
     const couleursNuit = jetonsDuBloc(blocModeNuit())
     expect(couleursNuit, '--bordure-controle manquant').toHaveProperty('bordure-controle')
     const valeur = couleursNuit['bordure-controle']!
@@ -197,12 +190,10 @@ describe('palette du mode nuit §11.1', () => {
   })
 
   it('n’écrit aucune couleur en dur hors des blocs de palette', () => {
-    // Tout ce qui suit le bloc de palette nocturne est la feuille proprement dite : elle ne
-    // doit référencer que des variables. Une couleur en dur y survivrait au mode nuit.
-    //
-    // L'ancrage est la PREMIÈRE occurrence, celle de la palette : depuis §6.4 la feuille porte
-    // aussi des règles de composant sous ce sélecteur, et s'ancrer sur la dernière ne ferait
-    // plus balayer que la fin du fichier.
+    // After the night palette block = sheet proper: variables only; a hardcoded colour would
+    // survive mode nuit.
+    // Anchor on FIRST occurrence (palette): since §6.4 the sheet has component rules under this
+    // selector too; anchoring on the last would only sweep the file's end.
     const apresPalettes = CSS.slice(CSS.indexOf(":root[data-mode-nuit='true']"))
     const corps = apresPalettes.slice(apresPalettes.indexOf('}') + 1)
     expect(corps).not.toMatch(/#[0-9a-f]{3,8}\b/i)
@@ -211,10 +202,10 @@ describe('palette du mode nuit §11.1', () => {
   })
 
   it('garde la frise de la nuit dans la palette sombre, même de jour', () => {
-    // T-0409 — la frise est un morceau de ciel : elle ne blanchit pas avec l'interface. Son
-    // îlot recopie la palette par défaut ; une couleur qui y dériverait ferait deux frises.
-    // T-0422 — de nuit aussi : réservé au jour, l'îlot se retirait au coucher et la frise
-    // héritait du fondu de la racine — elle s'éclaircissait puis revenait.
+    // T-0409 — frise = piece of sky: doesn't whiten with UI. Its island copies default palette;
+    // a deriving colour would make two frises.
+    // T-0422 — at night too: day-only, island was removed at sunset and frise inherited root
+    // fade (lightened then came back).
     const selecteur = ":root:not([data-mode-nuit='true']) .nuit-frise {"
     const debut = CSS.indexOf(selecteur)
     expect(debut, 'aucun îlot sombre pour la frise').toBeGreaterThan(-1)
@@ -227,8 +218,7 @@ describe('palette du mode nuit §11.1', () => {
   })
 
   it('écarte la palette claire dès que le mode nuit est actif', () => {
-    // T-0409 — par le sélecteur, pas par l'ordre des blocs : un seul jeton clair qui
-    // l'emporterait, et le rouge ne serait plus total.
+    // T-0409 — by selector, not block order: one light token winning = red no longer total.
     expect(blocJourClair()).toMatch(/color-scheme:\s*light/)
     expect(CSS.indexOf(SELECTEUR_JOUR_CLAIR)).toBeLessThan(CSS.indexOf(":root[data-mode-nuit='true']"))
   })
@@ -238,9 +228,8 @@ describe('palette du mode nuit §11.1', () => {
   })
 
   it('fond chaque jeton que la palette claire réécrit, et non le seul fond de page', () => {
-    // T-0409 — un jeton non enregistré ne s'interpole pas : il saute, et les cartes
-    // basculaient d'un coup sous un fond qui, lui, glissait. Enregistré `<color>`, il glisse,
-    // et chaque nuance tirée de lui par `color-mix` glisse avec.
+    // T-0409 — unregistered token doesn't interpolate: jumps, cards flip under a gliding
+    // background. Registered `<color>` glides, every `color-mix` shade with it.
     const debut = CSS.lastIndexOf('\n:root {')
     const fondu = /transition:\s*([^;]+);/.exec(CSS.slice(debut, CSS.indexOf('\n}', debut)))?.[1] ?? ''
     for (const jeton of [...blocJourClair().matchAll(/--([a-z-]+):/g)].map((m) => m[1]!)) {
@@ -252,11 +241,9 @@ describe('palette du mode nuit §11.1', () => {
   })
 
   it('ne fait jamais porter l’information par la seule couleur', () => {
-    // Une alerte se distingue aussi par sa FORME : une barre latérale épaisse, et un signe.
-    //
-    // T-0215 — le signe était « ⚠ » posé en `content` par la feuille, donc rendu dans la
-    // police de texte. Il vient maintenant du balisage, par `Icone` : c'est là qu'il se
-    // vérifie. La barre, elle, reste une propriété de la feuille.
+    // Alert also told by SHAPE: thick side bar + a sign.
+    // T-0215 — sign was "⚠" as sheet `content` (text font); now markup via `Icone`, checked
+    // there. Bar stays a sheet property.
     for (const ton of ['cause', 'erreur'] as const) {
       const html = renderToStaticMarkup(<Mention ton={ton}>refus</Mention>)
       expect(html, ton).toContain('warning')
@@ -266,8 +253,8 @@ describe('palette du mode nuit §11.1', () => {
   })
 
   it('ne pose le signe que sur ce qui alerte', () => {
-    // Un état simple n'est pas une alerte : lui donner le signe le ferait lire comme un refus,
-    // et §11.1 perdrait ce qui distingue les deux une fois la couleur passée au rouge.
+    // Plain state ≠ alert: giving it the sign reads as refusal, and §11.1 loses what tells
+    // them apart once colour goes red.
     for (const ton of ['etat', 'tracee-source'] as const) {
       expect(renderToStaticMarkup(<Mention ton={ton}>lecture</Mention>), ton).not.toContain(
         'mention-signe',
@@ -277,22 +264,17 @@ describe('palette du mode nuit §11.1', () => {
 })
 
 /**
- * T-0070 — les couleurs que le navigateur peint tout seul.
- *
- * Le test de fuite ci-dessus lit la feuille de style : il ne peut rien voir de ce qui n'y
- * est pas écrit. L'anneau de focus, la sélection, le caret, la couleur d'accent et les
- * ascenseurs sont dans ce cas — bleus par défaut, donc une fuite §11.1 invisible au test.
- * Ce bloc vérifie qu'ils sont déclarés, et déclarés depuis les jetons de la palette : c'est
- * ce qui les fait basculer au rouge avec le reste.
+ * T-0070 — colours the browser paints itself. Leak test reads the sheet: blind to what isn't
+ * written there. Focus ring, selection, caret, accent colour, scrollbars default to blue = a
+ * §11.1 leak. Checks they're declared from palette tokens (so they flip red).
  */
 /**
- * La scène peint des objets d'interface — le cadre du matériel, le parcours de pointage — sur un
- * canevas que la feuille n'atteint pas. Leur teinte est recopiée dans `couleurs.ts` : ce test
- * est ce qui la tient à son jeton, dans les deux modes.
+ * Scène paints UI objects (matériel cadre, pointage route) on a canvas the sheet can't reach.
+ * Hue copied in `couleurs.ts`: pinned here to its token, both modes.
  */
 describe('la scène reprend les jetons de l’interface', () => {
   const rvb = (valeur: string): string => `rgb(${canaux(valeur).join(' ')})`
-  /** Le canevas écrit `rgb(r g b)` ou `#rrggbb` : les deux se comparent sous la même forme. */
+  /** Canvas writes `rgb(r g b)` or `#rrggbb`: compared in same form. */
   const scene = (valeur: string): string => (valeur.startsWith('rgb(') ? valeur : rvb(valeur))
   const liens: readonly (readonly [keyof PaletteCiel, string])[] = [
     ['fond', 'fond'],
@@ -300,14 +282,14 @@ describe('la scène reprend les jetons de l’interface', () => {
     ['parcours', 'texte'],
     ['lune', 'texte'],
   ]
-  /** T-0330 — de jour seulement : la nuit, la scène abaisse les corps sous l'interface. */
+  /** T-0330 — day only: at night scène lowers bodies under the UI. */
   const liensDeJour: readonly (readonly [keyof PaletteCiel, string])[] = [
     ['corps', 'avertissement'],
     ['cadreCible', 'avertissement'],
   ]
   /**
-   * T-0330 — graduations propres à la scène, déclarées comme telles dans `couleurs.ts` et le
-   * README. Une teinte absente des trois listes fait échouer le test : elle doit choisir.
+   * T-0330 — scène-own graduations, declared in `couleurs.ts` + README. A hue absent from the
+   * 3 lists fails: must choose.
    */
   const horsKit: readonly (keyof PaletteCiel)[] = [
     'figures',
@@ -344,10 +326,10 @@ describe('la scène reprend les jetons de l’interface', () => {
 })
 
 describe('focus et couleurs du navigateur — T-0070', () => {
-  /** Seuil WCAG 2.4.11 « Focus Appearance » pour l'indicateur de focus. */
+  /** WCAG 2.4.11 "Focus Appearance" threshold. */
   const CONTRASTE_FOCUS_MINIMAL = 3
 
-  /** Le second bloc `:root` : celui qui pose les couleurs peintes par le navigateur. */
+  /** 2nd `:root` block: browser-painted colours. */
   function blocNavigateur(): string {
     const debut = CSS.lastIndexOf('\n:root {')
     expect(debut, 'aucun bloc :root pour les couleurs du navigateur').toBeGreaterThan(
@@ -356,7 +338,7 @@ describe('focus et couleurs du navigateur — T-0070', () => {
     return CSS.slice(debut, CSS.indexOf('}', debut))
   }
 
-  /** Les jetons cités par une déclaration : `var(--x) var(--y)` → ['x', 'y']. */
+  /** Tokens cited by a declaration: `var(--x) var(--y)` → ['x', 'y']. */
   function jetonsCites(declaration: string): readonly string[] {
     return [...declaration.matchAll(/var\(--([a-z-]+)\)/g)].map((m) => m[1]!)
   }
@@ -370,9 +352,9 @@ describe('focus et couleurs du navigateur — T-0070', () => {
   const jetonsDeNuit = (): readonly string[] =>
     [...blocModeNuit().matchAll(/--([a-z-]+):/g)].map((m) => m[1]!)
 
-  /** Le jeton qui colore l'anneau de focus. */
+  /** Token colouring the focus ring. */
   function jetonFocus(): string {
-    // T-0331 — l'épaisseur est un jeton aussi (`--trait-focus`) : seule la COULEUR compte ici.
+    // T-0331 — thickness is a token too (`--trait-focus`): only COLOUR matters here.
     const cites = jetonsCites(valeurDe(regle(':focus-visible'), 'outline')).filter(
       (j) => j !== 'trait-focus',
     )
@@ -384,9 +366,9 @@ describe('focus et couleurs du navigateur — T-0070', () => {
     expect(valeurDe(regle(':focus-visible'), 'outline')).toMatch(
       /^var\(--trait-focus\) solid var\(--[a-z-]+\)$/,
     )
-    // Un anneau détaché de la bordure de l'élément, sans quoi il s'y confond.
+    // Ring detached from element border, else they merge.
     expect(regle(':focus-visible')).toMatch(/outline-offset:/)
-    // `outline: none` quelque part rendrait le parcours au clavier invisible à cet endroit.
+    // `outline: none` somewhere = keyboard navigation invisible there.
     expect(CSS).not.toMatch(/outline:\s*(none|0)\b/)
   })
 
@@ -417,7 +399,7 @@ describe('focus et couleurs du navigateur — T-0070', () => {
     for (const [nom, valeur] of declarations) {
       const cites = jetonsCites(valeur)
       expect(cites.length, `${nom} : ${valeur}`).toBeGreaterThan(0)
-      // Une couleur écrite autrement que par un jeton survivrait au basculement.
+      // Colour not written by token would survive the switch.
       expect(valeur.replace(/var\(--[a-z-]+\)/g, '').trim(), nom).toBe('')
       for (const jeton of cites) {
         expect(jetonsDeNuit(), `${nom} → --${jeton}`).toContain(jeton)
@@ -431,12 +413,10 @@ describe('focus et couleurs du navigateur — T-0070', () => {
 })
 
 /**
- * T-0304 — les contrôles natifs du balisage, un par un.
- *
- * T-0070 tenait une liste de cinq déclarations : ce qui n'y figurait pas — le bleu d'un lien,
- * le gris d'un placeholder — fuyait sans que rien ne le voie. La liste se DÉRIVE ici des
- * composants : chaque sorte de contrôle présente dans `src/ui/*.tsx` doit avoir sa règle, et
- * une sorte inconnue fait échouer le test jusqu'à ce qu'on lui en écrive une.
+ * T-0304 — native markup controls, one by one.
+ * T-0070 held a 5-declaration list: what wasn't there (link blue, placeholder grey) leaked
+ * unseen. List now DERIVED from components: each control kind in `src/ui/*.tsx` needs its
+ * rule; unknown kind fails until one is written.
  */
 describe('surfaces natives du balisage — T-0304', () => {
   const DOSSIER_UI = join(import.meta.dirname, '..', 'src', 'ui')
@@ -446,7 +426,7 @@ describe('surfaces natives du balisage — T-0304', () => {
     .join('\n')
   const SANS_COMMENTAIRES = CSS.replace(/\/\*[\s\S]*?\*\//g, '')
 
-  /** Le corps de la règle dont le sélecteur est exactement `selecteur`. */
+  /** Body of rule whose selector is exactly `selecteur`. */
   function corps(selecteur: string): string {
     const debut = SANS_COMMENTAIRES.indexOf(`\n${selecteur} {`)
     expect(debut, selecteur).toBeGreaterThan(-1)
@@ -464,7 +444,7 @@ describe('surfaces natives du balisage — T-0304', () => {
     expect(bloc, selecteur).toMatch(/appearance:\s*none/)
   }
 
-  /** Ce que chaque sorte de contrôle exige de la feuille pour ne rien peindre hors palette. */
+  /** What each control kind requires of the sheet to paint nothing off-palette. */
   const EXIGENCES: Readonly<Record<string, () => void>> = {
     a: () => colorePar(corps('a'), 'color'),
     placeholder: () => colorePar(corps('::placeholder'), 'color'),
@@ -477,7 +457,7 @@ describe('surfaces natives du balisage — T-0304', () => {
     'input:button': () => {},
     'input:text': () => {},
     'input:checkbox': () => expect(corps("input[type='checkbox']")).toMatch(/appearance:\s*none/),
-    // T-0405 — le radio du parc n'est jamais peint : la zone qui le couvre dessine la coche.
+    // T-0405 — parc radio never painted: covering zone draws the check.
     'input:radio': () => expect(corps('.parc-choix > input')).toMatch(/appearance:\s*none[\s\S]*opacity:\s*0/),
     'input:search': () => retire("input[type='search']::-webkit-search-cancel-button"),
     'input:number': () => {
@@ -502,27 +482,23 @@ describe('surfaces natives du balisage — T-0304', () => {
   })
 
   it('cerne les commandes flottantes du filet des contrôles, qui tient 3:1', () => {
-    // Le rail, le mode nuit et l'info sont des contrôles : WCAG 1.4.11 les tient à 3:1, et
-    // `--bordure` n'y montait qu'à 1,42:1 la nuit.
+    // Rail, mode nuit, info = controls: WCAG 1.4.11 holds them at 3:1; `--bordure` reached only
+    // 1,42:1 at night.
     expect(corps('.bouton-glyphe-flottant')).toMatch(/border:.*var\(--bordure-controle\)/)
     expect(SANS_COMMENTAIRES).not.toMatch(/\.tiroir-nuit > summary \{[^}]*var\(--bordure\)/)
   })
 })
 
 /**
- * T-0071 — le contraste du texte, recalculé depuis la feuille.
- *
- * Le seuil est une propriété des jetons, pas une impression visuelle : il se recalcule à
- * chaque exécution depuis `styles.css`, et tout jeton qui régresse fait échouer ce test.
- * Le calcul, le plafond du rouge pur et l'effondrement au plancher de 2 % sont écrits à
- * côté de la palette, dans la feuille.
+ * T-0071 — text contrast, recomputed each run from `styles.css`: any regressing token fails.
+ * Calc, pure-red cap and collapse to 2 % floor are written beside the palette, in the sheet.
  */
 describe('contraste du texte — WCAG 2.2 AA', () => {
-  /** Seuil AA du texte courant. Les libellés sont à 0,85 rem : jamais du « texte large ». */
+  /** AA threshold for body text. Labels are 0,85 rem: never "large text". */
   const CONTRASTE_TEXTE_MINIMAL = 4.5
 
   const JETONS_TEXTE = ['texte', 'attenue', 'alerte'] as const
-  /** `--bordure` est un trait, pas un glyphe : il ne relève pas du seuil de texte. */
+  /** `--bordure` = stroke, not glyph: outside text threshold. */
   const JETONS_FOND = ['fond', 'surface', 'surface-haute', 'surface-survol', 'fond-alerte'] as const
 
   for (const [mode, palette] of [
@@ -556,15 +532,13 @@ describe('contraste du texte — WCAG 2.2 AA', () => {
   })
 
   it('garde la hiérarchie du texte secondaire, que la luminance ne porte plus', () => {
-    // Le plafond de 5,25:1 colle --attenue à --texte : l'ordre subsiste mais ne se voit
-    // plus. Ce qui distingue le texte secondaire est donc sa taille, et sa graisse là où
-    // deux états partagent la même.
+    // 5,25:1 cap glues --attenue to --texte: order remains, invisible. Secondary text then told
+    // by size, and weight where 2 states share it.
     const nuit = paletteDeNuit()
     expect(luminance(nuit['attenue']!)).toBeLessThan(luminance(nuit['texte']!))
-    // T-0194 — la taille vient désormais de l'échelle typographique : ce qui est vérifié
-    // reste qu'un rang lui est assigné, pas la forme littérale du nombre.
-    // T-0215 — le rang du libellé a quitté `label` pour `.libelle` : `label` n'ordonne plus
-    // que la disposition, et ne restyle plus le contrôle qu'il enveloppe.
+    // T-0194 — size from typographic scale: checked = a rank is assigned, not the literal form.
+    // T-0215 — label rank moved from `label` to `.libelle`: `label` orders layout only, no
+    // longer restyles the wrapped control.
     for (const selecteur of ['.libelle', '.etat']) {
       expect(regle(selecteur), selecteur).toMatch(/font-size: var\(--texte-[a-z]+\)/)
     }
@@ -573,14 +547,10 @@ describe('contraste du texte — WCAG 2.2 AA', () => {
 })
 
 /**
- * T-0186 - le contraste des elements non textuels (bordures de controle).
- *
- * WCAG 2.2 critere 1.4.11 exige 3:1 entre la limite visuelle qui identifie un composant
- * d'interface (champ, bouton, tiroir) et la surface qui la porte. Le jeton `--bordure-controle`
- * est reserve aux controles ; `--bordure` reste sur les conteneurs (cartes) qui en sont exempts.
- *
- * En mode nuit, au facteur nominal, le meme seuil doit tenir. Sous le facteur, l'ecart est
- * celui de T-0071 (effondrement au plancher de 2 %).
+ * T-0186 — non-text contrast (control borders). WCAG 2.2 1.4.11: 3:1 between the boundary
+ * identifying a UI component (field, button, tiroir) and its surface. Token
+ * `--bordure-controle` reserved for controls; `--bordure` stays on containers (cards), exempt.
+ * Mode nuit at nominal factor: same threshold; under factor, gap = T-0071's (collapse to 2 %).
  */
 describe('contraste des bordures de controle - WCAG 2.2 1.4.11', () => {
   const CONTRASTE_BORDURE_MINIMAL = 3
@@ -607,8 +577,7 @@ describe('contraste des bordures de controle - WCAG 2.2 1.4.11', () => {
   }
 
   it('ne degrade pas le contraste du texte', () => {
-    // Valider que le nouveau jeton --bordure-controle n'a pas degrade le contraste du texte
-    // qui doit rester >= 4,5:1 (AA) sur toute surface.
+    // New `--bordure-controle` must not degrade text contrast: ≥ 4,5:1 (AA) on every surface.
     const CONTRASTE_TEXTE_MINIMAL = 4.5
     const JETONS_TEXTE = ['texte', 'attenue', 'alerte'] as const
     const JETONS_FOND = ['fond', 'surface', 'surface-haute', 'surface-survol', 'fond-alerte'] as const
@@ -631,15 +600,13 @@ describe('contraste des bordures de controle - WCAG 2.2 1.4.11', () => {
   })
 
   it('conserve le jeton --bordure pour les conteneurs (cartes), exempt par 1.4.11', () => {
-    // --bordure n'est plus sur les controles (input, select, .tiroir > summary) mais reste
-    // sur les bords de conteneurs ou il ne releve pas du critere 1.4.11.
+    // --bordure no longer on controls (input, select, .tiroir > summary); stays on container
+    // edges exempt from 1.4.11.
 
-    // Verifier que --bordure-controle est sur les controles
-    // Le selecteur 'input,' n'a pas d'accolade directe - il est suivi de 'select {'
-    //
-    // T-0215 — la recherche porte sur la feuille SANS SES COMMENTAIRES : une note de prose
-    // qui cite « input, select » se plaçait avant la règle et faisait lire le mauvais bloc.
-    // C'est la convention des autres tests de feuille (`echelles.test.ts`).
+    // Check --bordure-controle is on controls. Selector 'input,' has no direct brace: followed
+    // by 'select {'.
+    // T-0215 — search on the sheet WITHOUT COMMENTS: a prose note citing "input, select" came
+    // before the rule and made the wrong block read (same as `echelles.test.ts`).
     const sansCommentaires = CSS.replace(/\/\*[\s\S]*?\*\//g, '')
     const debut = sansCommentaires.indexOf('input,')
     expect(debut).toBeGreaterThan(-1)
@@ -649,7 +616,7 @@ describe('contraste des bordures de controle - WCAG 2.2 1.4.11', () => {
     const regleTiroir = regle('.tiroir > summary')
     expect(regleTiroir).toMatch(/border.*var\(--bordure-controle\)/)
 
-    // Verifier que --bordure subsiste sur les rubriques
+    // Check --bordure remains on rubriques.
     const regleCarte = regle('section:not([class])')
     expect(regleCarte).toMatch(/border.*var\(--bordure\)/)
   })
@@ -678,8 +645,8 @@ describe('état du mode nuit §11.1', () => {
   })
 
   it('ignore les champs de forme inattendue d’un stockage abîmé', () => {
-    // Le stockage local est hors du périmètre de confiance : un état à moitié corrompu
-    // ne doit pas se propager jusqu'à la palette (§12.3).
+    // Local storage outside trust perimeter: half-corrupted state must not reach the palette
+    // (§12.3).
     const stocke = (valeur: string) => {
       Object.defineProperty(globalThis, 'localStorage', {
         configurable: true,
@@ -693,8 +660,8 @@ describe('état du mode nuit §11.1', () => {
       stocke(JSON.stringify({ actif: 'oui', luminance: 'sombre', intrus: true }))
       expect(litEtatPersiste()).toStrictEqual(ETAT_INITIAL)
 
-      // T-0140 — `typeDalle` et `autoActivation` sont écrits par les versions antérieures :
-      // ils ne sont plus lus, et leur présence ne doit pas contaminer l'état relu.
+      // T-0140 — `typeDalle`, `autoActivation` written by earlier versions: no longer read,
+      // must not contaminate reloaded state.
       stocke(JSON.stringify({ actif: true, luminance: 12, typeDalle: 'OLED' }))
       expect(litEtatPersiste()).toStrictEqual({ ...ETAT_INITIAL, actif: true })
 
@@ -725,7 +692,7 @@ describe('interface rendue', () => {
   const ecran = renderToStaticMarkup(<App />)
 
   it('n’écrit aucune couleur en ligne dans le balisage', () => {
-    // T-0332 — toute propriété qui peint, pas seulement le texte et le fond.
+    // T-0332 — any painting property, not only text and background.
     expect(ecran).not.toMatch(
       /style="[^"]*(?:color|background|border|fill|stroke|outline|box-shadow)[^"]*"/,
     )
@@ -737,8 +704,8 @@ describe('interface rendue', () => {
     expect(ecran).toMatch(/mode nuit/i)
   })
 
-  // T-0140 — le tiroir ne porte que ce qui se décide : ni physiologie rétinienne, ni saisie
-  // du type de dalle, ni bascule automatique.
+  // T-0140 — tiroir carries only what is decided: no retinal physiology, panel-type input,
+  // auto switch.
   it('ne rend ni l’explication du rouge, ni les réglages retirés', () => {
     expect(ecran).not.toMatch(/bâtonnets/)
     expect(ecran).not.toContain('Type de dalle')
@@ -748,22 +715,19 @@ describe('interface rendue', () => {
 })
 
 /**
- * T-0072 — `prefers-reduced-motion` (WCAG 2.3.3).
- *
- * Deux exigences se contredisent en apparence : §11.1 interdit le basculement brutal et le
- * flash, la préférence système demande qu'aucun mouvement ne s'impose. Le compromis est écrit
- * dans la feuille — fondu de luminance conservé, durée coupée — et vérifié ici, parce qu'une
- * règle de style supprimée par mégarde ne casse aucun rendu.
+ * T-0072 — `prefers-reduced-motion` (WCAG 2.3.3). Apparent conflict: §11.1 bans abrupt switch
+ * and flash, system preference asks no imposed motion. Compromise in sheet (luminance fade
+ * kept, duration cut), checked here: a deleted rule breaks no render.
  */
 describe('mouvement réduit — WCAG 2.3.3', () => {
-  /** Le bloc `@media (prefers-reduced-motion: reduce)`, accolade fermante comprise. */
+  /** `@media (prefers-reduced-motion: reduce)` block, closing brace included. */
   function blocMouvementReduit(): string {
     const debut = CSS.search(/@media\s*\(prefers-reduced-motion:\s*reduce\)/)
     expect(debut, 'aucune règle prefers-reduced-motion dans la feuille').toBeGreaterThan(-1)
     return CSS.slice(debut, CSS.indexOf('\n}', debut) + 2)
   }
 
-  /** Le bloc `@media (prefers-reduced-motion: no-preference)`, accolade fermante comprise. */
+  /** `@media (prefers-reduced-motion: no-preference)` block, closing brace included. */
   function blocMouvementAccepte(): string {
     const debut = CSS.search(/@media\s*\(prefers-reduced-motion:\s*no-preference\)/)
     return debut === -1 ? '' : CSS.slice(debut, CSS.indexOf('\n}', debut) + 2)
@@ -773,22 +737,20 @@ describe('mouvement réduit — WCAG 2.3.3', () => {
     const bloc = blocMouvementReduit()
     const durees = [...bloc.matchAll(/(\d+)ms/g)].map((m) => Number(m[1]))
     expect(durees.length, 'la préférence ne redéfinit aucune durée').toBeGreaterThan(0)
-    // T-0331 — la durée nominale est un jeton : sa première déclaration est la nominale.
+    // T-0331 — nominal duration is a token: its first declaration is the nominal one.
     const nominale = Number(/--fondu-nuit:\s*(\d+)ms/.exec(CSS)?.[1])
     for (const duree of durees) {
-      // Zéro rendrait le basculement brutal que §11.1 interdit.
+      // Zero = the abrupt switch §11.1 bans.
       expect(duree, `${duree}ms`).toBeGreaterThan(0)
       expect(duree, `${duree}ms`).toBeLessThan(nominale)
     }
   })
 
   it('ne laisse aucune autre animation s’imposer', () => {
-    // Rien ne bouge en dehors du fondu de bascule : ni image clé, ni défilement lissé,
-    // ni transition sur une propriété de position.
-    //
-    // Le bloc `no-preference` est retiré du décompte, et c'est le seul assouplissement : ce
-    // qu'il contient ne s'IMPOSE à personne, puisqu'il ne s'applique qu'aux réglages qui
-    // acceptent le mouvement. Tout ce qui vit hors de ce bloc reste tenu à la règle stricte.
+    // Nothing moves outside the switch fade: no keyframes, smooth scroll, nor transition on a
+    // position property.
+    // `no-preference` block removed from count, the sole relaxation: IMPOSED on nobody (motion-
+    // accepting settings only). Everything outside stays under the strict rule.
     const accepte = blocMouvementAccepte()
     const impose = accepte === '' ? CSS : CSS.replace(accepte, '')
 
@@ -796,27 +758,26 @@ describe('mouvement réduit — WCAG 2.3.3', () => {
     expect(impose).not.toMatch(/\banimation(-name)?:/)
     expect(impose).not.toMatch(/scroll-behavior:\s*smooth/)
     const transitions = [...impose.matchAll(/transition:\s*([^;]+);/g)].map((m) => m[1]!)
-    // T-0409 — un jeton de couleur enregistré qui glisse est un fondu, pas un mouvement.
+    // T-0409 — registered colour token that glides = fade, not movement.
     for (const declaration of transitions) {
       expect(declaration, declaration).toMatch(/^(background-color|color|--[a-z-]+)\b/)
     }
   })
 
   it('n’accepte de mouvement que déclenché par un geste, jamais au repos', () => {
-    // La porte ouverte ci-dessus ne doit pas devenir un fourre-tout. Ce qui s'anime sous
-    // `no-preference` s'anime en réponse à une interaction : la transition est portée par la
-    // règle de base — sinon le retour serait brutal — mais c'est un état de geste qui change
-    // la valeur, et cet état doit exister quelque part dans la feuille.
+    // The open door above must not become a catch-all. Under `no-preference`, animation answers
+    // an interaction: transition on base rule (else return is abrupt), a gesture state changes
+    // the value and must exist somewhere in the sheet.
     const accepte = blocMouvementAccepte()
     if (accepte === '') return
 
     expect(accepte).not.toMatch(/@keyframes/)
     expect(accepte).not.toMatch(/\banimation(-name)?:/)
 
-    // T-0325 — ouvrir un `<details>` au clic est un geste aussi : l'état `[open]` en porte la
-    // trace. Il se retire du sélecteur pour retrouver celui de la règle de base qui s'anime.
-    // Choisir Panorama aussi : `[data-absente='true']` ne change qu'à la bascule de mode.
-    // Le bouton Filtre de même : `[data-ouvert='false']` ne change qu'à son clic.
+    // T-0325 — opening a `<details>` on click = gesture: `[open]` carries it. Removed from
+    // selector to find the animating base rule's.
+    // Same for Panorama: `[data-absente='true']` changes only at mode switch.
+    // Same for Filtre button: `[data-ouvert='false']` changes only on its click.
     const ETATS = ['[open]', "[data-absente='true']", "[data-ouvert='false']"]
     const sansEtat = (sel: string): string => ETATS.reduce((s, etat) => s.replaceAll(etat, ''), sel)
     const gestes = [
@@ -835,15 +796,13 @@ describe('mouvement réduit — WCAG 2.3.3', () => {
   })
 
   it('n’anime le curseur temporel que sur demande explicite', () => {
-    // §11.2 — aucune animation non sollicitée. Le défilement n'est jamais l'état de départ :
-    // il ne peut donc pas démarrer de lui-même, et reste choisissable sous la préférence.
+    // §11.2 — no unsolicited animation. Scrolling is never the start state: can't start by
+    // itself, stays selectable under the preference.
     expect(etatScene().temps.modeTemps).not.toBe('DEFILEMENT')
   })
 })
 
-/**
- * T-0375 — la bascule tient en un geste, et rien n'y reste allumé la nuit.
- */
+/** T-0375 — switch is one gesture, nothing stays lit at night. */
 describe('bascule du mode nuit — T-0375', () => {
   const rendu = (actif: boolean): string =>
     renderToStaticMarkup(
@@ -860,7 +819,7 @@ describe('bascule du mode nuit — T-0375', () => {
   it('annonce l’action produite, pas l’état courant', () => {
     expect(libelleBascule(false)).toEqual({ icone: 'dark_mode', nom: 'Activer le mode nuit' })
     expect(libelleBascule(true)).toEqual({ icone: 'light_mode', nom: 'Désactiver le mode nuit' })
-    // Un nom qui change avec l'état exclut `aria-pressed` : il serait annoncé deux fois.
+    // Name changing with state excludes `aria-pressed` (announced twice).
     expect(rendu(true)).toContain('Désactiver le mode nuit')
     expect(rendu(true)).not.toContain('aria-pressed')
   })
@@ -886,7 +845,7 @@ describe('aucun aplat allumé la nuit — T-0375', () => {
   const NUIT = ":root[data-mode-nuit='true'] "
   const APLAT = /(?:^|[\s;])background(?:-color)?:\s*var\(--texte\)\s*;/
 
-  /** Ce qui garde son aplat la nuit, et pourquoi : une surface minuscule, ou l'information même. */
+  /** What keeps flat fill at night, and why: tiny surface, or the information itself. */
   const EXCEPTIONS: Readonly<Record<string, string>> = {
     '::selection': 'transitoire : n’existe que le temps d’un geste de sélection',
     "input[type='checkbox']:checked": 'une case de 1,1 rem, seul signe de l’état coché',
@@ -902,7 +861,7 @@ describe('aucun aplat allumé la nuit — T-0375', () => {
     '.lune-gibbeuse .lune-terminateur': 'la part éclairée de la Lune : c’est l’information',
   }
 
-  /** Les règles de la feuille, sélecteurs séparés — les blocs `@media` laissent leurs règles. */
+  /** Sheet rules, selectors split; `@media` blocks leave their rules. */
   const regles = [...SANS_COMMENTAIRES.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
     selecteurs: m[1]!.split(',').map((x) => x.trim()),
     corps: m[2]!,

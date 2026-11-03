@@ -1,16 +1,10 @@
 /**
- * §8.1 et §4.1 — à quelle nuit appartient un instant, et comment cette nuit se nomme.
- *
- * T-0267 — dater la nuit par le jour civil de l'instant la fait changer de sujet à minuit :
- * à 00:30, l'application posée sur la table de camp basculait sur la nuit du lendemain, au
- * moment précis où elle sert le plus. Le jour d'observation court donc d'un midi au suivant :
- * une nuit garde le nom du soir où elle a commencé, du coucher du Soleil à son lever.
- *
- * Le midi retenu est le midi LÉGAL, et non le midi solaire vrai de §4.1. La bascule ne tombe
- * qu'entre le lever du Soleil et le début d'après-midi, quand aucune nuit ne court : l'y
- * décaler d'un quart d'heure ne déplacerait aucune séance. Et un pivot au lever du Soleil
- * demanderait le site pour dater une nuit, alors que c'est la nuit datée qui détermine le
- * site qu'on interroge.
+ * §8.1, §4.1 — which nuit an instant belongs to, and its name.
+ * T-0267 — civil-day dating flipped to next night at midnight (00:30 at camp table, when app
+ * matters most). Observation day = noon → noon: nuit keeps name of the evening it began.
+ * Pivot = LEGAL noon, not §4.1 true solar noon: flip falls between sunrise and early afternoon,
+ * no nuit running; 15 min shift moves no séance. Sunrise pivot would need the site to date a
+ * nuit, while the dated nuit determines the site queried.
  */
 
 import { K } from '../registry/constants.ts'
@@ -18,14 +12,14 @@ import { K } from '../registry/constants.ts'
 const deuxChiffres = (n: number): string => String(n).padStart(2, '0')
 
 /**
- * Le jour LOCAL au format ISO. `toISOString().slice(0, 10)` donnerait le jour UTC : après
- * minuit UTC en été, il désigne la nuit suivante — pas celle qu'on observe.
+ * LOCAL day in ISO. `toISOString().slice(0, 10)` = UTC day: after UTC midnight in summer it names
+ * the next nuit.
  */
 export function jourLocalIso(date: Date): string {
   return `${date.getFullYear()}-${deuxChiffres(date.getMonth() + 1)}-${deuxChiffres(date.getDate())}`
 }
 
-/** La nuit qui contient l'instant, nommée par le jour de son coucher de Soleil. */
+/** Nuit containing the instant, named by its sunset day. */
 export function nuitDeLInstant(instant: Date): string {
   const soir = new Date(instant)
   if (instant.getHours() < K('MIDI_JOUR_OBSERVATIONNEL_H')) {
@@ -35,9 +29,8 @@ export function nuitDeLInstant(instant: Date): string {
 }
 
 /**
- * Le midi qui ouvre le jour d'observation — d'où part la recherche du coucher du Soleil
- * (§8.1). Midi LOCAL, jamais midi UTC : à l'est du méridien, midi UTC tombe déjà après le
- * coucher et la recherche sauterait à la nuit suivante.
+ * Noon opening the observation day: sunset search starts here (§8.1). LOCAL noon, never UTC: east
+ * of meridian UTC noon is past sunset → search skips to next nuit.
  */
 export function midiDeLaNuit(nuitIso: string): Date {
   const midi = new Date(`${nuitIso}T00:00:00`)
@@ -52,8 +45,7 @@ function lendemainIso(nuitIso: string): string {
 }
 
 /**
- * T-0431 — l'instant où ouvrir une nuit qu'on n'est pas en train de vivre : son minuit LOCAL,
- * au cœur de la nuit, quand le midi qui l'ouvre peindrait un ciel de jour.
+ * T-0431 — instant opening a nuit not being lived: its LOCAL midnight (opening noon = day sky).
  */
 export function minuitDeLaNuit(nuitIso: string): Date {
   return new Date(`${lendemainIso(nuitIso)}T00:00:00`)
@@ -61,10 +53,7 @@ export function minuitDeLaNuit(nuitIso: string): Date {
 
 const enClair = (iso: string): string => iso.split('-').reverse().join('/')
 
-/**
- * Une nuit porte deux dates : les dire toutes les deux est la seule façon de ne pas laisser
- * le lecteur deviner laquelle il tient — c'est ce que cette carte et cet export annoncent.
- */
+/** A nuit has two dates: state both, no guessing (card and export announce this). */
 export function nomDeLaNuit(nuitIso: string): string {
   return `nuit du ${enClair(nuitIso)} au ${enClair(lendemainIso(nuitIso))}`
 }

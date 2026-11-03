@@ -1,15 +1,10 @@
 /**
- * §3.1 et §3.3 — « à 120 000 étoiles et un défilement ×60, la fréquence reste au-dessus de
- * 50 Hz, et l'ajouter d'étoiles au catalogue ne la dégrade pas mesurablement ».
- *
- * Le second membre est le plus intéressant : il ne se vérifie pas au chronomètre mais par
- * une invariance. Les étoiles ajoutées sont plus faibles que la magnitude limite du zoom ;
- * rangées par magnitude dans leur cellule, elles s'insèrent APRÈS le point d'arrêt du
- * parcours. Le nombre d'étoiles LUES par image doit donc rester identique.
- *
- * Le chronomètre mesure ici la sélection et la projection, c'est-à-dire la seule partie du
- * rendu qui dépend de la taille du catalogue — le tracé, lui, dépend du canevas et n'existe
- * pas hors navigateur.
+ * §3.1, §3.3 — "à 120 000 étoiles et un défilement ×60, la fréquence reste au-dessus de 50 Hz,
+ * et l'ajouter d'étoiles au catalogue ne la dégrade pas mesurablement".
+ * 2nd clause by invariance, not stopwatch: added stars fainter than zoom limiting magnitude,
+ * sorted by magnitude in their cell → inserted AFTER traversal stop → stars READ per frame
+ * identical. Timer = selection + projection, the only render part scaling with catalogue
+ * (drawing depends on canvas, absent outside browser).
  */
 
 import { describe, expect, it } from 'vitest'
@@ -20,7 +15,7 @@ import { magnitudeLimite, projecteur, type Vue } from '../src/core/projection.ts
 import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
 
-/** Générateur congruentiel : le catalogue de test doit être reproductible d'un run à l'autre. */
+/** Linear congruential generator: reproducible test catalogue. */
 function alea(graine: number): () => number {
   let etat = graine
   return () => {
@@ -30,9 +25,8 @@ function alea(graine: number): () => number {
 }
 
 /**
- * Catalogue synthétique : répartition uniforme sur la sphère, et densité de magnitude en
- * 10^(0,6 m), qui est l'ordre de grandeur observé — environ 3 % des étoiles d'un catalogue
- * complet à magnitude 9 sont plus brillantes que 6,5.
+ * Synthetic catalogue: uniform on sphere, magnitude density 10^(0,6 m) (observed order):
+ * ~3 % of a full mag-9 catalogue brighter than 6,5.
  */
 function catalogueSynthetique(nombre: number, magMin: number, magMax: number): Etoile[] {
   const suivant = alea(nombre + magMin * 1000)
@@ -62,7 +56,7 @@ function vueDeReference(fovDeg: number): Vue {
   }
 }
 
-/** Une image complète : matrice unique, sélection, projection de chaque étoile retenue. */
+/** One full frame: single matrix, selection, projection of each kept star. */
 function image(index: ReturnType<typeof construitIndex>, dateMs: number, fovDeg: number) {
   const ciel = cielInstantane(SITE, new Date(dateMs))
   const proj = projecteur(vueDeReference(fovDeg), ciel.matrice)
@@ -95,13 +89,12 @@ describe('index spatial §3.3', () => {
   it('ne lit pas les étoiles plus faibles que la limite du zoom', () => {
     const serre = image(index, Date.UTC(2026, 7, 15, 22), 15)
     const large = image(index, Date.UTC(2026, 7, 15, 22), 60)
-    // Champ plus serré : moins de cellules, mais profondeur plus grande. Ce qui compte est
-    // que rien ne soit lu au-delà de la magnitude limite.
+    // Tighter field: fewer cells, greater depth; nothing read beyond limiting magnitude.
     expect(serre.stats.cellulesRetenues).toBeLessThan(large.stats.cellulesRetenues)
   })
 
   it('ne dégrade pas le coût par image quand le catalogue s’enrichit d’étoiles faibles', () => {
-    // Les étoiles ajoutées sont toutes plus faibles que la magnitude limite à 60° (6,5).
+    // Added stars all fainter than limiting magnitude at 60° (6,5).
     const enrichi = construitIndex([
       ...etoiles,
       ...catalogueSynthetique(120_000, 7, 9),
@@ -119,7 +112,7 @@ describe('index spatial §3.3', () => {
     const IMAGES = 60
     const MS_PAR_IMAGE_A_50HZ = 1000 / 50
     const depart = Date.UTC(2026, 7, 15, 22)
-    // ×60 : une minute de ciel par seconde réelle, soit une seconde de ciel par image.
+    // ×60: 1 sky minute per real second → 1 sky second per frame.
     const debut = performance.now()
     let total = 0
     for (let i = 0; i < IMAGES; i++) {

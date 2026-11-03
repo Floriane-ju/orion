@@ -1,20 +1,11 @@
 /**
- * §3.3 — Indexation spatiale du catalogue.
- *
- * « Découpage HEALPix ou quadtree équatorial ; seules les cellules intersectant le champ
- * sont soumises au GPU. Coût de sélection indépendant du zoom. »
- *
- * Deux propriétés portent à elles seules le critère de §3.1 — « ajouter des étoiles ne
- * dégrade pas mesurablement la fréquence » :
- *
- *   1. les cellules hors du champ ne sont jamais parcourues ;
- *   2. à l'intérieur d'une cellule, les étoiles sont rangées par magnitude croissante et le
- *      parcours s'arrête à la première étoile plus faible que la limite du zoom. Un
- *      catalogue enrichi d'étoiles faibles s'insère APRÈS le point d'arrêt : le nombre
- *      d'étoiles examinées par image ne change pas.
- *
- * Les directions unitaires sont calculées une fois à la construction. Par image, il ne
- * reste qu'un produit matriciel par étoile retenue.
+ * §3.3 — catalogue spatial index. PRD: HEALPix or equatorial quadtree; only cells intersecting the
+ * field go to GPU, selection cost independent of zoom.
+ * Two properties carry §3.1's "adding stars does not measurably degrade frequency":
+ *   1. cells outside the field never visited;
+ *   2. stars sorted by ascending magnitude within a cell, scan stops at first star fainter than
+ *      zoom limit → added faint stars land AFTER the stop: stars examined per frame unchanged.
+ * Unit directions computed once at build; per frame one matrix product per kept star.
  */
 
 import { K } from '../registry/constants.ts'
@@ -25,34 +16,31 @@ import { encadre, ramene, TOUR_DEG } from './unites.ts'
 
 export interface CelluleCiel {
   readonly centre: Vec3
-  /** Rayon englobant exact de la cellule, en degrés. */
+  /** Exact cell bounding radius, degrees. */
   readonly rayonDeg: number
   readonly x: Float32Array
   readonly y: Float32Array
   readonly z: Float32Array
   readonly mag: Float32Array
   readonly bv: Float32Array
-  /** Indice de l'étoile dans le catalogue source, pour l'identification au clic. */
+  /** Source-catalogue star index, for click identification. */
   readonly source: Int32Array
 }
 
 export interface IndexCiel {
   readonly cellules: readonly CelluleCiel[]
   readonly nombreEtoiles: number
-  /** Magnitude la plus faible présente : c'est la profondeur réelle du paquet chargé. */
+  /** Faintest magnitude present: real depth of loaded packet. */
   readonly profondeurMag: number
   /**
-   * Comptage cumulé par pas de magnitude : `cumulMag[i]` = nombre d'étoiles de l'index dont la
-   * magnitude ne dépasse pas `magMin + i * PAS_COMPTAGE_CUMULE_MAG`.
-   *
-   * T-0119 — c'est ce qui permet de convertir un budget de traces en plafond de magnitude. La loi
-   * de comptage du semis (§9.2, `SEMIS_ETOILES_TOTAL` à `SEMIS_MAG_MAX`) ne peut pas servir ici :
-   * prolongée vers les étoiles brillantes elle donne quelques centaines d'étoiles au seuil
-   * catalographié, là où le paquet réel en compte des dizaines de milliers. Elle décrit le semis,
-   * pas le catalogue. Le comptage exact ne peut donc venir que du catalogue lui-même.
+   * Cumulative count per magnitude step: `cumulMag[i]` = stars with magnitude
+   * ≤ `magMin + i * PAS_COMPTAGE_CUMULE_MAG`.
+   * T-0119 — converts trace budget → magnitude cap. Seed count law (§9.2, `SEMIS_ETOILES_TOTAL`
+   * to `SEMIS_MAG_MAX`) can't serve: extended to bright stars gives a few hundred at cataloged
+   * threshold vs tens of thousands in the real packet (describes seed, not catalogue).
    */
   readonly cumulMag: Float32Array
-  /** Magnitude la plus brillante présente : origine du comptage cumulé, lue dans les données. */
+  /** Brightest magnitude present: cumulative count origin, read from data. */
   readonly magMin: number
 }
 
@@ -82,36 +70,31 @@ function rayonEnglobant(centre: Vec3, adMinDeg: number, adMaxDeg: number, decMin
 }
 
 /**
- * Construit l'index. Le découpage est un quadtree équatorial à un niveau : des bandes de
- * déclinaison de côté constant, chacune découpée en ascension droite pour que les cellules
- * gardent une largeur angulaire comparable jusqu'aux pôles.
+ * Builds the index: one-level equatorial quadtree, constant-side declination bands each cut in
+ * right ascension → comparable cell width up to poles.
  */
 export function construitIndex(etoiles: readonly Etoile[]): IndexCiel {
   return dUnBloc(construitIndexPas(etoiles))
 }
 
 /**
- * L'index d'un ciel sans étoile : ce que la scène dessine tant que le catalogue n'est pas
- * décodé. `magnitudePourEffectif` y rend `+Infinity`, comme sur tout index dont l'effectif
- * demandé dépasse le contenu — il n'y a rien à plafonner.
+ * Starless-sky index, drawn until catalogue decoded. `magnitudePourEffectif` returns `+Infinity`
+ * there (as when requested count exceeds content): nothing to cap.
  */
 export const INDEX_VIDE: IndexCiel = Object.freeze(construitIndex([]))
 
 /**
- * T-0296 — la même construction, ses points de coupe nommés. C'est l'étage le plus cher du
- * démarrage : quatre-vingt mille étoiles rangées, triées par cellule et projetées en
- * directions unitaires, soit cent cinquante millisecondes de fil principal sur une tablette.
- *
- * Les coupes sont aux trois balayages qui pèsent : le rangement en paniers, le remplissage
- * cellule par cellule — c'est lui qui porte les tris et la trigonométrie — et le comptage
- * cumulé. Voir `core/tranches.ts` pour qui décide d'en profiter.
+ * T-0296 — same build, cut points named. Costliest startup stage: 80 000 stars bucketed, sorted
+ * per cell, projected = 150 ms main thread on a tablet.
+ * Cuts at 3 heavy sweeps: bucketing, per-cell fill (sorts + trigonometry), cumulative count.
+ * Users: `core/tranches.ts`.
  */
 export function* construitIndexPas(etoiles: readonly Etoile[]): Decoupable<IndexCiel> {
   const taille = K('CELLULE_INDEX_DEG')
   const bandes = Math.max(1, Math.round(180 / taille))
   const hauteurBande = 180 / bandes
 
-  // Découpage : pour chaque bande, le nombre de cellules en ascension droite.
+  // Per band: cell count in right ascension.
   const colonnes: number[] = []
   for (let b = 0; b < bandes; b++) {
     const decMin = -90 + b * hauteurBande
@@ -151,7 +134,7 @@ export function* construitIndexPas(etoiles: readonly Etoile[]): Decoupable<Index
       const panier = paniers[decalages[b]! + c]!
       if (panier.indices.length === 0) continue
       yield
-      // Rangement par magnitude croissante : c'est lui qui rend le parcours interruptible.
+      // Ascending magnitude = interruptible scan.
       panier.indices.sort((a, z) => etoiles[a]!.magV - etoiles[z]!.magV)
 
       const adMin = c * largeur
@@ -193,8 +176,8 @@ export function* construitIndexPas(etoiles: readonly Etoile[]): Decoupable<Index
   return {
     cellules,
     nombreEtoiles: etoiles.length,
-    // T-0297 — un index sans étoile n'a pas de profondeur, pas une profondeur nulle : à 0, la
-    // scène déclarait « le catalogue s'arrête à la magnitude 0.0 » tant qu'il n'était pas décodé.
+    // T-0297 — starless index = no depth, not depth 0 (scene said "catalogue stops at
+    // magnitude 0.0" before decode).
     profondeurMag: Number.isFinite(profondeur) ? profondeur : Number.POSITIVE_INFINITY,
     cumulMag: yield* construitCumulMag(
       etoiles,
@@ -206,9 +189,8 @@ export function* construitIndexPas(etoiles: readonly Etoile[]): Decoupable<Index
 }
 
 /**
- * Comptage cumulé des magnitudes, construit une fois avec l'index : par image, l'inversion n'est
- * plus qu'une lecture. Quelques centaines d'octets pour un catalogue de dizaines de milliers
- * d'étoiles — le tableau est indexé par magnitude, pas par étoile.
+ * Cumulative magnitude count, built with the index: per-frame inversion = one read. Indexed by
+ * magnitude, not star → few hundred bytes.
  */
 function* construitCumulMag(
   etoiles: readonly Etoile[],
@@ -228,13 +210,9 @@ function* construitCumulMag(
 }
 
 /**
- * T-0119 — magnitude la plus faible telle que l'index ne contienne pas plus de `effectif` étoiles
- * sur toute la sphère. `+Infinity` quand l'effectif demandé dépasse ce que l'index porte : il n'y
- * a alors rien à plafonner, et l'appelant ne doit pas confondre « tout le catalogue » avec « le
- * catalogue coupé à sa dernière magnitude ».
- *
- * Le seuil rendu est celui de la case atteinte, jamais interpolé au-delà : rendre une magnitude
- * plus profonde que la case laisserait passer plus d'étoiles que le budget.
+ * T-0119 — faintest magnitude such that index holds ≤ `effectif` stars over the whole sphere.
+ * `+Infinity` when requested count exceeds index content: nothing to cap (≠ "catalogue cut at last
+ * magnitude"). Returns reached cell's threshold, never interpolated beyond: deeper exceeds budget.
  */
 export function magnitudePourEffectif(index: IndexCiel, effectif: number): number {
   const cumul = index.cumulMag
@@ -249,7 +227,7 @@ export function magnitudePourEffectif(index: IndexCiel, effectif: number): numbe
 
 export interface StatistiquesSelection {
   readonly cellulesRetenues: number
-  /** Étoiles réellement lues. C'est ce compteur qui doit rester stable (§3.1). */
+  /** Stars actually read. Counter must stay stable (§3.1). */
   readonly etoilesExaminees: number
 }
 
@@ -262,10 +240,7 @@ export type VisiteEtoile = (
   source: number,
 ) => void
 
-/**
- * Parcourt les étoiles du champ, de la plus brillante à la plus faible, et s'arrête dès que
- * la magnitude limite est franchie.
- */
+/** Visits field stars brightest → faintest, stops past magnitude limit. */
 export function selectionne(
   index: IndexCiel,
   centreJ2000: Vec3,
@@ -273,7 +248,7 @@ export function selectionne(
   magLimite: number,
   visite: VisiteEtoile,
 ): StatistiquesSelection {
-  // T-0396 — une limite à −∞ (le jour) ne retient aucune étoile : l'index ne se parcourt pas.
+  // T-0396 — limit −∞ (jour) keeps no star: index not scanned.
   if (magLimite === Number.NEGATIVE_INFINITY) return { cellulesRetenues: 0, etoilesExaminees: 0 }
   let cellulesRetenues = 0
   let etoilesExaminees = 0

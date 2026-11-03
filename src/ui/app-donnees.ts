@@ -1,9 +1,7 @@
 /**
- * §12 — les catalogues vérifiés et le sort de ce que l'utilisateur a saisi.
- *
- * Le catalogue n'est décodé qu'une fois les paquets vérifiés : un binaire corrompu ne doit
- * jamais alimenter un verdict (§12.2). L'export et l'import, eux, disent toujours ce qu'ils
- * ont fait — un rejet muet aurait l'air de ne rien faire (§12.3).
+ * §12 — verified catalogues + fate of user input.
+ * Catalogue decoded only after packages verified: a corrupt binary never feeds a verdict (§12.2).
+ * Export/import always say what they did — mute rejection looks like doing nothing (§12.3).
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -53,28 +51,21 @@ export interface Catalogues {
   readonly etat: EtatDemarrage | null
   readonly objets: readonly ObjetCielProfond[]
   readonly etoiles: readonly Etoile[]
-  /** §3.3 — l'index spatial des étoiles, construit hors du rendu (T-0296). */
+  /** §3.3 — stars' spatial index, built outside render (T-0296). */
   readonly index: IndexCiel
   readonly constellations: PaquetConstellations
   /**
-   * T-0297 — vrai tant que la séquence de chargement n'a pas abouti (ni échoué). Une liste
-   * vide ne dit rien d'autre : sans ce drapeau, « 0 objet » se lisait pendant que le
-   * catalogue était encore en route.
+   * T-0297 — true until the load sequence completes (or fails). Without it "0 objet" read while
+   * catalogue was still en route.
    */
   readonly enCharge: boolean
 }
 
 /**
- * T-0296 — L'ORDRE DE CHARGEMENT EST CE QUE L'UTILISATEUR VOIT.
- *
- * Le ciel profond passait en premier : son arrivée déclenche le plan de la nuit, les notes et
- * les lignes de la liste, et cette tâche-là tenait le fil pendant que le ciel restait vide. Les
- * étoiles arrivaient après, six à neuf dixièmes de seconde plus tard.
- *
- * Les étoiles passent donc devant, index compris, puis les constellations qui complètent la
- * carte, et le catalogue d'objets en dernier — c'est lui qui alimente la liste, et la liste
- * peut attendre que le ciel soit peint. Rien n'est parallélisé : deux décodages tranchés
- * s'entrelaceraient sur le même fil, et la première image reculerait d'autant.
+ * T-0296 — LOAD ORDER IS WHAT THE USER SEES. Deep-sky went first: its arrival triggered night
+ * plan, notes, list rows (a task holding the thread, sky empty); stars came 0,6-0,9 s later. Now
+ * stars first (index included), then constellations, object catalogue last (feeds the list, which
+ * can wait). Nothing parallel: two sliced decodes interleave on one thread, delay first frame.
  */
 export interface RecoitCatalogues {
   readonly etat: (etat: EtatDemarrage) => void
@@ -85,8 +76,8 @@ export interface RecoitCatalogues {
 }
 
 /**
- * La séquence elle-même, hors de React : c'est l'ORDRE qui est le livrable de T-0296, et un
- * ordre ne se vérifie qu'en l'observant. Un test le joue avec des réceptions qui enregistrent.
+ * The sequence itself, outside React: ORDER is T-0296's deliverable, only checkable by observing
+ * it. A test plays it with recording receivers.
  */
 export async function chargeCatalogues(recoit: RecoitCatalogues): Promise<void> {
   recoit.etat(await demarre())
@@ -120,14 +111,14 @@ export function useCatalogues(): Catalogues {
   return { etat, objets, etoiles, index, constellations, enCharge }
 }
 
-/** Ce que la relecture du démarrage rend à la saisie. */
+/** What startup reread hands back to input. */
 export interface SaisieRestauree {
   readonly lieu: DepartLieu | null
   readonly materiel: DepartMateriel | null
   readonly poids: PoidsScoring | null
-  /** Renseigné quand la relecture a échoué : les écritures restent alors suspendues. */
+  /** Set when reread failed: writes then stay suspended. */
   readonly erreur: string | null
-  /** T-0431 — la saisie vient de l'URL : elle s'enregistre dès l'ouverture, sans attendre un geste. */
+  /** T-0431 — input comes from the URL: saved on open, without waiting for a gesture. */
   readonly planDeLUrl: boolean
 }
 
@@ -140,16 +131,13 @@ const RIEN_A_RESTAURER: SaisieRestauree = Object.freeze({
 })
 
 /**
- * T-0431 — le plan porté par l'URL l'emporte sur celui de la base : ouvrir le lien sur un autre
- * appareil y reprend la nuit, le lieu, le matériel, les poids et la sélection, et les y
- * enregistre. Le masque d'horizon reste celui de l'appareil.
- *
- * `ouvreEcritures` à faux quand la base n'a pas pu être relue : ce qu'on n'a pas su lire ne
- * doit pas être écrasé, l'URL s'affiche sans s'enregistrer.
- *
- * Une fois enregistré, le plan quitte l'URL : elle reste nue hors partage, et un rechargement
- * relit la base — qui suit les gestes faits depuis, quand l'URL les aurait ignorés. Non
- * enregistré, il y reste : c'est alors la seule copie qui survive au rechargement.
+ * T-0431 — plan carried by the URL beats the base's: opening the link on another device resumes
+ * night, lieu, matériel, weights, selection there, and saves them. Horizon mask stays the
+ * device's.
+ * `ouvreEcritures` false when base couldn't be reread: unread data must not be overwritten; URL
+ * shows without saving.
+ * Once saved, plan leaves the URL: bare outside sharing, reload rereads base (which follows later
+ * gestures the URL would ignore). Unsaved, it stays: only copy surviving reload.
  */
 export function avecPlanUrl(
   restauree: SaisieRestauree,
@@ -161,8 +149,8 @@ export function avecPlanUrl(
   if (ouvreEcritures && url.cibles !== undefined) {
     void ecritCiblesChoisies([...url.cibles]).catch(() => undefined)
   }
-  // Une nuit qui n'est pas celle de la scène l'y amène : sinon la saisie, qui date la nuit
-  // d'après la scène, la perdrait au premier geste sur la barre de temps.
+  // A night ≠ scène's brings scène to it: else input, which dates the night from scène, loses it
+  // on first time-bar gesture.
   if (url.nuitIso !== undefined && url.nuitIso !== nuitDeLaScene()) {
     vaA(minuitDeLaNuit(url.nuitIso).getTime())
   }
@@ -183,14 +171,10 @@ export function avecPlanUrl(
 }
 
 /**
- * §12.3 — la saisie enregistrée, relue avant le premier rendu.
- *
- * L'attente est volontaire : hydrater après coup ferait calculer la première image sur les
- * valeurs par défaut, donc afficher une nuit qui n'est pas celle du site enregistré, avant
- * de la remplacer. `null` tant que la relecture court.
- *
- * §12.5 — un navigateur sans IndexedDB n'a rien à restaurer, et l'application démarre
- * quand même : attendre n'a de sens que là où il y a quelque chose à attendre.
+ * §12.3 — saved input, reread before first render. Wait deliberate: hydrating afterwards would
+ * compute frame one on defaults, showing a night ≠ saved site's before replacing it. `null` while
+ * reread runs. §12.5 — browser without IndexedDB: nothing to restore, app starts anyway (wait only
+ * where there is something to wait for).
  */
 export function useSaisieRestauree(): SaisieRestauree | null {
   const [restauree, setRestauree] = useState<SaisieRestauree | null>(() =>
@@ -207,9 +191,8 @@ export function useSaisieRestauree(): SaisieRestauree | null {
           litCiblesChoisies(),
           litPoidsScoring(),
         ])
-        // §8.3 — la sélection va au magasin, pas à la saisie : elle ne se saisit pas, elle se
-        // coche. Posée AVANT le premier rendu, comme le lieu, sans quoi la première image
-        // afficherait un plan vide avant de le remplacer par celui de la veille.
+        // §8.3 — selection goes to the store, not input: ticked, not typed. Set BEFORE first render
+        // like lieu, else frame one shows an empty plan before yesterday's.
         setRestauree(
           avecPlanUrl(
             {
@@ -224,9 +207,8 @@ export function useSaisieRestauree(): SaisieRestauree | null {
           ),
         )
       } catch (erreur) {
-        // Ce qu'on n'a pas su lire ne doit surtout pas être écrasé : la saisie repart des
-        // valeurs par défaut, mais plus rien ne s'enregistre tant que la cause est là — la
-        // sélection de cibles comprise, dont le magasin reste non hydraté, donc muet en base.
+        // Unreadable base must NOT be overwritten: input restarts from defaults but nothing saves
+        // while the cause persists — target selection included (store unhydrated, mute in base).
         console.error('Orion — relecture des données enregistrées', erreur)
         setRestauree(
           avecPlanUrl(
@@ -247,39 +229,38 @@ export function useSaisieRestauree(): SaisieRestauree | null {
   return restauree
 }
 
-/** Le libellé du bouton d'export, que les messages d'échec citent pour dire où il se trouve. */
+/** Export button label; failure messages cite it to say where it is. */
 export const LIBELLE_EXPORT = 'Exporter mes données (JSON)'
 const BOUTON_EXPORT = `« ${LIBELLE_EXPORT} »`
 
 export interface Persistance {
   readonly message: string | null
-  /** Vrai quand le message rapporte un échec : le tiroir fermé doit alors se signaler. */
+  /** True: message reports a failure; closed tiroir must signal itself. */
   readonly echec: boolean
   readonly surExport: () => void
   readonly surImport: (fichier: File) => void
 }
 
-/** Un message à l'écran, et s'il rapporte un échec ou un simple compte rendu. */
+/** A screen message, and whether it reports a failure or a plain account. */
 interface Avis {
   readonly texte: string
   readonly echec: boolean
 }
 
 export interface EntreePersistance {
-  /** Le site tel qu'il s'enregistre ; `null` tant que la saisie n'est pas chiffrable. */
+  /** Site as saved; `null` while input isn't chiffrable. */
   readonly site: SiteAExporter | null
   readonly profil: ProfilAEnregistrer | null
   readonly poids: SaisiePoids
-  /** L'échec de relecture du démarrage, qui suspend les écritures. */
+  /** Startup reread failure, which suspends writes. */
   readonly erreurRestauration: string | null
-  /** T-0431 — le lieu ouvert depuis l'URL n'est pas encore en base : il s'écrit d'emblée. */
+  /** T-0431 — lieu opened from URL not yet in base: written at once. */
   readonly ecritAuDepart: boolean
 }
 
 /**
- * §12.3 — ce que l'utilisateur saisit s'enregistre au fil de la saisie, pas au moment de
- * l'export : entre deux exports, une éviction ou un simple rechargement détruisait tout ce
- * qui vivait en mémoire — le lieu, le matériel.
+ * §12.3 — user input saves as typed, not at export: between exports an eviction or reload
+ * destroyed everything in memory (lieu, matériel).
  */
 export function usePersistance(entree: EntreePersistance): Persistance {
   const { site, profil, poids } = entree
@@ -289,30 +270,23 @@ export function usePersistance(entree: EntreePersistance): Persistance {
       : { texte: entree.erreurRestauration, echec: true },
   )
   /**
-   * Un import remplace en base le lieu et le matériel, mais l'écran, lui, tient encore la
-   * saisie précédente : continuer à l'enregistrer réécrirait par-dessus ce qui vient d'être
-   * importé. Les écritures s'arrêtent donc jusqu'au rechargement, qui relit la base.
+   * An import replaces lieu and matériel in base but screen holds previous input: saving it would
+   * overwrite the import. Writes stop until reload rereads base.
    */
   const [suspendues, setSuspendues] = useState(false)
 
   /**
-   * La valeur des enregistrements sert de clé d'effet : ils sont reconstruits à chaque rendu,
-   * et seul leur contenu doit déclencher une écriture.
-   *
-   * ponytail: une comparaison par sérialisation, dont le masque d'horizon fait 360 nombres.
-   * C'est négligeable devant la chaîne de calcul que le même rendu vient de traverser ; le
-   * jour où ça compte, c'est une signature du masque qu'il faut, pas un débounce — écrire
-   * moins souvent, c'est perdre les dernières frappes.
+   * Records' value is the effect key: rebuilt each render, only content must trigger a write.
+   * ponytail: compare by serialisation (horizon mask = 360 numbers, negligible vs the calcul chain
+   * this render ran). Upgrade when it matters: mask signature, not debounce (fewer writes lose the
+   * last keystrokes).
    */
   const aEcrire =
     entree.erreurRestauration === null && !suspendues
       ? JSON.stringify({ site, profil, poids: poids.poids })
       : null
 
-  /**
-   * L'état du démarrage : il sort de la base, ou n'a pas encore été saisi. Tant que rien ne
-   * s'en écarte, il n'y a rien à écrire.
-   */
+  /** Startup state (from base, or not yet typed): while input matches it, nothing to write. */
   const auDepart = useRef(entree.ecritAuDepart ? null : aEcrire)
 
   useEffect(() => {
@@ -336,9 +310,9 @@ export function usePersistance(entree: EntreePersistance): Persistance {
   }, [aEcrire])
 
   async function exporte(): Promise<void> {
-    // §12.3 — un export qui échoue doit le dire : sans message, on croirait ses données à l'abri.
+    // §12.3 — failing export must say so: silent, data would seem safe.
     try {
-      // Même raison qu'au fil de la saisie : après un import, l'écran n'est plus la référence.
+      // Same reason as during input: after an import, screen isn't the reference.
       if (!suspendues) {
         if (site !== null) await enregistreSiteActif(site)
         if (profil !== null) await enregistreProfilActif(profil)
@@ -350,8 +324,8 @@ export function usePersistance(entree: EntreePersistance): Persistance {
       lien.href = url
       lien.download = `orion-${donnees.exporteLe.slice(0, 10)}.json`
       lien.click()
-      // Révoquée à la tâche suivante : sous Firefox, révoquer aussitôt après `click()` annule
-      // le téléchargement que le clic vient de demander.
+      // Revoked on next task: in Firefox, revoking right after `click()` cancels the requested
+      // download.
       setTimeout(() => URL.revokeObjectURL(url))
       setAvis({ texte: `Export écrit dans ${lien.download}.`, echec: false })
     } catch {
@@ -363,12 +337,12 @@ export function usePersistance(entree: EntreePersistance): Persistance {
   }
 
   async function importe(fichier: File): Promise<void> {
-    // Un fichier retouché ou illisible doit dire pourquoi il est refusé, pas disparaître
-    // en rejet non géré : sans message, l'import a l'air de ne rien faire (§12.3).
+    // Tampered/unreadable file must say why it's refused, not vanish as an unhandled rejection:
+    // silent, import looks like doing nothing (§12.3).
     try {
       const poidsImportes = await importeFichierUtilisateur(await fichier.text())
-      // Les poids ne vivent pas en base : sans cette remise, un plan réimporté serait
-      // réordonné par les valeurs C-15 plutôt que par celles du fichier (§8.3).
+      // Weights aren't in base: without this reset a reimported plan would be reordered by C-15
+      // values, not the file's (§8.3).
       if (poidsImportes !== null) {
         for (const critere of CRITERES_SCORING) poids.surPoids(critere, poidsImportes[critere])
       }
@@ -379,8 +353,8 @@ export function usePersistance(entree: EntreePersistance): Persistance {
         echec: false,
       })
     } catch (erreur) {
-      // Seul le refus d'`importeFichierUtilisateur` est rédigé pour l'écran ; toute autre
-      // levée vient du navigateur, en anglais, et part à la console.
+      // Only `importeFichierUtilisateur`'s refusal is written for screen; any other throw is the
+      // browser's, in English: goes to console.
       if (!(erreur instanceof ExportInvalideError)) console.error('Orion — import', erreur)
       setAvis({
         texte:

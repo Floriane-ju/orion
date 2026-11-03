@@ -1,18 +1,12 @@
 /**
- * §12.2 — Encodage binaire des catalogues.
- *
- * Jamais du CSV, jamais du JSON : 12 octets par étoile.
- *   AD     float32  4 o   précision ≈ 0,15" sur 360°, suffisante
+ * §12.2 — Binary catalogue encoding. Never CSV/JSON: 12 bytes per star.
+ *   AD     float32  4 o   precision ≈ 0,15" over 360°, sufficient
  *   δ      float32  4 o
- *   mag V  int16    2 o   échelle ×100, plage −3 à +16
- *   B−V    int16    2 o   échelle ×1000
- *
- * HYG v3 complet jusqu'à magnitude 9 : 120 000 × 12 = 1,44 Mo, contre ~30 Mo pour le CSV
- * source. Le facteur 18 vient de l'encodage seul.
- *
- * Les métadonnées (version, comptage, somme de contrôle) vivent dans un manifeste JSON
- * séparé : le `.bin` ne contient que des enregistrements, ce qui garde le calcul de volume
- * exact et le décodage sans branche.
+ *   mag V  int16    2 o   scale ×100, range −3 to +16
+ *   B−V    int16    2 o   scale ×1000
+ * HYG v3 complete to magnitude 9: 120 000 × 12 = 1,44 Mo vs ~30 Mo source CSV (×18 from encoding).
+ * Metadata (version, count, checksum) in separate JSON manifest: `.bin` = records only, exact
+ * volume computation, branch-free decoding.
  */
 
 import { dUnBloc, pointDeCoupe, type Decoupable } from '../core/tranches.ts'
@@ -27,17 +21,17 @@ const OFFSET_BV = 10
 const ECHELLE_MAG = 100
 const ECHELLE_BV = 1000
 
-/** Little-endian partout, explicitement : le format ne dépend pas de la machine. */
+/** Explicit little-endian: machine-independent format. */
 const LITTLE_ENDIAN = true
 
 export interface Etoile {
-  /** Ascension droite J2000, en degrés. */
+  /** J2000 right ascension, deg. */
   readonly adDeg: number
-  /** Déclinaison J2000, en degrés. */
+  /** J2000 declination, deg. */
   readonly decDeg: number
-  /** Magnitude visuelle. */
+  /** Visual magnitude. */
   readonly magV: number
-  /** Indice de couleur B−V. */
+  /** B−V colour index. */
   readonly bv: number
 }
 
@@ -46,10 +40,10 @@ export interface ManifestePaquet {
   readonly version: string
   readonly nombreEntrees: number
   readonly octets: number
-  /** SHA-256 hexadécimal du fichier binaire. */
+  /** Hex SHA-256 of binary file. */
   readonly sha256: string
   readonly source: string
-  /** Faux pour un paquet différé comme Gaia (§12.2). */
+  /** False = deferred package, e.g. Gaia (§12.2). */
   readonly obligatoire: boolean
 }
 
@@ -72,9 +66,8 @@ export function nombreEtoiles(buffer: ArrayBuffer): number {
 }
 
 /**
- * T-0296 — le décodage nomme ses points de coupe : quatre-vingt mille étoiles décodées d'un
- * bloc tiennent le fil principal le temps d'une tâche longue sur une tablette. `dUnBloc` le
- * déroule sans interruption pour les bancs et les tests, `parTranches` par morceaux à l'écran.
+ * T-0296 — decode names its cut points: 80k stars in one block = long task on tablet. `dUnBloc`
+ * runs uninterrupted (benches, tests), `parTranches` sliced on screen.
  */
 export function* decodeEtoilesPas(buffer: ArrayBuffer): Decoupable<Etoile[]> {
   const vue = new DataView(buffer)
@@ -107,9 +100,8 @@ export async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
 export type IntegritePaquet = 'OK' | 'CORROMPU' | 'ABSENT'
 
 /**
- * Vérifie qu'un paquet correspond à son manifeste. Un paquet partiellement écrit après
- * interruption est marqué invalide : l'application ne sert jamais un catalogue tronqué
- * comme complet (§12.3).
+ * Package matches manifest? Partial write after interruption = invalid; truncated catalogue never
+ * served as complete (§12.3).
  */
 export async function verifieIntegrite(
   buffer: ArrayBuffer | null,

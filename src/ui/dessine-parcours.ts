@@ -1,15 +1,11 @@
 /**
- * §8.4 — le trajet de pointage peint à même le ciel, T-0324.
- *
- * §8.4 promet au mode CHEMINEMENT une « séquence de vignettes de champ, orientées selon l'heure
- * et le lieu ». La scène en est la version qui n'a besoin d'aucune vignette : elle EST déjà le
- * champ, orienté par l'heure et le lieu, et elle sait projeter n'importe quel couple équatorial.
- * Reste à y poser le trajet — c'est tout ce que fait ce module.
- *
- * Le rang est peint avec le nom, jamais seul : dans le noir, « 2 » ne se retrouve pas au ciel,
- * « 2 · Alnitak » si. Et ce texte ne passe PAS par le budget de labels de §3.4 — sous le
- * parcours il n'y a rien d'autre à arbitrer, et un nom de repère qui saute au gré du budget ne
- * serait plus un repère.
+ * §8.4 — pointage path painted on the sky itself, T-0324.
+ * §8.4 promises CHEMINEMENT mode a « sequence of field thumbnails, oriented by time and place ».
+ * Scène needs no thumbnail: it IS the field, already oriented, projects any equatorial pair. Only
+ * the path remains to place — all this module does.
+ * Rank painted with name, never alone: in the dark « 2 » can't be found on sky, « 2 · Alnitak »
+ * can. Text skips §3.4 label budget — nothing to arbitrate under parcours, and a repère name
+ * jumping with budget wouldn't be a repère.
  */
 
 import type { Projecteur } from '../core/projection.ts'
@@ -23,17 +19,17 @@ import { DEG_PAR_HEURE, TOUR_RAD } from '../core/unites.ts'
 import { horsCanevas } from './champ-visible.ts'
 
 
-/** Le trajet se lit comme un chemin à suivre, le cadre comme un contour : l'un tirète, l'autre non. */
+/** Path reads as a way to follow, cadre as an outline: one dashed, other not. */
 const TIRET_PX = 8
 const JOUR_TIRET_PX = 6
 const EPAISSEUR_TRAIT_PX = 2
-/** Assez large pour cercler une étoile du fond sans la cacher : c'est un repère, pas un masque. */
+/** Wide enough to ring a fond star without hiding it: a repère, not a mask. */
 const RAYON_ETAPE_PX = 7
-/** Écart du texte au cercle, pour qu'il ne morde ni le trait ni l'étoile qu'il désigne. */
+/** Gap text↔circle, so it bites neither stroke nor designated star. */
 const JOUR_TEXTE_PX = 5
 
 
-/** T-0287 — une cellule vide se lit comme un défaut d'affichage, pas comme une étoile anonyme. */
+/** T-0287 — an empty cell reads as a display glitch, not an anonymous star. */
 
 interface PointParcours {
   readonly xPx: number
@@ -41,12 +37,10 @@ interface PointParcours {
 }
 
 /**
- * Peint le trajet par-dessus tout le reste : segments, étapes nommées, puis la cible.
- *
- * Les points hors canevas sont gardés pour le tracé — un segment dont une extrémité sort de
- * l'écran doit quand même partir dans la bonne direction — et seuls leurs cercles et leurs noms
- * sont omis. Un point que la projection refuse (derrière l'observateur) coupe le trait : relier
- * deux extrémités qui n'ont pas de position dessinerait une corde à travers la scène.
+ * Paints path over everything: segments, named steps, then cible.
+ * Off-canvas points kept for the stroke (a segment with an end off-screen must leave in the right
+ * direction), only their circles and names omitted. A point projection refuses (behind observer)
+ * cuts the line: joining two position-less ends would draw a chord across scène.
  */
 export function dessineParcours(
   ctx: CanvasRenderingContext2D,
@@ -64,7 +58,7 @@ export function dessineParcours(
   ctx.fillStyle = teintes.parcours
   ctx.lineWidth = EPAISSEUR_TRAIT_PX
 
-  // --- Les segments, du départ à la cible ----------------------------------
+  // --- Segments, start → cible ---
   ctx.setLineDash([TIRET_PX, JOUR_TIRET_PX])
   ctx.beginPath()
   let precedent: PointParcours | null = null
@@ -80,7 +74,7 @@ export function dessineParcours(
   ctx.stroke()
   ctx.setLineDash([])
 
-  // --- Les étapes : un cercle, son rang et son nom --------------------------
+  // --- Steps: circle, rank, name ---
   ctx.font = POLICE_LABEL
   const largeur = projecteur.vue.largeurPx
   const hauteur = projecteur.vue.hauteurPx
@@ -99,7 +93,7 @@ export function dessineParcours(
     )
   }
 
-  // --- La cible, en dernier : c'est là qu'on arrive -------------------------
+  // --- Cible, last: where we arrive ---
   if (cible !== null) {
     peintCroix(ctx, cible.xPx, cible.yPx, teintes.parcours)
     ctx.fillText(
@@ -113,7 +107,7 @@ export function dessineParcours(
   ctx.font = ancienneFonte
 }
 
-/** Un point équatorial du trajet à l'écran, `null` quand la projection le refuse. */
+/** Equatorial path point on screen; `null` when projection refuses it. */
 function projette(
   projecteur: Projecteur,
   adH: number,

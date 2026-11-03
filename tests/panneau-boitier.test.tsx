@@ -1,10 +1,7 @@
 /**
- * T-0204 — ce que le choix d'un boîtier fait disparaître, et ce qu'il laisse.
- *
- * Le rendu est statique : on vérifie la structure produite, pas une interaction. Ce qui compte
- * ici est qu'un boîtier connu ne pose plus AUCUNE question sur le capteur — un champ resté là,
- * rempli par autre chose que l'utilisateur, vaut une question à laquelle il croira devoir
- * répondre.
+ * T-0204 — what choosing a boîtier removes, and leaves.
+ * Static render: structure, not interaction. Known boîtier must ask NO capteur question: a
+ * leftover field, filled by something other than the user, looks like a question to answer.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -28,7 +25,7 @@ const SAISIE: SaisieBoitier = {
   tailleRawMo: '',
 }
 
-/** Le matériel par défaut, tout en rappels muets : seuls le boîtier et l'ISO varient ici. */
+/** Default matériel, silent callbacks: only boîtier + ISO vary. */
 const MATERIEL_VIDE: SaisieMateriel = {
   boitierId: '',
   surBoitierId: rien,
@@ -56,15 +53,14 @@ const MATERIEL_VIDE: SaisieMateriel = {
   surTypeMonture: rien,
 }
 
-/** Un boîtier de la base dont le seuil de double gain est connu : il y a un ISO à afficher. */
+/** Database boîtier with known double-gain threshold: there is an ISO to display. */
 const AVEC_SEUIL = BASE_BOITIERS.find(
   (b) => boitierDeBase(b).seuilDoubleGainIso !== undefined,
 )!
 
 /**
- * T-0205 — choisir un boîtier de la base préremplit le poids d'une image dans la saisie
- * (`app-saisie.ts`) au lieu de le retirer. Le rendu se teste dans cet état, sinon on vérifierait
- * un écran que l'application ne produit jamais.
+ * T-0205 — choosing a database boîtier prefills image weight (`app-saisie.ts`), not removes it.
+ * Rendered in that state, else it checks a screen the app never produces.
  */
 function rendu(boitierId: string, iso = '') {
   const ligne = BASE_BOITIERS.find((b) => b.id === boitierId)
@@ -82,15 +78,15 @@ function rendu(boitierId: string, iso = '') {
       surCapteurMode={rien}
       lectureIso={isoRecommande(
         ligne === undefined ? null : boitierDeBase(ligne, saisie.tailleRawMo),
-        // T-0206 — comme `evalueMateriel` : sous un boîtier de la base, l'ISO de la saisie ne
-        // compte plus. Le passer ici rendrait un écran que l'application ne produit pas.
+        // T-0206 — as `evalueMateriel`: under a database boîtier, input ISO no longer counts;
+        // passing it would render a screen the app doesn't produce.
         ligne !== undefined || iso === '' ? null : Number(iso),
       )}
     />,
   )
 }
 
-/** L'ISO est le seul champ en `inputmode="numeric"` du panneau : le poids est en `decimal`. */
+/** ISO = panel's only `inputmode="numeric"` field (weight: `decimal`). */
 const CHAMP_ISO = /inputmode="numeric"/iu
 
 describe('panneau boîtier', () => {
@@ -148,7 +144,7 @@ describe('panneau boîtier', () => {
 })
 
 describe('T-0204 — une ligne incomplète le dit, une ligne complète se tait', () => {
-  /** Une ligne qui porte sa courbe de bruit de lecture ne se fait rien reprocher. */
+  /** Row carrying its read-noise curve: no complaint. */
   it('ne reproche rien à une ligne dont la courbe est là', () => {
     for (const b of BASE_BOITIERS) {
       if (Object.keys(b.readNoiseE).length === 0) continue
@@ -157,8 +153,8 @@ describe('T-0204 — une ligne incomplète le dit, une ligne complète se tait',
   })
 
   /**
-   * T-0205 — une colonne « Poids RAW » vide ne rend plus la ligne incomplète : la grandeur a son
-   * champ, et c'est l'alerte du champ — le contrat T-0199 — qui dit ce que le registre y met.
+   * T-0205 — empty "Poids RAW" column no longer makes the row incomplete: the quantity has its
+   * field, and the field alert (T-0199) says what registry puts there.
    */
   it('une ligne sans poids RAW n’est pas une base incomplète', () => {
     const sansRaw = BASE_BOITIERS.find((b) => b.saisie.tailleRawMo.trim() === '')
@@ -170,10 +166,9 @@ describe('T-0204 — une ligne incomplète le dit, une ligne complète se tait',
 })
 
 /**
- * T-0206 — l'écran affiche le palier du seuil ; le moteur doit calculer avec lui.
- *
- * Sans cette vérification, un ISO tapé avant le choix du boîtier — ou relu d'un profil
- * enregistré — piloterait la pose en douce derrière un affichage qui dit autre chose.
+ * T-0206 — screen shows the threshold step; engine must compute with it. Else an ISO typed
+ * before choosing the boîtier (or re-read from saved profile) silently drives pose behind a
+ * contradicting display.
  */
 describe('T-0206 — un ISO forcé ne survit pas au choix d’un boîtier', () => {
   function materiel(boitierId: string, iso: string): SaisieMateriel {

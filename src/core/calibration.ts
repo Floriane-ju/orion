@@ -1,21 +1,17 @@
 /**
- * §7.4 — Plan de calibration et dithering.
+ * §7.4 — calibration plan and dithering.
+ * Most forgotten step, ruins most sessions. Displayed order not alphabetical: FLATS > DARKS >
+ * OFFSETS. At f/2,8 plein format vignetting reaches 1-2 stops in corners — without flats:
+ * central halo and dark corners nothing fixes later.
  *
- * C'est l'étape systématiquement oubliée, et celle qui ruine le plus de sessions. L'ordre
- * affiché n'est pas alphabétique : FLATS > DARKS > OFFSETS. À f/2,8 sur plein format, le
- * vignettage atteint un à deux diaphragmes dans les coins — sans flats, l'image garde un
- * halo central et des angles sombres que rien ne rattrape ensuite.
+ * Not a §2.3 matériel calibration: field calibration frames, not system zero-point setting.
  *
- * Rien ici n'est une calibration du matériel au sens de §2.3 : ce sont des poses de
- * calibration prises sur le terrain, pas un réglage du point zéro système.
+ * No reusable darks library (T-0152): a dark is valid only for sensor temperature, which the
+ * app doesn't measure. Prescribe a batch each séance, at end while sensor still cold: the
+ * instruction that can't be wrong.
  *
- * Aucune bibliothèque de darks réutilisable n'est validée (T-0152) : un dark ne vaut que pour
- * la température du capteur, que l'application ne mesure pas. Prescrire un lot à chaque séance,
- * en fin de séance capteur encore froid, est la consigne qui ne peut pas se tromper.
- *
- * Le plan couvre toute la nuit, pas une cible : un dark ne vaut que pour SA durée de pose,
- * donc un lot par durée distincte du plan. Flats et offsets restent uniques — même optique,
- * même ISO de session.
+ * Plan covers whole night, not one cible: dark valid only for ITS pose duration → one batch per
+ * distinct duration. Flats/offsets stay single — same optique, same session ISO.
  */
 
 import { DITHERING_PX, PRESCRIPTIONS_CALIBRATION } from '../registry/verdicts.ts'
@@ -25,12 +21,12 @@ import { S_PAR_MIN } from './unites.ts'
 
 
 export interface EntreeCalibration {
-  /** Durées de pose du plan ; un lot de darks par durée distincte. */
+  /** Plan pose durations; one darks batch per distinct duration. */
   readonly tPosesS: readonly number[]
   readonly iso: number
   readonly nPoses: number
   readonly autoguidage?: boolean
-  /** Vrai quand la focale ou l'orientation a changé depuis les flats de la cible précédente. */
+  /** True when focale or orientation changed since previous cible's flats. */
   readonly changementFocaleOuOrientation?: boolean
 }
 
@@ -39,12 +35,12 @@ export interface LotCalibration {
   readonly nombre: number
   readonly plage: readonly [number, number]
   readonly consigne: string
-  /** Darks seulement : la durée de pose qu'ils doivent reproduire. */
+  /** Darks only: pose duration they must reproduce. */
   readonly tPoseS?: number
 }
 
 export interface PlanCalibration {
-  /** Dans l'ordre d'importance affiché : flats d'abord. */
+  /** In displayed order of importance: flats first. */
   readonly lots: readonly LotCalibration[]
   readonly surcoutTempsMin: Traced<number>
   readonly dithering: string

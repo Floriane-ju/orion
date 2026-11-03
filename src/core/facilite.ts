@@ -1,21 +1,19 @@
 /**
- * §6.4 — la facilité de prise de vue, lue sur le score de §8.3.
+ * §6.4 — shooting facilité, read off the §8.3 score.
  *
- * Ce module ne calcule RIEN de nouveau. Le score C-15 existe déjà, il agrège les cinq
- * critères — cadrage, hauteur, signal, fenêtre, Lune — et `evalueCandidate` le produit pour
- * chaque cible du catalogue. Ce fichier le discrétise, et c'est tout : un sixième critère
- * aurait été un jugement de plus à défendre, alors que la question posée est déjà tranchée.
- * Seule exception, T-0383 : la classe de dégradation lunaire plafonne la note — le poids de
- * la Lune dans le score est trop faible pour qu'une Lune proche y descende seule.
+ * Computes NOTHING new. C-15 score already aggregates 5 criteria — cadrage, hauteur, signal,
+ * fenêtre, Lune — and `evalueCandidate` produces it for every catalogue cible. This file only
+ * discretises it: a 6th criterion = one more judgment to defend, question settled. Sole
+ * exception, T-0383: lunar degradation class caps the note (Lune weight in score too low for
+ * a close Lune to lower it alone).
  *
- * Les classes sont des parts ÉGALES de l'échelle : `floor(score × max) + 1`. Une table de
- * seuils aurait été cinq nombres arbitraires dans un moteur, et — la plage réelle du score
- * allant d'environ 0,1 à 0,9 — des seuils mal placés auraient tassé le catalogue entier sur
- * une seule note, donc une lecture qui ne décide de rien.
+ * Classes = EQUAL shares of the scale: `floor(score × max) + 1`. Threshold table = 5 arbitrary
+ * numbers in an engine; real score range ≈ 0,1-0,9, misplaced thresholds would pile the whole
+ * catalogue on one note, a reading deciding nothing.
  *
- * La note 0 ne sort jamais d'un score. Elle est réservée aux causes d'écart que le moteur
- * nomme, parce que `prd.md:83` interdit l'autre lecture : « "impossible" n'existe presque
- * jamais ; "combien de temps" existe toujours ». Une cible évaluée plancher donc à 1.
+ * Note 0 never comes from a score: reserved for discard causes the engine names, as
+ * `prd.md:83` forbids the other reading: « "impossible" n'existe presque jamais ; "combien de
+ * temps" existe toujours ». Evaluated cible floors at 1.
  */
 
 import { K } from '../registry/constants.ts'
@@ -29,36 +27,34 @@ export interface Facilite {
 }
 
 /**
- * Sans magnitude ni dimensions au catalogue, l'objet n'est pas difficile : il n'est pas
- * documenté. Lui donner 0 serait affirmer une impossibilité qu'aucun calcul n'a établie.
+ * No magnitude nor dimensions in catalogue: object isn't difficult, it's undocumented. 0 would
+ * assert an impossibility no computation established.
  */
 const CODES_SANS_NOTE: readonly CauseEcart[] = Object.freeze(['DONNEE_MANQUANTE'])
 
-/** La note d'une cible évaluée : de 1 à `FACILITE_NOTE_MAX`, jamais 0, jamais au-delà. */
+/** Note of an evaluated cible: 1 to `FACILITE_NOTE_MAX`, never 0, never beyond. */
 export function noteDepuisScore(score: number): number {
   const max = K('FACILITE_NOTE_MAX')
   return Math.min(max, Math.floor(Math.max(0, score) * max) + 1)
 }
 
 /**
- * La note d'une cible écartée : 0, ou aucune note.
- *
- * `CONFLIT_CRENEAU` et `BUDGET` sont des causes d'ALLOCATION du plan de séance, pas des
- * propriétés de la cible : `evalueCandidate` ne les produit pas. Les compter comme 0 est sans
- * effet aujourd'hui, et reste juste si un appelant les fait remonter un jour.
+ * Note of a discarded cible: 0, or no note. `CONFLIT_CRENEAU` and `BUDGET` = session-plan
+ * ALLOCATION causes, not cible properties: `evalueCandidate` doesn't produce them. Counting
+ * them as 0 has no effect today, stays right if a caller surfaces them.
  */
 export function noteEcartee(code: CauseEcart): number | null {
   return CODES_SANS_NOTE.includes(code) ? null : 0
 }
 
-/** Le libellé de l'échelle, ou `null` si la table ne couvre pas cette note. */
+/** Scale label, or `null` if the table doesn't cover that note. */
 export function libelleFacilite(note: number): string | null {
   return TABLE_FACILITE.find((ligne) => ligne.note === note)?.libelle ?? null
 }
 
 /**
- * T-0383 — le plafond qu'une Lune gênante impose à la note. Le score seul ne suffit pas : son
- * poids lunaire (0,1) laissait « idéale » une cible dont la fiche disait la dégradation forte.
+ * T-0383 — cap a bothersome Lune imposes on the note. Score alone isn't enough: its lunar
+ * weight (0,1) left "idéale" a cible whose fiche said strong degradation.
  */
 export function plafondLune(degradation: DegradationLune): number {
   if (degradation === 'FORTE') return K('FACILITE_NOTE_MAX_LUNE_FORTE')
@@ -66,7 +62,7 @@ export function plafondLune(degradation: DegradationLune): number {
   return K('FACILITE_NOTE_MAX')
 }
 
-/** La facilité d'une cible telle que le moteur l'a évaluée, ou `null` faute de donnée. */
+/** Facilité of a cible as engine evaluated it, or `null` for lack of data. */
 export function faciliteCible(r: Candidate | CibleEcartee): Facilite | null {
   const note =
     'objet' in r

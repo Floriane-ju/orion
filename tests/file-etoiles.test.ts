@@ -1,10 +1,7 @@
 /**
- * §9.3 — Prévisualisation du filé d'étoiles.
- *
- * Ce que ce test vérifie est exactement ce que le PRD dit être raté ailleurs : le pôle est à
- * sa place même hors du cadre, les arcs ne sont pas des cercles concentriques en projection
- * rectilinéaire, leur longueur varie avec la déclinaison, et une étoile qui file est moins
- * brillante par pixel qu'une étoile ponctuelle.
+ * §9.3 — filé d'étoiles preview. Checks what PRD says is missed elsewhere: pole in place
+ * off-frame, arcs ≠ concentric circles (rectilinear), length varies with declination,
+ * trailed star dimmer per pixel than point star.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -59,12 +56,12 @@ function proj(options: Parameters<typeof vue>[0]) {
   return projecteur(vue(options), cielInstantane(SITE, DATE).matrice)
 }
 
-/** Le ciel tourne autour du pôle DE L'ÉPOQUE, à un demi-degré du pôle J2000 en 2026. */
+/** Sky rotates around pole OF EPOCH (0,5° from J2000 pole in 2026). */
 const AXE_POLE = axePoleDeDate(epoqueAnnee(DATE))
 
 describe('§9.3 — centre de rotation', () => {
   it('rend le pôle dans le cadre à la hauteur de la latitude, azimut nord vrai', () => {
-    // Cadre centré sur le pôle nord céleste : azimut 0, hauteur = latitude.
+    // Frame centred on north celestial pole: azimuth 0, elevation = latitude.
     const pole = positionPole(
       proj({ azimutDeg: 0, hauteurDeg: SITE.latitudeDeg }),
       SITE.latitudeDeg,
@@ -80,7 +77,7 @@ describe('§9.3 — centre de rotation', () => {
   it('ne recentre pas le pôle quand il est hors du cadre', () => {
     const pole = positionPole(proj({ azimutDeg: 180, hauteurDeg: 30 }), SITE.latitudeDeg, AXE_POLE)
     expect(pole.dansCadre).toBe(false)
-    // Le point projeté reste où la projection le met, hors bornes du canevas comprises.
+    // Projected point stays where projection puts it, even outside canvas.
     expect(pole.xPx === null || pole.xPx < 0 || pole.xPx > LARGEUR).toBe(true)
   })
 
@@ -114,12 +111,12 @@ describe('§9.3 — longueur des arcs', () => {
       hauteurCadreDeg: 100.2,
     })
     expect(diagnostic.longueurArcMaxDeg.value).toBeCloseTo(5.01, 2)
-    // 5 % de la hauteur du cadre : des étoiles étirées, pas un filé.
+    // 5 % of frame height: stretched stars, not a filé.
     expect(diagnostic.fractionHauteurCadre).toBeCloseTo(0.05, 2)
     expect(diagnostic.messages.join(' ')).toMatch(/Traînées courtes/)
     expect(diagnostic.messages.join(' ')).not.toMatch(/Comptez/)
 
-    // Assez long pour couvrir la part du cadre : plus d'avertissement.
+    // Long enough to cover frame share: no warning.
     const dureeLisibleMin =
       (K('FRACTION_CADRE_FILE_LISIBLE') * 100.2 * 60) / K('ROTATION_CIEL_DEG_H')
     const lisible = diagnosticFile({
@@ -160,23 +157,23 @@ describe('§9.3 — géométrie des arcs', () => {
       return Math.max(...rayons.map((v) => Math.abs(v - moyenne))) / moyenne
     }
 
-    // Vue centrée SUR le pôle : la projection étant radiale, l'arc y est exactement un cercle.
+    // View centred ON pole: radial projection, arc = exact circle.
     expect(dispersion('MODE_FISHEYE', 0, SITE.latitudeDeg)).toBeLessThan(0.001)
     expect(dispersion('MODE_CADRE', 0, SITE.latitudeDeg)).toBeLessThan(0.001)
 
-    // Pôle décentré, cadrage réel : le cercle de déclinaison devient une conique, et le
-    // rayon apparent varie de plusieurs pour cent. Tracer des cercles concentriques serait faux.
+    // Off-centre pole, real cadrage: declination circle = conic, apparent radius varies
+    // by several %; concentric circles would be wrong.
     expect(dispersion('MODE_CADRE', 20, 55)).toBeGreaterThan(0.02)
   })
 
   it('tronque les arcs au bord du cadre', () => {
-    // Quatre heures : l'étoile traverse le champ et en sort.
+    // 4 h: star crosses field and leaves it.
     const arc = arcEtoile(proj({ azimutDeg: 180, hauteurDeg: 30, fovDeg: 40 }), etoile, 240, AXE_POLE)
     expect(arc.tronque).toBe(true)
   })
 
   it('suit le sens de rotation du ciel : les étoiles dérivent vers l’ouest', () => {
-    // Cadre au sud : le ciel passe de l'est vers l'ouest, donc de la gauche vers la droite.
+    // Frame facing south: sky moves east → west, so left → right.
     const projecteurVue = proj({ azimutDeg: 180, hauteurDeg: 40, fovDeg: 60 })
     const centre = projecteurVue.inverse(LARGEUR / 2, HAUTEUR / 2)
     const arc = arcEtoile(projecteurVue, centre, 60, AXE_POLE)
@@ -186,34 +183,33 @@ describe('§9.3 — géométrie des arcs', () => {
 })
 
 describe('§9.3 — brillance de la trace', () => {
-  // Échantillonnages du setup grand angle (10 mm) et du téléobjectif (120 mm) de l'Annexe A.
+  // Annexe A samplings: wide-angle (10 mm), telephoto (120 mm).
   const ECH_10MM = 105.6
   const ECH_120MM = 8.8
 
   it('compte la pose vue par un pixel du capteur, pas par un pixel d’écran', () => {
-    // 105,6 "/px traversées à 15,041 "/s : sept secondes par pixel, à l'équateur céleste.
+    // 105,6 "/px at 15,041 "/s: 7 s per pixel at celestial equator.
     expect(poseParPixelS(7200, ECH_10MM, 0)).toBeCloseTo(ECH_10MM / K('ROTATION_CIEL_DEG_H'), 3)
-    // Elle NE dépend PAS de la durée du filé : allonger la séquence allonge la trace,
-    // il ne l'éclaircit pas.
+    // Independent of filé duration: longer sequence lengthens trace, doesn't brighten it.
     expect(poseParPixelS(28800, ECH_10MM, 0)).toBeCloseTo(poseParPixelS(7200, ECH_10MM, 0), 6)
-    // Une focale plus longue étale le même flux sur plus de pixels : la trace pâlit.
+    // Longer focale spreads same flux over more pixels → trace fades.
     expect(poseParPixelS(7200, ECH_120MM, 0)).toBeLessThan(poseParPixelS(7200, ECH_10MM, 0))
-    // Près du pôle, l'étoile traîne moins vite et le pixel reçoit plus longtemps.
+    // Near pole, star drifts slower → pixel receives it longer.
     expect(poseParPixelS(7200, ECH_10MM, 60)).toBeCloseTo(poseParPixelS(7200, ECH_10MM, 0) * 2, 3)
   })
 
   it('ne dépasse jamais la durée réellement posée', () => {
-    // Pose d'une seconde : le pixel n'a pas vu l'étoile plus longtemps que ça.
+    // 1 s pose: pixel can't have seen star longer.
     expect(poseParPixelS(1, ECH_10MM, 0)).toBe(1)
   })
 })
 
-/** Position exacte de l'étoile après `angleDeg` d'angle horaire écoulé. */
+/** Exact star position after `angleDeg` of elapsed hour angle. */
 function apres(etoile: Vec3, angleDeg: number): Vec3 {
   return applique(rotationAutourDe(AXE_POLE, -angleDeg), etoile)
 }
 
-/** Distance d'un point au segment [a, b], en pixels. */
+/** Distance point → segment [a, b], px. */
 function distanceAuSegment(p: PointEcran, a: PointEcran, b: PointEcran): number {
   const dx = b.xPx - a.xPx
   const dy = b.yPx - a.yPx
@@ -228,13 +224,12 @@ describe('T-0024 — pas d’échantillonnage dérivé de la longueur projetée'
   const BALAYAGE_480_MIN_DEG = K('ROTATION_CIEL_DEG_H') * 8
   const PAS_FIN = Math.ceil(BALAYAGE_480_MIN_DEG / K('PAS_ANGLE_HORAIRE_FILE_DEG'))
 
-  /** Écart maximal entre la polyligne rendue et l'arc exact, en pixels. */
+  /** Max gap polyline ↔ exact arc, px. */
   function ecartMaxPx(etoile: Vec3, dureeMin: number): number {
     const arc = arcEtoile(projecteurVue, etoile, dureeMin, AXE_POLE)
     const balayageDeg = K('ROTATION_CIEL_DEG_H') * (dureeMin / 60)
     let pire = 0
-    // L'arc exact est échantillonné dix fois plus finement que le pas de référence de §9.3 :
-    // c'est lui la vérité contre laquelle la polyligne est jugée.
+    // Exact arc sampled 10× finer than §9.3 step: the truth the polyline is judged against.
     const references = Math.ceil(balayageDeg / (K('PAS_ANGLE_HORAIRE_FILE_DEG') / 10))
     for (let i = 0; i <= references; i++) {
       const point = projecteurVue.projette(apres(etoile, (balayageDeg * i) / references))
@@ -252,7 +247,7 @@ describe('T-0024 — pas d’échantillonnage dérivé de la longueur projetée'
   }
 
   it('reste sous le pixel pour l’arc le plus long du cadre', () => {
-    // Équateur céleste : la trace la plus longue possible, huit heures durant.
+    // Celestial equator: longest trace, 8 h.
     expect(ecartMaxPx(versVecteur(0, 0), 480)).toBeLessThan(1)
     expect(ecartMaxPx(versVecteur(120, 20), 480)).toBeLessThan(1)
   })
@@ -261,7 +256,7 @@ describe('T-0024 — pas d’échantillonnage dérivé de la longueur projetée'
     const polaire = arcEtoile(projecteurVue, versVecteur(0, 89.5), 480, AXE_POLE)
     const points = polaire.segments.flat().length
     expect(points).toBeLessThan(PAS_FIN / 4)
-    // La trace reste fidèle malgré le pas élargi : c'est la longueur en pixels qui décide.
+    // Trace faithful despite widened step: pixel length decides.
     expect(ecartMaxPx(versVecteur(0, 89.5), 480)).toBeLessThan(1)
   })
 
@@ -287,7 +282,7 @@ describe('T-0115 — un arc de filé est un cercle exact en projection stéréog
       if (mode === 'MODE_PLANETARIUM') {
         expect(arc.cercle).not.toBeNull()
       } else {
-        // Conique en rectilinéaire, courbe transcendante en équidistante : la polyligne reste.
+        // Rectilinear: conic; equidistant: transcendental curve; polyline stays.
         expect(arc.cercle).toBeNull()
         expect(arc.segments.flat().length).toBeGreaterThan(1)
       }
@@ -295,8 +290,8 @@ describe('T-0115 — un arc de filé est un cercle exact en projection stéréog
   })
 
   it('reste sous le pixel de la trajectoire réelle, du pôle sud au pôle nord', () => {
-    // La référence n'est PAS une valeur recopiée : c'est la trajectoire reprojetée point par
-    // point, au dixième du pas de §9.3, et confrontée au cercle sorti par le moteur.
+    // Reference NOT copied: trajectory reprojected point by point at 1/10 of §9.3 step,
+    // compared to engine circle.
     let pireEcartPx = 0
     let cerclesJuges = 0
     for (const azimutDeg of [0, 120, 250]) {
@@ -307,8 +302,8 @@ describe('T-0115 — un arc de filé est un cercle exact en projection stéréog
           hauteurDeg,
           fovDeg: K('FOV_MAX_DEG'),
         })
-        // Écart au pôle jusqu'à 180° : la déclinaison balaie d'un pôle à l'autre, et les
-        // ascensions droites couvrent le tour, donc les deux côtés du pôle projeté.
+        // Pole offset up to 180°: declination sweeps pole to pole, RA covers full turn →
+        // both sides of projected pole.
         for (let decDeg = -89; decDeg <= 89; decDeg += 2) {
           for (const raDeg of [0, 47, 133, 250, 310]) {
             for (const dureeMin of DUREES_MIN) {
@@ -336,15 +331,13 @@ describe('T-0115 — un arc de filé est un cercle exact en projection stéréog
     }
     expect(cerclesJuges).toBeGreaterThan(1000)
     expect(pireEcartPx).toBeLessThan(1)
-    // Un millier de cercles confrontés à leur trajectoire au dixième du pas de §9.3 : le
-    // balayage est délibérément exhaustif et frôle le délai par défaut de Vitest sous charge.
-    // Le délai est donc déclaré, plutôt que laissé au hasard de l'ordonnancement.
+    // ~1000 circles vs trajectory at 1/10 §9.3 step: exhaustive sweep, near default Vitest
+    // timeout under load → timeout declared explicitly.
   }, 20_000)
 
   it('couvre le balayage entier, sens compris, même au-delà du demi-tour', () => {
-    // L'étendue du cercle doit contenir toute la trajectoire : un balayage replié d'un tour
-    // laisserait des positions réelles hors de l'arc tracé, sans que le rayon bouge d'un
-    // pixel. C'est l'angle, pas la distance au centre, qui l'atteste.
+    // Circle extent must contain whole trajectory: sweep folded by a turn would leave real
+    // positions outside arc at unchanged radius. Angle attests, not distance to centre.
     let balayagesLongs = 0
     for (const hauteurDeg of [10, 80]) {
       const projecteurVue = proj({
@@ -369,15 +362,14 @@ describe('T-0115 — un arc de filé est un cercle exact en projection stéréog
             const depuisDebut =
               (((((angle - cercle.debutRad) * sens) % (2 * Math.PI)) + 2 * Math.PI) %
                 (2 * Math.PI))
-            // Tolérance angulaire : un pixel vu du centre, jamais une marge choisie à vue.
+            // Angular tolerance: 1 px from centre, not an eyeballed margin.
             const unPixelRad = 1 / Math.max(cercle.rayonPx, 1)
             expect(depuisDebut).toBeLessThanOrEqual(Math.abs(cercle.balayageRad) + unPixelRad)
           }
         }
       }
     }
-    // Sans au moins un balayage de plus d'un demi-tour, le cas que le vote protège n'a pas
-    // été exercé et le test ne prouve rien.
+    // Sweep ≤ half a turn → vote-protected case unexercised, proves nothing.
     expect(balayagesLongs).toBeGreaterThan(0)
   })
 
@@ -388,19 +380,18 @@ describe('T-0115 — un arc de filé est un cercle exact en projection stéréog
       hauteurDeg: SITE.latitudeDeg,
       fovDeg: K('FOV_MAX_DEG'),
     })
-    // Visée sur le pôle : le cercle de déclinaison qui passe par l'antipode de la visée est
-    // celui de l'équateur du repère de vue, soit une distance polaire de 90°.
+    // Aim on pole: declination circle through aim antipode = view-frame equator, polar
+    // distance 90°.
     const visee = projecteurVue.inverse(LARGEUR / 2, HAUTEUR / 2)
     const separationPoleDeg = separationDeg(visee, AXE_POLE)
     let degeneres = 0
     for (const raDeg of [0, 60, 140, 220, 300]) {
-      // Déclinaison telle que le cercle de déclinaison frôle l'antipode de la visée.
+      // Declination s.t. circle grazes aim antipode.
       const decDeg = 90 - (180 - separationPoleDeg)
       const arc = arcEtoile(projecteurVue, versVecteur(raDeg, decDeg), 480, AXE_POLE)
       if (arc.cercle !== null) continue
       degeneres++
-      // La trace ne traverse pas l'image : aucun sommet retenu au-delà de la portée utile,
-      // donc aucune corde fantôme d'un bord à l'autre.
+      // Trace doesn't cross image: no vertex beyond useful range → no phantom edge-to-edge chord.
       const portee = porteeUtilePx(projecteurVue.vue)
       for (const point of arc.segments.flat()) {
         expect(Math.hypot(point.xPx - LARGEUR / 2, point.yPx - HAUTEUR / 2)).toBeLessThanOrEqual(
@@ -418,7 +409,7 @@ describe('T-0115 — un arc de filé est un cercle exact en projection stéréog
       hauteurDeg: SITE.latitudeDeg,
       fovDeg: 60,
     })
-    // Référence : longueur de la polyligne fine de la MÊME trajectoire, sommée en cordes.
+    // Reference: fine polyline of SAME trajectory, summed chords.
     const longueurReferencePx = (etoileVue: Vec3, dureeMin: number): number => {
       const balayageDeg = K('ROTATION_CIEL_DEG_H') * (dureeMin / 60)
       const pas = 2000
@@ -438,15 +429,13 @@ describe('T-0115 — un arc de filé est un cercle exact en projection stéréog
         const etoileVue = versVecteur(0, decDeg)
         const arc = arcEtoile(projecteurVue, etoileVue, dureeMin, AXE_POLE)
         if (arc.cercle === null) continue
-        // La corde sous-estime l'arc : l'écart relatif reste sous le millième à 2 000 pas.
+        // Chord underestimates arc: relative gap < 1/1000 at 2000 steps.
         expect(arc.longueurPx).toBeCloseTo(longueurReferencePx(etoileVue, dureeMin), 1)
       }
     }
-    // Étoile presque sur le pôle : huit heures durant, sa trace tient sous le pixel. C'est
-    // `longueurPx` qui la fait dessiner en disque plutôt qu'en trait (§9.3), et `segments`
-    // doit alors porter la position de départ que le disque utilise.
-    // Étoile posée à un millième de tour du pôle DE LA DATE — pas du pôle J2000, dont la
-    // précession l'écarte déjà de plus d'un dixième de degré.
+    // Star near pole: 8 h trace < 1 px. `longueurPx` → draws a disc not a line (§9.3);
+    // `segments` must carry the disc's start position.
+    // Star at 1/1000 turn from pole OF DATE, not J2000 (precession already > 0,1° away).
     const ecart = 1e-4
     const vers = versVecteur(0, 0)
     const norme = Math.hypot(

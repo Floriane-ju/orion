@@ -1,10 +1,8 @@
 /**
- * §4.1, T-0359 — la région peinte est celle que le prédicat désigne, pixel par pixel.
- *
- * Le balayage supposait qu'un rayon partant du centre ne traverse la frontière qu'une fois.
- * Un relief réel sous un champ de 300° le dément : le rayon qui monte passe au ciel, puis
- * repasse sous le sol derrière l'observateur. Ses deux bouts étant du même côté, il était peint
- * d'un seul tenant — le V noir qui mangeait le ciel.
+ * §4.1, T-0359 — painted region = the one the predicate designates, pixel by pixel.
+ * Sweep assumed a ray from centre crosses frontière once. Real relief under a 300° champ refutes
+ * it: rising ray reaches sky, then dips under sol behind observer. Both ends on same side →
+ * painted whole = black V eating the sky.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -17,7 +15,7 @@ import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
 const ciel = cielInstantane(SITE, new Date('2026-09-30T14:15:00Z'))
 
-/** Un relief synthétique : une chaîne au sud-est, un plancher de quelques degrés ailleurs. */
+/** Synthetic relief: a chain to the south-east, a few degrees of floor elsewhere. */
 const RELIEF = masqueDepuisRelief(
   Array.from({ length: NB_AZIMUTS }, (_, az) => 4 + 16 * Math.max(0, Math.sin(((az - 60) * Math.PI) / 180))),
 )
@@ -37,7 +35,7 @@ function vue(fovDeg: number, hauteurDeg: number): Vue {
 
 type Polygone = readonly (readonly [number, number])[]
 
-/** Boîte englobante de chaque polygone : hors d'elle, son enroulement est nul. */
+/** Bounding box of each polygon: outside it, its winding is zero. */
 function avecBoites(polygones: readonly Polygone[]) {
   return polygones.map((poly) => ({
     poly,
@@ -48,7 +46,7 @@ function avecBoites(polygones: readonly Polygone[]) {
   }))
 }
 
-/** Enroulement cumulé sur tous les polygones : le point est-il peint ? */
+/** Cumulative winding over all polygons: is the point painted? */
 function peint(polygones: ReturnType<typeof avecBoites>, x: number, y: number): boolean {
   let enroulement = 0
   for (const { poly, xMin, xMax, yMin, yMax } of polygones) {
@@ -64,8 +62,8 @@ function peint(polygones: ReturnType<typeof avecBoites>, x: number, y: number): 
 }
 
 /**
- * Pixels mal peints LOIN de la frontière : à plus de 3 px de tout pixel de l'autre côté. Le bord
- * lui-même peut hésiter d'un pixel ; une bande de ciel au milieu du relief, non.
+ * Pixels mis-painted FAR from frontière: >3 px from any pixel on the other side. Edge may waver
+ * by a pixel; a sky band mid-relief may not.
  */
 function ecart(v: Vue, dedans: TestSol): number {
   const proj = projecteur(v, ciel.matrice)
@@ -102,8 +100,8 @@ describe('balayage en espace écran', () => {
     })
   }
 
-  // Un relief dentelé : une crête en dents de scie qui monte vers le sud. Un rayon qui la longe
-  // la traverse plusieurs fois, et d'un rayon au suivant le nombre de traversées change.
+  // Jagged relief: sawtooth ridge rising south. A ray along it crosses it several times, count
+  // changes ray to ray.
   const DENTELE = masqueDepuisRelief(
     Array.from({ length: NB_AZIMUTS }, (_, az) =>
       az > 150 && az < 250 ? 2 + (250 - az) / 5 + ((az * 7) % 11) / 3 : 1 + (az % 5) / 4,
@@ -121,10 +119,10 @@ describe('balayage en espace écran', () => {
     })
   }
 
-  // Visée haute sous un grand champ : l'horizon est un cercle, et sur ses flancs la crête est
-  // VERTICALE à l'écran. Un balayage en colonnes la longeait au lieu de la couper, et chaque
-  // dent y changeait le nombre de traversées : le bord se peignait en marches (T-0371). Le
-  // relief est crénelé sur tout le tour, d'un degré à l'autre, comme un relevé Terrain Tiles.
+  // High visée under wide champ: horizon = circle, on its flanks ridge is VERTICAL on screen.
+  // Column sweep ran along it instead of cutting it, each tooth changed crossing count → edge
+  // painted in steps (T-0371). Relief crenellated all round, degree to degree, like a Terrain
+  // Tiles survey.
   const CRENELE = masqueDepuisRelief(
     Array.from({ length: NB_AZIMUTS }, (_, az) => 3 + 4 * Math.abs(Math.sin(az * 0.7)) + ((az * 7) % 11) / 4),
   )

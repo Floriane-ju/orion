@@ -1,19 +1,16 @@
 /**
- * §6.4 — le catalogue tel qu'une liste le montre : ce qui décide, par objet.
+ * §6.4 — catalogue as a list shows it: what decides, per object.
  *
- * Deux étages, du moins cher au plus cher, comme `session-candidates.ts`. Celui-ci est le
- * moins cher : brillance de surface (§6.3), taille projetée sur le capteur (§6.2), hauteur
- * et azimut à l'instant affiché (§3.1). Ce ne sont que des appels aux moteurs existants et
- * une multiplication de matrice — donc il passe sur les 14 000 entrées sans éphéméride.
+ * Two étages, cheapest first, like `session-candidates.ts`. This is the cheapest: brillance de
+ * surface (§6.3), size projected on sensor (§6.2), hauteur/azimut at displayed instant (§3.1).
+ * Only existing engine calls + a matrix multiply → 14 000 entries without éphéméride.
  *
- * La POSE REQUISE et la NOTE DE FACILITÉ ne sont pas ici, et c'est délibéré : elles demandent
- * le créneau de la nuit, donc une éphéméride par cible. Elles viennent de `evalueCandidate`
- * (§8.3), appelée sur les seules candidates. Une seule convention d'extinction traverse ainsi
- * l'application — celle du plan de séance — et la liste ne peut pas annoncer une autre pose,
- * ni une autre note, que lui.
+ * POSE REQUISE and NOTE DE FACILITÉ deliberately absent: need the night's créneau → one
+ * éphéméride per cible. They come from `evalueCandidate` (§8.3), on candidates only. One
+ * extinction convention app-wide (the plan's): list can't announce another pose/note than plan.
  *
- * Aucun objet n'est écarté. Sous l'horizon, sans magnitude, sans dimensions : la ligne
- * existe et dit ce qui manque. C'est `filtreLignes` qui restreint, sur demande explicite.
+ * No object discarded. Below horizon, no magnitude, no dimensions: line exists and says what's
+ * missing. `filtreLignes` restricts, on explicit request.
  */
 
 import { ficheCadrage } from './cadrage.ts'
@@ -39,38 +36,37 @@ import type { VerdictCadrage } from '../registry/verdicts.ts'
 import { TYPES_OBJET, type ObjetCielProfond, type TypeObjet } from '../data/deepsky.ts'
 
 /**
- * T-0190 — une ligne sans coordonnées à l'instant, invariante tant que catalogue et optique ne
- * changent pas. La détectabilité, le cadrage et le tri en dépendent, le tri est fait, donc le
- * cache de ce niveau tient 96,6 % du coût d'une recalculée : il suffit d'ajouter azimut et
- * hauteur par minute.
+ * T-0190 — line without coordinates at the instant; invariant while catalogue and optique
+ * don't change. Détectabilité, cadrage, sort depend on it → cache here holds 96,6 % of a
+ * recompute's cost: only azimut/hauteur to add per minute.
  */
 export interface LigneCibleInvariante {
   readonly objet: ObjetCielProfond
-  /** §6.3 — `null` quand magnitude ou dimensions manquent : rien n'est estimé. */
+  /** §6.3 — `null` when magnitude or dimensions missing: nothing estimated. */
   readonly sbObj: number | null
   readonly verdict: VerdictDetectabilite | null
-  /** §6.2 — grand et petit axes projetés sur le capteur. `null` sans dimensions. */
+  /** §6.2 — major and minor axes projected on sensor. `null` without dimensions. */
   readonly grandAxePx: number | null
   readonly petitAxePx: number | null
   /**
-   * §6.2 — fraction du cadre occupée par le grand axe, orientation comprise. C'est la place
-   * sur la photo finale, invariante au pitch : deux boîtiers de résolutions différentes au
-   * même capteur donnent le même remplissage et des diamètres en pixels différents.
+   * §6.2 — cadre fraction occupied by major axis, orientation included. Place on final photo,
+   * pitch-invariant: 2 boîtiers of different resolution on same sensor → same fill, different
+   * pixel diameters.
    */
   readonly remplissage: number | null
   readonly verdictCadrage: VerdictCadrage | null
   readonly cadrable: boolean
-  /** T-0407 — sous un zoom, la focale optimale à laquelle la ligne est lue ; `null` sinon. */
+  /** T-0407 — under a zoom, optimal focale the line is read at; `null` otherwise. */
   readonly focaleMm: number | null
 }
 
 export interface LigneCible extends LigneCibleInvariante {
-  /** §3.1 — l'instant affiché par la scène. Négative sous l'horizon : la ligne reste. */
+  /** §3.1 — instant displayed by scène. Negative below horizon: the line stays. */
   readonly hauteurDeg: number
   readonly azimutDeg: number
 }
 
-/** T-0190 — paramètres invariants, pas dépendants de l'instant. */
+/** T-0190 — invariant parameters, not instant-dependent. */
 export interface EntreeLignesInvariantes {
   readonly catalogue: readonly ObjetCielProfond[]
   readonly sbCiel: number
@@ -79,22 +75,19 @@ export interface EntreeLignesInvariantes {
   readonly fovHDeg: number
   readonly echApx: number
   readonly capteurHMm: number
-  /** T-0407 — sous un zoom, champ, échantillonnage et pupille de la focale de chaque cible. */
+  /** T-0407 — under a zoom, champ, échantillonnage and pupil of each cible's focale. */
   readonly contexteDe?: ContexteDe
 }
 
 export interface EntreeLignes extends EntreeLignesInvariantes {
-  /** `cielInstantane(site, date).matrice` — J2000 équatorial → repère horizontal du site. */
+  /** `cielInstantane(site, date).matrice` — J2000 equatorial → site horizontal frame. */
   readonly matriceCiel: Mat3
 }
 
 /**
- * T-0190 — une ligne invariante par l'instant, triée du plus brillant au plus faible.
- * Détectabilité, cadrage et tri ne dépendent pas de la matrice, donc ce cache évite 96,6 %
- * du coût : il suffit d'ajouter azimut/hauteur par minute.
- *
- * Une magnitude absente part en FIN de tri plutôt que de valoir zéro (§6.4) : la traiter
- * comme un objet de magnitude 0 mettrait les entrées les moins documentées en tête.
+ * T-0190 — instant-invariant line, sorted brightest to faintest. Détectabilité, cadrage, sort
+ * don't depend on the matrix → cache skips 96,6 % of cost. Missing magnitude goes LAST (§6.4),
+ * not as 0: else least documented entries would lead.
  */
 export function lignesInvariantes(
   entree: EntreeLignesInvariantes,
@@ -107,9 +100,8 @@ export function lignesInvariantes(
 }
 
 /**
- * T-0190 — ajoute azimut et hauteur à chaque ligne invariante selon la matrice de l'instant.
- * Coût : ≈1,1 ms sur 13 132 objets. Appelée une fois par minute pour laisser `useMemo`
- * recalculer les coordonnées seules, pas les invariants.
+ * T-0190 — adds azimut/hauteur to each invariant line from instant's matrix. ≈1,1 ms over
+ * 13 132 objects. Called once per minute → `useMemo` recomputes coordinates only.
  */
 export function ajouteCoordonnees(
   lignes: readonly LigneCibleInvariante[],
@@ -118,7 +110,7 @@ export function ajouteCoordonnees(
   return lignes.map((ligne) => ({ ...ligne, ...coordonneesHorizon(ligne.objet, matriceCiel) }))
 }
 
-/** T-0221 — la liste et la fiche visent avec la même transformation, jamais deux. */
+/** T-0221 — list and fiche aim with the same transformation, never two. */
 export function coordonneesHorizon(
   objet: Pick<ObjetCielProfond, 'adDeg' | 'decDeg'>,
   matriceCiel: Mat3,
@@ -128,10 +120,8 @@ export function coordonneesHorizon(
 }
 
 /**
- * Une ligne par objet du catalogue, du plus brillant au plus faible.
- *
- * Une magnitude absente part en FIN de tri plutôt que de valoir zéro (§6.4) : la traiter
- * comme un objet de magnitude 0 mettrait les entrées les moins documentées en tête.
+ * One line per catalogue object, brightest to faintest. Missing magnitude goes LAST (§6.4), not
+ * as 0: else least documented entries would lead.
  */
 export function lignesCatalogue(entree: EntreeLignes): readonly LigneCible[] {
   return ajouteCoordonnees(lignesInvariantes(entree), entree.matriceCiel)
@@ -178,9 +168,8 @@ function ligneInvariante(
     posAngDeg: objet.posAngDeg,
   })
 
-  // Le petit axe se déduit du grand par leur rapport, plutôt que de recalculer la
-  // projection : un seul appel de moteur, donc un seul endroit où la formule §6.2 vit.
-  // Sans petit axe au catalogue, `ficheCadrage` a déjà supposé l'objet circulaire.
+  // Minor axis derived from major by ratio, not re-projected: one engine call → one place for
+  // the §6.2 formula. No minor axis in catalogue: `ficheCadrage` already assumed circular.
   const grandAxePx = cadrage.diamPx.value
   const minAxArcmin = objet.minAxArcmin
 
@@ -202,31 +191,27 @@ function optiqueDe(c: ContexteSession) {
   return { fovHDeg: c.fovHDeg, echApx: c.echApx, dMm: c.dMm, capteurHMm: c.capteurHMm }
 }
 
-/** §6.4 — les types RÉELLEMENT présents, jamais l'énumération complète de §6.3. */
+/** §6.4 — types ACTUALLY present, never the full §6.3 enumeration. */
 export function typesPresents(lignes: readonly LigneCible[]): readonly TypeObjet[] {
   return TYPES_OBJET.filter((type) => lignes.some((l) => l.objet.type === type))
 }
 
 export interface FiltreListe {
   /**
-   * Les types cochés. Tous cochés, le filtre ne restreint pas ; aucun coché, il ne laisse rien
-   * passer — une liste vide est la réponse honnête à « aucun type », pas un filtre à ignorer.
+   * Checked types. All checked: no restriction; none checked: nothing passes — empty list is the
+   * honest answer to "no type", not a filter to ignore.
    */
   readonly types: ReadonlySet<TypeObjet>
-  /** Magnitude intégrée maximale retenue. Au maximum du domaine, le filtre ne restreint pas. */
+  /** Max integrated magnitude kept. At domain max, filter doesn't restrict. */
   readonly magMax: number
   readonly recherche: string
 }
 
 /**
- * §6.4 — les trois restrictions, appliquées AVANT tout plafond d'affichage.
- *
- * Une magnitude absente ne passe le filtre de magnitude que tant qu'il est au repos : dès
- * qu'on demande « plus brillant que 8 », affirmer qu'un objet sans magnitude l'est serait
- * une estimation inventée.
- *
- * La recherche garde l'ordre de `chercheCatalogue` — préfixes d'abord, puis du plus
- * brillant au plus faible — et sa portée est celle des lignes reçues, jamais plafonnée.
+ * §6.4 — the 3 restrictions, applied BEFORE any display cap. Missing magnitude passes the
+ * magnitude filter only at rest: once "brighter than 8" is asked, claiming an object without
+ * magnitude is one = invented estimate. Search keeps `chercheCatalogue` order (prefixes first,
+ * then brightest to faintest); scope = received lines, never capped.
  */
 export function filtreObjets(
   objets: readonly ObjetCielProfond[],
@@ -246,16 +231,17 @@ export function filtreObjets(
   return chercheCatalogue(parMag, filtre.recherche, parMag.length)
 }
 
-/** Vrai dès qu'un type est retenu sans que tous le soient : aucun retenu ne restreint rien,
-    un filtre vide qui viderait la liste ne dirait que « rien », jamais pourquoi. */
+/**
+ * True once a type is retained without all being. None retained restricts nothing: an empty
+ * filter emptying the list would say only "nothing", never why.
+ */
 export function restreintParType(types: ReadonlySet<TypeObjet>): boolean {
   return types.size > 0 && TYPES_OBJET.some((t) => !types.has(t))
 }
 
 /**
- * Les lignes retenues, dans l'ordre que `filtreObjets` impose. La scène applique les MÊMES
- * trois restrictions aux marqueurs qu'elle estompe (`cibles-en-avant.ts`) : deux tamis
- * séparés auraient fini par retenir deux ensembles différents pour un seul réglage affiché.
+ * Retained lines, in `filtreObjets` order. Scène applies the SAME 3 restrictions to the markers
+ * it fades (`cibles-en-avant.ts`): two sieves would retain two sets for one displayed setting.
  */
 export function filtreLignes(
   lignes: readonly LigneCible[],
@@ -269,58 +255,52 @@ export function filtreLignes(
 }
 
 // ---------------------------------------------------------------------------
-// Second étage — le créneau et la note, qui coûtent une éphéméride par cible
+// Second étage — créneau and note, costing one éphéméride per cible
 // ---------------------------------------------------------------------------
 
-/** Ce qu'une cible photographiable ce soir demande, avec le créneau qui le permet. */
+/** What a cible shootable tonight needs, with the créneau allowing it. */
 export interface PoseCible {
   readonly tRequisS: number
   readonly nPoses: number
   readonly tPoseS: number
-  /** §8.2 — minutes au-dessus du seuil d'imagerie pendant la fenêtre nocturne. */
+  /** §8.2 — minutes above imaging threshold during the nocturnal window. */
   readonly dureeCreneauMin: number
-  /** §7.3 — plus d'une quand l'intégration ne tient pas dans le créneau de la nuit. */
+  /** §7.3 — more than one when integration doesn't fit the night's créneau. */
   readonly nNuits: number
 }
 
 /**
- * §6.4 — ce que le moteur a répondu sur une cible : sa note, et ce qu'elle coûte.
- *
- * Une entrée ABSENTE de la map n'est pas une cible impossible : c'est une cible que le moteur
- * n'a pas évaluée — hors des `CIBLES_EVALUEES_MAX` candidates, ou sans magnitude ni dimensions
- * au catalogue. La distinction porte tout le sens de l'affichage : « — » n'est pas 0.
+ * §6.4 — engine's answer on a cible: its note and cost. ABSENT map entry ≠ impossible cible:
+ * not evaluated (outside the `CIBLES_EVALUEES_MAX` candidates, or no magnitude/dimensions).
+ * Display relies on it: "—" isn't 0.
  */
 export interface EtatCible {
-  /** 0 à `FACILITE_NOTE_MAX`. 0 ne vient jamais d'un score, seulement d'une cause d'écart. */
+  /** 0 to `FACILITE_NOTE_MAX`. 0 only from a discard cause, never a score. */
   readonly note: number
   readonly libelle: string
-  /** `null` quand la cible est écartée : il n'y a alors pas de pose à annoncer. */
+  /** `null` when cible is discarded: no pose to announce. */
   readonly pose: PoseCible | null
-  /** Renseignée pour la note 0 seulement — la cause vient du moteur, jamais d'ici. */
+  /** Set for note 0 only — cause comes from engine, never from here. */
   readonly cause: string | null
   /**
-   * T-0379, T-0380 — le code de cette cause : la carte de liste en déduit quel levier chiffrer
-   * (focale, date) sans relire la phrase. `null` avec la cause.
+   * T-0379, T-0380 — cause code: card derives the lever to price (focale, date) without
+   * re-reading the sentence. `null` with the cause.
    */
   readonly code: CauseEcart | null
 }
 
 /**
- * §6.4, T-0127 — « photographiable » a UNE définition, et c'est la POSE qui la porte.
- *
- * Pas la note : une cible écartée en a une (zéro) et sa cause avec. Pas la hauteur à l'instant
- * affiché : §6.4 l'interdit nommément, une cible basse maintenant qui culmine avant l'aube
- * reste photographiable. Le critère était écrit deux fois dans l'interface, chaque fois avec un
- * commentaire demandant de le garder d'accord avec l'autre — il l'est maintenant une seule.
- *
- * `undefined` n'est pas `false` par hasard : une cible que le moteur n'a pas évaluée n'est pas
- * une cible impossible, et dans les deux cas il n'y a pas de pose à proposer.
+ * §6.4, T-0127 — "photographiable" has ONE definition, carried by the POSE. Not the note (a
+ * discarded cible has one: zero + cause). Not hauteur at displayed instant: §6.4 forbids it, a
+ * cible low now that culminates before dawn stays photographiable. Was written twice in the UI
+ * with "keep in sync" comments; now once. `undefined` ≠ `false`: unevaluated cible isn't
+ * impossible; either way no pose to offer.
  */
 export function photographiable(etat: EtatCible | undefined): boolean {
   return etat?.pose != null
 }
 
-/** Les trois dérivations qu'une évaluation demande, faites en un seul endroit. */
+/** The three derivations an evaluation needs, in one place. */
 export interface EntreeEvaluation {
   readonly fenetre: Intervalle
   readonly sbCielBase: number
@@ -328,11 +308,9 @@ export interface EntreeEvaluation {
 }
 
 /**
- * Les trois dérivations que `planSession` fait de son contexte, refaites à l'identique plutôt
- * que reçues en paramètre : un appelant libre de les fournir est un appelant libre de les
- * fournir autrement, donc d'annoncer une pose — et une note — que le plan ne reconnaît pas.
- *
- * `null` quand la nuit n'est pas chiffrable : sans fenêtre de référence, aucun créneau n'existe.
+ * The 3 derivations `planSession` makes of its context, redone identically not passed in: a
+ * caller free to supply them could supply them differently → pose and note the plan doesn't
+ * recognise. `null` when night isn't computable: no reference window, no créneau.
  */
 export function prepareEvaluation(contexte: ContexteSession): EntreeEvaluation | null {
   const debut = contexte.nuit.debutReference
@@ -346,17 +324,13 @@ export function prepareEvaluation(contexte: ContexteSession): EntreeEvaluation |
 }
 
 /**
- * T-0294 — les évaluations déjà faites, par contexte puis par objet.
- *
- * Le plan et la liste partent du MÊME contexte (`app-calcul.ts` leur passe le même objet) et
- * évaluaient chacun ses candidates : deux fois le même calcul à chaque changement de contexte.
- * Le partage vit ici, dans le moteur, et non dans un mémo de l'UI : c'est la garantie que le
- * plan et la liste lisent le même résultat, pas seulement le même calcul — la source du
- * désaccord de T-0268.
- *
- * Clé par IDENTITÉ : un contexte est immuable, un objet du catalogue aussi. Deux `WeakMap`
- * laissent partir le tout avec le contexte remplacé, sans éviction à écrire. La désignation
- * aurait servi de clé à tort — deux objets distincts peuvent la porter, les tests le font.
+ * T-0294 — evaluations already done, per context then per object. Plan and list start from the
+ * SAME context (`app-calcul.ts` passes the same object) and each evaluated its candidates: same
+ * computation twice per context change. Sharing lives in the engine, not a UI memo: plan and
+ * list read the same result, not just the same computation — source of T-0268 disagreement.
+ * Keyed by IDENTITY: context and catalogue object immutable. 2 `WeakMap`s drop all with the
+ * replaced context, no eviction. Designation = wrong key: 2 distinct objects can carry it
+ * (tests do).
  */
 const evaluations = new WeakMap<
   ContexteSession,
@@ -367,8 +341,8 @@ const evaluations = new WeakMap<
 >()
 
 /**
- * §8.3 — l'évaluation complète d'une candidate, faite une fois par contexte quel que soit
- * l'appelant. `null` quand la nuit n'est pas chiffrable, comme `prepareEvaluation`.
+ * §8.3 — full evaluation of a candidate, once per context whatever the caller. `null` when
+ * night isn't computable, like `prepareEvaluation`.
  */
 export function evaluation(
   contexte: ContexteSession,
@@ -390,9 +364,9 @@ export function evaluation(
 }
 
 function etat(r: Candidate | CibleEcartee): EtatCible | null {
-  // Une écartée du PRÉ-filtrage arrive ici par le même chemin qu'une écartée de l'évaluation
-  // complète : les deux sont des `CibleEcartee`, portent le même code et la même cause. C'est
-  // ce qui permet à la liste de nommer 4 500 refus de cadrage sans payer 4 500 éphémérides.
+  // A PRE-filter discard arrives here by the same path as a full-evaluation one: both
+  // `CibleEcartee`, same code and cause. List can name 4 500 cadrage refusals without paying
+  // 4 500 éphémérides.
   const facilite = faciliteCible(r)
   if (facilite === null) return null
   if (!('objet' in r)) {
@@ -420,38 +394,31 @@ function etat(r: Candidate | CibleEcartee): EtatCible | null {
 }
 
 /**
- * §6.4 — les cibles que la nuit permet, le temps que chacune demande, et sa note de facilité.
+ * §6.4 — cibles the night allows, time each needs, facilité note.
  *
- * Photographiable ne veut pas dire « levée maintenant ». Le PRD l'interdit explicitement :
- * filtrer sur la hauteur instantanée ferait disparaître une cible qui sera excellente dans
- * deux heures. Le critère est le CRÉNEAU — un passage au-dessus du seuil d'imagerie pendant
- * la fenêtre nocturne, un cadrage que le capteur tient, une intégration à portée.
+ * Photographiable ≠ "risen now" (PRD): instantaneous-hauteur filter would drop a cible excellent
+ * in 2 hours. Criterion = CRÉNEAU: pass above imaging threshold in the nocturnal window, cadrage
+ * the sensor holds, integration within reach.
  *
- * Rien de tout cela n'est recalculé ici : `evalueCandidate` (§8.3) le fait déjà pour le plan
- * de séance, extinction par masse d'air moyenne du créneau et Lune au milieu du créneau
- * comprises. Réemployer ce moteur est ce qui garantit que la liste et le plan annoncent la
- * MÊME pose pour la même cible — le désaccord que T-0089 a corrigé une fois.
+ * Nothing recomputed: `evalueCandidate` (§8.3) already does it for the plan (extinction by mean
+ * masse d'air of créneau, Lune at créneau middle). Reuse → list and plan announce the SAME pose
+ * for the same cible — T-0089 disagreement fixed once.
  *
- * Les cibles ÉCARTÉES entrent aussi, avec la note 0 et leur cause — celles du pré-filtrage
- * comme celles de l'évaluation complète. C'est ce qui rend la carte et la liste capables de
- * dire la même chose : sur un 120 mm plein format, ONZE objets du catalogue passent jusqu'au
- * calcul de créneau et quatre mille cinq cents sont refusés au cadrage. Ne noter que les onze
- * laissait la liste presque vide de notes pendant que la carte en affichait une pour tout ce
- * qu'on clique — deux réponses à la même question.
- *
- * Un 0 muet serait le pire des deux : sans cause affichée, l'utilisateur ne sait pas quel
- * levier tirer.
+ * DISCARDED cibles enter too, note 0 + cause (pre-filter and full-evaluation alike), so card and
+ * list agree: on 120 mm plein format ELEVEN objects reach créneau computation, 4 500 are refused
+ * at cadrage. Rating only the eleven left the list nearly empty of notes while the card showed
+ * one for everything clicked. Silent 0 worse: no cause → user doesn't know which lever to pull.
  */
 export function etatsCibles(
   contexte: ContexteSession,
   catalogue: readonly ObjetCielProfond[],
-  /** T-0407 — sous un zoom, chaque cible à sa focale optimale ; le plan reçoit le même. */
+  /** T-0407 — under a zoom, each cible at its optimal focale; plan receives the same. */
   contexteDe?: ContexteDe,
 ): ReadonlyMap<string, EtatCible> {
   const etats = new Map<string, EtatCible>()
   if (prepareEvaluation(contexte) === null) return etats
 
-  // Toutes les causes, mais pas tous les créneaux : nommer une écartée ne coûte qu'une chaîne.
+  // All causes, not all créneaux: naming a discarded one costs only a string.
   const { candidates, ecartees } = preFiltre(
     contexte,
     catalogue,

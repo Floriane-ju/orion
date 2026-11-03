@@ -1,21 +1,17 @@
 /**
- * T-0021 — coût d'une passe de filé, chiffré.
+ * T-0021 — cost of one filé pass. Run: `node scripts/bench-incrustation.ts` (catalogue from
+ * `public/data/`).
  *
- * L'epic porte la mesure : « ça semble plus fluide » n'est pas un critère. Ce script rejoue
- * hors navigateur exactement ce que la boucle fait — même `dessineChamp`, même projecteur,
- * même catalogue réel, même semis — sur un contexte 2D muet. Ce qui est mesuré est donc le
- * calcul (sélection, tri, arcs, projections), jamais la peinture : c'est le calcul qui doit
- * tenir dans une image de la boucle.
+ * Replays off-browser the loop (same `dessineChamp`, projector, real catalogue, semis) on a mute
+ * 2D context. Measures compute (selection, sort, arcs, projections), never paint.
  *
- * T-0116 — la passe couvre tout le champ de la scène : la sélection resserrée sur le cadre a
- * disparu du code, et `--champ-scene` avec elle. Ce qui est mesuré ici est le plein ciel.
+ * T-0116 — pass covers whole scene field; cadre-tight selection and `--champ-scene` gone.
+ * Measured: plein ciel.
  *
- * Usage : `node scripts/bench-incrustation.ts` (le catalogue vient de `public/data/`).
- * `--planetarium` mesure la même passe en projection stéréographique : c'est le seul mode où
- * la primitive de cercle de T-0115 s'applique, et le gain ne se lit que par comparaison.
- * `--couverture=F` rejoue la passe avec une autre cible de surface peinte que celle du registre
- * (T-0119), `--effectif=N` avec un autre plafond de coût ; les mettre tous deux à 0 rejoue la
- * passe sans aucun plafond, comme avant T-0119.
+ * `--planetarium`: same pass in stereographic projection; only mode where T-0115 circle
+ * primitive applies, gain readable by comparison only.
+ * `--couverture=F`: other painted-surface target than registry's (T-0119);
+ * `--effectif=N`: other cost cap; both 0 = no cap (pre-T-0119).
  */
 
 import { K } from '../src/registry/constants.ts'
@@ -41,7 +37,7 @@ const HAUTEUR = 1080
 const S_PAR_MIN = 60
 const PASSES = 5
 
-/** Setup grand angle de référence de §9.3 : 10 mm plein format f/2,8 sous un ciel Bortle 4,5. */
+/** §9.3 reference grand-angle setup: 10 mm plein format f/2,8, Bortle 4,5. */
 const PROFONDEUR: EntreeProfondeur = {
   tPoseS: 25,
   dMm: 10 / 2.8,
@@ -49,7 +45,7 @@ const PROFONDEUR: EntreeProfondeur = {
   eCielPxS: 1.68,
   readNoiseE: 1.5,
 }
-/** §9.3 — le grand angle de référence : le cadre couvre presque toute la scène. */
+/** §9.3 reference grand angle: cadre covers almost the whole scene. */
 const PROFIL_10MM: ProfilCadre = {
   libelle: '10 mm plein format',
   fovLDeg: 121.0,
@@ -59,7 +55,7 @@ const PROFIL_10MM: ProfilCadre = {
   modeObjectif: 'MODE_CADRE',
   tPoseS: null,
 }
-/** Objectif standard : le cadre n'est plus qu'une vignette dans la scène. */
+/** Standard objectif: cadre is only a thumbnail in the scene. */
 const PROFIL_50MM: ProfilCadre = {
   libelle: '50 mm plein format',
   fovLDeg: 39.6,
@@ -71,22 +67,18 @@ const PROFIL_50MM: ProfilCadre = {
 }
 
 /**
- * Empreinte des ordres de peinture : c'est elle qui dit qu'une optimisation n'a PAS changé
- * l'image. `--empreinte` remplace la mesure de durée par ce condensé, à comparer entre deux
- * versions du code (T-0022 et T-0023 promettent l'identité, T-0024 non).
+ * Fingerprint of paint orders: proves an optimisation did NOT change the image. `--empreinte`
+ * replaces duration with it, to compare code versions (T-0022/T-0023 promise identity,
+ * T-0024 not).
  */
 const EMPREINTE = process.argv.includes('--empreinte')
-/**
- * T-0115 — axe « mode de projection ». `MODE_CADRE` reste le défaut, c'est celui de
- * l'incrustation ; `MODE_PLANETARIUM` est celui où l'arc devient un cercle exact.
- */
+/** T-0115 — mode: `MODE_CADRE` default (incrustation), `MODE_PLANETARIUM` = exact arc. */
 const MODE: ModeProjection = process.argv.includes('--planetarium')
   ? 'MODE_PLANETARIUM'
   : 'MODE_CADRE'
 /**
- * T-0119 — le levier du plafond, réglable en ligne de commande : c'est la MESURE qui choisit la
- * valeur du registre, pas l'inverse. `--couverture=0` retire le plafond, et c'est ce cas qui doit
- * reproduire les compteurs et les condensés d'avant T-0119 sous `--empreinte`.
+ * T-0119 — cap lever, CLI-settable: the MEASURE picks the registry value. `--couverture=0`
+ * removes the cap; must reproduce pre-T-0119 counters/digests under `--empreinte`.
  */
 function levier(nom: string, defaut: number): number | null {
   const arg = process.argv.find((a) => a.startsWith(`--${nom}=`))
@@ -94,16 +86,13 @@ function levier(nom: string, defaut: number): number | null {
   return Number.isFinite(n) && n > 0 ? n : null
 }
 const COUVERTURE = levier('couverture', K('COUVERTURE_TRACES_MAX'))
-/** T-0119 — le plafond de coût, second levier : `--effectif=0` le retire. */
+/** T-0119 — cost-cap lever: `--effectif=0` removes it. */
 const EFFECTIF = levier('effectif', K('EFFECTIF_CIEL_MAX_APERCU'))
 
 /**
- * `Path2D` n'existe pas hors navigateur : la passe n'en attend que `moveTo`, `lineTo` et `arc`.
- *
- * T-0119 — les étoiles se déposent dans des chemins partagés, donc la géométrie de l'image passe
- * par ICI et non plus par le contexte. Un condensé qui n'écouterait que le contexte ne verrait
- * plus que quelques dizaines d'ordres de remplissage : il faut que le chemin parle au condensé.
- * `avaleur` est le point d'écoute courant, posé par `empreinteur`.
+ * No `Path2D` off-browser: pass needs only `moveTo`, `lineTo`, `arc`.
+ * T-0119 — stars go into shared paths: image geometry passes HERE, not via the context (a digest
+ * on context alone sees a few dozen fills). `avaleur` = current listening point (`empreinteur`).
  */
 let avaleur: ((texte: string) => void) | null = null
 class Path2DMuet {
@@ -132,8 +121,7 @@ function empreinteur(): { ctx: CanvasRenderingContext2D; valeur: () => string } 
   const ordre =
     (nom: string) =>
     (...args: unknown[]): void => {
-      // Les coordonnées sont arrondies au millième de pixel : le condensé ne doit pas
-      // dépendre du dernier bit d'un flottant, il doit dépendre de l'image.
+      // coords rounded to 1/1000 px: digest = image, not last float bit
       avale(
         `${nom}(${args
           .map((a) => (typeof a === 'number' ? a.toFixed(3) : String(a)))
@@ -181,7 +169,7 @@ function empreinteur(): { ctx: CanvasRenderingContext2D; valeur: () => string } 
   return { ctx, valeur: () => h.toString(16).padStart(8, '0') }
 }
 
-/** Contexte 2D muet : il absorbe les ordres de peinture, il n'en exécute aucun. */
+/** Mute 2D context: absorbs paint orders. */
 function contexteMuet(): CanvasRenderingContext2D {
   const rien = (): void => undefined
   return {
@@ -203,7 +191,7 @@ function contexteMuet(): CanvasRenderingContext2D {
   } as unknown as CanvasRenderingContext2D
 }
 
-/** Projecteur instrumenté : le nombre de projections est LA mesure du coût géométrique. */
+/** Instrumented projector: projection count = geometric cost. */
 function projecteurCompte(base: Projecteur): { proj: Projecteur; projections: () => number } {
   let n = 0
   const proj: Projecteur = {
@@ -230,14 +218,14 @@ interface Cas {
   readonly nom: string
   readonly fovDeg: number
   readonly dureeMin: number
-  /** Pupille de l'objectif déclaré : c'est elle qui décide si le semis est atteint. */
+  /** Pupil of declared objectif: decides whether semis is reached. */
   readonly dMm: number
   readonly profil: ProfilCadre
 }
 
 const CAS: readonly Cas[] = [
-  // Le 10 mm f/2,8 ne descend pas jusqu'au semis : le pire cas demande une pupille qui
-  // l'atteint, sinon la mesure ne porte que sur le catalogue réel et sous-estime tout.
+  // 10 mm f/2,8 doesn't reach semis: worst case needs a pupil that does, else bench covers only
+  // the real catalogue → underestimates.
   {
     nom: 'pire cas — 180°, 480 min, 50 mm f/1,4',
     fovDeg: K('FOV_MAX_DEG'),
@@ -252,9 +240,8 @@ const CAS: readonly Cas[] = [
     dMm: 10 / 2.8,
     profil: PROFIL_10MM,
   },
-  // T-0118 — même durée, deux champs : c'est CE couple qui dit si le plafond borne bien un
-  // nombre d'étoiles et non une magnitude. Un plafond de magnitude ferait suivre le coût
-  // l'angle solide, environ 9× d'un champ à l'autre.
+  // T-0118 — same duration, two fields: pair shows cap bounds star count, not magnitude (a
+  // magnitude cap → cost follows solid angle, ~9× between fields).
   {
     nom: 'invariance — 180°, 120 min, 50 mm f/1,4',
     fovDeg: K('FOV_MAX_DEG'),
@@ -306,7 +293,8 @@ function mesure(cas: Cas, indexReel: IndexCiel, indexSemis: IndexCiel): void {
       indexSemis,
       magLimite,
       profondeur,
-      // ponytail: le banc mesure un coût, pas un éclat — l'échantillonnage tient lieu de tache.
+      // ponytail: bench measures a cost, not a brightness — sampling stands in for the spot;
+      // upgrade when a bench must check rendered brightness.
       tacheArcsec: cas.profil.echApx,
       sbSiteMag: 21.0,
       suiviActif: false,

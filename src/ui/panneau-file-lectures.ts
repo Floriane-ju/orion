@@ -1,9 +1,7 @@
 /**
- * §9 — Les nombres du panneau Filé, calculés à part de ce qui les affiche.
- *
- * Les quatre features de §9 partagent le même pointage et le même projecteur, parce qu'elles
- * décrivent la même photographie. Ce module tient cette chaîne : de la visée courante à la
- * carte de pose, au diagnostic des arcs et à la séquence de prises de vue.
+ * §9 — numbers of the Filé panel, computed apart from what shows them.
+ * The four §9 features share one pointing and one projector (same photograph): this module
+ * holds the chain current aim → pose map, arc diagnostic, shot sequence.
  */
 
 import { useEffect, useMemo } from 'react'
@@ -24,8 +22,8 @@ import { posePoseMaxCadre, type ReglagesFile } from './seance-etat.ts'
 import { S_PAR_MIN } from '../core/unites.ts'
 
 /**
- * Définition de référence du cadre pour les diagnostics. Elle ne décrit aucun canevas :
- * c'est l'échelle en pixels sur laquelle §9.3 chiffre longueurs d'arcs et position du pôle.
+ * Reference frame for diagnostics. Describes no canvas: pixel scale on which §9.3 quantifies
+ * arc lengths and pole position.
  */
 const LARGEUR_CADRE_PX = 1200
 
@@ -43,10 +41,10 @@ export interface MaterielCadre {
 }
 
 export interface LecturesFile {
-  /** Centre du cadre en coordonnées équatoriales : ce que le boîtier vise vraiment. */
+  /** Frame centre, equatorial: what the boîtier really aims at. */
   readonly visee: { readonly longitudeDeg: number; readonly latitudeDeg: number }
   readonly carte: CartePoseMax
-  /** T-0374 — photo unique ou filé, et la pose qui en découle. */
+  /** T-0374 — single photo or filé, and the resulting pose. */
   readonly plan: PlanPanorama
   readonly diagnostic: DiagnosticFile
   readonly sequence: SequenceFile
@@ -65,7 +63,7 @@ export function useLecturesFile(
   )
 
   const ciel = useMemo(() => cielInstantane(materiel.site, new Date()), [materiel.site])
-  // Les arcs tournent autour du pôle DE L'ÉPOQUE, pas de l'axe z du repère J2000 (§3.1).
+  // Arcs rotate around the pole OF THE EPOCH, not the J2000 z axis (§3.1).
   const axePoleNord = useMemo(() => axePoleDeDate(ciel.epoqueAnnee), [ciel.epoqueAnnee])
 
   const proj = useMemo(() => {
@@ -97,14 +95,14 @@ export function useLecturesFile(
         centreAdDeg: visee.longitudeDeg,
         centreDecDeg: visee.latitudeDeg,
         rotationDeg,
-        // En panorama, la monture est réputée coupée : la rotation du ciel seule borne la pose.
+        // Panorama: mount assumed off; sky rotation alone bounds the pose.
         tMaxSuiviS: null,
       }),
     [materiel, visee, rotationDeg],
   )
 
-  // La pose max calculée ici est celle que la scène et la profondeur attendent : publiée au
-  // magasin, elle y décide du même plan que celui lu au panneau.
+  // Pose max computed here is the one scène and depth expect: published to the store, it
+  // decides the same plan the panel reads.
   const poseMaxS = carte.poseOperanteS
   useEffect(() => posePoseMaxCadre(poseMaxS), [poseMaxS])
   const plan = planPanorama(file.dureeTotaleS, poseMaxS)

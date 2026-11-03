@@ -1,22 +1,18 @@
 /**
- * §12.5 — le fond embarqué de la carte du site : terres, frontières et villes (T-0364).
- *
- * Il est ce qui reste de la carte hors réseau. Natural Earth au 1:50 M : assez pour reconnaître
- * sa région et poser le site à quelques kilomètres, ce que le ciel ne distingue de toute façon
- * pas — une minute de latitude décale une étoile d'une minute d'arc.
- *
- * Format binaire, petit-boutiste : trois compteurs (terres, frontières, octets des villes),
- * puis chaque tracé — son nombre de points, puis ses couples (lon, lat) quantifiés en Int16 —,
- * puis les villes en JSON. Les points sont relus en coordonnées Mercator normalisées [0 ; 1] :
- * la projection se fait une fois au chargement, pas à chaque image.
+ * §12.5 — embedded site-map background: land, borders, cities (T-0364): what remains of the map
+ * offline. Natural Earth 1:50 M: enough to recognise region and place site within a few km (finer
+ * is invisible to the sky: 1 arcmin of latitude shifts a star 1 arcmin).
+ * Binary, little-endian: 3 counters (land, borders, city bytes), then each path (point count,
+ * (lon, lat) pairs quantised Int16), then cities as JSON. Points reread as normalised Mercator
+ * [0 ; 1]: projection once at load, not per frame.
  */
 
 import { pixelMonde } from '../core/mercator.ts'
 
-/** Maille de quantification : ≈ 1 km, sous la précision du 1:50 M. Int16 couvre ±327°. */
+/** Quantisation grid ≈ 1 km, below 1:50 M precision; Int16 covers ±327°. */
 export const QUANTUM_FOND_DEG = 0.01
 
-/** Mercator s'arrête à ±85° : l'Antarctique se ferme au bord du monde sans point infini. */
+/** Mercator stops at ±85°: Antarctica closes at world edge, no infinite point. */
 const LATITUDE_MAX_TRACE_DEG = 85
 
 type Point = readonly [lonDeg: number, latDeg: number]
@@ -25,7 +21,7 @@ export interface VilleSource {
   readonly nom: string
   readonly latitudeDeg: number
   readonly longitudeDeg: number
-  /** Le zoom à partir duquel son nom s'affiche — `min_zoom` de Natural Earth. */
+  /** Zoom from which its name shows (Natural Earth `min_zoom`). */
   readonly zoomMin: number
 }
 
@@ -44,7 +40,7 @@ export interface VilleFond {
 }
 
 export interface FondCarte {
-  /** Chaque tracé : x0, y0, x1, y1… en coordonnées Mercator normalisées. */
+  /** Each path: x0, y0, x1, y1… in normalised Mercator. */
   readonly terres: readonly Float64Array[]
   readonly frontieres: readonly Float64Array[]
   readonly villes: readonly VilleFond[]
@@ -86,7 +82,7 @@ export function encodeFondCarte(fond: FondCarteSource): ArrayBuffer {
   return buffer
 }
 
-/** Un paquet illisible donne le fond vide : la carte reste, sans tracé (§12.5). */
+/** Unreadable package → empty background: map stays, no paths (§12.5). */
 export function decodeFondCarte(buffer: ArrayBuffer): FondCarte {
   try {
     return decode(buffer)

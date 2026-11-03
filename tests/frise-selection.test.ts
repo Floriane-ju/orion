@@ -1,6 +1,6 @@
 /**
- * T-0419 — la frise se tire : un double-clic n'y laisse pas de sélection, sans quoi le glisser
- * suivant part d'elle et le navigateur la dépose comme une image au lieu de faire défiler le temps.
+ * T-0419 — frise is draggable: double-click leaves no selection, else next drag starts from it
+ * and browser drops it as image instead of scrolling time.
  */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'

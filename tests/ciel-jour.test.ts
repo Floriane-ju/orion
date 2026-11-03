@@ -1,6 +1,6 @@
 /**
- * Ciel de jour en vue réaliste : le Soleil diffuse par KS91 comme la Lune, et l'œil s'adapte
- * (`LUMINANCE_ECRAN_ZENITH_ADAPTE`) pour que le zénith reste bleu et le halo blanchisse.
+ * Daytime sky, realistic view: Sun scattered by KS91 like Moon; eye adapts
+ * (`LUMINANCE_ECRAN_ZENITH_ADAPTE`) → zenith stays blue, halo whitens.
  */
 import { describe, expect, it } from 'vitest'
 import {

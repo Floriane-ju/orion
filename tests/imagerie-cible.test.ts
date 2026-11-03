@@ -1,14 +1,8 @@
 /**
- * §6.4, §6.2 — le résolveur d'image de cible, et la géométrie du cadre posé dessus.
- *
- * Aucune coordonnée, aucune magnitude, aucune dimension n'est écrite ici : les objets
- * viennent des paquets embarqués, et les cas limites sont CHERCHÉS dans le catalogue par
- * prédicat plutôt que recopiés. Un test qui recopie une valeur de catalogue vérifie la
- * copie, pas la formule.
- *
- * Le réseau est bouchonné par une table d'adresses : ce qui est vérifié, c'est la conduite
- * du résolveur face à chaque réponse — 404, 429, corps qui n'est pas une image, fichier trop
- * lourd — jamais la disponibilité d'un service tiers.
+ * §6.4, §6.2 — target image resolver + cadre geometry laid on it.
+ * No coordinate, magnitude or dimension written: objects from embedded packets, edge cases
+ * SEARCHED by predicate (a copied value tests the copy). Network stubbed by address table:
+ * tests resolver per response (404, 429, non-image body, oversized), not third-party uptime.
  */
 
 import 'fake-indexeddb/auto'
@@ -35,7 +29,7 @@ const CATALOGUE: readonly ObjetCielProfond[] = [
   ...decodeObjets({ enregistrements: paquet('deepsky-1.bin'), chaines: paquet('deepsky-noms-1.bin') }),
 ]
 
-/** Le premier objet du catalogue qui satisfait le prédicat — jamais une désignation en dur. */
+/** First catalogue object satisfying the predicate; no hardcoded désignation. */
 function trouve(predicat: (o: ObjetCielProfond) => boolean): ObjetCielProfond {
   const objet = CATALOGUE.find(predicat)
   expect(objet, 'aucun objet du catalogue ne satisfait ce cas').toBeDefined()
@@ -100,7 +94,7 @@ describe('adresse de la découpe de relevé', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Résolution complète, réseau bouchonné
+// Full resolution, network stubbed
 // ---------------------------------------------------------------------------
 
 type Reponse = { readonly statut: number; readonly corps?: unknown; readonly type?: string; readonly poids?: number }
@@ -128,7 +122,7 @@ function bouchonne(entrees: readonly [RegExp, Reponse][]): void {
 
 const DECOUPE_MOTIF = /hips2fits/
 
-/** Un objet du catalogue jamais encore résolu : le cache est un état partagé entre tests. */
+/** Catalogue object never resolved yet: cache is state shared across tests. */
 let compteur = 0
 function cibleNeuve(): ObjetCielProfond {
   const objet = CATALOGUE[compteur++ * 97 + 3]
@@ -151,8 +145,8 @@ describe('résolution — une seule source', () => {
     const image = await resoudImage(cibleNeuve())
     expect(image?.origine).toBe('RELEVE')
     expect(image?.credit).toStrictEqual(CREDIT_RELEVE)
-    // Une image encyclopédique est cadrée par son auteur : son champ n'est écrit nulle part,
-    // donc aucun cadre ne peut y être juste (§6.2).
+    // Encyclopedic image framed by its author: field written nowhere → no cadre can be right
+    // (§6.2).
     expect(appels.every((a) => DECOUPE_MOTIF.test(a))).toBe(true)
   })
 
@@ -176,8 +170,8 @@ describe('résolution — une seule source', () => {
   })
 
   it('ne ressert pas une image d’encyclopédie rangée par une visite antérieure', async () => {
-    // Le champ d'une image encyclopédique n'est écrit nulle part : la resservir ferait poser
-    // le cadre à une échelle inventée. Elle doit être remplacée, pas réutilisée.
+    // Encyclopedic image field written nowhere: reserving it = cadre at invented scale.
+    // Replace, don't reuse.
     const cible = cibleNeuve()
     await ecritImage({
       designation: cible.designation,
@@ -256,13 +250,12 @@ describe('résolution — échec, cache et débit', () => {
 })
 
 // ---------------------------------------------------------------------------
-// §6.2 — le cadre du capteur sur l'image
+// §6.2 — capteur frame on the image
 // ---------------------------------------------------------------------------
 
 /**
- * Deux champs réels, aux deux bouts du domaine de focale : un grand-angle et un télescope, sur
- * le même capteur. Les valeurs viennent de la formule de §5.1 et des bornes de saisie, jamais
- * d'un nombre choisi pour que le test passe.
+ * 2 real fields at both ends of focale domain: wide-angle + telescope, same capteur. From §5.1
+ * formula and input bounds, no number picked to pass.
  */
 const COTE_CAPTEUR_MM = 36
 const RAPPORT_24X36 = 2 / 3
@@ -279,16 +272,14 @@ describe('géométrie de l’encart §6.2', () => {
   })
 
   it('fait déborder la cible du cadre quand elle est plus grande que lui', () => {
-    // Le cas mosaïque n'est pas un cas particulier de la formule : la découpe passe au-dessus
-    // de cent pour cent de l'encart, et l'encart la coupe. C'est le cadre plein, l'objet qui
-    // sort — exactement ce que MOSAIQUE_REQUISE décrit.
+    // Mosaic not special to the formula: cut goes over 100 % of inset, inset clips it. Full
+    // frame, object overflows = MOSAIQUE_REQUISE.
     const objet = trouve((o) => champDecoupeDeg(o) > FOV_LONG)
     expect(cadreSurImage(objet, FOV_LONG, FOV_LONG_H, null).partObjetPct).toBeGreaterThan(100)
   })
 
   it('donne la même lecture à toute cible, sans bascule de mode', () => {
-    // Une seule forme de sortie : rien dans le catalogue ne doit produire une autre façon de
-    // lire le cadre, sans quoi la même question demanderait deux gestes.
+    // One output shape only: no other way to read the cadre, else same question needs 2 gestures.
     for (const objet of CATALOGUE) {
       const pose = cadreSurImage(objet, FOV_LONG, FOV_LONG_H, null)
       expect(Object.keys(pose).sort(), objet.designation).toStrictEqual([
@@ -301,8 +292,7 @@ describe('géométrie de l’encart §6.2', () => {
   })
 
   it('grandit la cible dans le cadre quand la focale monte', () => {
-    // À champ de découpe constant, un cadre plus étroit fait occuper plus de place à la même
-    // cible : c'est la seule variable que le matériel change ici.
+    // Constant cut field, narrower cadre → target occupies more: only matériel varies.
     const objet = trouve((o) => champDecoupeDeg(o) < FOV_LONG)
     const large = cadreSurImage(objet, FOV_COURT, FOV_COURT, null).partObjetPct
     const serre = cadreSurImage(objet, FOV_LONG, FOV_LONG_H, null).partObjetPct
@@ -320,16 +310,15 @@ describe('sens de rotation du cadre §6.2', () => {
   })
 
   it('laisse l’image droite quand le grand axe est déjà sur le grand côté du capteur', () => {
-    // Nord en haut, Est à GAUCHE : un grand axe à 90° court d'est en ouest, donc à
-    // l'horizontale — exactement l'orientation du grand côté d'un capteur en paysage.
+    // North up, East LEFT: major axis at 90° runs east-west = horizontal (landscape capteur's
+    // long side).
     expect(rotation(90)).toBe(0)
   })
 
   it('couche un grand axe nord-sud sur le grand côté, dans le sens trigonométrique', () => {
-    // Le signe est ce que ce test verrouille, et il n'est pas symétrique : à 0°, l'objet court
-    // du haut vers le bas de la découpe, et c'est un quart de tour ANTIHORAIRE — négatif en
-    // CSS — qui l'amène sur l'horizontale. Un +90 le coucherait aussi, mais en présentant
-    // l'autre bout de l'objet et l'autre moitié du champ.
+    // Sign locked, not symmetric: at 0° object runs top to bottom of cut; quarter turn
+    // COUNTERCLOCKWISE (negative in CSS) → horizontal. +90 would lay it too, but showing the
+    // other end of object and other half of field.
     expect(rotation(0)).toBe(-90)
     expect(rotation(45)).toBe(-45)
     expect(rotation(135)).toBe(45)

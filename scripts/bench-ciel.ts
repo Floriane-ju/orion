@@ -1,29 +1,17 @@
 /**
- * T-0065 — allocations d'une image du planétarium, chiffrées.
+ * T-0065 — allocations per planétarium frame. Run: `pnpm bench:ciel [--empreinte] [--realiste]`.
+ * Replays `dessineCiel` off-browser on reference scene; counts allocations per frame.
  *
- * L'audit annonce « de l'ordre de 10⁵ objets par seconde ». Un ordre de grandeur ne dit pas
- * si une optimisation a servi : ce script rejoue `dessineCiel` hors navigateur, sur la scène
- * de référence, et compte ce qui est alloué par image.
+ *   - COMPTE via projection: `projette` allocates 2 objects/call (input literal + `PointEcran`);
+ *     `projetteEn` none. `Path2D` counted at construction.
+ *   - RAMASSE-MIETTES, all causes: `perf_hooks` observes real GCs under default heuristics.
+ *     = audit symptom (jank, not lower mean FPS); covers allocations the count misses.
  *
- * Deux mesures, complémentaires :
+ * Allocated-bytes measure dropped: heap growth tracks young-generation heuristics (195 vs 225
+ * kB/frame across 2 runs) → unstable.
  *
- *   - le COMPTE, par la projection. Chaque appel à `projette` alloue exactement deux objets
- *     — le littéral d'entrée chez l'appelant, le `PointEcran` en sortie ; chaque appel à
- *     `projetteEn` n'en alloue aucun. Les `Path2D` sont comptés à la construction.
- *   - le RAMASSE-MIETTES, toutes causes confondues. `perf_hooks` observe les GC réellement
- *     déclenchés pendant la série, sous les heuristiques par défaut du moteur. C'est le
- *     symptôme que l'audit décrit — des saccades, pas un FPS moyen plus bas — et il porte
- *     sur toutes les allocations, y compris celles que le compte ne voit pas.
- *
- * Une mesure d'octets alloués a été essayée et abandonnée : la croissance du tas dépend
- * plus des heuristiques de dimensionnement de la jeune génération que du code mesuré, et
- * deux passes consécutives donnaient 195 ko et 225 ko par image. Un chiffre instable ne
- * décide de rien.
- *
- * `--empreinte` remplace la mesure par le condensé des ordres de peinture : c'est lui qui
- * dit qu'une optimisation n'a PAS changé l'image (§critère « identique au pixel près »).
- *
- * Usage : `pnpm bench:ciel [--empreinte] [--realiste]`.
+ * `--empreinte`: digest of paint orders instead of measure; proves an optimisation did NOT
+ * change the image (critère « identique au pixel près »).
  */
 
 import { PerformanceObserver } from 'node:perf_hooks'
@@ -44,38 +32,28 @@ const LARGEUR = 1920
 const HAUTEUR = 1080
 const IMAGES = 200
 const EMPREINTE = process.argv.includes('--empreinte')
-/**
- * T-0110 — le champ se choisit. Un défaut de rendu ne se voit pas au même champ pour toutes
- * les couches : les étoiles dominent en vue serrée, la bande et les frontières en vue large.
- * Mesurer à un seul champ, c'est ne mesurer qu'une moitié du chemin chaud.
- */
+/** T-0110 — champ selectable: stars dominate tight view, bande/frontières wide view. */
 const arg = (nom: string, defaut: number): number =>
   Number(process.argv.find((a) => a.startsWith(`--${nom}=`))?.slice(nom.length + 3) ?? defaut)
 const FOV = arg('fov', 30)
-/** T-0110 — la visée se choisit aussi : un écart peut n'être faux que dans une direction. */
+/** T-0110 — visée selectable: a deviation may be wrong in one direction only. */
 const AZIMUT = arg('az', 180)
 const HAUTEUR_VISEE = arg('alt', 40)
 /**
- * T-0110 — `--appels` compte les ORDRES DE PEINTURE, pas les allocations. C'est la mesure qui
- * manquait à T-0054 : un `stroke()` par élément coûte le pilote graphique, pas le tas, et
- * aucun compteur d'objets ne le voit passer.
+ * T-0110 — `--appels` counts PAINT ORDERS, not allocations (T-0054 gap): one `stroke()` per
+ * element costs the driver, not the heap.
  */
 const APPELS = process.argv.includes('--appels')
 /**
- * T-0110 — `--effective` hache la PEINTURE, quand `--empreinte` hache les ORDRES.
- *
- * La différence décide d'une optimisation. Supprimer un `stroke()` sur un chemin vide, ou une
- * écriture de style que rien n'utilise avant d'être réécrite, change le flux d'ordres sans
- * toucher un pixel : `--empreinte` le signale comme une régression, à tort. Cette empreinte-ci
- * n'absorbe un ordre qu'au moment où il pose de la couleur, avec l'état de style qui s'y
- * applique — deux passes qui peignent la même image la partagent, quel que soit le chemin pris
- * pour y arriver.
+ * T-0110 — `--effective` hashes the PAINT, `--empreinte` the ORDERS. Dropping a `stroke()` on an
+ * empty path or an overwritten style write changes orders, not a pixel → `--empreinte` false
+ * regression. This digest keeps an order only when it lays colour under the applying style.
  */
 const EFFECTIVE = process.argv.includes('--effective')
-/** T-0098 — `--realiste` ajoute le fond peint et ses paliers de halo : c'est leur surcoût. */
+/** T-0098 — `--realiste` adds painted fond + halo steps: measures their overhead. */
 const REALISTE = process.argv.includes('--realiste')
 
-/** Scène de référence : plein champ, toutes les couches, le ciel d'un site réel. */
+/** Reference scene: plein champ, all layers, real site sky. */
 const VUE: Vue = {
   mode: 'MODE_PLANETARIUM',
   fovDeg: FOV,
@@ -97,7 +75,7 @@ const COUCHES: CouchesActives = {
 
 let path2dConstruits = 0
 
-/** Node n'a pas de `Path2D` : ce substitut absorbe les ordres et se laisse compter. */
+/** Node has no `Path2D`: stand-in absorbing countable orders. */
 class Path2DMuet {
   constructor() {
     path2dConstruits++
@@ -178,20 +156,10 @@ function empreinteur(): { ctx: CanvasRenderingContext2D; valeur: () => string } 
 }
 
 /**
- * Empreinte de la peinture seule : ce qui touche un pixel, et rien d'autre.
- *
- * Trois choses sont volontairement invisibles à cette empreinte, parce qu'elles sont
- * invisibles à l'écran — et c'est ce qui la rend capable de valider une optimisation :
- *
- *   - une écriture de style que rien n'utilise avant d'être réécrite ;
- *   - un `stroke()` sur un chemin vide ;
- *   - un segment de chemin qui tombe HORS du canevas. C'est le cas décisif : écarter une
- *     géométrie avant de la projeter supprime des `moveTo`/`lineTo` dont aucun ne posait de
- *     couleur. Une empreinte qui hache le chemin entier crie à la régression ; celle-ci ne
- *     retient que les segments dont la boîte, élargie de la demi-épaisseur du trait, croise
- *     le canevas.
- *
- * Deux passes qui peignent la même image la partagent, quel que soit le chemin pris.
+ * Digest of paint only. Blind by design to 3 screen-invisible things (so it validates an
+ * optimisation): overwritten style write; `stroke()` on empty path; path segment OUTSIDE canvas
+ * (decisive: culling before projection drops `moveTo`/`lineTo` laying no colour; whole-path
+ * hash cries regression). Kept: segments whose box widened by half stroke width crosses canvas.
  */
 function empreinteurEffectif(): { ctx: CanvasRenderingContext2D; valeur: () => string } {
   let h = 0x811c9dc5
@@ -217,7 +185,7 @@ function empreinteurEffectif(): { ctx: CanvasRenderingContext2D; valeur: () => s
     readonly x: number
     readonly y: number
   }
-  /** Le chemin en cours, en sous-chemins : `moveTo` en ouvre un, `lineTo` le prolonge. */
+  /** Current path as sub-paths (`moveTo` opens, `lineTo` extends). */
   let sousChemins: Pt[][] = []
   const courant = (): Pt[] => {
     const dernier = sousChemins[sousChemins.length - 1]
@@ -226,7 +194,7 @@ function empreinteurEffectif(): { ctx: CanvasRenderingContext2D; valeur: () => s
     sousChemins.push(neuf)
     return neuf
   }
-  /** La boîte élargie de `marge` croise-t-elle le canevas ? */
+  /** Does the box widened by `marge` cross the canvas? */
   const croise = (x0: number, y0: number, x1: number, y1: number, marge: number): boolean =>
     Math.max(x0, x1) + marge >= 0 &&
     Math.min(x0, x1) - marge <= LARGEUR &&
@@ -249,7 +217,7 @@ function empreinteurEffectif(): { ctx: CanvasRenderingContext2D; valeur: () => s
       courant().push({ x, y })
     },
     arc: (x: number, y: number, r: number, a0: number, a1: number) => {
-      // L'arc est son propre sous-chemin : il se juge sur son disque englobant.
+      // arc is its own sub-path: judged on its bounding disc
       sousChemins.push([{ x: x - r, y: y - r }, { x: x + r, y: y + r }])
       if (croise(x - r, y - r, x + r, y + r, 0)) avale(`arc(${nb(x)},${nb(y)},${nb(r)},${nb(a0)},${nb(a1)})`)
     },
@@ -314,7 +282,7 @@ function empreinteurEffectif(): { ctx: CanvasRenderingContext2D; valeur: () => s
   }
 }
 
-/** Contexte 2D muet : il absorbe les ordres de peinture, il n'en exécute aucun. */
+/** Mute 2D context: absorbs paint orders. */
 function contexteMuet(): CanvasRenderingContext2D {
   const rien = (): void => undefined
   return {
@@ -335,8 +303,8 @@ function contexteMuet(): CanvasRenderingContext2D {
     arc: rien,
     stroke: rien,
     fill: rien,
-    // T-0144 — le marqueur d'un objet étendu se peint dans un repère tourné puis remis en
-    // place. Sans ces quatre ordres, le banc s'arrête sur la première galaxie du champ.
+    // T-0144 — extended-object marker painted in rotated frame then restored; without these 4
+    // orders bench stops at first galaxy of champ.
     save: rien,
     restore: rien,
     translate: rien,
@@ -348,9 +316,8 @@ function contexteMuet(): CanvasRenderingContext2D {
 }
 
 /**
- * Contexte 2D qui compte les ordres. Les affectations de style sont comptées deux fois : le
- * total, et la part REDONDANTE — réécrire `strokeStyle` avec la valeur qu'il porte déjà est
- * un appel au pilote pour rien, et c'est le symptôme du tracé élément par élément.
+ * 2D context counting orders. Style writes counted twice: total + REDUNDANT (rewriting
+ * `strokeStyle` with current value = driver call for nothing; per-element stroking symptom).
  */
 function contexteCompteur(): {
   ctx: CanvasRenderingContext2D
@@ -362,7 +329,7 @@ function contexteCompteur(): {
     (): void => {
       n[nom] = (n[nom] ?? 0) + 1
     }
-  /** Un accesseur qui compte les écritures, et celles qui ne changent rien. */
+  /** Accessor counting writes, and no-op ones. */
   const style = <T,>(nom: string, initial: T) => {
     let valeur = initial
     return {
@@ -400,7 +367,7 @@ function contexteCompteur(): {
     fill: compte('fill'),
     createRadialGradient: () => ({ addColorStop: (): void => undefined }),
   }
-  // `Object.fromEntries` produit des descripteurs de données : les convertir en accesseurs.
+  // `Object.fromEntries` yields data descriptors: convert them to accessors
   for (const nom of ['globalAlpha', 'fillStyle', 'strokeStyle', 'lineWidth', 'font']) {
     const acc = (ctx as unknown as Record<string, { get: () => unknown; set: (v: unknown) => void }>)[nom]!
     Object.defineProperty(ctx, nom, { get: acc.get, set: acc.set, configurable: true })
@@ -413,10 +380,7 @@ interface Comptes {
   readonly projetteEn: () => number
 }
 
-/**
- * Projecteur instrumenté. `projette` alloue deux objets par appel — l'entrée et la sortie ;
- * `projetteEn` n'en alloue aucun. Compter les appels, c'est compter les objets.
- */
+/** Instrumented projector: `projette` = 2 objects/call, `projetteEn` = 0 → calls = objects. */
 function projecteurCompte(base: Projecteur): { proj: Projecteur; comptes: Comptes } {
   let nProjette = 0
   let nProjetteEn = 0
@@ -468,10 +432,8 @@ function image(ctx: CanvasRenderingContext2D): { comptes: Comptes; dessinees: nu
     cadres: [],
     couches: COUCHES,
     magLimite,
-    // §3.7 — le ciel le plus noir de la table : c'est lui qui donne la magnitude limite la
-    // plus profonde, donc le plus d'étoiles à sélectionner et à tracer. Le cas le plus lourd
-    // POUR LA BANDE est l'inverse — un ciel de ville y fait peindre toutes les tranches, à une
-    // opacité invisible — mais la bande coûte deux ordres de grandeur de moins que les étoiles.
+    // §3.7 — darkest sky of table: deepest magnitude limite → most stars. Worst case for BANDE is
+    // the inverse (city sky paints all tranches invisibly) but bande costs 100× less than stars.
     sbCiel: SB_PLANCHER_NATUREL,
     latitudeDeg: SITE.latitudeDeg,
     modeNuit: false,
@@ -536,11 +498,11 @@ if (EFFECTIVE) {
   })
   observateur.observe({ entryTypes: ['gc'] })
 
-  // Chauffe : le JIT compile, et la jeune génération grandit jusqu'à sa taille de croisière —
-  // `--max-semi-space-size` est un plafond, pas une taille de départ.
+  // Warm-up: JIT compiles, young generation grows to cruise size (`--max-semi-space-size` =
+  // cap, not start size).
   for (let i = 0; i < 200; i++) image(contexteMuet())
-  // L'observateur de GC livre ses entrées sur un tour de boucle ultérieur : rendre la main
-  // ici vide la file de la chauffe, pour que le compteur ne parle que de la mesure.
+  // GC observer delivers on a later loop turn: yield drains warm-up's queue → counter = measure
+  // only.
   await new Promise((resoud) => setTimeout(resoud, 50))
   gcs = 0
   gcMs = 0

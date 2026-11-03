@@ -1,24 +1,17 @@
 /**
- * §6.4 — le catalogue comme écran : ce qu'on peut photographier, et ce que ça demande.
- *
- * Ce panneau REMPLACE deux chemins qui posaient la même question sans jamais en afficher la
- * réponse — le `<select>` « Cibles visibles » de la carte Cible, et « Chercher dans le
- * catalogue » du tiroir des réglages. Un troisième chemin de plus n'aurait rien réglé : ce
- * sont les deux autres qui disparaissent au même commit.
- *
- * La liste par défaut — case « Ne montrer que les objets photographiables » cochée — porte sur le CRÉNEAU de la nuit, jamais sur la hauteur à
- * l'instant affiché. §6.4 l'interdit nommément : « fusionner les deux ferait disparaître de
- * la vue une cible qui sera bonne dans deux heures ». Une galaxie à 12° au-dessus de
- * l'horizon maintenant, qui culmine à 60° avant l'aube, est photographiable — et le reste.
- *
- * Aucun calcul ici. Les lectures viennent de `cibles-liste.ts` ; la pose et la note de
- * facilité arrivent en props, calculées une fois par la chaîne, qui réemploie le moteur du
- * plan de séance : la liste, la carte Cible et le plan ne peuvent pas annoncer deux poses —
- * ni deux notes — différentes pour la même cible.
- *
- * §6.4 — le filtre par type est un choix MULTIPLE (`types_retenus`). Des chips à bascule
- * plutôt qu'un `<select multiple>` : ce dernier demande Ctrl ou Cmd pour cocher, ce qui ne
- * se fait pas au gant (§11.2).
+ * §6.4 — catalogue as a screen: what can be photographed, and what it demands.
+ * REPLACES two paths asking the same question without showing the answer — Cible card's
+ * "Cibles visibles" `<select>` and the settings drawer's "Chercher dans le catalogue". A third
+ * path would settle nothing: the other two vanish in the same commit.
+ * Default list ("Ne montrer que les objets photographiables" ticked) is about the night's
+ * CRÉNEAU, never altitude at the displayed instant. §6.4 forbids it by name: "fusionner les
+ * deux ferait disparaître de la vue une cible qui sera bonne dans deux heures". Galaxy at 12°
+ * now, culminating at 60° before dawn = photographable, stays so.
+ * No calc here. Readings from `cibles-liste.ts`; pose and facilité note arrive as props, computed
+ * once by the chain reusing the plan de séance engine: list, Cible card and plan cannot
+ * announce two poses or notes for one target.
+ * §6.4 — type filter is a MULTIPLE choice (`types_retenus`). Toggle chips, not `<select
+ * multiple>` (needs Ctrl/Cmd, impossible gloved, §11.2).
  */
 
 import { useEffect, useMemo, type ReactNode } from 'react'
@@ -74,30 +67,28 @@ import { compte } from './horaire.ts'
 import type { Objectif } from '../core/objectif.ts'
 import { champsExtremes, type Zoom } from './zoom-calcul.ts'
 
-/** Une seule référence pour « aucun parc » : la mémo des cartes ne se refait pas à chaque rendu. */
+/** Single reference for "no parc": card memo does not redo per render. */
 const PARC_VIDE: readonly Objectif[] = Object.freeze([])
 
 const DOMAINE_MAG = DOMAINES.m_int
 
 /**
- * T-0281 — « Aucun objet de ce nom » affirmait l'inexistence d'objets bel et bien au
- * catalogue : « NGC 224 » n'y échouait pas faute d'objet, mais faute d'espace toléré. Le
- * message ne conclut donc plus sur le ciel, il dit sur QUOI la recherche a porté — c'est la
- * seule information qui permet de reformuler la demande.
+ * T-0281 — "Aucun objet de ce nom" asserted nonexistence of catalogue objects: "NGC 224"
+ * failed for lack of tolerated space, not of object. Message now says what the search was ON,
+ * not a conclusion on the sky — the only info allowing a rephrase.
  */
 export const RIEN_SOUS_CE_NOM =
   'Aucune désignation ni aucun nom d’usage ne correspond. La recherche porte sur les ' +
   'désignations (M42, NGC 7000) et sur les noms d’usage, français comme anglais.'
 
-/** T-0297 — ce que la liste dit tant que le catalogue est en route. */
+/** T-0297 — what the list says while the catalogue loads. */
 export const CATALOGUE_EN_CHARGE = 'Chargement du catalogue d’objets…'
 
 /**
- * Ce que la case « photographiables » coupe, en une glose de survol plutôt qu'en paragraphe
- * sous la liste (T-0278 en avait fait un texte permanent) : la phrase décrit le contrôle,
- * elle se lit quand on l'interroge et ne pousse plus les lignes vers le bas à chaque
- * changement de matériel. Le compte des trop petites reste dedans — c'est lui qui explique
- * qu'un objectif plus court RACCOURCISSE la liste au lieu de l'allonger.
+ * What the "photographiables" box cuts, as hover gloss rather than a paragraph under the list
+ * (T-0278 made it permanent text): describes the control, read when asked, no longer pushes
+ * rows down on every matériel change. Count of too-small ones stays: it explains why a shorter
+ * objectif SHORTENS the list.
  */
 function aidePortee(
   seuilDeg: number,
@@ -119,30 +110,29 @@ export interface PanneauCiblesProps {
   readonly catalogue: readonly ObjetCielProfond[]
   readonly site: Site
   /**
-   * §8.3 — le ciel, le site et le matériel de la nuit. La liste n'en reçoit plus de copie
-   * champ par champ : T-0291 — le fond de ciel, le champ, l'échantillonnage et l'ouverture y
-   * étaient recopiés depuis `calcul` et `ciel`, donc rafraîchis dans le rendu de la TOUCHE,
-   * pendant que le plan, lui, était différé. Une seule entrée, une seule cadence.
+   * §8.3 — sky, site and matériel of the night. List no longer gets a field-by-field copy:
+   * T-0291 — fond de ciel, champ, échantillonnage, ouverture were re-copied from `calcul` and
+   * `ciel`, refreshed in the KEYSTROKE render while the plan was deferred. One input, one cadence.
    */
   readonly contexteSession: ContexteSession
   /**
-   * §6.4 — la pose et la note par désignation, calculées par la chaîne. Ce panneau ne les
-   * calcule pas : la carte Cible lit la MÊME map, et deux calculs séparés se sont déjà
-   * contredits une fois — la carte notait ce que la liste laissait vide.
+   * §6.4 — pose and note per designation, computed by the chain. Not computed here: Cible card
+   * reads the SAME map; two separate calcs already contradicted once (card rated what the list
+   * left empty).
    */
   readonly etats: ReadonlyMap<string, EtatCible>
-  /** T-0283 — le cadre du matériel, pour que « Cadrer » fasse ici ce qu'il fait dans la fiche. */
+  /** T-0283 — matériel cadre, so "Cadrer" does here what it does in the fiche. */
   readonly profil: ProfilCadre | undefined
   readonly gaiaCharge: boolean
-  /** T-0404 — §6.1 : une cible écartée pour sa taille nomme l'objectif du parc qui la cadrerait. */
+  /** T-0404 — §6.1: a target discarded for size names the parc objectif that would frame it. */
   readonly parc?: readonly Objectif[]
-  /** T-0407 — sous un zoom, chaque ligne est lue à sa focale optimale. */
+  /** T-0407 — under a zoom, each row is read at its optimal focale. */
   readonly zoom?: Zoom | null
-  /** T-0291 — vrai quand ce qui est affiché est le résultat de la saisie précédente. */
+  /** T-0291 — true when what is shown is the previous input's result. */
   readonly recalcul: boolean
-  /** T-0297 — le catalogue n'est pas encore décodé : ni compte ni « aucun objet » à dire. */
+  /** T-0297 — catalogue not decoded yet: neither count nor "aucun objet" to say. */
   readonly enCharge?: boolean
-  /** T-0188 — le champ de recherche est le repli du focus au retour de la fiche. */
+  /** T-0188 — search field = focus fallback on return from the fiche. */
   readonly inputRef?: React.RefObject<HTMLInputElement | null>
 }
 
@@ -152,19 +142,18 @@ export function PanneauCibles(props: PanneauCiblesProps) {
   const contexteDe = zoom?.contexteDe
   const { fovHDeg, echApx, dMm, capteurHMm, mLimOeil } = contexteSession
   const sbCiel = contexteSession.sbCielNoir
-  // T-0182 — la saisie vit dans le magasin : la fiche démonte cette liste, et une recherche
-  // perdue au retour ferait recommencer le tri à chaque cible consultée.
+  // T-0182 — input lives in the store: fiche unmounts this list, a lost search would restart
+  // the sort per consulted target.
   const { photographiablesSeules, recherche, types, magMax, filtresOuverts } = useCatalogue()
 
-  // T-0056 — la minute affichée, pas l'instant : la scène publie deux fois par seconde, et
-  // une minute de granularité ne change pas la hauteur au degré près sur 14 000 entrées.
+  // T-0056 — displayed minute, not the instant: scène publishes 2×/s, minute granularity does
+  // not change altitude to the degree over 14 000 entries.
   const minute = useTrancheScene(minuteAffichee)
 
-  // Les dépendances sont énumérées champ par champ, jamais `props` : l'objet de props est
-  // neuf à chaque rendu, et 14 000 verdicts recalculés à chaque frappe rendraient la
-  // recherche inutilisable.
-  // T-0190, T-0248 — détectabilité, cadrage et tri ne dépendent pas de l'instant : ils ne se
-  // recalculent qu'avec le catalogue ou l'optique. La minute n'ajoute qu'azimut et hauteur.
+  // Dependencies field by field, never `props` (new object per render): 14 000 verdicts
+  // recomputed per keystroke would make search unusable.
+  // T-0190, T-0248 — detectability, cadrage, sort do not depend on the instant: recomputed only
+  // with catalogue or optics. Minute adds only azimut and altitude.
   const invariantes = useMemo(
     () =>
       lignesInvariantes({
@@ -192,20 +181,19 @@ export function PanneauCibles(props: PanneauCiblesProps) {
 
   const retenues = useMemo(() => {
     const filtrees = filtreLignes(lignes, { types, magMax, recherche })
-    // Une recherche garde son ordre de pertinence : le nom tapé doit rester en tête.
+    // A search keeps its relevance order: typed name stays on top.
     if (!photographiablesSeules) {
       return recherche.trim() === ''
         ? trieParPhotographiabilite(filtrees, etats, { fovHDeg, capteurHMm }, contexteDe)
         : filtrees
     }
-    // Le critère vit dans `cibles-liste.ts` : la liste, la scène et le bouton d'ajout au plan
-    // le lisent au même endroit, faute de quoi ils finiraient par désigner trois ensembles.
+    // Criterion in `cibles-liste.ts`: list, scène and add-to-plan button read one place, else
+    // three sets get designated.
     return filtrees.filter((l) => photographiable(etats.get(l.objet.designation)))
   }, [lignes, types, magMax, recherche, photographiablesSeules, etats, fovHDeg, capteurHMm, contexteDe])
 
-  // §6.4 — le haut de la liste est demandé au réseau, une fois, après que la saisie s'est
-  // posée. Ce sont les RÉSULTATS qui déclenchent, donc les trois gestes en sont couverts :
-  // recherche, bascule de portée, filtres. Le défilement, lui, ne demande toujours rien.
+  // §6.4 — list top requested from network once, after input settles. RESULTS trigger → covers
+  // search, scope toggle, filters. Scrolling still requests nothing.
   const aPrecharger = useMemo(
     () => retenues.slice(0, I('VIGNETTES_PRECHARGEES_MAX')).map((l) => l.objet),
     [retenues],
@@ -216,16 +204,15 @@ export function PanneauCibles(props: PanneauCiblesProps) {
     return () => clearTimeout(attente)
   }, [aPrecharger])
 
-  // Le verrou ne vaut que case cochée : le catalogue reste consultable sans suivi, c'est la
-  // SÉANCE qui est fermée, pas la base d'objets.
+  // Lock only with box ticked: catalogue browsable without suivi; the SÉANCE is closed, not the
+  // object DB.
   const domaineCpFerme = photographiablesSeules
     ? contexteSession.domaineCpFerme
     : null
 
-  // T-0278 — le filtre coupe par la TAILLE, dans les deux sens, et surtout par le bas :
-  // la phrase doit nommer ses deux bornes, et le compte de trop petites est ce qui explique
-  // qu'un objectif plus court raccourcisse la liste au lieu de l'allonger.
-  // T-0407 — sous un zoom, la plage entière : la borne basse au télé, la haute au grand-angle.
+  // T-0278 — filter cuts by SIZE, both ways, mostly from below: sentence names both bounds,
+  // count of too-small ones explains why a shorter objectif shortens the list.
+  // T-0407 — under a zoom, the whole range: low bound at télé, high at wide-angle.
   const { teleDeg, grandAngleDeg } = useMemo(() => champsExtremes(zoom, fovHDeg), [zoom, fovHDeg])
   const taille = useMemo(
     () => ({
@@ -242,10 +229,9 @@ export function PanneauCibles(props: PanneauCiblesProps) {
   const seuil = contexteSession.seuilHauteurDeg ?? K('SEUIL_HAUTEUR_IMAGERIE_DEG')
 
   return (
-    /* T-0291 — `aria-busy` pendant que le calcul est en vol : la phrase ci-dessous le dit à
-       l'œil, cet attribut le dit à la technologie d'assistance, qui n'a pas à lire une liste
-       en train d'être remplacée. Hors région vive — l'annoncer à chaque touche ne dirait rien
-       de neuf, et couvrirait le compte que T-0187 fait annoncer. */
+    /* T-0291 — `aria-busy` while calc in flight: sentence tells the eye, this tells assistive
+       tech not to read a list being replaced. Outside live region — announcing per keystroke
+       says nothing new and would cover the count T-0187 announces. */
     <section className="cibles" aria-busy={props.recalcul}>
       <div className="cibles-recherche">
         <div className="cibles-champ">
@@ -268,10 +254,9 @@ export function PanneauCibles(props: PanneauCiblesProps) {
         />
       </div>
 
-      {/* Le volet se déplie DANS le flux, pas en surimpression : rien ne vient masquer les
-          lignes que le filtre est justement en train de changer. */}
-      {/* Toujours monté, inerte une fois replié : c'est ce qui laisse au repli le temps de
-          s'animer, comme une couche absente du rail (`RailVue`). */}
+      {/* Pane unfolds IN the flow, not overlaid: nothing masks the rows the filter changes. */}
+      {/* Always mounted, inert once folded: lets the fold animate, like an absent layer on the
+          rail (`RailVue`). */}
       <div className="cibles-volet" data-ouvert={filtresOuverts} inert={!filtresOuverts}>
         <div>
           <div className="cibles-filtres">
@@ -283,7 +268,7 @@ export function PanneauCibles(props: PanneauCiblesProps) {
                 <span className="aide">Ne montrer que les objets photographiables</span>
               </Interrupteur>
             </Bulle>
-            {/* Aucun chip retenu = aucun type écarté. */}
+            {/* No chip retained = no type excluded. */}
             <div className="cibles-types">
               <span className="libelle" id="cibles-types-libelle">Type</span>
               <div className="cibles-types-choix" role="group" aria-labelledby="cibles-types-libelle">
@@ -319,8 +304,8 @@ export function PanneauCibles(props: PanneauCiblesProps) {
         </div>
       </div>
 
-      {/* T-0187 — une seule région vive pour le compte ET le message de liste vide.
-          Deux régions annonceraient deux fois le même changement. */}
+      {/* T-0187 — single live region for count AND empty-list message; two would announce the
+          change twice. */}
       <div aria-live="polite" aria-atomic="true">
         {attendCatalogue ? (
           <p className="etat">{CATALOGUE_EN_CHARGE}</p>
@@ -333,8 +318,8 @@ export function PanneauCibles(props: PanneauCiblesProps) {
 
         {listees.length === 0 && !attendCatalogue && (
           <p className="etat">
-            {/* §5.2 — domaine fermé : la liste vide n'est pas un filtre trop serré, c'est le
-                suivi qui manque. Le dire ici évite de chercher le levier dans les filtres. */}
+            {/* §5.2 — closed domain: empty list = suivi missing, not a too-tight filter.
+                Saying it here saves hunting the lever in the filters. */}
             {domaineCpFerme !== null
               ? domaineCpFerme
               : recherche.trim() === ''
@@ -344,17 +329,16 @@ export function PanneauCibles(props: PanneauCiblesProps) {
         )}
       </div>
 
-      {/* T-0280 — §1.5.1 promet un plan en moins de deux minutes. Sur un profil neuf la liste
-          est vide par le SUIVI, et la cause du moteur ne désigne ni le champ qui la lève ni
-          l'autre issue : il fallait trois gestes que rien ne montrait. Les deux issues sont
-          donc ici, contre la phrase qui les motive — régler la monture, ou prendre le grand
-          champ que §5.2 laisse ouvert sans suivi.
+      {/* T-0280 — §1.5.1 promises a plan in under two minutes. New profile: list empty because
+          of SUIVI, and the engine cause names neither the field lifting it nor the other exit
+          (three unshown gestures). Both exits here, against the sentence motivating them: set
+          the mount, or take the grand champ §5.2 leaves open without suivi.
 
-          Hors de la région vive de T-0187 : ces boutons ne changent pas quand le compte
-          change, et les réannoncer à chaque frappe de la recherche ne dirait rien de neuf. */}
+          Outside T-0187's live region: these buttons do not change with the count;
+          re-announcing per search keystroke says nothing new. */}
       {listees.length === 0 && !attendCatalogue && domaineCpFerme !== null && (
         <div className="cibles-issues">
-          {/* Le menu Boîtier s'ouvre SUR ce champ : T-0280 l'a mis en tête de son corps. */}
+          {/* Boîtier menu opens ON this field: T-0280 put it first in its body. */}
           <button type="button" onClick={() => ouvreReglage('boitier')}>
             Choisir une monture
           </button>
@@ -395,7 +379,7 @@ function bascule(
   return new Set(actif ? [...types, type] : [...types].filter((t) => t !== type))
 }
 
-/** §11.1 — l'état ne passe pas par la seule couleur : retenu, le chip porte une coche. */
+/** §11.1 — state not by colour alone: retained chip carries a tick. */
 function ChipType(props: {
   readonly actif: boolean
   readonly sur: (actif: boolean) => void
@@ -410,15 +394,13 @@ function ChipType(props: {
 }
 
 /**
- * T-0430 — une carte en fiche technique : l'image et ce qu'elle nomme — désignation, type, nom
- * d'usage —, puis une rangée de mesures ÉTIQUETÉES (facilité, cadre, pose). Les puces à glyphe
- * seul obligeaient à survoler pour savoir quelle mesure on lisait ; une étiquette en capitales
- * est la grammaire du produit pour « ce qui nomme ». Une cible écartée met sa cause à la place
- * des mesures : c'est la même question — peut-on la photographier — à la même place.
- *
- * Le bouton de fiche couvre l'en-tête et les mesures : un clic n'importe où ouvre la fiche. Les
- * gestes — cadrer, ajouter au plan, aller au prochain créneau — sont ses frères, dans un pied
- * nommé en toutes lettres : un `<button>` dans un `<button>` n'est pas du HTML valide.
+ * T-0430 — card as datasheet: image + what it names (designation, type, usual name), then a row
+ * of LABELLED measures (facilité, cadre, pose). Glyph-only chips forced hovering; uppercase
+ * label = product grammar for "what names". Discarded target: cause in place of measures (same
+ * question — can it be photographed — same place).
+ * Fiche button covers header and measures: click anywhere opens the fiche. Gestures (cadrer,
+ * add to plan, go to next créneau) are its siblings in a foot named in full: `<button>` in
+ * `<button>` is invalid HTML.
  */
 interface LigneListeProps {
   readonly ligne: LigneCible
@@ -433,14 +415,14 @@ function LigneListe({ ligne, etat, contexte, profil, gaiaCharge, parc }: LigneLi
   const { objet } = ligne
   const nom = nomCommun(objet)
   const pose = etat?.pose ?? null
-  // Mémorisé : la carte se redessine à chaque minute de la scène, la saison ne change pas.
+  // Memoised: card redraws every scène minute, the season does not change.
   const ecart = useMemo(
     () => (etat !== null && pose === null ? causesCarte(contexte, objet, etat, parc) : null),
     [contexte, objet, etat, pose, parc],
   )
 
   return (
-    // Le survol pose dans la scène le cadre que la cible obtiendrait ; le focus clavier aussi.
+    // Hover puts the cadre the target would get in the scène; keyboard focus too.
     <li
       className="cible-item"
       onPointerEnter={() => survoleCible(objet)}
@@ -450,8 +432,8 @@ function LigneListe({ ligne, etat, contexte, profil, gaiaCharge, parc }: LigneLi
     >
       <button type="button" className="cible-ligne" onClick={() => ouvreCible(objet)}>
         <span className="cible-entete">
-          {/* §6.4 — depuis le cache seulement : le défilement de la liste n'émet aucune requête.
-              C'est le préchargement du haut de liste qui garnit ce cache, en une salve plafonnée. */}
+          {/* §6.4 — cache only: list scrolling emits no request. Top-of-list prefetch fills it
+              in one capped burst. */}
           <VignetteCible objet={objet} />
           <span className="cible-corps">
             <span className="cible-titre">
@@ -462,17 +444,16 @@ function LigneListe({ ligne, etat, contexte, profil, gaiaCharge, parc }: LigneLi
           </span>
         </span>
         {ecart !== null ? (
-          // §8.3 — une écartée dit pourquoi, sur la carte même : un zéro muet ne dit pas
-          // quel levier tirer (T-0379, T-0380).
-          // T-0382 — écartée pour la Lune : la cause en une phrase, la gêne chiffrée reste sur
-          // la fiche.
+          // §8.3 — a discarded one says why on the card: a mute zero does not say which lever
+          // to pull (T-0379, T-0380).
+          // T-0382 — discarded for the Moon: one-sentence cause, quantified gêne stays in fiche.
           <CibleImpossible
             phrases={etat?.code === 'LUNE' ? [LIBELLE_CAUSE_ECART.LUNE] : ecart.phrases}
           />
         ) : (
           <span className="cible-mesures">
-            {/* Sans note, aucune pastille : cinq pastilles vides se lisent « impossible », ce
-                qui serait faux d'une cible que le moteur n'a simplement pas évaluée. */}
+            {/* No note, no pastille: five empty pastilles read "impossible", false for a target
+                the engine did not evaluate. */}
             {etat !== null && (
               <span className="cible-mesure">
                 <span className="libelle">Facilité</span>
@@ -492,9 +473,8 @@ function LigneListe({ ligne, etat, contexte, profil, gaiaCharge, parc }: LigneLi
           </span>
         )}
       </button>
-      {/* Après le bouton de fiche dans le DOM, donc dans l'ordre du focus : on lit la carte
-          avant d'en tirer un geste. Vide — ni cadre du matériel ni geste offert —, le pied
-          disparaît (`:empty`). */}
+      {/* After the fiche button in the DOM (= focus order): read the card before taking a
+          gesture. Empty (no matériel cadre nor gesture) → foot disappears (`:empty`). */}
       <div className="cible-actions">
         <BoutonCadrer
           objet={objet}
@@ -505,8 +485,8 @@ function LigneListe({ ligne, etat, contexte, profil, gaiaCharge, parc }: LigneLi
           variante="nu"
           avecLibelle
         />
-        {/* §8.3 — ajouter au plan sans ouvrir la fiche : empiler trois cibles est un geste de
-            liste. Offert sous le même critère que la fiche — la pose que le moteur annonce. */}
+        {/* §8.3 — add to plan without opening the fiche: stacking three targets is a list
+            gesture. Offered under the fiche's criterion — the pose the engine announces. */}
         {photographiable(etat ?? undefined) && (
           <BoutonChoixCible designation={objet.designation} avecLibelle />
         )}
@@ -519,7 +499,7 @@ function LigneListe({ ligne, etat, contexte, profil, gaiaCharge, parc }: LigneLi
             avecLibelle
           />
         )}
-        {/* T-0382 — la Lune passe en quelques nuits : la date est le levier, comme la saison. */}
+        {/* T-0382 — Moon passes in a few nights: date is the lever, like season. */}
         {etat?.code === 'LUNE' && (
           <BoutonProchainCreneau
             objet={objet}
@@ -535,19 +515,17 @@ function LigneListe({ ligne, etat, contexte, profil, gaiaCharge, parc }: LigneLi
   )
 }
 
-/** §7.3 — plus d'une nuit change la nature du plan, pas seulement sa durée : ça se dit. */
+/** §7.3 — more than one night changes the plan's nature, not just its duration: say so. */
 function libellePose(pose: PoseCible): string {
   const total = dureeLisible(pose.tRequisS)
   return pose.nNuits > 1 ? `${total} · ${pose.nNuits} nuits` : total
 }
 
 /**
- * La place sur la photo, et rien d'autre : c'est la question qu'on se pose devant une carte de
- * catalogue. Le diamètre en pixels reste sur la fiche cible (§6.2), où il tranche le détail —
- * sur une liste il se lisait comme un encombrement, ce qu'il n'est pas.
- *
- * T-0430 — sous un zoom, la part est celle de la focale optimale (T-0407), mais la focale ne
- * se nomme plus ici : la case « Cadre » épouse son contenu, et la fiche dit la focale.
+ * Place on the photo, nothing else: the question asked of a catalogue card. Pixel diameter
+ * stays on the fiche (§6.2), where it settles detail — on a list it read as clutter.
+ * T-0430 — under a zoom, share = optimal focale's (T-0407), but focale no longer named here:
+ * "Cadre" box hugs its content, the fiche names the focale.
  */
 function libelleEncombrement({ remplissage }: LigneCible): string {
   return remplissage === null ? 'dimensions absentes' : pourcentage(remplissage)

@@ -1,13 +1,10 @@
 /**
- * T-0431 — le matériel dans l'URL du plan : il fixe la pose, le cadrage et ce que le plan
- * écarte. Sans lui, le même lien donnait un autre plan sur l'autre appareil.
- *
- * L'URL porte le matériel EN ENTIER ou pas du tout (`capteur` en est le témoin) : un champ
- * absent vaut vide, comme à l'écran, et non la valeur que l'autre appareil avait en base —
- * un bruit de lecture d'un autre boîtier se serait glissé dans le calcul.
- *
- * Seul l'objectif monté voyage, pas le parc : l'autre appareil le monte s'il l'a déjà, sinon
- * l'ajoute au sien.
+ * T-0431 — matériel in the plan URL: sets pose, cadrage and what the plan discards. Without it
+ * the same link gave another plan on another device.
+ * URL carries matériel WHOLE or not at all (`capteur` is the witness): absent field = empty as
+ * on screen, not the other device's stored value (else another boîtier's read noise leaks in).
+ * Only the mounted objectif travels, not the parc: other device mounts it if present, else
+ * adds it.
  */
 
 import { MATERIEL_PAR_DEFAUT, type DepartMateriel, type SaisieMateriel } from './app-saisie.ts'
@@ -37,14 +34,14 @@ export type MaterielAEcrire = Pick<
   | 'typeMonture'
 >
 
-/** Le matériel lu dans l'URL ; l'objectif monté sans identifiant, que l'appareil lui donne. */
+/** Matériel read from URL; mounted objectif has no id, the device assigns one. */
 export interface MaterielUrl extends Omit<DepartMateriel, 'objectifs' | 'objectifId'> {
   readonly objectif: Objectif | null
 }
 
 export type Parametres = readonly (readonly [string, string])[]
 
-/** La valeur en texte normalisé si elle est dans son domaine, `undefined` sinon. */
+/** Value as normalised text if in its domain, else `undefined`. */
 export function dansDomaine(domaine: DomaineId, texte: string | null): string | undefined {
   if (texte === null) return undefined
   try {
@@ -61,10 +58,10 @@ function parmi<T extends string>(valeurs: readonly T[], texte: string | null): T
 const CAPTEURS: readonly CapteurMode[] = ['FULL_FRAME', 'APSC_CROP']
 const PROJECTIONS: readonly TypeObjectif[] = ['RECTILINEAIRE', 'FISHEYE']
 const QUALITES: readonly QualiteMiseEnStation[] = ['SOIGNEE', 'APPROX', 'INCONNUE']
-// T-0207 — l'altazimutale a quitté le sélecteur : une URL qui la porte retombe sur le départ.
+// T-0207 — altazimutale left the selector: a URL carrying it falls back to the default.
 const MONTURES: readonly TypeMonture[] = ['GEM', 'TRACKER']
 
-/** Les grandeurs d'un boîtier personnalisé, et leur nom court dans l'URL. */
+/** Custom boîtier quantities + short URL name. */
 const CHAMPS_BOITIER = [
   ['mpx', 'resolutionMpx', 'resolution_mpx'],
   ['rn', 'readNoiseE', 'read_noise_e'],
@@ -72,7 +69,7 @@ const CHAMPS_BOITIER = [
   ['zp', 'zpSys', 'zp_sys'],
 ] as const satisfies readonly (readonly [string, keyof SaisieBoitier, DomaineId])[]
 
-/** Les paramètres du matériel, champ en cours de frappe exclu. */
+/** Matériel params, field being typed excluded. */
 export function parametresMateriel(m: MaterielAEcrire): Parametres {
   const sortie: [string, string][] = []
   const ajoute = (cle: string, valeur: string | undefined) => {
@@ -100,7 +97,7 @@ export function parametresMateriel(m: MaterielAEcrire): Parametres {
   return sortie
 }
 
-/** « 24-70,2.8-4 » : la plage de focale, puis la pleine ouverture aux deux bouts. */
+/** "24-70,2.8-4": focale range, then full ouverture at both ends. */
 function objectifDe(texte: string | null, typeObjectif: TypeObjectif): Objectif | null {
   const [focales = '', ouvertures = ''] = (texte ?? '').split(',')
   const [focaleMin = '', focaleMax = ''] = focales.split('-')
@@ -158,10 +155,7 @@ const memeOptique = (a: Objectif, b: Objectif): boolean =>
   a.ouvertureTeleN === b.ouvertureTeleN &&
   a.typeObjectif === b.typeObjectif
 
-/**
- * Le matériel de départ : celui de l'URL, avec son objectif monté depuis le parc de l'appareil
- * — le même s'il y est déjà, ajouté sous `nouvelId` sinon.
- */
+/** Starting matériel: URL's, objectif mounted from device parc (same if present, else added). */
 export function appliqueMaterielUrl(
   depart: DepartMateriel | null,
   url: { readonly materiel?: MaterielUrl },
@@ -169,8 +163,8 @@ export function appliqueMaterielUrl(
 ): DepartMateriel | null {
   if (url.materiel === undefined) return depart
   const { objectif, ...reste } = url.materiel
-  // L'objectif libre n'existe que parc vide : l'appareil en refait un de la focale et de
-  // l'ouverture, comme au premier démarrage.
+  // Free objectif exists only with empty parc: device rebuilds one from focale + ouverture, as
+  // at first start.
   if (objectif === null) return reste
   const parc = depart?.objectifs ?? []
   const present = parc.find((o) => memeOptique(o, objectif))

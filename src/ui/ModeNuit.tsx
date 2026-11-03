@@ -1,21 +1,14 @@
 /**
- * §11.1 — Mode nuit, et §11.2 — ergonomie de consultation nocturne.
- *
- * Les bâtonnets rétiniens assurent la vision nocturne ; leur sensibilité s'effondre au-delà
- * de 640 nm. Une lumière rouge profond est donc vue par les cônes sans les blanchir.
- * L'adaptation à l'obscurité demande 20 à 30 minutes et se détruit en QUELQUES SECONDES
- * de lumière blanche : le mode est global et sans exception, pas un thème sombre.
- *
- * La palette dessine, le masque éteint : la feuille bascule des variables rouge sur noir,
- * et un masque plein écran multiplie chaque pixel par (255·L, 0, 0) — vert et bleu à zéro,
- * luminance réglée, canevas et photos compris. Le masque seul sur une interface claire
- * laisserait ses aplats trop lumineux.
- *
- * T-0140 — le tiroir ne porte plus que ce qui se décide : la luminance. Le
- * pourquoi du rouge ne s'arbitre pas, il reste ici. Le type de dalle ne changeait aucun
- * calcul — faire saisir une donnée pour n'obtenir qu'une phrase, c'est afficher la phrase.
- * L'auto-activation au crépuscule décidait à la place de l'observateur, écran basculé au
- * rouge pendant la préparation du matériel : la bascule est un geste, pas une corvée.
+ * §11.1 — Mode nuit, §11.2 — night-consultation ergonomics.
+ * Rods give night vision; sensitivity collapses past 640 nm → deep red seen by cones without
+ * bleaching. Dark adaptation 20-30 min, destroyed in SECONDS of white light: mode is global,
+ * no exception, not a dark theme.
+ * Palette draws, mask extinguishes: sheet switches variables to red-on-black, full-screen mask
+ * multiplies each pixel by (255·L, 0, 0) — green/blue zero, luminance set, canvas and photos
+ * included. Mask alone on a light UI leaves flats too bright.
+ * T-0140 — drawer keeps only luminance (red's rationale not arbitrated): panel-type setting
+ * changed no calc. Dusk auto-activation decided for the observer (screen red during gear
+ * prep): toggle = gesture, not a chore.
  */
 
 import { useEffect } from 'react'
@@ -29,10 +22,7 @@ import { Tiroir } from './Tiroir.tsx'
 import { Etiquette } from './Terme.tsx'
 import { LUMINANCE_NOMINALE, ecritEtatPersiste, type EtatModeNuit } from '../data/mode-nuit.ts'
 
-/**
- * Applique la palette au document. La transition est portée par la feuille de style : le
- * basculement est progressif, jamais un flash.
- */
+/** Applies palette to document. Transition in the stylesheet: progressive, never a flash. */
 export function appliqueModeNuit(etat: EtatModeNuit): void {
   if (typeof document === 'undefined') return
   const racine = document.documentElement
@@ -77,10 +67,9 @@ export function ModeNuit({ etat, surChangement }: ModeNuitProps) {
 }
 
 /**
- * T-0375 — la bascule est UN geste. Sous le ciel, en gants ou ébloui, ouvrir un tiroir pour
- * atteindre un interrupteur est un geste de trop. L'icône et le nom disent ce que le clic
- * PRODUIT, pas l'état courant : un bouton qui change de nom selon l'état ne porte donc pas
- * `aria-pressed`, et n'a pas d'aplat « enfoncé » à allumer la nuit.
+ * T-0375 — toggle is ONE gesture (under the sky, gloved or dazzled, opening a drawer is one
+ * too many). Icon and name say what the click PRODUCES, not current state: a self-renaming
+ * button carries no `aria-pressed` and no "pressed" flat to light at night.
  */
 export function libelleBascule(actif: boolean): { readonly icone: string; readonly nom: string } {
   return actif
@@ -88,12 +77,12 @@ export function libelleBascule(actif: boolean): { readonly icone: string; readon
     : { icone: 'dark_mode', nom: 'Activer le mode nuit' }
 }
 
-/** La touche qui bascule le mode nuit, partout sauf en saisie — listée dans l'aide clavier. */
+/** Key toggling mode nuit, except while typing — listed in keyboard help. */
 export const TOUCHE_MODE_NUIT = 'n'
 
 /**
- * La règle de la touche, sans DOM : une lettre seule, sans modificateur (Ctrl+N ouvre une
- * fenêtre), et jamais quand on écrit — un « n » tapé dans un nom de lieu n'éteint pas l'écran.
+ * Key rule, no DOM: bare letter, no modifier (Ctrl+N opens a window), never while writing
+ * (an "n" in a place name must not blank the screen).
  */
 export function toucheBasculeModeNuit(
   touche: string,
@@ -103,19 +92,17 @@ export function toucheBasculeModeNuit(
   return !avecModificateur && !enSaisie && touche.toLowerCase() === TOUCHE_MODE_NUIT
 }
 
-/** Le focus est dans un endroit où une lettre s'écrit. */
+/** Focus is where a letter is typed. */
 export function cibleDeSaisie(cible: EventTarget | null): boolean {
   if (!(cible instanceof HTMLElement)) return false
   return cible.isContentEditable || cible.closest('input, textarea, select') !== null
 }
 
 /**
- * §11.1 — le mode nuit est un geste de terrain : il se pose en bas à gauche de la scène, sous le
- * rail de la vue, et prend l'allure de ses bascules — une icône seule, que la bulle nomme.
- *
- * T-0375 — la luminance reste dans le tiroir voisin, qui s'ouvre vers le haut : deux gestes du
- * mode actif, le ciel toujours sous les yeux. Il reste offert mode éteint, pour régler avant
- * de sortir.
+ * §11.1 — mode nuit is a field gesture: bottom-left of the scène, under the view rail, styled
+ * like its toggles — icon alone, named by the bubble.
+ * T-0375 — luminance stays in the adjacent drawer, opening upward: two gestures with mode
+ * active, sky always in view. Offered with mode off too, to set before going out.
  */
 export function BoutonModeNuit({ etat, surChangement }: ModeNuitProps) {
   const { icone, nom } = libelleBascule(etat.actif)

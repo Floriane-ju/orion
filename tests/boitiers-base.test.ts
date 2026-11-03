@@ -1,9 +1,7 @@
 /**
- * T-0203 — la base `boitiers.md` est éditée à la main : ce test est son garde-fou.
- *
- * Une ligne mal remplie doit échouer ici, en nommant le champ fautif, plutôt qu'à l'exécution
- * chez quelqu'un qui vient d'ajouter son boîtier. Aucune valeur n'est recopiée depuis le
- * fichier : ce qui est vérifié, ce sont les invariants et les formules, jamais un chiffre.
+ * T-0203 — `boitiers.md` base is hand-edited: this test = its guardrail. A badly filled row
+ * must fail here naming the faulty field, not at runtime for someone adding their boîtier. No
+ * value copied from file: invariants + formulas verified, never a figure.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -78,7 +76,7 @@ describe('base boîtiers', () => {
         expect(iso.isoRecommandeParSeuil, b.id).toBeNull()
       } else {
         expect(iso.isoRecommandeParSeuil, b.id).toBe(boitier.seuilDoubleGainIso)
-        // La recommandation vaut par le bruit de lecture qu'elle apporte, pas par son affichage.
+        // Recommendation is worth its read noise, not its display.
         expect(iso.readNoiseE, b.id).not.toBeNull()
       }
     }
@@ -104,8 +102,8 @@ describe('T-0204 — un boîtier de la base vaut mieux qu’une saisie vide', ()
   it('apporte ce que la saisie manuelle ne donne pas : une courbe, pas un point', () => {
     const avecCourbe = BASE_BOITIERS.filter((b) => Object.keys(b.readNoiseE).length > 1)
     for (const b of avecCourbe) {
-      // Le repli du registre ne s'applique à aucun ISO que la base couvre : c'est tout
-      // l'intérêt de la liste, et l'écart va jusqu'à un facteur trois sur la pose.
+      // Registry fallback applies to no ISO the base covers (the list's whole point); gap
+      // reaches factor 3 on pose.
       for (const iso of Object.keys(b.readNoiseE).map(Number)) {
         expect(isoRecommande(boitierDeBase(b), iso).readNoiseE, `${b.id} @ ${iso}`).not.toBeNull()
       }
@@ -114,7 +112,7 @@ describe('T-0204 — un boîtier de la base vaut mieux qu’une saisie vide', ()
 
   it('laisse une saisie repartir de ses valeurs quand on quitte la liste', () => {
     for (const b of BASE_BOITIERS) {
-      // La saisie recopiée doit se résoudre seule : sinon, quitter la liste casserait l'écran.
+      // Copied saisie must resolve alone: else leaving the list would break the screen.
       expect(() => boitierDeBase({ ...b, readNoiseE: {} }), b.id).not.toThrow()
     }
   })

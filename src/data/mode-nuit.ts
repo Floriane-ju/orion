@@ -1,10 +1,8 @@
 /**
- * §11.1 — le mode nuit survit au redémarrage : son état persiste dans le stockage local.
- *
- * T-0338 — la persistance vit dans `src/data/`, comme toutes les autres : le composant
- * `ModeNuit` décide et applique, il ne lit ni n'écrit le stockage. État d'interface, donc
- * `stockage-local.ts` : il doit être connu AVANT le premier rendu, sans quoi l'écran
- * s'allumerait en blanc le temps d'une lecture asynchrone — exactement ce que le mode protège.
+ * §11.1 — night mode survives restart: state persists in local storage.
+ * T-0338 — persistence lives in `src/data/`: `ModeNuit` component decides/applies, never touches
+ * storage. UI state → `stockage-local.ts`: must be known BEFORE first render, else the screen
+ * lights white during an async read — what the mode protects against.
  */
 
 import { K } from '../registry/constants.ts'
@@ -16,7 +14,7 @@ export interface EtatModeNuit {
 }
 
 const CLE_STOCKAGE = 'orion.mode-nuit'
-/** Clé portée avant que le produit s'appelle Orion : relue une dernière fois, jamais réécrite. */
+/** Pre-Orion key: reread one last time, never rewritten. */
 const CLE_STOCKAGE_ANCIENNE = 'astrofort.mode-nuit'
 export const LUMINANCE_NOMINALE = 1
 
@@ -26,12 +24,10 @@ export const ETAT_INITIAL: EtatModeNuit = Object.freeze({
 })
 
 /**
- * Le mode reste actif au redémarrage et entre les vues (§11.1).
- *
- * Le stockage local est hors du périmètre de confiance : une clé retouchée, ou écrite par
- * une version antérieure, ne doit pas se propager dans l'état. Chaque champ de forme
- * inattendue retombe sur `ETAT_INITIAL`, les champs intrus sont ignorés — dont `typeDalle`
- * et `autoActivation`, écrits par les versions d'avant T-0140.
+ * Mode stays active across restart and views (§11.1).
+ * Local storage is outside the trust perimeter: tampered or earlier-version keys must not
+ * propagate. Each field of unexpected shape falls back to `ETAT_INITIAL`; intruder fields
+ * ignored, incl. `typeDalle` and `autoActivation` (pre-T-0140 versions).
  */
 export function litEtatPersiste(): EtatModeNuit {
   const lu = litLocal(CLE_STOCKAGE, CLE_STOCKAGE_ANCIENNE)
@@ -48,8 +44,8 @@ export function litEtatPersiste(): EtatModeNuit {
 }
 
 /**
- * Écrit à chaque bascule plutôt qu'au départ de la page (`gardeAuDepart`) : l'état est tenu
- * par React et change rarement, et c'est celui qu'on ne veut surtout pas perdre.
+ * Written at each toggle, not page exit (`gardeAuDepart`): state held by React, changes rarely,
+ * least affordable to lose.
  */
 export function ecritEtatPersiste(etat: EtatModeNuit): void {
   ecritLocal(CLE_STOCKAGE, etat)

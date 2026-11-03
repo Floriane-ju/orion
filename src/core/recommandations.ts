@@ -1,20 +1,11 @@
 /**
- * §7.5 — Conseil filtre contextuel, et §10.3 — recommandation d'équipement.
- *
- * Une seule règle gouverne tout le module : L'APPLICATION NE VEND RIEN. Elle nomme une
- * CATÉGORIE d'équipement et chiffre le gain par les moteurs existants. Jamais de marque,
- * jamais de modèle, jamais de prix, jamais de bandeau, jamais de suggestion spontanée en
- * liste de cibles.
- *
- * Quatre conditions cumulatives, sans exception (§10.3) :
- *   1. un verdict est défavorable ;
- *   2. l'équipement absent est le facteur dominant identifié en §10.2 ;
- *   3. les leviers de coût inférieur ont été présentés d'abord ;
- *   4. l'utilisateur a déplié l'explication.
- *
- * Et une interdiction : un équipement dont le gain n'est pas calculable par les moteurs
- * existants n'est JAMAIS recommandé. Pas de « un meilleur capteur donnerait de plus belles
- * images » — non chiffrable, donc hors périmètre.
+ * §7.5 — contextual filter advice; §10.3 — equipment recommendation.
+ * Single rule: THE APP SELLS NOTHING. Names an equipment CATEGORY, quantifies gain via existing
+ * engines. Never brand, model, price, banner, or spontaneous suggestion in the target list.
+ * Four cumulative conditions (§10.3): 1. a verdict is unfavourable; 2. missing equipment is the
+ * dominant factor of §10.2; 3. cheaper levers presented first; 4. user unfolded the explanation.
+ * Ban: equipment whose gain existing engines can't compute is NEVER recommended ("a better sensor
+ * gives nicer images" = unquantifiable, out of scope).
  */
 
 import { K } from '../registry/constants.ts'
@@ -36,21 +27,19 @@ export type CategorieEquipement =
 export interface Recommandation {
   readonly categorie: CategorieEquipement
   readonly libelle: string
-  /** Différentiel calculé, jamais un gain qualitatif : « sans X — avec Y — rapport Z ». */
+  /** Computed differential, never qualitative gain: "sans X — avec Y — rapport Z". */
   readonly sans: string
   readonly avec: string
   readonly rapport: number
   readonly explication: string
 }
 
-// ---------------------------------------------------------------------------
 // §7.5 — conseil filtre
-// ---------------------------------------------------------------------------
 
 export interface EntreeConseilFiltre {
   readonly typeObjet: TypeObjet
   readonly bortle: number | null
-  /** Dégradation du fond de ciel par la Lune (§8.1), en mag/arcsec². */
+  /** fond de ciel degradation by Moon (§8.1), mag/arcsec². */
   readonly deltaSbLuneMag: number
   readonly cadragePlanifiable: boolean
   readonly explicationDepliee: boolean
@@ -71,7 +60,7 @@ export interface ConseilFiltre {
   readonly message: string
 }
 
-/** Part du fond de ciel que laisse passer une famille de filtres. */
+/** Share of fond de ciel a filter family lets through. */
 export function fractionFondDeCielTransmise(famille: FamilleFiltre): Traced<number> {
   const ligne = ligneFiltre(famille)
   const somme = ligne.bandesNm.reduce((total, bande) => total + bande, 0)
@@ -86,9 +75,8 @@ export function fractionFondDeCielTransmise(famille: FamilleFiltre): Traced<numb
 }
 
 /**
- * Déclenchement conditionnel strict, jamais de bandeau. Sur une galaxie, une nébuleuse par
- * réflexion, un amas ou une nébuleuse obscure, le conseil n'est jamais émis : ces objets
- * émettent en spectre continu, et le filtre à bande étroite coupe leur signal aussi.
+ * Strict conditional trigger, never a banner. Never for galaxy, reflection nebula, cluster or dark
+ * nebula: continuous spectrum, narrow-band filter cuts their signal too.
  */
 export function conseilFiltre(entree: EntreeConseilFiltre): ConseilFiltre {
   const base = {
@@ -150,22 +138,20 @@ export function conseilFiltre(entree: EntreeConseilFiltre): ConseilFiltre {
   }
 }
 
-// ---------------------------------------------------------------------------
 // §10.3 — recommandation d'équipement
-// ---------------------------------------------------------------------------
 
 export interface EntreeRecommandations {
   readonly conseilFiltre: ConseilFiltre
   readonly verdictDefavorable: boolean
   readonly explicationDepliee: boolean
-  /** Leviers de coût inférieur déjà présentés à l'utilisateur (§10.3, condition 3). */
+  /** Cheaper levers already presented to user (§10.3, condition 3). */
   readonly leviersPresentes: readonly string[]
-  /** `null` sans dimensions au catalogue : aucun conseil de focale ne s'appuie sur rien. */
+  /** `null` without catalogue dimensions: no focal advice on nothing. */
   readonly verdictCadrage: VerdictCadrage | null
   readonly focaleActuelleMm: number
   readonly focaleIdealeMm: number | null
   readonly nTuiles: number | null
-  /** Vrai quand la monture bride la pose avant la physique (§7.2). */
+  /** True when mount limits pose before physics does (§7.2). */
   readonly regimeLimiteSuivi: boolean
   readonly suiviActif: boolean
   readonly tOptS: number
@@ -175,7 +161,7 @@ export interface EntreeRecommandations {
 export interface SortieRecommandations {
   readonly recommandations: readonly Recommandation[]
   readonly message: string
-  /** Vrai tant que les conditions cumulatives ne sont pas réunies : rien n'est affiché. */
+  /** True until cumulative conditions met: nothing displayed. */
   readonly silencieux: boolean
 }
 

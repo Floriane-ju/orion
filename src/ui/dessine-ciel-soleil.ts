@@ -1,20 +1,14 @@
 /**
- * §3.3, T-0356 — le ciel éclairé par le Soleil, peint direction par direction.
+ * §3.3, T-0356 — Sun-lit sky, painted per direction.
+ * Radial gradient (`dessineHaloSoleil`) knows only separation ρ → a disc. Sunset layers in
+ * horizontal bands: scattered light reddens again on path to eye, depends only on aimed height.
+ * Sky = field of (h, ρ); no canvas gradient draws it.
+ * Computed on reduced grid (`CELLULE_CIEL_SOLEIL_PX`), upscaled by browser bilinear smoothing
+ * (universal, Firefox incl.), painted OPAQUE: each cell carries full fond incl. horizon halo.
+ * All physics in `composantesCielSoleil`.
  *
- * Un dégradé radial autour du Soleil (`dessineHaloSoleil`) ne connaît que la séparation ρ :
- * il donne un disque. Le couchant, lui, s'étage en bandes horizontales, parce que la lumière
- * diffusée est rougie une seconde fois sur le trajet qui la ramène à l'œil, et ce trajet ne
- * dépend que de la hauteur visée. Le ciel est donc un champ à deux variables (h, ρ), qu'aucun
- * dégradé de canevas ne sait tracer.
- *
- * Il se calcule sur une grille réduite (`CELLULE_CIEL_SOLEIL_PX`), s'agrandit avec le lissage
- * bilinéaire du navigateur — universel, Firefox compris —, et se peint OPAQUE : chaque cellule
- * porte le fond complet, halo d'horizon compris. La physique vient toute de
- * `composantesCielSoleil`.
- *
- * ponytail: la grille est gardée d'une image à l'autre tant que rien ne bouge — Soleil, visée,
- * fond, taille. En animation ou pendant un glissé, elle se recalcule à chaque image ; si ça se
- * voyait, c'est le pas de la grille qu'il faudrait monter.
+ * ponytail: grid kept frame to frame while nothing moves (Sun, aim, fond, size). Animating or
+ * dragging, it recomputes every frame; if visible, raise the grid step.
  */
 
 import type { Mat3 } from '../core/mat3.ts'
@@ -40,7 +34,7 @@ interface Grille {
 
 let grille: Grille | null = null
 
-/** Tout ce dont dépend la grille, à plat : si rien n'a bougé, elle se recopie telle quelle. */
+/** Everything grille depends on, flat: if nothing moved, it is reused as is. */
 function cleDe(
   projecteur: Projecteur,
   matriceCiel: Mat3,
@@ -76,8 +70,8 @@ function cleDe(
 const TAILLE_CLE = 9 + 9 + 3 + 3 + 1 + 3
 
 /**
- * Peint le ciel du Soleil sur `ctx`. Renvoie `false` sans rien peindre quand le Soleil n'éclaire
- * plus rien (nuit) ou sans `OffscreenCanvas` : l'appelant garde alors le halo radial.
+ * Paints Sun sky on `ctx`. `false` + nothing painted when Sun lights nothing (nuit) or no
+ * `OffscreenCanvas`: caller keeps radial halo.
  */
 export function dessineCielSoleil(
   ctx: CanvasRenderingContext2D,
@@ -87,7 +81,7 @@ export function dessineCielSoleil(
   soleil: SoleilEcran,
 ): boolean {
   if (typeof OffscreenCanvas === 'undefined') return false
-  // Nuit : la lueur est éteinte (Patat hors domaine), le fond et ses paliers suffisent.
+  // Nuit: glow off (Patat out of domain), fond and its paliers suffice.
   if (soleil.altitudeDeg <= 0 && lueurSoleil(soleil.altitudeDeg, 0).mieNl === 0) return false
 
   const { largeurPx, hauteurPx } = projecteur.vue
@@ -114,7 +108,7 @@ export function dessineCielSoleil(
 
   const lissageInitial = ctx.imageSmoothingEnabled
   ctx.imageSmoothingEnabled = true
-  // Le centre de la cellule (i, j) est au pixel (i·pas, j·pas) : l'agrandissement le recale.
+  // Cell (i, j) centre is at pixel (i·pas, j·pas): upscale re-aligns it.
   ctx.drawImage(toile.canvas, -pas / 2, -pas / 2, colonnes * pas, lignes * pas)
   ctx.imageSmoothingEnabled = lissageInitial
   return true

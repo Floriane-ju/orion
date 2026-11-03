@@ -1,19 +1,13 @@
 /**
- * §6.4 — le préchargement des vignettes du haut de liste : ce qu'il demande, et ce qu'il ne
- * demande pas.
+ * §6.4 — vignette prefetch for top of list: what it requests and doesn't.
+ * Verifies a THROUGHPUT, not an image. Caps exist for a public service's 429: correct prefetch
+ * counts requests, runs them 2 by 2, emits none offline, drops a stale result set.
+ * No designation written: objects from embedded packs, disjoint slices. Network stubbed with HELD
+ * promises, else concurrency unobservable.
  *
- * Ce qui est vérifié ici est un DÉBIT, pas une image. Le motif des plafonds est le 429 d'un
- * service public : un préchargement correct est un préchargement qui compte ses requêtes, les
- * mène deux par deux, n'en émet aucune hors ligne, et abandonne un jeu de résultats périmé.
- *
- * Aucune désignation n'est écrite : les objets sont pris dans les paquets embarqués par
- * tranches disjointes. Le réseau est bouchonné par des promesses RETENUES — sans cela, la
- * concurrence ne s'observe pas : tout se résoudrait avant que la deuxième requête ne parte.
- *
- * ponytail: le réveil des vignettes déjà montées est vérifié au niveau du magasin
- * (`abonneImages`), pas à travers un rendu React — la suite tourne en environnement `node`,
- * sans DOM, donc aucun effet ne s'y exécute. Le jour où une dépendance de DOM entre au projet,
- * c'est ce test-là qui se double d'un rendu.
+ * ponytail: wake-up of already-mounted vignettes checked at store level (`abonneImages`), not via
+ * React render: suite runs in `node` env, no DOM. Upgrade: once a DOM dependency enters the
+ * project, add a render to this test.
  */
 
 import 'fake-indexeddb/auto'
@@ -36,7 +30,7 @@ const CATALOGUE: readonly ObjetCielProfond[] = decodeObjets({
 const PLAFOND = I('VIGNETTES_PRECHARGEES_MAX')
 const DEBIT = I('PRECHARGE_SIMULTANEE_MAX')
 
-/** Une tranche du catalogue, disjointe des autres : deux jeux ne doivent rien partager. */
+/** Catalogue slice, disjoint from others. */
 function tranche(rang: number, combien: number): readonly ObjetCielProfond[] {
   const debut = rang * combien
   const objets = CATALOGUE.slice(debut, debut + combien)
@@ -44,15 +38,13 @@ function tranche(rang: number, combien: number): readonly ObjetCielProfond[] {
   return objets
 }
 
-// ---------------------------------------------------------------------------
-// Réseau bouchonné, réponses RETENUES : c'est ce qui rend la concurrence observable
-// ---------------------------------------------------------------------------
+// Stubbed network, HELD responses: makes concurrency observable
 
 let appels: string[] = []
 let enVol = 0
 let volMax = 0
 let retenues: (() => void)[] = []
-/** Une image retenue, donc une requête menée jusqu'au bout — c'est la fin de la chaîne. */
+/** Held image: request run to completion = end of chain. */
 let reveils = 0
 let seDesabonne: (() => void) | null = null
 
@@ -74,34 +66,27 @@ function bouchonne(): void {
   })
 }
 
-/** Nombre de tours de boucle accordés par requête attendue. Une garde, pas une attente. */
+/** Loop turns per awaited request. A guard, not a wait. */
 const TOURS_PAR_REQUETE = 40
 
-/** Un tour de boucle : ce qui est retenu part, et les consommateurs reprennent la file. */
+/** One loop turn: held work leaves, consumers resume queue. */
 async function tour(): Promise<void> {
   for (const relache of retenues.splice(0)) relache()
   await new Promise((r) => setTimeout(r, 0))
 }
 
 /**
- * Attend que le préchargement ait émis `nouvelles` requêtes depuis `base`, puis se taise.
+ * Waits until prefetch emitted `nouvelles` requests since `base`, then quiet.
+ * Waits on a COUNT, never a delay: between requests a consumer crosses IndexedDB (read, write);
+ * a suite parallel to ~60 files promises no timing.
  *
- * L'attente porte sur un COMPTE, jamais sur un délai : entre deux requêtes, un consommateur
- * traverse IndexedDB — lecture puis écriture — et une suite qui tourne en parallèle d'une
- * soixantaine d'autres fichiers ne tient aucune promesse de calendrier.
- *
- * T-0215 — CE QUI SE TAIT N'EST PAS LE RÉSEAU, C'EST LE TRAVAIL QU'IL ALIMENTE. Le bouchon
- * décrémente `enVol` au moment où il RÉSOUT la promesse : à cet instant, le consommateur n'a
- * pas encore lu le blob ni écrit dans IndexedDB, et il n'a donc pas encore retenu l'image.
- * L'ancienne version compensait par deux tours forfaitaires après le silence réseau — et deux
- * tours sont une durée déguisée, exactement ce que l'en-tête de cette fonction proscrit. Sous
- * charge, la chaîne dépassait le forfait : la dernière image n'était pas retenue, et deux
- * assertions tombaient — le compte des réveils, et le jeu élargi qui redemandait une image
- * censée être déjà en mémoire.
- *
- * La condition est désormais exacte : le bouchon répond TOUJOURS une image, donc toute requête
- * émise doit produire un réveil, et la file n'est achevée que lorsque les deux comptes se
- * rejoignent. Plus aucun tour n'est accordé au hasard.
+ * T-0215 — WHAT GOES QUIET IS NOT THE NETWORK BUT THE WORK IT FEEDS. Stub decrements `enVol` on
+ * RESOLVE: consumer hasn't read blob nor written IndexedDB, image not yet retained. Old version
+ * added 2 fixed turns after network silence = disguised duration; under load the chain overran →
+ * last image unretained, 2 assertions fell (wake count; widened set re-requesting an image
+ * supposedly in memory).
+ * Exact condition: stub ALWAYS answers an image, so each emitted request yields a wake; done only
+ * when both counts meet.
  */
 async function attend(base: number, nouvelles: number): Promise<void> {
   for (let garde = 0; garde <= (nouvelles + 1) * TOURS_PAR_REQUETE; garde += 1) {
@@ -122,10 +107,8 @@ async function attend(base: number, nouvelles: number): Promise<void> {
 }
 
 /**
- * Attend la PREMIÈRE requête, sans rien relâcher de ce qui part.
- *
- * Un consommateur lit IndexedDB avant d'émettre : un seul tour de boucle ne suffit pas à coup
- * sûr, et compter sur lui rendait la suite dépendante de la charge de la machine.
+ * Waits for the FIRST request, releasing nothing that leaves. Consumer reads IndexedDB before
+ * emitting: one loop turn not surely enough → load-dependent suite.
  */
 async function attendPremiere(): Promise<void> {
   for (let garde = 0; garde < TOURS_PAR_REQUETE; garde += 1) {
@@ -135,7 +118,7 @@ async function attendPremiere(): Promise<void> {
   throw new Error('aucune requête émise : le préchargement ne démarre pas')
 }
 
-/** Précharge un jeu, et attend les requêtes NOUVELLES qu'il doit émettre — ni plus, ni moins. */
+/** Prefetches a set, awaits the NEW requests it must emit — no more, no less. */
 async function prechargeEtAttend(
   objets: readonly ObjetCielProfond[],
   nouvelles: number,
@@ -146,7 +129,7 @@ async function prechargeEtAttend(
   expect(appels.length - base).toBe(nouvelles)
 }
 
-/** L'adresse d'une découpe porte les coordonnées : la désignation n'y figure pas. */
+/** Crop address carries coordinates, not the designation. */
 function requetesPour(objets: readonly ObjetCielProfond[]): number {
   return appels.filter((adresse) => {
     const parametres = new URL(adresse).searchParams
@@ -163,7 +146,7 @@ beforeEach(async () => {
   enVol = 0
   volMax = 0
   reveils = 0
-  // `oublieImages` vide les abonnés : l'abonnement du banc se repose après, jamais avant.
+  // `oublieImages` empties subscribers: re-lay bench subscription after, never before.
   oublieImages()
   seDesabonne = abonneImages(() => {
     reveils += 1
@@ -198,7 +181,7 @@ describe('plafond de requêtes §6.4', () => {
     const jeu = tranche(3, DEBIT * 2)
     await prechargeEtAttend(jeu, jeu.length)
 
-    // Un jeu ÉLARGI : le même début, une cible de plus. Seule la nouvelle doit partir.
+    // WIDENED set: same start, one more target; only the new one must leave.
     await prechargeEtAttend([...jeu, ...tranche(4, 1)], 1)
   })
 })
@@ -209,12 +192,12 @@ describe('abandon d’un jeu périmé §6.4', () => {
     const courant = tranche(6, DEBIT)
 
     prechargeVignettes(perime)
-    await attendPremiere() // les premières requêtes partent, la file garde le reste
+    await attendPremiere() // first requests leave, queue keeps the rest
     expect(appels.length).toBeLessThanOrEqual(DEBIT)
 
     await prechargeEtAttend(courant, courant.length)
 
-    // Seules les requêtes déjà en vol au moment de la bascule ont pu concerner l'ancien jeu.
+    // Only requests in flight at switch time could concern the old set.
     expect(requetesPour(perime)).toBeLessThanOrEqual(DEBIT)
     expect(requetesPour(courant)).toBe(courant.length)
   })
@@ -227,8 +210,7 @@ describe('hors ligne §12.5', () => {
     vi.stubGlobal('navigator', { onLine: false })
     await prechargeEtAttend(jeu, 0)
 
-    // Le refus hors ligne ne compte pas pour une demande servie : sinon le retour du réseau
-    // ne rattraperait jamais la liste affichée.
+    // Offline refusal ≠ served request: else network return never catches up with displayed list.
     vi.stubGlobal('navigator', { onLine: true })
     await prechargeEtAttend(jeu, jeu.length)
   })
@@ -237,8 +219,8 @@ describe('hors ligne §12.5', () => {
 describe('réveil des vignettes montées §6.4', () => {
   it('notifie le magasin à chaque image retenue', async () => {
     const jeu = tranche(8, DEBIT * 2)
-    // Un second abonné, distinct de celui du banc : ce qui se vérifie ici n'est pas que la
-    // chaîne s'achève — `attend` l'exige déjà — mais que CHAQUE abonné soit prévenu.
+    // 2nd subscriber, distinct from bench's: checks EACH subscriber is notified (`attend` already
+    // requires chain end).
     let prevenu = 0
     const desabonne = abonneImages(() => {
       prevenu += 1
@@ -247,8 +229,7 @@ describe('réveil des vignettes montées §6.4', () => {
     await prechargeEtAttend(jeu, jeu.length)
     desabonne()
 
-    // Sans cette notification, une ligne qui a conclu à l'absence resterait sans image
-    // jusqu'au prochain montage du panneau.
+    // Without this notification a row that concluded absence stays imageless until panel remount.
     expect(prevenu).toBe(jeu.length)
   })
 })

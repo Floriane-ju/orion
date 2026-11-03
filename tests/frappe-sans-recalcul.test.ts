@@ -1,25 +1,15 @@
 /**
- * T-0291 — une frappe sans effet sur les NOMBRES ne relance aucun moteur.
+ * T-0291 — a keystroke with no effect on NUMBERS reruns no engine.
+ * Defect: chain memos keyed on typed STRINGS. "45.5" + trailing zero = 2 texts, 1 latitude →
+ * nuit, plan, catalogue notes recomputed (480 ms at CPU ×4).
  *
- * Le défaut mesuré : les mémos de la chaîne portaient sur les CHAÎNES saisies. Taper « 45.5 »
- * puis un zéro final donne deux textes et une seule latitude — la nuit, le plan et les notes
- * du catalogue se recalculaient quand même, 480 ms à CPU ×4 pour un caractère qui ne change
- * rien. Retaper la même valeur coûtait pareil.
+ * No browser (env `node`, no React renderer; `renderToStaticMarkup` renders once → no memo
+ * survives). The chain's 3 hooks → harness with their semantics (deps by `Object.is`, cells
+ * by call order), chain called twice. Tests React's contract.
  *
- * COMMENT LA VÉRIFICATION TIENT SANS NAVIGATEUR. L'environnement de test est `node` et le
- * dépôt n'embarque aucun moteur de rendu React : `renderToStaticMarkup` ne rend qu'une fois,
- * donc aucun mémo ne survit d'un rendu au suivant, et il n'y aurait rien à observer. Les trois
- * crochets que la chaîne utilise sont donc remplacés par un harnais qui reproduit leur
- * sémantique — dépendances comparées par `Object.is`, cellules indexées par ordre d'appel —,
- * et la chaîne est appelée deux fois de suite. Ce n'est pas React, c'est le contrat de React :
- * le mémo qui repart ici repartirait à l'écran.
- *
- * `useDeferredValue` y rend sa valeur telle quelle. Le report de T-0291 change QUAND le calcul
- * lourd tourne, pas ce qui le déclenche ; c'est le déclencheur qui est éprouvé ici, et le
- * mesurer sans report le rend indépendant de l'ordonnancement.
- *
- * Les trois moteurs espionnés sont ceux que le ticket nomme, et ce sont les trois étages du
- * coût : la nuit du site, le plan de la séance, les notes du catalogue.
+ * `useDeferredValue` returns value as-is: T-0291 deferral changes WHEN heavy calc runs, not
+ * what triggers it; trigger is tested.
+ * Spied engines = ticket's 3 cost stages: site nuit, plan de séance, catalogue notes.
  */
 
 import { readFileSync } from 'node:fs'
@@ -36,10 +26,7 @@ import { useChaineCalcul } from '../src/ui/app-calcul.ts'
 import { ouverturePlancher, plancherAuPas, type Objectif } from '../src/core/objectif.ts'
 import { DEFAUT, type SaisieLieu, type SaisieMateriel } from '../src/ui/app-saisie.ts'
 
-/**
- * Le harnais de crochets. `vi.hoisted` parce que `vi.mock` est remonté en tête de fichier :
- * une fermeture sur un `const` de module y serait lue avant son initialisation.
- */
+/** Harness. `vi.hoisted`: `vi.mock` is hoisted, a closure on a module `const` reads early. */
 const harnais = vi.hoisted(() => {
   interface Cellule {
     readonly deps: readonly unknown[] | undefined
@@ -49,7 +36,7 @@ const harnais = vi.hoisted(() => {
   let cellules: Cellule[] = []
   let curseur = 0
 
-  /** La comparaison de React, et rien d'autre : `Object.is`, donc `NaN` égal à lui-même. */
+  /** React's comparison: `Object.is` (`NaN` equals itself). */
   const memesDeps = (
     a: readonly unknown[] | undefined,
     b: readonly unknown[] | undefined,
@@ -58,12 +45,12 @@ const harnais = vi.hoisted(() => {
     a.every((valeur, i) => Object.is(valeur, b[i]))
 
   return {
-    /** Un écran neuf : plus aucun mémo n'est chaud. */
+    /** Fresh screen: no warm memo. */
     demonte(): void {
       cellules = []
       curseur = 0
     },
-    /** Un rendu de plus du même écran. */
+    /** One more render, same screen. */
     rendu(): void {
       curseur = 0
     },
@@ -94,18 +81,18 @@ vi.mock('react', async (importeReel) => {
     ...reel,
     useMemo: harnais.useMemo,
     useRef: harnais.useRef,
-    // Le report est hors sujet ici : ce test porte sur ce qui DÉCLENCHE le calcul lourd.
+    // Deferral out of scope: tests what TRIGGERS the heavy calc.
     useDeferredValue: <T,>(valeur: T): T => valeur,
-    // L'altitude recopiée du relief est un effet, hors du calcul que la frappe relance.
+    // Altitude copied from relief = effect, outside the calc a keystroke reruns.
     useEffect: (): void => {},
-    // La sélection de cibles (§8.3) est un magasin externe : hors d'un rendu React, seule sa
-    // LECTURE compte ici. L'abonnement n'a personne à réveiller, la frappe ne la touche pas.
+    // Target selection (§8.3) = external store: outside a render only its READ matters;
+    // subscription wakes nobody, keystroke doesn't touch it.
     useSyncExternalStore: <T,>(_abonne: unknown, lit: () => T): T => lit(),
   }
 })
 
-// §4.1 — le relief est une ressource réseau, résolue hors du calcul : ce test porte sur ce que
-// la FRAPPE relance, et le crochet qui l'attend n'a ni état ni effet à simuler ici.
+// §4.1 — relief = network resource resolved outside the calc: tests what the KEYSTROKE
+// reruns; the awaiting hook has no state/effect to simulate.
 vi.mock('../src/ui/relief-site.ts', async (importeReel) => ({
   ...(await importeReel<typeof import('../src/ui/relief-site.ts')>()),
   useReliefSite: () => ({ relief: null, enCharge: false }),
@@ -134,7 +121,7 @@ const MOTEURS = [
 
 const rien = () => undefined
 
-/** Le catalogue réel : `planSession` ne tourne pas sur une liste vide, donc rien à observer. */
+/** Real catalogue: `planSession` doesn't run on an empty list. */
 function openngc(): readonly ObjetCielProfond[] {
   const racine = join(import.meta.dirname, '..', 'public', 'data')
   const lit = (nom: string): ArrayBuffer => {
@@ -154,10 +141,9 @@ const CATALOGUE = openngc()
 const NUIT_ISO = nuitDeLInstant(new Date())
 
 /**
- * Ce que `useState` tient stable dans l'application, et qu'un fabricant de saisie recréerait
- * à chaque appel : le relief relevé, le boîtier saisi, les poids, le ciel d'étoiles. Une
- * identité neuve serait une dépendance changée, donc un recalcul légitime — et le test
- * mesurerait alors son propre outillage.
+ * What `useState` keeps stable in app but an input builder would recreate per call: sampled
+ * relief, entered boîtier, weights, star sky. Fresh identity = changed dep = legit recalc →
+ * test would measure its own tooling.
  */
 const SAISIE_BOITIER = Object.freeze({
   formatCapteur: 'PLEIN_FORMAT',
@@ -208,8 +194,8 @@ function materiel(champs: Partial<SaisieMateriel> = {}): SaisieMateriel {
     surCapteurMode: rien,
     typeObjectif: 'RECTILINEAIRE',
     surTypeObjectif: rien,
-    // §5.2 — équatoriale allemande, mise en station soignée : le domaine ciel profond est
-    // ouvert, donc le plan a des cibles à allouer et les trois moteurs ont du travail.
+    // §5.2 — German equatorial, careful polar alignment: ciel profond open, so plan has
+    // targets and the 3 engines work.
     suiviActif: true,
     surSuiviActif: rien,
     qualiteMes: 'SOIGNEE',
@@ -220,7 +206,7 @@ function materiel(champs: Partial<SaisieMateriel> = {}): SaisieMateriel {
   }
 }
 
-/** Une saisie complète, telle que l'écran la porte à un instant donné. */
+/** Full input as screen holds it at an instant. */
 type Saisie = readonly [SaisieLieu, SaisieMateriel]
 
 function rendu([lieuSaisi, materielSaisi]: Saisie): void {
@@ -234,7 +220,7 @@ function rendu([lieuSaisi, materielSaisi]: Saisie): void {
   })
 }
 
-/** Les moteurs relancés par `frappe`, le premier rendu ayant tout amorcé. */
+/** Engines rerun by `frappe`, first render having primed everything. */
 function moteursRelances(depart: Saisie, frappe: Saisie): number {
   rendu(depart)
   for (const moteur of MOTEURS) moteur.mockClear()
@@ -242,12 +228,12 @@ function moteursRelances(depart: Saisie, frappe: Saisie): number {
   return MOTEURS.reduce((total, moteur) => total + moteur.mock.calls.length, 0)
 }
 
-/** Le même texte, prolongé d'un zéro décimal : deux saisies, une seule valeur. */
+/** Same text + decimal zero: 2 inputs, 1 value. */
 function zeroFinal(texte: string): string {
   return texte.includes('.') ? `${texte}0` : `${texte}.0`
 }
 
-/** Les champs que le ticket nomme, un par étage de la chaîne : site, fond de ciel, optique. */
+/** Ticket's fields, one per chain stage: site, fond de ciel, optique. */
 const CHAMPS = [
   ['latitude', DEFAUT.latitude, (v: string): Saisie => [lieu({ latitude: v }), materiel()]],
   ['Bortle', DEFAUT.bortle, (v: string): Saisie => [lieu({ bortle: v }), materiel()]],
@@ -274,12 +260,9 @@ describe('T-0291 — un caractère sans effet ne relance aucun moteur', () => {
   })
 
   /**
-   * §7.2, T-0206 — sous un boîtier de la base, l'ISO saisi n'entre dans aucun calcul : c'est
-   * le seuil de double gain de la ligne qui le désigne. Taper dedans ne doit donc rien coûter,
-   * et c'est ce que `grandeursMateriel` obtient en le neutralisant AVANT la mémoïsation.
-   *
-   * La première ligne de la base, pas un identifiant recopié : `boitiers.md` s'édite à la
-   * main, et un identifiant en dur ici mourrait à la première ligne retirée.
+   * §7.2, T-0206 — under a database boîtier, typed ISO enters no calc: the row's double-gain
+   * threshold designates it. Typing must cost nothing; `grandeursMateriel` neutralises it
+   * BEFORE memoisation. First database row, not a copied id: `boitiers.md` is hand-edited.
    */
   it('un ISO tapé sous un boîtier de la base ne relance rien', () => {
     const base = BASE_BOITIERS[0]!.id
@@ -291,7 +274,7 @@ describe('T-0291 — un caractère sans effet ne relance aucun moteur', () => {
     ).toBe(0)
   })
 
-  /** Le contrôle négatif : une valeur vraiment neuve DOIT tout relancer, sinon rien n'est mesuré. */
+  /** Negative control: a truly new value MUST rerun everything, else nothing is measured. */
   it('un degré de latitude en plus relance les trois moteurs', () => {
     const voisine = String(Number(DEFAUT.latitude) + 1)
     rendu([lieu(), materiel()])
@@ -302,8 +285,8 @@ describe('T-0291 — un caractère sans effet ne relance aucun moteur', () => {
 })
 
 /**
- * T-0433 — sous un zoom, chaque cible s'évalue à sa focale optimale (T-0407) : tourner la bague
- * ne change aucun chiffre de la liste ni du plan, donc ne relance ni l'un ni l'autre.
+ * T-0433 — under a zoom each target is evaluated at its focale optimale (T-0407): turning the
+ * ring changes no figure of list/plan, reruns neither.
  */
 describe('T-0433 — sous un zoom, régler la focale ne relance ni la liste ni le plan', () => {
   const ZOOM: Objectif = {
@@ -315,7 +298,7 @@ describe('T-0433 — sous un zoom, régler la focale ne relance ni la liste ni l
     ouvertureTeleN: 5.6,
     typeObjectif: 'RECTILINEAIRE',
   }
-  // L'ouverture suit la bague comme dans l'application (`surFocale`) : le plancher à la focale.
+  // Aperture follows the ring as in app (`surFocale`): floor at focale.
   const reglage = (focaleMm: number): Saisie => [
     lieu(),
     materiel({

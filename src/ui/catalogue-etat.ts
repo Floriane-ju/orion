@@ -1,11 +1,8 @@
 /**
- * §6.4 — ce que le catalogue montre : la portée, la recherche et les deux filtres.
- *
- * T-0182 — la fiche prend la place de la liste dans le panneau, et la liste est démontée
- * pendant ce temps. Une saisie tenue par le composant partirait donc avec lui : revenir de la
- * fiche rendrait un catalogue remis à zéro, alors que le geste est « je regarde celle-là, puis
- * je reviens à ma recherche ». L'état vit ici pour cette raison — comme [[scene-etat]],
- * un magasin externe se lit en rendu serveur comme dans le navigateur, et se teste sans DOM.
+ * §6.4 — what the catalogue shows: scope, search, the two filters.
+ * T-0182 — fiche replaces the list in the panel, list unmounts: component-held input would reset
+ * on return ("je regarde celle-là, puis je reviens à ma recherche"). State lives here, like
+ * [[scene-etat]]: external store reads in SSR and browser, tests without DOM.
  */
 
 import { useSyncExternalStore } from 'react'
@@ -16,15 +13,15 @@ import { booleen, chaine, dans, garde, gardeAuDepart, litLocal } from '../data/s
 
 export interface EtatCatalogue {
   /**
-   * Vrai au départ : la liste répond d'abord « que photographier cette nuit ». Le catalogue
-   * entier reste à une case — la base d'objets n'est pas fermée, c'est la séance qui l'est.
+   * True at start: list first answers "que photographier cette nuit". Whole catalogue one tick
+   * away: séance closed, not the object base.
    */
   readonly photographiablesSeules: boolean
   readonly recherche: string
-  /** Les types retenus du filtre — aucun au départ, ce qui n'en écarte aucun. */
+  /** Retained filter types: none at start = none excluded. */
   readonly types: ReadonlySet<TypeObjet>
   readonly magMax: number
-  /** Le volet des filtres, replié au départ et jamais restauré : c'est un geste, pas un réglage. */
+  /** Filters pane, collapsed at start, never restored: a gesture, not a setting. */
   readonly filtresOuverts: boolean
 }
 
@@ -32,7 +29,7 @@ const ETAT_INITIAL: EtatCatalogue = Object.freeze({
   photographiablesSeules: true,
   recherche: '',
   types: new Set<TypeObjet>(),
-  // La borne du domaine, jamais un nombre écrit ici : le curseur lit le même registre.
+  // Domain bound, never a number written here: the slider reads the same registre.
   magMax: DOMAINES.m_int.max,
   filtresOuverts: false,
 })
@@ -40,9 +37,8 @@ const ETAT_INITIAL: EtatCatalogue = Object.freeze({
 const CLE_STOCKAGE = 'orion.catalogue'
 
 /**
- * T-0362 — la liste se rouvre comme on l'a laissée : la case « photographiables », la
- * recherche et les deux filtres. Un type inconnu du catalogue courant est oublié, une
- * magnitude hors domaine retombe sur la borne.
+ * T-0362 — list reopens as left: "photographiables" box, search, both filters. Type unknown to the
+ * current catalogue is dropped; out-of-domain magnitude falls to the bound.
  */
 function restaure(depart: EtatCatalogue): EtatCatalogue {
   const lu = litLocal(CLE_STOCKAGE)
@@ -52,8 +48,8 @@ function restaure(depart: EtatCatalogue): EtatCatalogue {
     recherche: chaine,
     magMax: dans('m_int'),
   })
-  // Une liste sauvegardée avec tous les types cochés date d'avant les chips : elle retombe sur
-  // « aucun retenu », sans quoi tous les chips s'afficheraient enfoncés.
+  // List saved with all types checked predates the chips: falls back to "none retained", else all
+  // chips would show pressed.
   const retenus = Array.isArray(lu.types)
     ? TYPES_OBJET.filter((t) => (lu.types as unknown[]).includes(t))
     : null
@@ -76,7 +72,7 @@ export function majCatalogue(retouche: Partial<EtatCatalogue>): void {
   notifie()
 }
 
-/** Remet le catalogue dans son état de départ. Réservé aux tests. */
+/** Resets catalogue to start state. Tests only. */
 export function reinitialiseCatalogue(): void {
   majCatalogue(ETAT_INITIAL)
 }

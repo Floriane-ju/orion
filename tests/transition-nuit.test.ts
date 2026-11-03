@@ -1,10 +1,8 @@
 /**
- * T-0372 — du coucher à la nuit, le ciel peint ne fait que s'assombrir.
- *
- * Deux défauts vus à l'écran : le zénith restait au plafond de luminance du jour jusqu'à 8,5°
- * de dépression (adaptation complète de l'œil), et la teinte glissait vers celle de la nuit
- * pendant que la luminance restait au plafond — un voile blanc naissait vers 8°, puis
- * s'effaçait. Le test suit la luminance relative de plusieurs directions, Soleil descendant.
+ * T-0372 — sunset to night, painted sky only darkens.
+ * Two on-screen defects: zenith stayed at daytime luminance cap until 8.5° depression (full eye
+ * adaptation); hue slid toward night's while luminance stayed capped → white veil at ~8°, then
+ * faded. Test tracks relative luminance of several directions as Sun descends.
  */
 import { describe, expect, it } from 'vitest'
 import {
@@ -24,7 +22,7 @@ const PAS_DEG = 0.25
 const FIN_ASTRONOMIQUE_DEG = -K('HAUTEUR_CREPUSCULE_ASTRONOMIQUE_DEG')
 const FIN_CIVIL_DEG = -K('HAUTEUR_CREPUSCULE_CIVIL_DEG')
 
-/** Directions (hauteur, azimut) ; le Soleil est à l'azimut 0. */
+/** Directions (height, azimuth); Sun at azimuth 0. */
 const DIRECTIONS: readonly (readonly [number, number])[] = [
   [90, 0],
   [45, 90],

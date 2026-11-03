@@ -1,26 +1,23 @@
 /**
- * §3.3, T-0357 — magnitude limite à l'œil nu sous un ciel PLUS CLAIR que Bortle 9 : le crépuscule.
- *
- * La table Bortle s'arrête à 18 mag/arcsec² et `mLimOeilBorne` borne à son bord, magnitude 4.
- * Juste sous la pleine Lune, faux au crépuscule : le Soleil à peine couché, le fond tombait
- * hors table et des centaines d'étoiles apparaissaient d'un coup. Le seuil de Schaefer (1990)
- * couvre, lui, tout le domaine de l'œil, de la nuit au plein jour.
- *
- * Il ne remplace pas la table : sous un ciel noir, ses magnitudes sont plus pessimistes que
- * l'échelle de Bortle. Il ne sert qu'au-delà du bord clair, RECALÉ sur lui (≈ −0,2 mag) : la
- * magnitude limite reste continue quand le ciel quitte la table.
+ * §3.3, T-0357 — naked-eye limiting magnitude under a sky BRIGHTER than Bortle 9: twilight.
+ * Bortle table stops at 18 mag/arcsec², `mLimOeilBorne` clamps at its edge, magnitude 4. Right
+ * just under full Moon, wrong at twilight: Sun barely set, background off-table, hundreds of
+ * stars popped in at once. Schaefer (1990) threshold covers the whole eye domain, night → full day.
+ * Doesn't replace the table: under dark sky its magnitudes are more pessimistic than Bortle. Used
+ * only beyond the bright edge, RECALIBRATED on it (≈ −0.2 mag): limit continuous as sky leaves
+ * the table.
  */
 
 import { K } from '../registry/constants.ts'
 import { M_LIM_OEIL_PLANCHER, SB_PLAFOND_TABLE } from '../registry/bortle.ts'
 import { nanolamberts } from './moon.ts'
 
-/** 10^x : les coefficients de Schaefer sont publiés en logarithmes décimaux. */
+/** 10^x: Schaefer coefficients are published as decimal logarithms. */
 function puissanceDeDix(x: number): number {
   return Math.exp(x * Math.LN10)
 }
 
-/** Schaefer (1990) brut : magnitude du point le plus faible détectable sur ce fond. */
+/** Raw Schaefer (1990): magnitude of faintest point detectable on this background. */
 export function mLimSchaefer(sbMag: number): number {
   const fondNl = nanolamberts(sbMag)
   const diurne = fondNl > K('SCHAEFER_BASCULE_PHOTOPIQUE_NL')
@@ -32,7 +29,7 @@ export function mLimSchaefer(sbMag: number): number {
 
 const RACCORD_MAG = M_LIM_OEIL_PLANCHER - mLimSchaefer(SB_PLAFOND_TABLE)
 
-/** Magnitude limite sous un fond plus clair que la table Bortle, continue à son bord. */
+/** Limiting magnitude under background brighter than Bortle table, continuous at its edge. */
 export function mLimOeilCielClair(sbMag: number): number {
   return mLimSchaefer(sbMag) + RACCORD_MAG
 }

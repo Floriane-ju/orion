@@ -1,9 +1,7 @@
 /**
- * T-0069 — le planétarium se pilote au clavier (WCAG 2.1.1, niveau A).
- *
- * Ce qui se vérifie ici n'est pas un événement du DOM mais la règle : les touches rejouent les
- * gestes du pointeur, avec les mêmes bornes et le même choix de cible. Le gestionnaire du
- * canevas ne fait que brancher ces fonctions pures — c'est pourquoi elles portent le test.
+ * T-0069 — keyboard-driven planétarium (WCAG 2.1.1, A).
+ * Tests the rule, not DOM events: keys replay pointer gestures, same bounds, same target
+ * choice. Canvas handler only wires these pure functions.
  */
 
 import { afterEach, describe, expect, it } from 'vitest'
@@ -35,7 +33,7 @@ const M31: ObjetCielProfond = {
   surfBr: 13.5,
 }
 
-/** Sans le paquet Gaia : les bornes que la molette applique déjà (§3.3). */
+/** Without Gaia pack: bounds the wheel already applies (§3.3). */
 const BORNES = bornesZoom(false, 'MODE_PLANETARIUM')
 const FRACTION = K('PAS_VISEE_CLAVIER_FRACTION')
 
@@ -73,7 +71,7 @@ describe('T-0069 — quelles touches portent un geste', () => {
 
 describe('T-0069 — les flèches déplacent la visée', () => {
   it('avance d’une fraction du champ, pas d’un nombre de degrés figé', () => {
-    // À 5° de champ comme à 180°, un appui déplace la visée de la même part d'image.
+    // At 5° field as at 180°, one press moves aim by same share of image.
     for (const fovDeg of [BORNES.fovMinDeg, K('FOV_REFERENCE_RENDU_DEG'), BORNES.fovMaxDeg]) {
       const depart = vue({ fovDeg, azimutDeg: 180 })
       const apres = viseeApresCommande(depart, 'VISEE_DROITE', BORNES)
@@ -92,7 +90,7 @@ describe('T-0069 — les flèches déplacent la visée', () => {
   it('garde les bornes du glisser : l’azimut fait le tour, la hauteur bute au zénith', () => {
     const pas = K('FOV_REFERENCE_RENDU_DEG') * FRACTION
     const bord = vue({ fovDeg: K('FOV_REFERENCE_RENDU_DEG'), azimutDeg: pas / 2 })
-    // Un tour complet ramène dans 0–360°, jamais une valeur négative.
+    // Full turn lands back in 0–360°, never negative.
     expect(viseeApresCommande(bord, 'VISEE_GAUCHE', BORNES).azimutDeg).toBeCloseTo(
       360 - pas / 2,
       9,
@@ -109,7 +107,7 @@ describe('T-0069 — `+` et `-` zooment comme la molette', () => {
     const depart = vue({ fovDeg: K('FOV_REFERENCE_RENDU_DEG') })
     const avant = viseeApresCommande(depart, 'ZOOM_AVANT', BORNES).fovDeg!
     const arriere = viseeApresCommande(depart, 'ZOOM_ARRIERE', BORNES).fovDeg!
-    // Le même facteur que `facteurZoom` sert la molette : un seul cran, une seule source.
+    // Same factor as wheel's `facteurZoom`: one notch, one source.
     expect(depart.fovDeg / avant).toBeCloseTo(K('FACTEUR_ZOOM_CRAN'), 9)
     expect(arriere / depart.fovDeg).toBeCloseTo(K('FACTEUR_ZOOM_CRAN'), 9)
     expect(avant).toBeCloseTo(fovBorne(depart.fovDeg * facteurZoom(-1, false), BORNES), 9)
@@ -140,14 +138,14 @@ describe('T-0069 — une cible se choisit sans pointeur', () => {
   }
 
   it('retient au centre du canevas ce que le clic aurait retenu sur l’objet', () => {
-    // Le geste au clavier : la cible est à une fraction de champ du centre visé.
+    // Keyboard: target at a fraction of field from aimed centre.
     const cibles = ciblesAvec(CENTRE_X + 50, CENTRE_Y)
     const ouvertes: ObjetCielProfond[] = []
     choisitCible(cibles, CENTRE_X, CENTRE_Y, (o) => ouvertes.push(o), 1920 * FRACTION)
     const auClavier = etatScene().lectures.selection
 
     reinitialiseScene()
-    // Le geste au pointeur : le clic tombe sur l'objet lui-même.
+    // Pointer gesture: click lands on the object itself.
     const cliquees: ObjetCielProfond[] = []
     choisitCible(cibles, CENTRE_X + 50, CENTRE_Y, (o) => cliquees.push(o))
     const auPointeur = etatScene().lectures.selection
@@ -172,7 +170,7 @@ describe('T-0069 — une cible se choisit sans pointeur', () => {
   })
 
   it('élargit la tolérance pour la touche seulement : le pointeur garde la sienne', () => {
-    // Une cible à 50 px du centre : hors de portée du clic, dans le pas d'une flèche.
+    // Target 50 px from centre: out of click reach, within one arrow step.
     const cibles = ciblesAvec(CENTRE_X + 50, CENTRE_Y)
     choisitCible(cibles, CENTRE_X, CENTRE_Y, () => undefined)
     expect(etatScene().lectures.selection).toBeNull()
@@ -182,10 +180,8 @@ describe('T-0069 — une cible se choisit sans pointeur', () => {
 })
 
 /**
- * T-0117 — il n'y a plus de report de geste : la boucle relit la vue à chaque image et son
- * plafond d'images borne le travail, quel que soit le rythme de la répétition de touche. Ce
- * qui reste à garantir côté clavier, c'est qu'un appui n'écrive que la vue — un appui qui
- * toucherait le temps ou les couches ferait plus que déplacer la visée.
+ * T-0117 — no gesture deferral: loop re-reads view each frame, frame cap bounds work at any
+ * key-repeat rate. Remaining guarantee: a press writes only the view (not time or couches).
  */
 describe('T-0069 — la répétition de touche n’écrit que la vue', () => {
   it('n’écrit qu’un seul champ de la vue par appui', () => {
@@ -200,15 +196,14 @@ describe('T-0069 — la répétition de touche n’écrit que la vue', () => {
   })
 
   it('déplace la visée d’un pas par appui, trente appuis durant', () => {
-    // Champ épinglé : le pas suit le champ, et trente pas à 200° bouclent le tour d'horizon.
+    // Field pinned: step follows field; 30 steps at 200° close the horizon turn.
     let courant = vue({ fovDeg: K('FOV_REFERENCE_RENDU_DEG') })
     const vus = new Set<number>([courant.azimutDeg])
     for (let i = 0; i < 30; i += 1) {
       courant = { ...courant, ...viseeApresCommande(courant, 'VISEE_DROITE', BORNES) }
       vus.add(courant.azimutDeg)
     }
-    // Aucun appui perdu ni fusionné : la vue avance à chaque touche, c'est l'image qui
-    // arbitre le rythme du calcul, pas une minuterie de geste.
+    // No press lost or merged: view advances per key; frame arbitrates calc rate, not a timer.
     expect(vus.size).toBe(31)
   })
 })

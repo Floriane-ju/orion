@@ -1,30 +1,23 @@
 /**
- * §6.3 — Seuils de contraste de détection visuelle.
- *
- * LE POINT QUE 90 % DES APPLICATIONS RATENT : un instrument n'augmente jamais la brillance
- * de surface d'un objet étendu. Il augmente sa taille apparente, et c'est par elle que le
- * seuil de contraste baisse. La détection dépend donc du couple (ΔSB, taille apparente),
- * jamais de la seule magnitude limite.
- *
- * Modèle de référence : Blackwell (1946), popularisé par Clark, *Visual Astronomy of the
- * Deep Sky* (1990). Le seuil est ici exprimé directement en ΔSB — l'écart de brillance de
- * surface entre l'objet et le fond de ciel — plutôt qu'en contraste, pour être comparable
- * sans conversion à la sortie de §6.3.
- *
- * Les valeurs sont des VALEURS DE TRAVAIL, `[À VÉRIFIER]` contre les tables publiées, au
- * même titre que la colonne de magnitude limite de la table Bortle.
- *
- * Deux bornes, et aucune extrapolation entre les deux :
- *   - sous la plus petite taille tabulée, l'objet est traité comme ponctuel : c'est la
- *     magnitude intégrée qui décide, pas la brillance de surface ;
- *   - au-delà de la plus grande, le seuil PLAFONNE. Ce n'est pas une extrapolation : la
- *     sommation spatiale de l'œil est complète, agrandir davantage n'apporte plus rien.
+ * §6.3 — Visual-detection contrast thresholds.
+ * THE POINT 90% OF APPS MISS: an instrument never raises extended-object surface brightness; it
+ * raises apparent size, which lowers the contrast threshold. Detection depends on (ΔSB, apparent
+ * size), never limiting magnitude alone.
+ * Model: Blackwell (1946), popularised by Clark, *Visual Astronomy of the Deep Sky* (1990).
+ * Threshold directly in ΔSB (object − sky surface-brightness gap), not contrast: comparable with
+ * §6.3 output without conversion.
+ * WORKING VALUES, `[À VÉRIFIER]` against published tables, like the Bortle limiting-magnitude
+ * column.
+ * Two bounds, no extrapolation between:
+ *   - below smallest tabulated size: point, integrated magnitude decides, not surface brightness;
+ *   - above largest: threshold CAPS (not extrapolation): eye's spatial summation is complete,
+ *     enlarging adds nothing.
  */
 
 export interface LigneContraste {
-  /** Taille apparente, grossissement déjà appliqué. */
+  /** Apparent size, magnification applied. */
   readonly tailleArcmin: number
-  /** Écart de brillance de surface minimal pour une détection, mag/arcsec². */
+  /** Minimal surface-brightness gap for detection, mag/arcsec². */
   readonly seuilDeltaSb: number
 }
 
@@ -47,15 +40,14 @@ export const SOURCE_TABLE_CONTRASTE =
   'entre deux lignes ; au-delà de la dernière, le seuil plafonne par sommation spatiale ' +
   'complète, il n’est pas extrapolé.'
 
-/** Sous cette taille apparente, l'objet est ponctuel : la magnitude intégrée décide seule. */
+/** Below this apparent size: point, integrated magnitude alone decides. */
 const TAILLE_PONCTUELLE_ARCMIN = TABLE_CONTRASTE[0]!.tailleArcmin
 
 const PLATEAU = TABLE_CONTRASTE[TABLE_CONTRASTE.length - 1]!
 
 /**
- * Seuil de contraste pour une taille apparente donnée. Retourne `null` pour un objet
- * ponctuel : il n'a pas de brillance de surface exploitable, et le verdict se joue alors
- * sur la seule magnitude intégrée.
+ * Contrast threshold for an apparent size. `null` for a point object: no usable surface
+ * brightness, verdict on integrated magnitude alone.
  */
 export function seuilContraste(tailleApparenteArcmin: number): number | null {
   if (!Number.isFinite(tailleApparenteArcmin)) return null

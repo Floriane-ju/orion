@@ -1,9 +1,7 @@
 /**
- * §8.3 — Ce qui décide si une cible entre au plan, avant toute allocation de temps.
- *
- * Deux étages, du moins cher au plus cher : le pré-filtrage par contrainte dure, qui ne
- * demande que de l'arithmétique, puis l'évaluation complète d'une candidate, qui appelle
- * les éphémérides et les moteurs de §6 et §7. Chaque exclusion nomme sa cause.
+ * §8.3 — what decides whether a target enters the plan, before any time allocation.
+ * Two stages, cheap → costly: hard-constraint pre-filter (arithmetic only), then full candidate
+ * evaluation (ephemerides, §6/§7 engines). Every exclusion names its cause.
  */
 
 import { K } from '../registry/constants.ts'
@@ -43,9 +41,8 @@ import { ARCMIN_PAR_DEG, DEG_PAR_HEURE, MIN_PAR_H, S_PAR_MIN } from './unites.ts
 
 
 /**
- * §8.1 — la Lune est évaluée au milieu du créneau de la cible : c'est là que la dégradation
- * est représentative de la session, plutôt qu'à un instant arbitraire de la nuit. Exporté
- * parce que c'est une convention du plan, et qu'un autre écran doit pouvoir l'employer.
+ * §8.1 — Moon evaluated at target créneau middle: degradation representative of the session, not
+ * an arbitrary night instant. Exported: plan convention other screens reuse.
  */
 export function instantLune(creneau: CreneauCible, repli: Date): Date {
   const premier = creneau.creneaux[0]
@@ -55,9 +52,8 @@ export function instantLune(creneau: CreneauCible, repli: Date): Date {
 }
 
 /**
- * §8.2 — l'entrée du créneau d'une cible, telle que le plan la construit. T-0222 : la fiche
- * affiche ce créneau ; reconstruire l'entrée ailleurs, c'est risquer un seuil ou une monture
- * qui diffère, donc deux créneaux pour la même cible.
+ * §8.2 — target créneau input as the plan builds it. T-0222: fiche shows this créneau; rebuilding
+ * input elsewhere risks differing threshold/mount → two créneaux for one target.
  */
 export function entreeCreneau(
   contexte: ContexteSession,
@@ -79,7 +75,7 @@ function creneauVide(creneau: CreneauCible): boolean {
   return creneau.causeExclusion !== undefined || creneau.dureeTotaleMin.value <= 0
 }
 
-/** La dégradation lunaire au milieu du créneau, sur la cible — la convention de §8.1. */
+/** Moon degradation at créneau middle, on target — §8.1 convention. */
 function lunePourCreneau(
   contexte: ContexteSession,
   objet: ObjetCielProfond,
@@ -99,19 +95,16 @@ function lunePourCreneau(
 
 export interface CreneauLunaire {
   readonly creneau: CreneauCible
-  /** La phrase d'écart quand la Lune gêne tout le passage d'une cible qui l'exige couchée. */
+  /** Exclusion sentence when Moon hinders a Moon-set-only target's whole passage. */
   readonly exclusionLune: string | null
 }
 
 /**
- * §8.1 — « FENÊTRE UTILE = nuit_noire ∩ (Lune sous l'horizon OU tolérance du type) ».
- *
- * Une tolérance FAIBLE (galaxie, réflexion, obscure — §6.3) sous une Lune qui gêne vraiment
- * ne se photographie que Lune couchée : son créneau est recoupé par la fenêtre utile. Sans
- * reste, la Lune est la cause d'écart. Les autres tolérances gardent la nuit entière, la Lune
- * leur coûte des points et du temps d'intégration, pas la possibilité.
- *
- * Exporté parce que la fiche doit tenir le MÊME créneau que le plan (T-0268).
+ * §8.1 — "FENÊTRE UTILE = nuit_noire ∩ (Lune sous l'horizon OU tolérance du type)".
+ * LOW tolerance (galaxy, reflection, dark — §6.3) under a really hindering Moon: shot only with
+ * Moon set → créneau ∩ fenêtre utile. Nothing left → Moon = exclusion cause. Other tolerances
+ * keep whole night; Moon costs points and integration time, not possibility.
+ * Exported: fiche must hold the SAME créneau as plan (T-0268).
  */
 export function creneauSousLaLune(
   contexte: ContexteSession,
@@ -144,7 +137,7 @@ export function creneauSousLaLune(
     : { creneau: sansLune, exclusionLune: null }
 }
 
-/** Le code d'écart que porte un créneau refusé : la cause vient du moteur, pas d'ici. */
+/** Exclusion code of a refused créneau: cause comes from the engine, not here. */
 function codeExclusionCreneau(creneau: CreneauCible): CauseEcart {
   if (creneau.causeExclusion === 'HAUTEUR' || creneau.causeExclusion === 'JAMAIS_LEVE') {
     return 'HAUTEUR'
@@ -153,18 +146,13 @@ function codeExclusionCreneau(creneau: CreneauCible): CauseEcart {
 }
 
 /**
- * Une cible, évaluée de bout en bout, ou écartée en nommant sa cause.
- *
- * Le refus de domaine est traité ICI et pas chez l'appelant. Un moteur de §7 refuse une
- * entrée hors de sa plage de validité en LEVANT — c'est son contrat, et il est juste. Mais
- * ce refus vaut pour UNE cible : le laisser remonter fait tomber l'écran entier sur un seul
- * objet du catalogue, ce que §12.5 interdit. Une nébuleuse obscure de 100’ à magnitude 14
- * dépasse les 26 mag/as² du domaine, et ce n'est pas une raison pour priver les autres
- * cibles de leur pose.
- *
- * La garde était chez `planSession` seul. Deux appelants la voulaient — la liste du
- * catalogue de §6.4 est arrivée sans, et l'écran est tombé dès qu'une optique de 300 mm a
- * rétréci la fenêtre de cadrage assez pour laisser entrer ces objets-là.
+ * One target, evaluated end to end, or excluded naming its cause.
+ * Domain refusal handled HERE, not by caller. A §7 engine refuses out-of-range input by THROWING
+ * (its contract) but refusal is per-TARGET: bubbling drops the whole screen on one catalogue
+ * object, forbidden by §12.5. A 100’ dark nebula at mag 14 exceeds the 26 mag/as² domain; other
+ * targets keep their pose.
+ * Guard was in `planSession` alone; both callers need it — §6.4 catalogue list arrived without
+ * and crashed once a 300 mm optic narrowed the cadrage window enough to admit such objects.
  */
 export function evalueCandidate(
   contexte: ContexteSession,
@@ -189,11 +177,10 @@ function evalue(
   poids: PoidsScoring,
 ): Candidate | CibleEcartee {
   const majAxArcmin = objet.majAxArcmin
-  // §6.3 compare SB_obj au fond de ciel de §2.2, qui est une brillance en V. Une magnitude B
-  // prise pour une V y entrerait sans terme de couleur, et l'écart B−V n'est pas une constante
-  // — sur une nébuleuse en émission il dépend du rapport des raies. NGC7000, NGC1499, NGC6960
-  // et NGC3372 ne portent que B : elles sont écartées faute de mesure utilisable, pas par
-  // oubli. Les faire remonter demande une source, pas une conversion (T-0317).
+  // §6.3 compares SB_obj to §2.2 fond de ciel, a V brightness. A B magnitude taken for V enters
+  // with no colour term, and B−V isn't constant — on an emission nebula it depends on line ratio.
+  // NGC7000, NGC1499, NGC6960, NGC3372 carry only B: excluded for lack of usable measure, not
+  // oversight. Needs a source, not a conversion (T-0317).
   if (majAxArcmin === null || objet.vMag === null) {
     return {
       designation: objet.designation,
@@ -270,9 +257,8 @@ function evalue(
   }
   const eCiel = fluxCiel({ sbMagArcsec2: sbCielEffectif, ...fluxCommun })
   const eObj = fluxObjet({ sbMagArcsec2: sbObj, ...fluxCommun })
-  // §7.6 — le plan connaît le créneau : la masse d'air retenue est sa MOYENNE, pas celle de
-  // la culmination. C'est le coût réel de la capture, et il est plus élevé que le meilleur
-  // instant de la nuit. Le fond de ciel, lui, reste à sa valeur relevée au sol.
+  // §7.6 — plan knows the créneau: retained masse d'air = its MEAN, not culmination's (real
+  // capture cost, higher than night's best instant). fond de ciel keeps its ground-measured value.
   const extinction = fluxObjetReel(eObj, creneau.masseAirMoyenne)
   const eObjReel = extinction.eObjReel.value
   if (eObjReel === null) {
@@ -334,10 +320,9 @@ function evalue(
 }
 
 /**
- * §6.4 — les deux bornes de taille que le pré-filtrage applique, exposées parce que la liste
- * du catalogue doit les DIRE. « Qui tiennent dans votre cadre » laissait attendre l'inverse
- * de ce qui se passe : c'est la borne BASSE qui coupe le plus, et réduire la focale vide la
- * liste au lieu de la remplir.
+ * §6.4 — the two size bounds the pre-filter applies, exposed because catalogue list must SAY
+ * them. "That fit your frame" suggested the opposite: the LOW bound cuts most, shortening focal
+ * empties the list instead of filling it.
  */
 export interface BornesTailleCadre {
   readonly minArcmin: number
@@ -352,9 +337,8 @@ export function bornesTailleCadre(fovHDeg: number): BornesTailleCadre {
 }
 
 /**
- * Combien d'objets du catalogue la borne BASSE écarte. Compté sur le catalogue entier, pas
- * sur les écartées nommées : celles-ci sont plafonnées par l'appelant, et un plafond ferait
- * annoncer un nombre plus petit que le vrai.
+ * Catalogue objects the LOW bound excludes. Counted over whole catalogue, not named exclusions:
+ * caller caps those, a cap would announce too small a number.
  */
 export function compteTropPetites(
   catalogue: readonly ObjetCielProfond[],
@@ -366,34 +350,27 @@ export function compteTropPetites(
 
 export interface PreFiltrage {
   readonly candidates: readonly ObjetCielProfond[]
-  /** Écartées nommées, plafonnées : une liste de douze mille lignes n'aide personne. */
+  /** Named exclusions, capped: a 12 000-line list helps nobody. */
   readonly ecartees: readonly CibleEcartee[]
   readonly comptes: ReadonlyMap<CauseEcart, number>
 }
 
 /**
- * Pré-filtrage sans éphéméride : les contraintes dures qui se tranchent à l'arithmétique
- * seule. Chaque exclusion porte sa cause, et seules les candidates survivantes — les plus
- * brillantes — vont au calcul de créneau, qui est le poste coûteux.
- */
-/**
- * `plafond` est la borne de calcul de l'APPELANT, pas une propriété du pré-filtrage, et il n'a
- * PAS de valeur par défaut : c'est ce qui force chaque appelant à dire ce qu'il paie. La liste
- * du catalogue borne ses éphémérides (§6.4) ; le plan de séance ne borne plus rien, parce que
- * son entrée n'est plus le catalogue mais la sélection de l'utilisateur (§8.3) — y couper
- * serait écarter en silence une cible explicitement demandée.
- *
- * `plafondEcartees` est SÉPARÉ, et il le fallait : les deux bornes ne bornent pas le même
- * coût. Retenir plus de candidates coûte une éphéméride chacune ; nommer plus d'écartées ne
- * coûte qu'une chaîne. Un appelant qui doit répondre « pourquoi pas celle-là ? » sur tout le
- * catalogue — la liste de §6.4 — a besoin de toutes les causes sans payer tous les créneaux.
+ * Ephemeris-free pre-filter: hard constraints by arithmetic alone. Each exclusion carries its
+ * cause; only surviving candidates (brightest) go to créneau computation, the costly step.
+ * `plafond` = CALLER's compute bound, not a pre-filter property, NO default: forces each caller to
+ * state what it pays. Catalogue list bounds its ephemerides (§6.4); plan de séance bounds nothing,
+ * its input is the user's selection (§8.3) — cutting would silently drop a requested target.
+ * `plafondEcartees` SEPARATE: bounds cap different costs. More candidates = one ephemeris each;
+ * more named exclusions = one string. A caller answering "why not that one?" over the whole
+ * catalogue (§6.4 list) needs all causes without paying all créneaux.
  */
 export function preFiltre(
   contexte: ContexteSession,
   catalogue: readonly ObjetCielProfond[],
   plafond: number,
   plafondEcartees: number,
-  /** T-0407 — sous un zoom, les bornes de taille sont celles de la focale de chaque cible. */
+  /** T-0407 — under a zoom, size bounds = those of each target's focal. */
   contexteDe?: ContexteDe,
 ): PreFiltrage {
   const seuil = contexte.seuilHauteurDeg ?? K('SEUIL_HAUTEUR_IMAGERIE_DEG')
@@ -413,10 +390,9 @@ export function preFiltre(
     }
   }
 
-  // §5.2 — le verrou du domaine passe AVANT toute contrainte de cible : sans suivi, aucune
-  // cible ciel profond n'est planifiable, quelle que soit sa taille ou sa magnitude. Le plafonner
-  // par la NPF ne suffisait pas — une cible brillante restait sous le plafond d'intégration de
-  // §7.3 et s'affichait « photographiable » en 1 954 poses de 2 s sur un trépied fixe.
+  // §5.2 — domain lock comes BEFORE any target constraint: without suivi no ciel profond target is
+  // plannable, whatever size/magnitude. Capping by NPF wasn't enough — a bright target stayed under
+  // §7.3 integration cap and showed "photographiable" in 1 954 poses of 2 s on a fixed tripod.
   if (contexte.domaineCpFerme !== null) {
     for (const objet of catalogue) ecarte(objet, 'SUIVI', contexte.domaineCpFerme)
     return { candidates: [], ecartees, comptes }
@@ -425,8 +401,7 @@ export function preFiltre(
   for (const objet of catalogue) {
     const taille = objet.majAxArcmin
     if (taille === null || objet.vMag === null) {
-      // Comptées, pas listées une par une : elles sont des milliers, et une liste de
-      // milliers de lignes noierait les exclusions que l'utilisateur peut corriger.
+      // Counted, not listed: thousands would drown the exclusions user can fix.
       comptes.set('DONNEE_MANQUANTE', (comptes.get('DONNEE_MANQUANTE') ?? 0) + 1)
       continue
     }

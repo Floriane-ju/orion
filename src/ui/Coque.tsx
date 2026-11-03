@@ -1,31 +1,16 @@
 /**
- * §11.2 — la coque : la scène occupe tout, le reste se pose dessus.
- *
- * T-0113 remplace les trois colonnes du lot 6. Les colonnes tenaient la promesse « la scène
- * au centre » mais lui laissaient la moitié de l'écran : sur une fenêtre de 1440 px, deux
- * panneaux de 20 et 24 rem prenaient 700 px, et un cadre de 0,8° se jugeait dans ce qui
- * restait. La scène prend maintenant toute la surface, et ce qui la commande vient dessus :
- *
- *   - la barre HAUTE nomme l'application ; le temps (horloge et frise liées, T-0411) l'a
- *     quittée pour le bas de la scène (T-0413) ;
- *   - le RAIL borde la scène à gauche et porte les bascules de la vue (T-0213), puis les
- *     menus Site, Boîtier et Optique (T-0437) ;
- *   - les CARTES portent le plan de nuit, repliable ;
- *   - la COLONNE DE DROITE porte le panneau de séance : ce qui se lit en longueur — le
- *     catalogue, le filé ;
- *   - la VISÉE se pose en haut à droite, contre le panneau (T-0414) ;
- *   - le TEMPS se pose en bas au centre de la scène (T-0413).
- *
- * La coque ne connaît aucun contenu : elle reçoit six régions et les place. C'est ce qui
- * permet de remplir, vider et redécouper les panneaux sans toucher à la mise en page.
- *
- * L'ordre du DOM est l'ordre de tabulation : barre haute, scène, cartes, panneau,
- * visée, temps. Il suit la lecture, pas la position à l'écran — un panneau ouvert au
- * clavier depuis la barre haute est le nœud suivant, pas le dernier de la page.
- *
- * Sous le repli, tout redevient un flux vertical : les cartes se dépilent sous la scène et le
- * panneau derrière elles. Aucune media query en JavaScript — la feuille de style suffit,
- * puisque la position est la seule chose qui change.
+ * §11.2 — coque: scène fills all, rest overlays. T-0113 replaced lot 6's three columns (left
+ * scène half the screen: 1440 px window, 20+24 rem panels = 700 px).
+ *   - barre HAUTE names app; temps (horloge+frise, T-0411) moved to scène bottom (T-0413)
+ *   - RAIL left of scène: vue toggles (T-0213), then menus Site, Boîtier, Optique (T-0437)
+ *   - CARTES: plan de nuit, foldable
+ *   - COLONNE DE DROITE: séance panel (long reads: catalogue, filé)
+ *   - VISÉE top right, against panel (T-0414)
+ *   - TEMPS bottom center of scène (T-0413)
+ * Knows no content: takes six regions, places them (panels change, layout doesn't).
+ * DOM order = tab order: topbar, scène, cartes, panneau, visée, temps. Follows reading, not screen
+ * position (panel opened by keyboard from topbar = next node, not last).
+ * Under repli: vertical flow (cartes under scène, panel after). No JS media query.
  */
 
 import { useEffect, type ReactNode } from 'react'
@@ -33,25 +18,24 @@ import { useEffect, type ReactNode } from 'react'
 import { ancreTiroirs } from './tiroir-ancrage.ts'
 
 export interface CoqueProps {
-  /** Barre haute : l'identité. */
+  /** Barre haute: identity. */
   readonly topbar: ReactNode
-  /** T-0413 — le temps (horloge, frise, retour au présent), en bas au centre de la scène. */
+  /** T-0413 — temps (horloge, frise, retour au présent), scène bottom center. */
   readonly temps: ReactNode
-  /** La scène. Elle occupe toute la coque, les autres régions se posent dessus. */
+  /** Scène: fills coque; other regions overlay. */
   readonly scene: ReactNode
-  /** Ce qui se pose sur la scène : le rail de la vue, puis la carte du plan de nuit. */
+  /** Over scène: vue rail, then plan de nuit card. */
   readonly cartes: ReactNode
-  /** Panneau de séance, dans la colonne de droite. */
+  /** Séance panel, right column. */
   readonly lateral: ReactNode
-  /** La visée, en haut à droite de la scène (T-0414). */
+  /** Visée, scène top right (T-0414). */
   readonly visee: ReactNode
-  /** T-0325 — la page info : dernière du DOM, elle couvre tout quand l'ancre la vise. */
+  /** T-0325 — info page: last in DOM, covers all when anchor targets it. */
   readonly page: ReactNode
 }
 
 export function Coque(props: CoqueProps) {
-  // T-0121 — les fenêtres de tiroir s'ouvrent sous leur bouton et se recalent sur l'écran.
-  // C'est de la mise en page, donc de la coque ; l'écoute est unique et couvre la barre.
+  // T-0121 — tiroir windows open under button, re-clamped to screen; layout → coque, one listener.
   useEffect(ancreTiroirs, [])
 
   return (

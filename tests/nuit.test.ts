@@ -1,7 +1,6 @@
 /**
- * §8.1, §4.1, §12.4 — fenêtre nocturne, midi solaire vrai, seuils du site.
- *
- * Valeurs de référence : Annexe A du PRD, site 46,391° N / 6,697° E.
+ * §8.1, §4.1, §12.4 — fenêtre nocturne, true solar noon, site thresholds.
+ * Reference: PRD Annexe A, site 46,391° N / 6,697° E.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -11,14 +10,12 @@ import { HorsDomaineSeriesError, dansLeDomaineDesSeries } from '../src/core/ephe
 import { SITE_REFERENCE } from './fixtures.ts'
 
 
-/** §12.4 : l'écart admis sur un instant est de 2 minutes de temps. */
+/** §12.4: allowed instant error = 2 minutes. */
 const TOLERANCE_INSTANT_MIN = 2
 
 /**
- * Une durée de nuit est la différence de deux instants calculés indépendamment : sa
- * tolérance est le double de celle d'un instant. Les valeurs de l'Annexe A ne portent
- * d'ailleurs pas d'année, or les dates de solstice se déplacent d'un jour d'une année
- * à l'autre.
+ * Nuit duration = difference of 2 independent instants → tolerance doubled. Annexe A values
+ * carry no year; solstice dates shift by a day year to year.
  */
 const TOLERANCE_DUREE_H = (2 * TOLERANCE_INSTANT_MIN) / 60
 
@@ -28,7 +25,7 @@ function midiUtc(dateIso: string): Date {
 
 describe('fenêtre nocturne §8.1', () => {
   it.each([
-    // date, durée annoncée en Annexe A
+    // date, duration announced in Annexe A
     ['2026-08-14', 5 + 49 / 60],
     ['2026-06-21', 2 + 35 / 60],
     ['2026-12-21', 11 + 43 / 60],
@@ -39,7 +36,7 @@ describe('fenêtre nocturne §8.1', () => {
   })
 
   it('tient les 2 minutes sur la date de rédaction du PRD', () => {
-    // 5 h 49 annoncées pour le 14 août : c'est la valeur de travail du document.
+    // 5 h 49 announced for 14 Aug: document's working value.
     const nuit = fenetreNocturne(SITE_REFERENCE, midiUtc('2026-08-14'))
     expect(Math.abs(nuit.dureeNuitH - (5 + 49 / 60)) * 60).toBeLessThan(TOLERANCE_INSTANT_MIN)
   })
@@ -48,7 +45,7 @@ describe('fenêtre nocturne §8.1', () => {
     const nuit = fenetreNocturne(SITE_REFERENCE, midiUtc('2026-08-14'))
     const debut = nuit.debutNuitAstronomique!.getTime()
     const fin = nuit.finNuitAstronomique!.getTime()
-    // getTime() est en millisecondes entières : le milieu peut tomber sur une demi-ms.
+    // getTime() = whole ms: midpoint may land on a half ms.
     expect(Math.abs(nuit.milieuNuitVrai!.getTime() - (debut + fin) / 2)).toBeLessThanOrEqual(1)
   })
 

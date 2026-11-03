@@ -1,12 +1,8 @@
 /**
- * T-0147 — la bulle de survol.
- *
- * Ce qui peut casser ici n'est pas un pixel mais deux contrats. Le premier est
- * d'accessibilité : la bulle relie son texte au contrôle, et elle le NOMME ou elle le
- * DÉCRIT, jamais les deux — un bouton qui garderait son `aria-label` en plus s'annoncerait
- * deux fois. Le second est de charte : la bulle est une surface de l'application, donc tout
- * ce qui la dessine passe par les jetons, et elle a une largeur maximale — sans quoi elle
- * redevient l'infobulle du navigateur, qu'elle est là pour remplacer.
+ * T-0147 — hover bulle. Two contracts can break, not a pixel. A11y: bulle links its text to the
+ * control and NAMES or DESCRIBES it, never both — button keeping its `aria-label` announces
+ * twice. Charte: bulle = app surface → everything drawing it goes through tokens, with a max
+ * width, else it becomes the browser tooltip it replaces.
  */
 
 import { readFileSync, readdirSync } from 'node:fs'
@@ -18,14 +14,14 @@ import { Bulle } from '../src/ui/Bulle.tsx'
 const RACINE = join(import.meta.dirname, '..', 'src')
 const CSS = readFileSync(join(RACINE, 'ui', 'styles.css'), 'utf8')
 
-/** Le corps d'une règle, sans les accolades. */
+/** Body of a rule, braces stripped. */
 function regle(selecteur: string): string {
   const debut = CSS.indexOf(`${selecteur} {`)
   expect(debut, selecteur).toBeGreaterThan(-1)
   return CSS.slice(debut, CSS.indexOf('}', debut))
 }
 
-/** Le contenu d'un bloc `@supports`, accolades appariées. */
+/** Content of an `@supports` block, braces matched. */
 function supports(condition: string): string {
   const entete = `@supports ${condition} {`
   const debut = CSS.indexOf(entete)
@@ -41,7 +37,7 @@ function supports(condition: string): string {
   throw new Error(`bloc @supports non refermé : ${condition}`)
 }
 
-/** Toutes les sources de l'application, pour vérifier ce qui n'y est PLUS. */
+/** All app sources, to check what is NO LONGER in them. */
 function sources(): readonly string[] {
   return readdirSync(RACINE, { recursive: true, encoding: 'utf8' })
     .filter((f) => f.endsWith('.tsx') || f.endsWith('.ts'))
@@ -63,8 +59,8 @@ describe('composant Bulle', () => {
   })
 
   it('NOMME le contrôle quand il n’a qu’un glyphe, sans le décrire en plus', () => {
-    // Un bouton nommé par sa bulle ET par un `aria-label` s'annoncerait deux fois : c'est
-    // pour ça que le libellé quitte le bouton au lieu de s'y ajouter.
+    // Button named by its bulle AND an `aria-label` announces twice: label leaves the button,
+    // doesn't add to it.
     const html = renderToStaticMarkup(
       <Bulle texte="Fermer le panneau" nomme>
         <button type="button">×</button>
@@ -148,7 +144,7 @@ describe('style de la bulle — charte T-0113 et §11.1', () => {
   })
 
   it('se referme quand la souris quitte un bouton qu’elle vient de cliquer (T-0240)', () => {
-    // Un clic focalise le bouton : `:focus-within` tiendrait la bulle ouverte hors survol.
+    // A click focuses the button: `:focus-within` would hold bulle open off hover.
     expect(CSS).not.toContain('.bulle-ancre:focus-within')
   })
 
@@ -161,8 +157,8 @@ describe('la bulle ne sort pas de l’écran', () => {
   const PLACES = ['haut', 'bas', 'gauche', 'droite'] as const
 
   it('donne à chaque bulle un nom d’ancre à elle', () => {
-    // Deux ancres du même nom et toutes les bulles se rattachent à la dernière : le
-    // placement paraîtrait juste sur la première, faux partout ailleurs.
+    // Two same-name anchors → every bulle attaches to the last: placement right on the first,
+    // wrong elsewhere.
     const html = renderToStaticMarkup(
       <>
         <Bulle texte="a">
@@ -180,8 +176,8 @@ describe('la bulle ne sort pas de l’écran', () => {
   })
 
   it('rattache la bulle à son ancre plutôt qu’au flux, sinon un panneau qui défile la rogne', () => {
-    // `.lateral-corps` est en `overflow-y: auto` : une bulle en `position: absolute` s'y
-    // coupe net. Seul `position: fixed` échappe au rognage d'un ancêtre.
+    // `.lateral-corps` is `overflow-y: auto`: `position: absolute` bulle is cut there. Only
+    // `position: fixed` escapes ancestor clipping.
     expect(regle('.bulle-ancre')).toMatch(/anchor-name:\s*var\(--bulle-ancre-nom\)/)
     const ancre = supports('(anchor-name: --a)')
     expect(ancre).toMatch(/position:\s*fixed/)
@@ -208,7 +204,7 @@ describe('la bulle ne sort pas de l’écran', () => {
   })
 
   it('occupe la largeur disponible plutôt que celle du contrôle', () => {
-    // Avec `center` sur l'axe traversant, la bulle serait large comme un chevron de 36 px.
+    // With `center` on the cross axis, bulle would be as wide as a 36 px chevron.
     const ancre = supports('(anchor-name: --a)')
     expect(ancre).not.toMatch(/position-area:[^;]*\bcenter\b/)
     expect([...ancre.matchAll(/position-area:[^;]+;/g)]).toHaveLength(PLACES.length)

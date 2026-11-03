@@ -1,8 +1,7 @@
 /**
- * §7.1 flux du fond de ciel · §7.2 pose unitaire · §7.3 intégration.
- *
- * Setup de référence de l'Annexe A : SB_ciel 20,95 · 120 mm f/2,8 · pitch 5,12 µm ·
- * ZP_sys 20,20 · bruit de lecture 1,5 e⁻ à ISO 640 · RAW de 33 Mo.
+ * §7.1 fond de ciel flux · §7.2 pose unitaire · §7.3 intégration.
+ * Annexe A reference setup: SB_ciel 20,95 · 120 mm f/2,8 · pitch 5,12 µm · ZP_sys 20,20 ·
+ * read noise 1,5 e⁻ at ISO 640 · 33 Mo RAW.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -20,7 +19,7 @@ import { K } from '../src/registry/constants.ts'
 
 const OPTIQUE_REF = { zpSys: 20.2, pitchUm: 5.12, ouvertureN: 2.8 }
 const E_CIEL = fluxCiel({ sbMagArcsec2: 20.95, ...OPTIQUE_REF }).value
-/** M33 : SB 23,01 mag/arcsec² (§6.3). */
+/** M33: SB 23,01 mag/arcsec² (§6.3). */
 const E_OBJ = fluxObjet({ sbMagArcsec2: 23.0148, ...OPTIQUE_REF }).value
 
 describe('flux du fond de ciel §7.1', () => {
@@ -31,14 +30,14 @@ describe('flux du fond de ciel §7.1', () => {
   it('divise le flux par 2,04 en passant de f/2,8 à f/4', () => {
     const f4 = fluxCiel({ sbMagArcsec2: 20.95, ...OPTIQUE_REF, ouvertureN: 4 }).value
     expect(E_CIEL / f4).toBeCloseTo(2.04, 2)
-    // Et la pose optimale est multipliée d'autant : t_opt ∝ 1 / E_ciel.
+    // And optimal pose scales likewise: t_opt ∝ 1 / E_ciel.
     const posef4 = poseUnitaire({ eCiel: f4, readNoiseE: 1.5, tMaxS: 75 })
     const pose = poseUnitaire({ eCiel: E_CIEL, readNoiseE: 1.5, tMaxS: null })
     expect(posef4.tOptS.value / pose.tOptS.value).toBeCloseTo(2.04, 2)
   })
 
   it('ne dépend pas du diamètre, seulement de l’ouverture et du pitch', () => {
-    // Deux setups de diamètres très différents, même f/N et même pitch.
+    // Two setups of very different diameters, same f/N and pitch.
     const a = fluxCiel({ sbMagArcsec2: 20.95, ...OPTIQUE_REF }).value
     const b = fluxCiel({ sbMagArcsec2: 20.95, ...OPTIQUE_REF }).value
     expect(a).toBe(b)
@@ -73,7 +72,7 @@ describe('pose unitaire §7.2', () => {
   })
 
   it('bascule en régime limité par le suivi et chiffre la perte, sans suivi', () => {
-    // t_max = NPF = 2,10 s à 120 mm sur le setup de référence (§9.1).
+    // t_max = NPF = 2,10 s at 120 mm on the reference setup (§9.1).
     const pose = poseUnitaire({ eCiel: E_CIEL, readNoiseE: 1.5, tMaxS: 2.1 })
     expect(pose.regime).toBe('LIMITE_SUIVI')
     expect(pose.perteSnrBridee).toBeCloseTo(0.22, 2)
@@ -86,7 +85,7 @@ describe('pose unitaire §7.2', () => {
     const permissif = poseUnitaire({ eCiel: E_CIEL, readNoiseE: 1.5, tMaxS: null, permissif: true })
     const rapport = K('FACTEUR_POSE_C_DEFAUT') / K('FACTEUR_POSE_C_PERMISSIF')
     expect(defaut.tOptS.value / permissif.tOptS.value).toBeCloseTo(rapport, 6)
-    // La chaîne d'explication doit citer la constante réellement employée (§10.2).
+    // Explanation chain must cite the constant actually used (§10.2).
     expect(permissif.tOptS.constants.map((c) => c.id)).toContain('FACTEUR_POSE_C_PERMISSIF')
     expect(defaut.tOptS.constants.map((c) => c.id)).toContain('FACTEUR_POSE_C_DEFAUT')
   })
@@ -98,7 +97,7 @@ describe('pose unitaire §7.2', () => {
     expect(permissif.notePermissif).toContain(nombre(perte(K('FACTEUR_POSE_C_DEFAUT')), 1))
     expect(permissif.notePermissif).toContain(`${nombreLibre(permissif.tAfficheeS)} s`)
 
-    // Éteint, aucune sortie ne bouge : le mode est un choix, pas un réglage silencieux.
+    // Off, no output moves: the mode is a choice, not a silent setting.
     const defaut = poseUnitaire({ eCiel: E_CIEL, readNoiseE: 1.5, tMaxS: 75 })
     expect(defaut.notePermissif).toBeUndefined()
     expect(defaut).toEqual(poseUnitaire({ eCiel: E_CIEL, readNoiseE: 1.5, tMaxS: 75, permissif: false }))
@@ -110,8 +109,7 @@ describe('pose unitaire §7.2', () => {
     const permissif = poseUnitaire({ eCiel: E_CIEL, readNoiseE: 1.5, tMaxS: 75, permissif: true })
     const planDefaut = planIntegration({ ...commun, tPoseS: defaut.tRecommandeS.value })
     const planPermissif = planIntegration({ ...commun, tPoseS: permissif.tRecommandeS.value })
-    // Le rapport des poses se retrouve dans le nombre d'images, et l'intégration requise monte
-    // parce que le bruit de lecture est payé une fois par image.
+    // Pose ratio reappears in frame count; required intégration rises: read noise paid per frame.
     expect(planPermissif.nPoses.value).toBeGreaterThan(planDefaut.nPoses.value * 3)
     expect(planPermissif.tRequisS.value).toBeGreaterThan(planDefaut.tRequisS.value)
     expect(planPermissif.volumeGo.value).toBeGreaterThan(planDefaut.volumeGo.value)
@@ -165,7 +163,7 @@ describe('nombre de poses et intégration §7.3', () => {
   })
 
   it('vérifie la formule du rapport signal sur bruit contre sa résolution inverse', () => {
-    // §7.3 écrit dans le sens direct : le SNR atteint après tS d'intégration.
+    // §7.3 written in the direct sense: SNR reached after tS of intégration.
     const snrApres = (tS: number): number =>
       (BASE.eObj * tS) /
       Math.sqrt((BASE.eObj + BASE.eCiel) * tS + (tS / BASE.tPoseS) * BASE.readNoiseE ** 2)

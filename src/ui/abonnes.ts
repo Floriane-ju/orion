@@ -1,17 +1,15 @@
 /**
- * Les abonnés d'un magasin de module lu par `useSyncExternalStore`.
- *
- * Six magasins recopiaient le même `Set`, son désabonnement et sa boucle de notification :
- * une copie qui oublie le `delete` fuit un composant démonté, et rien ne l'aurait signalé.
- * L'état, lui, reste dans chaque module : c'est sa forme qui les distingue, pas l'abonnement.
+ * Subscribers of a module store read by `useSyncExternalStore`.
+ * Shared: 6 stores copied the same `Set`/unsubscribe/notify loop; a copy missing `delete` leaks
+ * an unmounted component. State stays per module (shape differs, not subscription).
  */
 
 export interface Abonnes {
-  /** L'abonnement tel que `useSyncExternalStore` le demande : il rend son désabonnement. */
+  /** Subscription as `useSyncExternalStore` wants it: returns its unsubscribe. */
   readonly abonne: (notifie: () => void) => () => void
-  /** Réveille chaque abonné — après l'écriture, jamais avant : il relit l'état. */
+  /** Wakes every subscriber; after the write, never before (they reread state). */
   readonly notifie: () => void
-  /** Oublie tous les abonnés. Réservé aux remises à zéro des tests. */
+  /** Forgets all subscribers. Test resets only. */
   readonly vide: () => void
 }
 

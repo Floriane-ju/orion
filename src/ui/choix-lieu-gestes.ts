@@ -1,15 +1,12 @@
 /**
- * §4.1 — les gestes de la carte du site : glisser pour se déplacer, molette et pincement pour
- * zoomer, un appui sans glisser pour poser le site — et les touches, qui rejouent les mêmes
- * gestes (T-0363).
- *
- * La molette se lit comme sur la scène (`sourceMolette`) : un pincement au pavé zoome en
- * continu, un défilement à deux doigts déplace, une molette zoome d'un cran de carte.
- *
- * L'écouteur `wheel` est posé à la main : celui de React est passif, et `preventDefault()` y
- * resterait sans effet — la page défilerait sous la carte.
- * ponytail: ni mémoire de pavé ni `gesture*` de Safari, comme sur la scène ; à reprendre si la
- * molette d'un Mac s'y confond avec le défilement.
+ * §4.1 — site map gestures: drag pans, wheel/pinch zooms, press without drag sets the site; keys
+ * replay the same gestures (T-0363).
+ * Wheel read as on scène (`sourceMolette`): trackpad pinch zooms continuously, two-finger scroll
+ * pans, wheel zooms one map notch.
+ * `wheel` listener added by hand: React's is passive, `preventDefault()` no-op → page scrolls
+ * under map.
+ * ponytail: no trackpad memory nor Safari `gesture*` (as scène); revisit if Mac wheel is confused
+ * with scroll.
  */
 
 import { useEffect, useRef, type KeyboardEvent, type RefObject } from 'react'
@@ -19,7 +16,7 @@ import { deplaceVue, zoomeVue, type VueCarte } from './choix-lieu-calcul.ts'
 
 type MajVue = (maj: (vue: VueCarte) => VueCarte) => void
 
-/** Le pincement de la scène, continu, lu en niveaux de zoom : diviser le champ par f, c'est monter de log₂ f. */
+/** Scène pinch, continuous, in zoom levels: field ÷ f = +log₂ f. */
 function cransDePincement(deltaY: number): number {
   return -Math.log2(facteurZoom(deltaY, true))
 }
@@ -60,7 +57,7 @@ export function useGestesCarteLieu(
       majVue((v) => zoomeVue(v, crans, x, y, b.width, b.height))
     }
 
-    // Les appuis en cours : un doigt glisse, deux pincent.
+    // Active presses: one finger drags, two pinch.
     const appuis = new Map<number, Appui>()
     let depart: Appui | null = null
     let glisse = false
@@ -78,7 +75,7 @@ export function useGestesCarteLieu(
         depart = local(e)
         glisse = false
       } else {
-        // Un second doigt fait un pincement, jamais une pose.
+        // A second finger makes a pinch, never a set.
         glisse = true
       }
     }
@@ -138,7 +135,7 @@ export function useGestesCarteLieu(
   }, [toile, majVue])
 }
 
-/** Ce qu'une touche fait de la vue, ou `'POSE'`, ou null si la touche n'est pas à la carte. */
+/** What a key does to the view, or `'POSE'`, or null if the key isn't mapped. */
 export function commandeCarteLieu(
   touche: string,
   vue: VueCarte,
@@ -168,7 +165,7 @@ export function commandeCarteLieu(
   }
 }
 
-/** Le gestionnaire `onKeyDown` de la carte. */
+/** Map `onKeyDown` handler. */
 export function surToucheCarteLieu(
   e: KeyboardEvent<HTMLCanvasElement>,
   vue: VueCarte,

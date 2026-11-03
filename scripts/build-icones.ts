@@ -1,16 +1,10 @@
 /**
- * §12.1 — Icônes de la coquille installable, §11.1 — rouge sur noir.
- *
- * Sans icône de 192 et de 512 pixels, le navigateur ne propose pas l'installation, et
- * l'octroi du stockage persistant de §12.3 perd son levier principal.
- *
- * Les icônes sont DESSINÉES ici plutôt que posées en fichier opaque : une image importée
- * d'ailleurs peut porter du blanc ou du bleu sans que rien ne le signale, et une icône
- * claire dans un dock ruine l'adaptation à l'obscurité aussi sûrement qu'une modale
- * blanche. Le tracé garantit par construction que les canaux vert et bleu sont nuls.
- *
- * Lancé explicitement par `pnpm icones:build` ; les PNG produits sont versionnés dans
- * `public/` pour qu'un clone s'installe sans réseau (§12.2).
+ * §12.1 — icons of the installable shell, §11.1 — red on black.
+ * Without 192 and 512 px icons no install offered, §12.3 persistent-storage grant loses its lever.
+ * DRAWN here, not imported: outside image may carry white/blue unnoticed; light dock icon breaks
+ * dark adaptation like a white modal. Drawing guarantees G and B = 0.
+ * Run explicitly: `pnpm icones:build`. PNGs versioned in `public/` → clone installs offline
+ * (§12.2).
  */
 
 import { deflateSync, crc32 } from 'node:zlib'
@@ -21,30 +15,27 @@ import { fileURLToPath } from 'node:url'
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..')
 export const DOSSIER_ICONES = join(RACINE, 'public', 'icones')
 
-/** Rouge du texte de la palette nocturne (`--texte` de `styles.css`, §11.1). */
+/** Night-palette text red (`--texte` in `styles.css`, §11.1). */
 const ROUGE = 230
 
-/** Proportions du viseur, en fraction du côté de l'image. */
+/** Viseur proportions, as fraction of image side. */
 const RAYON = 0.34
 const TRAIT = 0.055
 const POINT = 0.075
 const TIRET_INTERIEUR = 0.62
 const TIRET_EXTERIEUR = 1.32
 
-/**
- * Une icône `maskable` peut être rognée en cercle : seuls les 80 % centraux sont sûrs.
- * Le viseur est donc resserré pour tenir dans cette zone.
- */
+/** `maskable` icon may be cropped to a circle: only central 80 % safe. Viseur shrunk to fit. */
 const FACTEUR_MASKABLE = 0.72
 
-/** Couverture d'un pixel par une forme, adoucie sur la largeur d'un pixel. */
+/** Pixel coverage by a shape, softened over one pixel width. */
 function couverture(distanceAuBord: number): number {
   return Math.max(0, Math.min(1, 0.5 - distanceAuBord))
 }
 
 /**
- * Trame RGBA du viseur : anneau, quatre tirets cardinaux, point central, sur fond noir
- * opaque. Le rouge n'est modulé qu'en intensité — vert et bleu restent à zéro.
+ * RGBA raster of the viseur: ring, 4 cardinal ticks, centre dot, opaque black. Only red
+ * intensity varies — G and B stay 0.
  */
 export function rasteriseIcone(taille: number, maskable = false): Uint8Array {
   const echelle = maskable ? FACTEUR_MASKABLE : 1
@@ -76,7 +67,7 @@ export function rasteriseIcone(taille: number, maskable = false): Uint8Array {
   return pixels
 }
 
-/** Un tiret cardinal : une barre étroite le long d'un axe, à cheval sur l'anneau. */
+/** Cardinal tick: narrow bar along an axis, straddling the ring. */
 function tranche(le: number, travers: number, rayon: number, demiTrait: number): number {
   const long = Math.abs(le)
   const dedans = Math.max(
@@ -97,7 +88,7 @@ function chunk(type: string, corps: Uint8Array): Uint8Array {
   return entete
 }
 
-/** PNG 8 bits RVBA, sans filtre de ligne — l'image est petite, la compression suffit. */
+/** 8-bit RGBA PNG, no row filter — small image, compression suffices. */
 export function encodePng(pixels: Uint8Array, taille: number): Uint8Array {
   const brut = new Uint8Array(taille * (taille * 4 + 1))
   for (let y = 0; y < taille; y++) {
@@ -108,8 +99,8 @@ export function encodePng(pixels: Uint8Array, taille: number): Uint8Array {
   const vue = new DataView(ihdr.buffer)
   vue.setUint32(0, taille)
   vue.setUint32(4, taille)
-  ihdr[8] = 8 // profondeur par canal
-  ihdr[9] = 6 // RVBA
+  ihdr[8] = 8 // bit depth per channel
+  ihdr[9] = 6 // RGBA
 
   const morceaux = [
     new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
@@ -127,7 +118,7 @@ export function encodePng(pixels: Uint8Array, taille: number): Uint8Array {
   return png
 }
 
-/** Les fichiers attendus par le manifeste, `index.html` et le précache. */
+/** Files expected by the manifest, `index.html` and precache. */
 export const ICONES: readonly { readonly nom: string; readonly taille: number; readonly maskable: boolean }[] =
   Object.freeze([
     { nom: 'favicon.png', taille: 32, maskable: false },

@@ -1,31 +1,21 @@
 /**
- * §6.4, T-0052 — chercher un objet du catalogue par son nom.
- *
- * Un catalogue de ~14 000 entrées ne se parcourt pas, il s'interroge : dérouler ses 400
- * premières entrées ne montre que des IC et met M45 hors d'atteinte. Ce module répond à la
- * question ; T-0053 lui donne son champ.
- *
- * Ce qui se cherche est ce que `libelleObjet` affiche — la désignation et chacun des noms
- * communs — plus le nom français d'usage quand il en existe un (`registry/noms-fr.ts`,
- * T-0281) : le catalogue est anglais, l'utilisateur ne l'est pas. Ni horizon ni verdict
- * n'entrent ici — c'est la question de `lignesCatalogue`, qui les porte colonne par colonne
- * dans l'onglet Cibles. Chercher dans le catalogue, c'est chercher dans le catalogue entier,
- * y compris sous l'horizon.
- *
- * La portée n'est jamais plafonnée : `maxRendus` borne le nombre de résultats rendus, pas
- * l'étendue de la recherche. Aucun objet du catalogue n'est hors d'atteinte.
+ * §6.4, T-0052 — search a catalogue object by name.
+ * ~14 000 entries are queried, not browsed: listing first 400 shows only IC, M45 out of reach.
+ * T-0053 gives it its field.
+ * Searched = `libelleObjet` display (designation + each common name) + usual French name if any
+ * (`registry/noms-fr.ts`, T-0281): catalogue English, user isn't. No horizon/verdict here
+ * (`lignesCatalogue`, column by column in Cibles tab). Whole catalogue, below horizon too.
+ * Scope never capped: `maxRendus` bounds rendered results, not search extent.
  */
 
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { NOMS_FR } from '../registry/noms-fr.ts'
 
 /**
- * T-0281 — ce qui est réduit ici est ce qui varie d'une main à l'autre sans changer d'objet :
- * la casse, les accents, les séparateurs et les zéros de cadrage. « NGC 224 », « ngc0224 » et
- * « NGC-224 » sont la même demande que le catalogue écrit « NGC0224 » ; « M 42 » est « M42 ».
- *
- * Les zéros ne tombent qu'en TÊTE d'un groupe de chiffres : « M100 » reste « M100 », sinon la
- * recherche d'un objet le confondrait avec un autre. Aucune dépendance.
+ * T-0281 — normalizes what varies by hand without changing the object: case, accents, separators,
+ * padding zeros. "NGC 224", "ngc0224", "NGC-224" = catalogue's "NGC0224"; "M 42" = "M42".
+ * Zeros drop only at the HEAD of a digit group: "M100" stays "M100", else matches another
+ * object. No dependency.
  */
 function normalise(texte: string): string {
   return texte
@@ -37,10 +27,9 @@ function normalise(texte: string): string {
 }
 
 /**
- * Tout ce sous quoi un objet peut être demandé : sa désignation, ses noms communs et, quand
- * l'usage francophone en a un, son nom français (§6.4). Les amonts séparent les noms tantôt
- * par « | », tantôt par « , » — les deux comptent, sans quoi « Orion Nebula » ne serait
- * qu'une occurrence interne de « Great Orion Nebula,Orion Nebula ».
+ * Every name an object can be asked under: designation, common names, French name (§6.4).
+ * Upstream separates names by "|" or "," — both count, else "Orion Nebula" would only be an
+ * internal hit of "Great Orion Nebula,Orion Nebula".
  */
 function nomsDe(objet: ObjetCielProfond): readonly string[] {
   return [
@@ -50,7 +39,7 @@ function nomsDe(objet: ObjetCielProfond): readonly string[] {
   ]
 }
 
-/** Un préfixe passe devant une occurrence interne ; rien du tout ne passe pas. */
+/** Prefix ranks before internal hit; no hit = out. */
 const RANG_PREFIXE = 0
 const RANG_INTERNE = 1
 const ABSENT = -1
@@ -67,12 +56,9 @@ function rangDe(objet: ObjetCielProfond, recherche: string): number {
 }
 
 /**
- * Les objets du catalogue dont la désignation ou l'un des noms communs contient la saisie :
- * les préfixes d'abord, puis du plus brillant au plus faible — l'ordre dans lequel un
- * observateur pense au ciel, le même que celui de `lignesCatalogue`.
- *
- * Une saisie vide ne rend rien : proposer 14 000 entrées avant la première frappe est le
- * défaut qu'on corrige, pas un état par défaut.
+ * Catalogue objects whose designation or a common name contains input: prefixes first, then
+ * brightest → faintest (observer's order, as `lignesCatalogue`).
+ * Empty input returns nothing: offering 14 000 entries before first keystroke was the defect.
  */
 export function chercheCatalogue(
   catalogue: readonly ObjetCielProfond[],
@@ -88,8 +74,7 @@ export function chercheCatalogue(
     if (rang !== ABSENT) trouves.push({ objet, rang })
   }
 
-  // Un objet sans magnitude ne passe pas devant un objet qui en a une : l'absence part au
-  // bout du tri plutôt que de valoir zéro (§6.3).
+  // No magnitude never precedes a magnitude: absence sorts last, not zero (§6.3).
   trouves.sort(
     (a, b) =>
       a.rang - b.rang || (a.objet.vMag ?? Number.POSITIVE_INFINITY) - (b.objet.vMag ?? Number.POSITIVE_INFINITY),

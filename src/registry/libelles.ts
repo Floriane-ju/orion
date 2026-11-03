@@ -1,21 +1,13 @@
 /**
- * T-0275 — les VALEURS d'énumération en français, un `Record` exhaustif par union.
- *
- * Le glossaire (§10.1) nomme les TERMES : « Tolérance à la Lune », « Régime de pose ». Il ne
- * dit rien de ce qui s'écrit à droite du deux-points, et c'est par là que le code interne
- * sortait à l'écran — « Tolérance à la Lune : FAIBLE », « verdict : CADRAGE_LARGE ». Une
- * table par union ferme ce trou là où le glossaire ne pouvait pas : sur les valeurs.
- *
- * `Record<Union, string>` COMPLET, jamais partiel : ajouter un verdict sans lui donner de
- * libellé ne compile pas, et le compilateur nomme la valeur manquante. C'est le patron déjà
- * en vigueur pour `LIBELLE_TYPE_OBJET` (`src/ui/libelles-objet.ts`), remonté ici parce que
- * `plan-texte.ts` (§11.2) en a besoin aussi : l'export porte les mêmes verdicts que l'écran,
- * et deux tables de libellés finiraient par ne plus dire la même chose.
- *
- * Les libellés sont en MINUSCULE : ils suivent un deux-points dans une phrase, pas un titre.
- *
- * Ce fichier importe des TYPES du cœur et des données, sans rien en exécuter — même procédé
- * que `filters.ts` avec `TypeObjet`. Le registre reste sans dépendance à l'exécution.
+ * T-0275 — French enum VALUES, one exhaustive `Record` per union.
+ * Glossaire (§10.1) names TERMS ("Tolérance à la Lune"), not what follows the colon; internal
+ * codes leaked there ("Tolérance à la Lune : FAIBLE"). One table per union closes it.
+ * COMPLETE `Record<Union, string>`: new verdict without label = compile error.
+ * Pattern of `LIBELLE_TYPE_OBJET` (`src/ui/libelles-objet.ts`), lifted here because
+ * `plan-texte.ts` (§11.2) needs it: export and screen carry the same verdicts.
+ * Labels LOWERCASE: follow a colon in a sentence, not a title.
+ * Imports TYPES only from core/data (as `filters.ts` with `TypeObjet`): registre keeps zero
+ * runtime dependency.
  */
 
 import type { LotCalibration } from '../core/calibration.ts'
@@ -31,7 +23,7 @@ import type { DisponibiliteHorsLigne, ModeReseau } from '../data/degradation.ts'
 import type { ZpSource } from '../data/equipment.ts'
 import type { VerdictCadrage } from './verdicts.ts'
 
-/** §6.2 — ce que le cadre fait de la cible. */
+/** §6.2 — what the cadre does to the cible. */
 export const LIBELLE_VERDICT_CADRAGE: Readonly<Record<VerdictCadrage, string>> = Object.freeze({
   MOSAIQUE_REQUISE: 'mosaïque requise',
   CADRAGE_SERRE: 'cadrage serré',
@@ -41,7 +33,7 @@ export const LIBELLE_VERDICT_CADRAGE: Readonly<Record<VerdictCadrage, string>> =
   HORS_DOMAINE: 'hors du domaine de cadrage',
 })
 
-/** §6.3 — ce qui verra la cible. Reprend les libellés de la table supprimée au commit 633b5f9. */
+/** §6.3 — what will see the cible. Labels from table deleted in 633b5f9. */
 export const LIBELLE_VERDICT_DETECTABILITE: Readonly<Record<VerdictDetectabilite, string>> =
   Object.freeze({
     OEIL_NU: 'à l’œil nu',
@@ -50,7 +42,7 @@ export const LIBELLE_VERDICT_DETECTABILITE: Readonly<Record<VerdictDetectabilite
     PHOTO_SEULE: 'en photo seulement',
   })
 
-/** Ce que la Lune ôte à la photographie de la cible. */
+/** What the Moon removes from the cible's photograph. */
 export const LIBELLE_DEGRADATION_LUNE: Readonly<Record<DegradationLune, string>> = Object.freeze({
   AUCUNE: 'aucune',
   FAIBLE: 'faible',
@@ -58,24 +50,22 @@ export const LIBELLE_DEGRADATION_LUNE: Readonly<Record<DegradationLune, string>>
   FORTE: 'forte',
 })
 
-/** §3.2 — ce que la nuit offre à cette date et cette latitude. */
+/** §3.2 — what the night offers at this date and latitude. */
 export const LIBELLE_ETAT_NUIT: Readonly<Record<EtatNuit, string>> = Object.freeze({
   NUIT_ASTRONOMIQUE: 'nuit astronomique complète',
   PAS_DE_NUIT_ASTRONOMIQUE: 'pas de nuit astronomique — crépuscule permanent',
   NUIT_POLAIRE: 'nuit polaire — le Soleil ne se lève pas',
 })
 
-/** §2.2 — d'où vient le fond de ciel retenu. */
+/** §2.2 — origin of the retained fond de ciel. */
 export const LIBELLE_SOURCE_SB: Readonly<Record<SourceSb, string>> = Object.freeze({
   TABLE_BORTLE: 'table de Bortle',
   SQM_MESURE: 'mesure au SQM',
 })
 
 /**
- * Ce qu'un drapeau de traçabilité dit de la valeur qu'il accompagne : « 20,2 mag [ESTIMÉ] ».
- * La forme — capitales entre crochets — est celle déjà employée par les messages des moteurs ;
- * en changer ici aurait fait cohabiter deux badges pour la même notion. Les gloses complètes
- * restent dans `traced.ts`.
+ * Meaning of a traceability flag: "20,2 mag [ESTIMÉ]". Form (caps in brackets) matches existing
+ * moteur messages; changing it = two badges for one notion. Full glosses in `traced.ts`.
  */
 export const LIBELLE_FLAG: Readonly<Record<Flag, string>> = Object.freeze({
   ESTIME: 'ESTIMÉ',
@@ -84,19 +74,19 @@ export const LIBELLE_FLAG: Readonly<Record<Flag, string>> = Object.freeze({
   HORS_DOMAINE: 'HORS DOMAINE',
 })
 
-/** §6.3 — la mention posée à la place d'une valeur que le catalogue ne porte pas. */
+/** §6.3 — mention put where the catalogue carries no value. */
 export const MENTION_DONNEE_MANQUANTE = `[${LIBELLE_FLAG.DONNEE_MANQUANTE}]`
 
-/** T-0107 — une étoile de repère que les paquets ne nomment pas : table, parcours et fiche. */
+/** T-0107 — reference star the packages don't name: table, parcours, fiche. */
 export const SANS_NOM = 'sans nom'
 
-/** §11.1 — comment on amène l'instrument sur la cible. */
+/** §11.1 — how the instrument is brought onto the cible. */
 export const LIBELLE_MODE_POINTAGE: Readonly<Record<ModePointage, string>> = Object.freeze({
   CARTE_DIRECTE: 'à la carte, directement',
   CHEMINEMENT: 'de proche en proche',
 })
 
-/** §8.3 — pourquoi une cible n'entre pas au plan. */
+/** §8.3 — why a cible does not enter the plan. */
 export const LIBELLE_CAUSE_ECART: Readonly<Record<CauseEcart, string>> = Object.freeze({
   DONNEE_MANQUANTE: 'donnée manquante au catalogue',
   CADRAGE: 'cadrage impossible',
@@ -109,7 +99,7 @@ export const LIBELLE_CAUSE_ECART: Readonly<Record<CauseEcart, string>> = Object.
   LUNE: 'Lune trop gênante',
 })
 
-/** §7.4 — les lots de calibration. Le jargon d'atelier fait foi : personne ne dit « noirs ». */
+/** §7.4 — calibration lots. Workshop jargon rules: nobody says "noirs". */
 export const LIBELLE_LOT_CALIBRATION: Readonly<Record<LotCalibration['type'], string>> =
   Object.freeze({
     FLATS: 'flats — plages uniformes',
@@ -117,20 +107,20 @@ export const LIBELLE_LOT_CALIBRATION: Readonly<Record<LotCalibration['type'], st
     OFFSETS: 'offsets — bruit de lecture',
   })
 
-/** §7.1 — d'où vient le point zéro système, à afficher partout où une pose l'est. */
+/** §7.1 — origin of the system zero point, shown wherever a pose is. */
 export const LIBELLE_ZP_SOURCE: Readonly<Record<ZpSource, string>> = Object.freeze({
   BASE_MATERIEL: 'base matériel',
   GENERIQUE: 'valeur générique',
 })
 
-/** §12.5 — l'état du réseau au démarrage. */
+/** §12.5 — network state at startup. */
 export const LIBELLE_MODE_RESEAU: Readonly<Record<ModeReseau, string>> = Object.freeze({
   EN_LIGNE: 'en ligne',
   HORS_LIGNE: 'hors ligne',
   DEGRADE: 'dégradé',
 })
 
-/** §12.5 — ce qu'une fonction devient sans réseau. */
+/** §12.5 — what a function becomes offline. */
 export const LIBELLE_DISPONIBILITE_HORS_LIGNE: Readonly<
   Record<DisponibiliteHorsLigne, string>
 > = Object.freeze({
@@ -139,7 +129,7 @@ export const LIBELLE_DISPONIBILITE_HORS_LIGNE: Readonly<
   TOMBE: 'indisponible',
 })
 
-/** §12.2 — l'état d'un paquet de données face à son manifeste. */
+/** §12.2 — state of a data package against its manifest. */
 export const LIBELLE_INTEGRITE_PAQUET: Readonly<Record<IntegritePaquet, string>> = Object.freeze({
   OK: 'intègre',
   CORROMPU: 'corrompu',
@@ -147,15 +137,11 @@ export const LIBELLE_INTEGRITE_PAQUET: Readonly<Record<IntegritePaquet, string>>
 })
 
 /**
- * §10.2 — les entrées d'une valeur tracée, telles qu'elles s'affichent sous elle.
- *
- * Les clés de `Traced.inputs` sont libres : chaque appel de `trace()` les écrit à la main,
- * donc aucun `Record` exhaustif ne peut les couvrir et le compilateur ne peut pas garder
- * cette table complète. C'est le test de rendu qui le fait — il échoue sur tout identifiant
- * snake_case qui atteindrait une surface principale.
- *
- * L'EXPRESSION de la formule, elle, reste brute : `sb = m_int + 2,5·log(aire)` est le
- * livrable du niveau 3 de §10.2, celui qui se rapproche du PRD. La traduire l'effacerait.
+ * §10.2 — inputs of a traced value, as shown under it. `Traced.inputs` keys are free (each
+ * `trace()` call writes them by hand): no exhaustive `Record` fits; render test keeps this table
+ * complete (fails on any snake_case id reaching a main surface).
+ * Formula EXPRESSION stays raw: `sb = m_int + 2,5·log(aire)` is the §10.2 level 3 deliverable,
+ * closest to PRD; translating would erase it.
  */
 export const LIBELLE_ENTREE: Readonly<Record<string, string>> = Object.freeze({
   a_arcmin: 'grand axe',
@@ -218,7 +204,7 @@ export const LIBELLE_ENTREE: Readonly<Record<string, string>> = Object.freeze({
   tsl_h: 'temps sidéral local',
   zp_sys: 'point zéro système',
 
-  // §8.1 — modèle lunaire
+  // §8.1 — lunar model
   ad_h: 'ascension droite',
   alt_cible_deg: 'hauteur de la cible',
   alt_lune_deg: 'hauteur de la Lune',
@@ -226,7 +212,7 @@ export const LIBELLE_ENTREE: Readonly<Record<string, string>> = Object.freeze({
   separation_deg: 'séparation à la Lune',
   sb_ciel_noir: 'fond de ciel sans Lune',
 
-  // §8.3 — score d'une cible et poids du scoring
+  // §8.3 — cible score and scoring weights
   s_cadrage: 'note de cadrage',
   s_fenetre: 'note de fenêtre',
   s_hauteur: 'note de hauteur',
@@ -238,13 +224,13 @@ export const LIBELLE_ENTREE: Readonly<Record<string, string>> = Object.freeze({
   w_lune: 'poids de la Lune',
   w_signal: 'poids du signal',
 
-  // §8.4 — budget de la nuit
+  // §8.4 — night budget
   calibration_min: 'temps de calibration',
   capture_min: 'temps de capture',
   mise_en_station_min: 'temps de mise en station',
   pointage_min: 'temps de pointage',
 
-  // §6.2, §9 — géométrie du cadre et du filé
+  // §6.2, §9 — cadre and filé geometry
   dec_min_abs_deg: 'déclinaison minimale',
   duree_totale_s: 'durée totale',
   e_ciel_px_s: 'flux du fond de ciel',
@@ -255,15 +241,14 @@ export const LIBELLE_ENTREE: Readonly<Record<string, string>> = Object.freeze({
 })
 
 /**
- * Le libellé d'une entrée tracée. Le repli sur la clé brute est délibéré : une entrée sans
- * libellé ne doit pas faire disparaître la ligne de traçabilité — c'est le test de rendu qui
- * signale l'oubli, pas un écran vide (§12.5, un manque se lit).
+ * Label of a traced input. Raw-key fallback deliberate: missing label must not hide the
+ * traceability line; render test flags the omission, not an empty screen (§12.5).
  */
 export function libelleEntree(cle: string): string {
   return LIBELLE_ENTREE[cle] ?? cle
 }
 
-/** Un drapeau tel qu'il s'écrit à côté d'une valeur : « [ESTIMÉ] », « [HORS DOMAINE] ». */
+/** Flag as written beside a value: "[ESTIMÉ]", "[HORS DOMAINE]". */
 export function libelleFlag(drapeau: Flag): string {
   return `[${LIBELLE_FLAG[drapeau]}]`
 }

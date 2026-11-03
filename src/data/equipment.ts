@@ -1,19 +1,12 @@
 /**
- * §2.3 — Base matériel : point zéro système et grandeurs capteur.
- *
- * `ZP_sys` est la brillance de ciel produisant 1 e⁻/s/px pour un pixel de 1 µm à f/1. Il se
- * déduit hors application du point zéro photométrique de la bande passante, de l'efficacité
- * quantique du capteur, de la transmission optique et du gain en e⁻/ADU — courbes QE
- * constructeur et mesures de gain de Photons to Photos.
- *
- * Il n'existe AUCUNE fonction de calibration, et aucun écran n'invite à en effectuer une :
- * l'optimum de pose est plat, une erreur d'un facteur 2 coûte 2 à 5 points de SNR, que la
- * plage utile affichée absorbe.
- * Cette plage se calcule dans `exposure.ts` (`PLAGE_UTILE_POSE`) et s'affiche sur la fiche
- * cible ; la perte de SNR, elle, ne s'affiche nulle part — sa formule reste au formulaire de
- * l'Annexe B sous `PERTE_SNR` (T-0063).
- *
- * Le Lot 0 pose le schéma et la valeur de repli. Le remplissage de la base relève du Lot 1.
+ * §2.3 — Equipment base: system zero point + sensor quantities.
+ * `ZP_sys` = sky brightness giving 1 e⁻/s/px for a 1 µm pixel at f/1. Derived offline from
+ * bandpass photometric zero point, sensor QE, optical transmission, gain e⁻/ADU (manufacturer QE
+ * curves, Photons to Photos gain measurements).
+ * NO calibration function, no screen inviting one: pose optimum is flat, ×2 error = 2–5 SNR
+ * points, absorbed by displayed useful range (`PLAGE_UTILE_POSE` in `exposure.ts`, shown on fiche
+ * cible). SNR loss shown nowhere; formula stays in Annexe B form `PERTE_SNR` (T-0063).
+ * Lot 0 = schema + fallback value; filling the base = Lot 1.
  */
 
 import { K, ref, type ConstantRef } from '../registry/constants.ts'
@@ -23,9 +16,8 @@ import { ligneFormatCapteur, pitchDepuisFormat, type FormatCapteur } from '../re
 import { LIBELLE_ZP_SOURCE } from '../registry/libelles.ts'
 
 /**
- * Les champs optionnels sont ceux que le PRD marque `[À VÉRIFIER]` en Annexe A. Ils restent
- * absents plutôt que remplis d'une valeur plausible : un moteur qui en a besoin doit
- * traiter l'absence, pas consommer une invention.
+ * Optional fields = those PRD marks `[À VÉRIFIER]` in Annexe A. Left absent, not filled with a
+ * plausible value: engines must handle absence, not consume an invention.
  */
 export interface Boitier {
   readonly id: string
@@ -33,19 +25,19 @@ export interface Boitier {
   readonly capteurLMm: number
   readonly capteurHMm: number
   readonly pitchUm: number
-  /** Dimensions du recadrage APS-C. Le pitch, lui, ne change pas (§5.1). */
+  /** APS-C crop dimensions. Pitch unchanged (§5.1). */
   readonly recadrageApsc: ModeRecadrage
-  /** Bruit de lecture, par ISO. Clé = ISO. */
+  /** Read noise per ISO. Key = ISO. */
   readonly readNoiseE: Readonly<Record<number, number>>
-  /** Absent → aucun palier ne justifie l'ISO retenu : c'est la saisie qui le fixe (§7.2). */
+  /** Absent → no tier justifies chosen ISO: input sets it (§7.2). */
   readonly seuilDoubleGainIso?: number
-  /** Absent → point zéro générique C-14, affiché [ESTIMÉ] (§2.3). */
+  /** Absent → generic zero point C-14, shown [ESTIMÉ] (§2.3). */
   readonly zpSys?: number
   readonly tailleRawMo: number
   readonly source: string
 }
 
-/** Dimensions du recadrage APS-C. Le pitch, lui, ne change pas (§5.1). */
+/** APS-C crop dimensions. Pitch unchanged (§5.1). */
 export interface ModeRecadrage {
   readonly capteurLMm: number
   readonly capteurHMm: number
@@ -57,16 +49,14 @@ export interface CapteurEffectif {
   readonly capteurLMm: number
   readonly capteurHMm: number
   readonly pitchUm: number
-  /** Renseigné au basculement en APS-C : le message anti-confusion de §5.1. */
+  /** Set on APS-C switch: §5.1 anti-confusion message. */
   readonly noteRecadrage?: string
 }
 
 /**
- * Dimensions à donner au moteur optique pour un mode de recadrage donné.
- *
- * LE RECADRAGE NE GROSSIT RIEN : il change `capteur_L_mm` et `capteur_H_mm`, donc le champ,
- * et rien d'autre. Le pitch est inchangé, donc l'échantillonnage, la NPF et la pose max le
- * sont aussi. Un débutant croit très souvent gagner de la portée en passant en APS-C.
+ * Dimensions for the optics engine in a crop mode.
+ * CROP MAGNIFIES NOTHING: changes `capteur_L_mm`/`capteur_H_mm` (field) only. Pitch unchanged →
+ * sampling, NPF, pose max unchanged. Beginners think APS-C adds reach.
  */
 export function capteurEffectif(boitier: Boitier, mode: CapteurMode): CapteurEffectif {
   if (mode === 'FULL_FRAME') {
@@ -85,7 +75,7 @@ export function capteurEffectif(boitier: Boitier, mode: CapteurMode): CapteurEff
   }
 }
 
-/** §7.1 — `zp_source`, à afficher partout où une pose l'est. */
+/** §7.1 — `zp_source`, shown wherever a pose is. */
 export type ZpSource = 'BASE_MATERIEL' | 'GENERIQUE'
 
 export interface PointZeroSysteme {
@@ -97,13 +87,10 @@ export interface PointZeroSysteme {
 }
 
 /**
- * Point zéro système d'un boîtier. Aucun `zp_sys` connu → générique C-14, affiché [ESTIMÉ], la
- * plage utile de pose absorbant l'incertitude.
- *
- * Le cas normal, y compris pour un boîtier choisi dans la base : la colonne `ZP sys` de
- * `boitiers.md` est vide pour toutes les lignes, cette grandeur n'étant publiée nulle part.
- * La note ne dit donc pas que le boîtier est inconnu — il ne l'est pas — mais que c'est sa
- * sensibilité qui l'est.
+ * System zero point of a body. No known `zp_sys` → generic C-14, [ESTIMÉ]; useful pose range
+ * absorbs the uncertainty.
+ * Normal case even for a base body: `ZP sys` column of `boitiers.md` empty for all rows (value
+ * published nowhere). Note says sensitivity is unknown, not the body.
  */
 export function pointZeroSysteme(boitier: Boitier | null): PointZeroSysteme {
   if (boitier?.zpSys !== undefined) {
@@ -122,26 +109,22 @@ export function pointZeroSysteme(boitier: Boitier | null): PointZeroSysteme {
 
 export interface IsoRetenu {
   readonly iso: number
-  /** `null` quand la base ne donne pas la courbe : le moteur applique alors son repli. */
+  /** `null` = base lacks curve: engine falls back. */
   readonly readNoiseE: number | null
-  /** ISO que le seuil de double gain justifie, quand ce seuil est connu. */
+  /** ISO justified by dual-gain threshold, if known. */
   readonly isoRecommandeParSeuil: number | null
-  /** Vrai quand l'ISO affiché n'est pas celui que le double gain recommande. */
+  /** True when displayed ISO ≠ dual-gain recommendation. */
   readonly choisiParUtilisateur: boolean
   readonly message: string
 }
 
 /**
- * §7.2 — choix de l'ISO par le double gain de conversion.
- *
- * Les capteurs à bascule d'amplification voient leur bruit de lecture chuter brutalement
- * au-delà d'un seuil d'ISO. Or t_opt ∝ RN² : diviser le bruit de lecture par deux divise la
- * pose optimale par quatre. Au-delà du seuil, le bruit ne baisse plus mais la capacité de
- * saturation chute proportionnellement — les étoiles brillantes crament pour rien.
- *
- * L'ISO reste modifiable : le seuil justifie une recommandation, il n'impose pas un réglage.
- * Un ISO hors de la courbe du boîtier ne fait pas inventer un bruit de lecture — il rend
- * `readNoiseE` nul, et le moteur de pose applique son repli en l'affichant [ESTIMÉ] (§5.1).
+ * §7.2 — ISO choice by dual conversion gain.
+ * Amplification-switch sensors: read noise drops sharply past an ISO threshold. t_opt ∝ RN²:
+ * halving RN quarters optimal pose. Past threshold noise stops dropping but saturation capacity
+ * falls proportionally — bright stars burn for nothing.
+ * ISO stays editable: threshold justifies a recommendation, imposes nothing. ISO outside body's
+ * curve invents no read noise: `readNoiseE` null, pose engine falls back, shown [ESTIMÉ] (§5.1).
  */
 export function isoRecommande(boitier: Boitier | null, isoChoisi: number | null = null): IsoRetenu {
   if (boitier === null) {
@@ -192,13 +175,10 @@ function messageIso(
 }
 
 /**
- * Boîtier de référence de l'Annexe A : plein format 35,9 × 23,9 mm, 7008 × 4672 px.
- * Bruit de lecture et point zéro système sont marqués `[À VÉRIFIER]`
- * par le PRD — seule la valeur de travail sourcée est portée ici.
- *
- * Ne se choisit plus dans une interface : §5.1 ne propose qu'un type de capteur et une
- * résolution, jamais un boîtier. Cette constante reste la donnée de travail de l'Annexe A pour
- * les moteurs et les tests qui la citent.
+ * Annexe A reference body: plein format 35,9 × 23,9 mm, 7008 × 4672 px.
+ * Read noise + system zero point are `[À VÉRIFIER]` in PRD: only sourced working value carried.
+ * Not selectable in UI (§5.1 offers sensor type + resolution, never a body); stays Annexe A
+ * working data for engines and tests citing it.
  */
 export const BOITIER_REFERENCE: Boitier = Object.freeze({
   id: 'reference-plein-format-33mp',
@@ -208,7 +188,7 @@ export const BOITIER_REFERENCE: Boitier = Object.freeze({
   // 35,9 mm / 7008 px = 5,12 µm.
   pitchUm: 5.12,
   recadrageApsc: Object.freeze({ capteurLMm: 23.5, capteurHMm: 15.6 }),
-  // Valeur de travail de l'Annexe A, au-delà du seuil de double gain.
+  // Annexe A working value, beyond dual-gain threshold.
   readNoiseE: Object.freeze({ 640: 1.5 }),
   seuilDoubleGainIso: 640,
   tailleRawMo: 33,
@@ -216,13 +196,10 @@ export const BOITIER_REFERENCE: Boitier = Object.freeze({
 })
 
 /**
- * §5.1 — le boîtier saisi à la main, tel que l'utilisateur le tape : des chaînes, dont les
- * vides sont significatifs. Un champ laissé vide n'est pas zéro, c'est une valeur inconnue.
- *
- * Aucun boîtier ne se choisit dans une liste : les dimensions du capteur et le pitch ne sont
- * jamais tapés non plus. `formatCapteur` fixe les deux premières (table sourcée), et
- * `resolutionMpx` donne le troisième par le calcul. Un débutant lit un type de capteur et une
- * résolution sur une fiche produit, jamais un pitch en micromètres.
+ * §5.1 — hand-entered body as typed: strings, empty ones meaningful (empty = unknown, not zero).
+ * Dimensions and pitch are never typed: `formatCapteur` fixes the first two (sourced table),
+ * `resolutionMpx` gives the third by computation. Beginners read sensor type + resolution on a
+ * product sheet, never a pitch in µm.
  */
 export interface SaisieBoitier {
   readonly formatCapteur: FormatCapteur
@@ -234,13 +211,10 @@ export interface SaisieBoitier {
 }
 
 /**
- * T-0199 — §5.1 : pour chaque grandeur laissée vide, la conséquence chiffrée de son absence.
- *
- * Indexée par champ de saisie, et dérivée de la SAISIE BRUTE, pas du boîtier résolu : c'est
- * quand la saisie est refusée — résolution effacée le temps de la retaper — qu'on a le plus
- * besoin de savoir ce qui manque, et le boîtier n'existe alors pas. Une grandeur vide n'est
- * jamais une erreur ; le texte dit ce que le registre met à sa place, pas ce qu'il faudrait
- * corriger.
+ * T-0199 — §5.1: per empty field, quantified consequence of its absence.
+ * Indexed by input field, derived from RAW INPUT not resolved body: when input is refused
+ * (resolution cleared while retyping), knowing what's missing matters most and no body exists.
+ * Empty quantity is never an error; text says what registry substitutes, not what to fix.
  */
 export function notesEstimation(
   saisie: SaisieBoitier,
@@ -276,21 +250,20 @@ export function notesEstimation(
   })
 }
 
-/** Vide = inconnu ; renseigné = validé par le domaine du registre, refus nommant le champ. */
+/** Empty = unknown; filled = validated by registry domain, refusal names field. */
 function champ(texte: string, domaine: DomaineId): number | null {
   if (texte.trim() === '') return null
   return valide(domaine, nombreDeTexte(texte))
 }
 
-/** Une grandeur sans laquelle rien ne se calcule : le refus nomme le champ (§5.1). */
+/** Quantity without which nothing computes: refusal names the field (§5.1). */
 function champRequis(texte: string, domaine: DomaineId): number {
   return valide(domaine, nombreDeTexte(texte))
 }
 
 /**
- * T-0203 — d'où vient le boîtier, quand il ne vient pas de la saisie : une ligne de la base
- * `boitiers.md`. Elle apporte son identité et, seule chose que la saisie ne sait pas exprimer,
- * la courbe complète du bruit de lecture — un point par ISO au lieu d'un seul.
+ * T-0203 — body source when not input: a `boitiers.md` row. Brings identity and, what input
+ * cannot express, the full read-noise curve (1 point per ISO instead of 1).
  */
 export interface OrigineBoitier {
   readonly id: string
@@ -300,18 +273,13 @@ export interface OrigineBoitier {
 }
 
 /**
- * §5.1 — le boîtier tel que la saisie le décrit, ou tel que la base le donne.
- *
- * Le format de capteur et la résolution sont exigés : sans eux, ni champ ni échantillonnage
- * n'existent, et une valeur inventée produirait un cadrage faux sans le dire. Le pitch qui en
- * est dérivé reste validé contre le domaine `pitch_um` — un format et une résolution physique-
- * ment incohérents entre eux sont donc toujours refusés, en nommant le pitch. Les grandeurs du
- * mode avancé, elles, tolèrent l'absence — le registre fournit son repli, l'application
- * l'affiche, et la sortie porte [ESTIMÉ] plutôt que de passer pour une mesure.
- *
- * Une ligne de la base emprunte exactement ce chemin : elle est validée comme une saisie, et
- * n'obtient aucune dispense. `origine` ne remplace que ce que la saisie ne sait pas dire —
- * l'identité du modèle et sa courbe de bruit de lecture complète.
+ * §5.1 — body as described by input, or as given by base.
+ * Sensor format + resolution required: without them no field nor sampling, and an invented value
+ * would silently give a wrong cadrage. Derived pitch validated against `pitch_um` domain, so
+ * physically inconsistent format/resolution always refused, naming pitch. Advanced quantities
+ * tolerate absence: registry fallback, shown, output [ESTIMÉ] not posing as measurement.
+ * A base row takes this exact path, no exemption; `origine` replaces only what input cannot say:
+ * model identity + full read-noise curve.
  */
 export function resoutBoitier(saisie: SaisieBoitier, origine?: OrigineBoitier): Boitier {
   const format = ligneFormatCapteur(saisie.formatCapteur)
@@ -332,10 +300,10 @@ export function resoutBoitier(saisie: SaisieBoitier, origine?: OrigineBoitier): 
     capteurLMm,
     capteurHMm,
     pitchUm,
-    // Le recadrage reste un mode du boîtier : il change les dimensions, jamais le pitch.
+    // Crop stays a body mode: changes dimensions, never pitch.
     recadrageApsc: Object.freeze(recadrageApsc(capteurLMm, capteurHMm)),
-    // Sans courbe de base, le bruit de lecture saisi ne vaut qu'à l'ISO auquel il se rattache :
-    // un seul point, et rien ailleurs, plutôt qu'une valeur étendue à des ISO qu'elle ne décrit pas.
+    // No base curve: entered read noise holds at its ISO only (one point), not extended to
+    // ISOs it doesn't describe.
     readNoiseE:
       origine?.readNoiseE ??
       Object.freeze(
@@ -351,8 +319,8 @@ export function resoutBoitier(saisie: SaisieBoitier, origine?: OrigineBoitier): 
 }
 
 /**
- * §5.1 — le recadrage d'un boîtier saisi : le capteur APS-C de référence, jamais plus grand
- * que le capteur déclaré. Le pitch, lui, ne change pas — c'est tout l'objet du mode.
+ * §5.1 — crop of an entered body: reference APS-C sensor, never larger than declared sensor.
+ * Pitch unchanged: the point of the mode.
  */
 function recadrageApsc(capteurLMm: number, capteurHMm: number): ModeRecadrage {
   return {
@@ -362,9 +330,8 @@ function recadrageApsc(capteurLMm: number, capteurHMm: number): ModeRecadrage {
 }
 
 /**
- * §7.1 — `zp_source` doit être affiché partout où une pose l'est. C'est sa VALEUR que le PRD
- * exige à l'écran, pas le nom du champ : T-0275 rend « source : base matériel » là où la
- * phrase portait « zp_source BASE_MATERIEL ».
+ * §7.1 — `zp_source` shown wherever a pose is: PRD requires its VALUE, not field name (T-0275:
+ * « source : base matériel » instead of « zp_source BASE_MATERIEL »).
  */
 export function libelleZpSource(zeroSysteme: PointZeroSysteme): string {
   return (

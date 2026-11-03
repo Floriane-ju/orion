@@ -1,20 +1,13 @@
 /**
- * §9.2, couche 2 — fond génératif au-delà du seuil catalographié.
- *
- * GRAINE DÉTERMINISTE : même cadre, même rendu. Un semis retiré à chaque image scintillerait
- * et rendrait la prévisualisation inutilisable pour décider d'un cadrage.
- *
- * DENSITÉ NON UNIFORME, modulée par la latitude galactique. C'est cette modulation qui fait
- * apparaître la bande de la Voie lactée ; sans elle, la prévisualisation manque le cas
- * d'usage principal du grand champ.
- *
- * Le semis est produit une fois pour toute la sphère, puis indexé comme un catalogue ordinaire
- * (§3.3) : la sélection, le tri par magnitude et le tracé sont ceux des étoiles réelles, sans
- * une ligne de rendu spécifique.
- *
- * ponytail: le nombre total d'étoiles est plafonné par C-33. La modulation relative de densité
- * est respectée, le comptage absolu ne l'est pas — un ciel complet jusqu'à magnitude 12 pèse
- * des millions d'étoiles. Le plafond est déclaré à l'écran, jamais silencieux.
+ * §9.2, couche 2 — generative background beyond the catalogued threshold.
+ * DETERMINISTIC SEED: same frame, same render; per-frame redraw would flicker, useless for
+ * deciding a cadrage.
+ * NON-UNIFORM DENSITY, modulated by galactic latitude: makes the Voie lactée band appear;
+ * without it preview misses wide-field's main use case.
+ * Seeded once for the whole sphere, indexed like a catalogue (§3.3): selection, magnitude sort,
+ * drawing = real-star ones, no dedicated render line.
+ * ponytail: total star count capped by C-33; relative density modulation kept, absolute count
+ * not (full sky to magnitude 12 = millions of stars). Cap declared on screen, never silent.
  */
 
 import { K } from '../registry/constants.ts'
@@ -22,10 +15,10 @@ import { densite, latitudeGalactiqueDeg, magnitudeSemis } from '../core/galactiq
 import { DEG, versVecteur } from '../core/mat3.ts'
 import type { Etoile } from './catalog.ts'
 
-/** Graine fixe : c'est elle qui rend le rendu reproductible d'une session à l'autre. */
+/** Fixed seed: reproducible render across sessions. */
 const GRAINE = 0x9e3779b9
 
-/** Générateur mulberry32 : court, sans dépendance, et strictement déterministe. */
+/** mulberry32: short, dependency-free, strictly deterministic. */
 function generateur(graine: number): () => number {
   let etat = graine >>> 0
   return () => {
@@ -37,14 +30,13 @@ function generateur(graine: number): () => number {
   }
 }
 
-/** Indices de couleur plausibles pour des étoiles faibles : majorité jaune à rouge. */
+/** Plausible colour indices of faint stars: mostly yellow to red. */
 const BV_MIN = K('SEMIS_BV_MIN')
 const BV_ETENDUE = K('SEMIS_BV_ETENDUE')
 
 /**
- * Semis génératif de toute la sphère. Aucun cache n'est conservé : la fonction est
- * déterministe, et l'appelant garde l'INDEX, pas la liste d'objets — cent mille objets
- * retenus pour rien coûteraient plusieurs dizaines de mégaoctets sur un téléphone.
+ * Generative seeding of the whole sphere. No cache: deterministic, and caller holds the INDEX,
+ * not the object list (100k retained objects = tens of MB on a phone).
  */
 export function semisGeneratif(): readonly Etoile[] {
   const alea = generateur(GRAINE)
@@ -54,10 +46,10 @@ export function semisGeneratif(): readonly Etoile[] {
 
   while (etoiles.length < total) {
     const adDeg = alea() * 360
-    // Tirage uniforme en sin(δ) : uniforme en déclinaison concentrerait tout aux pôles.
+    // Uniform draw in sin(δ): uniform δ would pile up at the poles.
     const decDeg = Math.asin(2 * alea() - 1) / DEG
     const b = latitudeGalactiqueDeg(versVecteur(adDeg, decDeg))
-    // Rejet selon la densité de §9.2, normalisée à 1 dans le plan galactique.
+    // Rejection by §9.2 density, normalised to 1 in the galactic plane.
     if (alea() > densite(b, echelle)) continue
     etoiles.push({
       adDeg,

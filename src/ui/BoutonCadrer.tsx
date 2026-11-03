@@ -1,16 +1,12 @@
 /**
- * T-0046, T-0221, T-0283 — « Cadrer » centre la scène sur une cible ET règle le champ sur le
- * cadre du matériel. La liste et la fiche portent le même bouton ; deux dessins du même geste
- * finiraient par annoncer deux choses. Sans matériel chiffrable, pas de cadre : pas de bouton.
- *
- * Sous l'horizon, la direction existe quand même — la vue descend jusqu'à −90° — et c'est elle
- * qu'on veut connaître pour savoir de quel côté attendre le lever. Le bouton reste donc offert ;
- * la couche Sol masque ce qu'elle recouvre, et la bulle dit pourquoi la cible n'apparaîtra pas.
- *
- * §3.5, T-0339 — « Aligner » est le second geste de la fiche : une fois la cible dans le cadre,
- * tourner le boîtier pour poser son grand axe sur la longueur du capteur. Il n'est offert que
- * si la cible est dans le cadre et que le moteur trouve un angle — une cible ronde ou sans
- * angle de position n'a rien à aligner, et un bouton qui ne ferait rien serait un mensonge.
+ * T-0046, T-0221, T-0283 — "Cadrer" centres scène on a cible AND sets field to the matériel cadre.
+ * List and fiche share the button (two drawings would announce two things). No chiffrable
+ * matériel → no cadre → no button.
+ * Below horizon the direction still exists (view to −90°) and tells where to wait for rise: button
+ * stays; Sol layer masks what it covers, bulle says why the cible won't appear.
+ * §3.5, T-0339 — "Aligner" = fiche's 2nd gesture: rotate boîtier to put major axis on sensor
+ * length. Only if cible is in cadre and moteur finds an angle (round / no position angle: nothing
+ * to align, a no-op button would lie).
  */
 
 import { cibleDominante, rotationSuggeree, type ProfilCadre } from '../core/cadre.ts'
@@ -33,11 +29,11 @@ import {
 export interface AlignementCibleProps {
   readonly objet: ObjetCielProfond
   readonly site: Site
-  /** Le cadre du matériel déclaré ; absent tant que le matériel n'est pas chiffrable. */
+  /** Declared matériel cadre; absent if not chiffrable. */
   readonly profil: ProfilCadre | undefined
 }
 
-/** §3.5 — l'angle suggéré, appliqué d'un clic. Rien quand il n'y a rien à aligner. */
+/** §3.5 — suggested angle applied on click. Nothing when nothing to align. */
 export function AlignementCible({ objet, site, profil }: AlignementCibleProps) {
   const minute = useTrancheScene(minuteAffichee)
   const vue = useTrancheScene(vueScene)
@@ -66,12 +62,12 @@ export function AlignementCible({ objet, site, profil }: AlignementCibleProps) {
 export interface CadrerCibleProps {
   readonly objet: ObjetCielProfond
   readonly site: Site
-  /** Le cadre du matériel déclaré ; absent tant que le matériel n'est pas chiffrable. */
+  /** Declared matériel cadre; absent if not chiffrable. */
   readonly profil: ProfilCadre | undefined
   readonly gaiaCharge: boolean
 }
 
-/** §6.4 — un geste montre la cible avec le cadre sur une part lisible de la scène. */
+/** §6.4 — one gesture shows the cible with the cadre on a readable part of the scène. */
 export function CadrerCible({ objet, site, profil, gaiaCharge }: CadrerCibleProps) {
   const minute = useTrancheScene(minuteAffichee)
   const { azimutDeg, hauteurDeg } = coordonneesHorizon(objet, matriceALaMinute(site, minute))
@@ -90,21 +86,19 @@ export interface BoutonCadrerProps {
   readonly objet: ObjetCielProfond
   readonly azimutDeg: number
   readonly hauteurDeg: number
-  /** Le cadre du matériel déclaré ; absent tant que le matériel n'est pas chiffrable. */
+  /** Declared matériel cadre; absent if not chiffrable. */
   readonly profil: ProfilCadre | undefined
   readonly gaiaCharge: boolean
   readonly variante?: VarianteGlyphe
-  /** Le pied de la carte de liste nomme le geste en toutes lettres. */
+  /** List card foot spells the gesture out. */
   readonly avecLibelle?: boolean
 }
 
 /**
- * Le geste « Cadrer » lui-même, partagé avec « Prochain créneau » (T-0380) : sauter à une nuit
- * sans tourner la vue vers la cible laisserait chercher, dans un ciel nouveau, ce qu'on vient
- * de demander. Sans cadre du matériel, la vue se centre sans changer de champ.
- *
- * La visée suit ensuite la cible dans la rotation du ciel, jusqu'au premier geste qui la
- * déplace : un cadre qui laisse filer sa cible en quelques minutes n'a cadré qu'un instant.
+ * The "Cadrer" gesture, shared with "Prochain créneau" (T-0380): jumping to a night without
+ * turning toward the cible would leave searching a new sky. No matériel cadre: view centres, field
+ * unchanged. Visée then follows the cible through sky rotation until first gesture moving it (a
+ * cadre losing its cible in minutes framed only an instant).
  */
 export function cadreScene(
   objet: ObjetCielProfond,
@@ -123,8 +117,8 @@ export function cadreScene(
 }
 
 /**
- * La ligne de liste fournit déjà la direction. Le mode de vue n'est lu qu'au clic : s'y
- * abonner ferait redessiner chaque ligne à chaque glissé de la scène.
+ * List row already supplies the direction. View mode read at click only: subscribing would redraw
+ * every row on each scène drag.
  */
 export function BoutonCadrer({
   objet,

@@ -1,6 +1,6 @@
 /**
- * T-0399 — la trace de la Lune en Panorama : instants échantillonnés sur la durée de prise de
- * vue, positions topocentriques tirées de `positionCorps`, jamais recopiées.
+ * T-0399 — Moon trace in Panorama: instants sampled over shooting duration, topocentric positions
+ * from `positionCorps`, never copied.
  */
 import { describe, expect, it } from 'vitest'
 import { Body, positionCorps } from '../src/core/ephem.ts'

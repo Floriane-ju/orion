@@ -1,13 +1,9 @@
 /**
- * T-0097, T-0098, T-0100 — le fond du ciel peint en vue réaliste.
- *
- * Trois choses se vérifient ici, et elles ne se remplacent pas :
- *
- *   1. le MODÈLE — les brillances s'additionnent en nanolamberts, le profil de van Rhijn est
- *      celui de la formule, la Lune sous l'horizon n'ajoute rien ;
- *   2. le CONTRAT D'AFFICHAGE — la table de couleurs annoncée par T-0097, à 1/255 près ;
- *   3. la COMPOSITION — le halo passe sous le sol, la Lune est centrée sur la Lune, et le
- *      mode nuit ne peint rien.
+ * T-0097, T-0098, T-0100 — fond du ciel in realistic view. 3 non-interchangeable checks:
+ *   1. MODEL: brightnesses add in nanolamberts, van Rhijn profile = formula, Moon below horizon
+ *      adds nothing;
+ *   2. DISPLAY CONTRACT: colour table announced by T-0097, within 1/255;
+ *   3. COMPOSITION: halo under sol, Moon centred on Moon, mode nuit paints nothing.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -71,7 +67,7 @@ interface Degrade {
   addColorStop(offset: number, couleur: string): void
 }
 
-/** Contexte 2D instrumenté : il enregistre le remplissage et sa couleur, il ne peint pas. */
+/** Instrumented 2D context: records fill + colour, paints nothing. */
 function contexteEspion() {
   const remplissages: { nom: string; couleur: unknown }[] = []
   const degrades: Degrade[] = []
@@ -125,7 +121,7 @@ function contexteEspion() {
 const ctxDe = (espion: ReturnType<typeof contexteEspion>): CanvasRenderingContext2D =>
   espion as unknown as CanvasRenderingContext2D
 
-/** Composantes d'une couleur `rgb(r v b)` ou `rgb(r v b / a)`. */
+/** Components of `rgb(r v b)` or `rgb(r v b / a)`. */
 function canaux(couleur: string): readonly [number, number, number] {
   const m = /^rgb\((\d+) (\d+) (\d+)/.exec(couleur)
   if (m === null) throw new Error(`couleur inattendue : ${couleur}`)
@@ -139,7 +135,7 @@ function hexa(couleur: string): string {
 
 describe('modèle du fond de ciel §3.3 (T-0097)', () => {
   it('cale l’exposition sur le ciel le plus sombre de la table, et rien d’autre', () => {
-    // La seule constante libre : le ciel le plus noir de la table est juste au-dessus du noir.
+    // Only free constant: darkest table sky just above black.
     const plancher = luminanceEcran(SB_PLANCHER_NATUREL)
     expect(plancher).toBeGreaterThan(0)
     expect(plancher).toBeLessThan(K('CHROMA_FOND_CIEL_B') / 100)
@@ -148,7 +144,7 @@ describe('modèle du fond de ciel §3.3 (T-0097)', () => {
   it('garde entre deux fonds le rapport PHYSIQUE de leurs brillances', () => {
     const b1 = interpoleBortle(1).sb
     const b9 = interpoleBortle(9).sb
-    // Aucun choix de rendu là-dedans : Y = K × B, donc le rapport des Y est celui des B.
+    // Y = K × B → Y ratio = B ratio, no render choice.
     expect(luminanceEcran(b9) / luminanceEcran(b1)).toBeCloseTo(
       nanolamberts(b9) / nanolamberts(b1),
       9,
@@ -170,10 +166,8 @@ describe('modèle du fond de ciel §3.3 (T-0097)', () => {
   })
 
   /**
-   * Le contrat d'affichage de T-0097. Ce ne sont pas des valeurs astronomiques recopiées :
-   * ce sont les couleurs que le ticket annonce à l'utilisateur, et elles se dérivent des
-   * constantes du registre. Elles bougent si l'exposition ou la chromaticité bougent — c'est
-   * précisément ce que ce test doit voir.
+   * T-0097 display contract. Colours announced to the user, derived from registry constants,
+   * not copied astronomy. Moves if exposure/chromaticity move: what this test must see.
    */
   it('rend la table de couleurs annoncée, à 1/255 près par canal', () => {
     const attendus: Readonly<Record<number, string>> = {
@@ -191,7 +185,7 @@ describe('modèle du fond de ciel §3.3 (T-0097)', () => {
   })
 
   it('suit le fond de ciel mesuré, jamais le champ Bortle saisi', () => {
-    // Un SQM mesuré prévaut (§2.2) : la teinte est fonction de `sb`, et de rien d'autre.
+    // Measured SQM wins (§2.2): tint = function of `sb` only.
     const sqm = 20.15
     expect(fondRealiste(sqm)).not.toBe(fondRealiste(interpoleBortle(6).sb))
     expect(fondRealiste(sqm)).toBe(fondRealiste(sqm))
@@ -210,8 +204,7 @@ describe('palette de vue réaliste (T-0097)', () => {
   })
 
   it('retient chaque repère à son rapport de contraste actuel, ou déclare la saturation', () => {
-    // Les marqueurs d'objets ne sont plus dans la palette : ils ont leur table par type, et
-    // sa compensation se vérifie dans `marqueur-objet.test.ts`.
+    // Object markers left the palette: own table per type (compensation: `marqueur-objet.test.ts`).
     const reperes = ['figures', 'frontieres', 'asterismes', 'corps', 'cadre',
       'horizon', 'voieLactee', 'texte'] as const
     for (const bortle of [1, 6, 9]) {
@@ -226,7 +219,7 @@ describe('palette de vue réaliste (T-0097)', () => {
         const peint = surFond(realiste[repere], realiste.fond)
         const obtenu = rapportContraste(luminanceRelative(lineaire(peint)), luminanceFond)
         const sature = opacite(realiste[repere]) === 1 || canaux(peint).some((c) => c === 255)
-        // Soit le rapport est tenu à 2 % près, soit l'écran est à bout de gamut et le dit.
+        // Either ratio held within 2 %, or screen at gamut limit and says so.
         expect(obtenu >= attendu * 0.98 || sature, `${repere} @ B${bortle}`).toBe(true)
       }
     }
@@ -237,13 +230,13 @@ describe('palette de vue réaliste (T-0097)', () => {
   })
 })
 
-/** Opacité d'une couleur `rgb(r v b / a)` ; 1 pour une couleur opaque. */
+/** Opacity of `rgb(r v b / a)`; 1 if opaque. */
 function opacite(couleur: string): number {
   const m = / \/ ([\d.]+)\)$/.exec(couleur)
   return m === null ? 1 : Number(m[1])
 }
 
-/** La couleur telle que le canevas la compose sur ce fond — en sRGB encodé, octet par octet. */
+/** Colour as canvas composes it on this fond: encoded sRGB, per byte. */
 function surFond(couleur: string, fond: string): string {
   const a = opacite(couleur)
   const t = canaux(couleur)
@@ -252,7 +245,7 @@ function surFond(couleur: string, fond: string): string {
   return `rgb(${c[0]} ${c[1]} ${c[2]})`
 }
 
-/** Composantes linéaires d'une couleur `rgb(r v b)`, pour le calcul de contraste du test. */
+/** Linear components of `rgb(r v b)`, for contrast calc. */
 function lineaire(couleur: string): readonly [number, number, number] {
   const versLin = (octet: number): number => {
     const e = octet / 255
@@ -278,15 +271,14 @@ describe('halo d’horizon — van Rhijn 1921 (T-0098)', () => {
   })
 
   /**
-   * Le terme d'extinction n'est pas décoratif : van Rhijn seul donnerait ×6 à l'horizon, ce
-   * que personne n'observe. Avec l'extinction, l'écart tombe à ×3,2 — soit 1,26 mag/as².
-   * (T-0098 annonçait ×2,9 : c'est la valeur de van Rhijn × extinction pour une couche plus
-   * haute que les 90 km retenus. Le ticket a été corrigé sur la valeur du modèle codé.)
+   * Extinction not decorative: van Rhijn alone = ×6 at horizon, never observed; with it ×3,2
+   * = 1,26 mag/as². (T-0098 announced ×2,9 = van Rhijn × extinction for a layer above the
+   * retained 90 km; ticket corrected to coded model.)
    */
   it('éclaircit l’horizon d’un facteur 3,2, pas des 6 de van Rhijn seul', () => {
     expect(vanRhijn(0)).toBeGreaterThan(5.5)
     expect(facteurHaloHorizon(0)).toBeCloseTo(3.19, 1)
-    // Exprimé en magnitudes, l'écart que l'œil connaît entre l'horizon et le zénith.
+    // In magnitudes: the horizon-zenith gap the eye knows.
     const sb = interpoleBortle(4).sb
     const ecartMag = sb - sbEffectifRendu({ sbSiteMag: sb, hauteurDeg: 0 })
     expect(ecartMag).toBeCloseTo(1.26, 1)
@@ -297,7 +289,7 @@ describe('halo d’horizon — van Rhijn 1921 (T-0098)', () => {
     expect(bornes.length).toBe(K('PALIERS_HALO_HORIZON'))
     expect(bornes[bornes.length - 1]).toBe(ZENITH_DEG)
     for (let i = 1; i < bornes.length; i++) expect(bornes[i]!).toBeGreaterThan(bornes[i - 1]!)
-    // Chaque hauteur représentative tombe dans la bande que son palier referme.
+    // Each representative elevation falls in the band its step closes.
     for (let i = 0; i < bornes.length; i++) {
       const bas = i === 0 ? 0 : bornes[i - 1]!
       expect(hauteurRepresentative(i)).toBeGreaterThan(bas)
@@ -350,7 +342,7 @@ describe('halo lunaire — Krisciunas & Schaefer (T-0100)', () => {
 
   function lune(options: Partial<LuneEcran> = {}): LuneEcran {
     const ciel = cielInstantane(SITE, DATE)
-    // La Lune est posée au centre exact de la visée : sa position écran est alors connue.
+    // Moon at exact aim centre: known screen position.
     const centre = projecteur(vue(), ciel.matrice).inverse(LARGEUR / 2, HAUTEUR / 2)
     const decDeg = (Math.asin(centre.z) * 180) / Math.PI
     const adDeg = (Math.atan2(centre.y, centre.x) * 180) / Math.PI
@@ -360,7 +352,7 @@ describe('halo lunaire — Krisciunas & Schaefer (T-0100)', () => {
       altitudeDeg: 60,
       azimutDeg: 180,
       anglePhaseDeg: PLEINE_LUNE_DEG,
-      // Le halo ne dépend pas de la taille du disque.
+      // Halo independent of disc size.
       demiDiametreDeg: 0,
       ...options,
     }
@@ -398,9 +390,8 @@ describe('halo lunaire — Krisciunas & Schaefer (T-0100)', () => {
     const pres = sbEffectifRendu({ sbSiteMag: sb, hauteurDeg: 60, lune: geometrie(5) })
     const loin = sbEffectifRendu({ sbSiteMag: sb, hauteurDeg: 60, lune: geometrie(120) })
     expect(pres).toBeLessThan(loin - 1)
-    // Le profil décroît avec la séparation sur tout l'intervalle peint. Au-delà de 90°, le
-    // terme de Rayleigh (1,06 + cos²ρ) remonte vers la contre-Lune : c'est de la physique, pas
-    // un rebond numérique, et c'est pourquoi le dégradé s'arrête au quart de tour.
+    // Profile decreases with separation over whole painted range. Beyond 90° Rayleigh term
+    // (1,06 + cos²ρ) rises toward anti-Moon: physics, not bounce → gradient stops at quarter turn.
     let precedent = Infinity
     for (let rho = 5; rho <= 90; rho += 5) {
       const b = brillanceLuneNl(geometrie(rho))
@@ -417,11 +408,11 @@ describe('halo lunaire — Krisciunas & Schaefer (T-0100)', () => {
       separationDeg: 35,
       anglePhaseDeg: 30,
     }
-    // Le plan de séance passe par ΔSB ; le rendu additionne les brillances. Même modèle,
-    // donc même nombre : c'est ce qui interdit deux fonds de ciel sur deux écrans.
+    // Plan de séance uses ΔSB, render adds brightnesses: same model, same number; forbids two
+    // fonds de ciel on two screens.
     const parLePlan = sbCielAvecLune(sb, deltaSbLune({ sbCielNoirMag: sb, ...geometrie }).value)
-    // Les deux chemins ne diffèrent que par l'arrondi de NANOLAMBERT_PENTE (0,92104 pour
-    // 0,4·ln10) : deux centièmes de millimagnitude, soit très en dessous du 1/255 d'un canal.
+    // Paths differ only by rounding of NANOLAMBERT_PENTE (0,92104 vs 0,4·ln10): 0,02 mmag ≪
+    // one 1/255 step.
     expect(sbEffectifRendu({ sbSiteMag: sb, hauteurDeg: ZENITH_DEG, lune: geometrie })).toBeCloseTo(
       parLePlan,
       4,

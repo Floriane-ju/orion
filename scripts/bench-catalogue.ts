@@ -1,13 +1,8 @@
 /**
- * T-0190 — coût d'un changement de minute sur la liste du catalogue.
- *
- * Avant optimisation, chaque minute recalculait détectabilité, cadrage et tri —
- * 96,6 % du coût pour 0 % de changement utile. Ce script mesure avant/après.
- *
- * Deux mésos : invariant (catalogue + optique) et dépendant du temps (azimut/hauteur).
- * Le coût d'une passe de coordonnées seulement doit passer sous 5 ms sur 13 132 objets.
- *
- * Usage : `pnpm bench:catalogue`.
+ * T-0190 — cost of 1-min step on catalogue list. Run: `pnpm bench:catalogue`.
+ * Before: each minute recomputed détectabilité, cadrage, tri (96,6 % of cost, 0 % useful change).
+ * Split: invariant (catalogue + optique) vs time-dependent (azimut/hauteur).
+ * Target: coordinate-only pass < 5 ms over 13 132 objets.
  */
 
 import { decodeObjets } from '../src/data/deepsky.ts'
@@ -16,17 +11,17 @@ import { ajouteCoordonnees, lignesCatalogue, lignesInvariantes } from '../src/co
 import { lit, SITE } from './bench-commun.ts'
 
 
-/** §9.3 — setup de référence : 120 mm f/2.8, plein format, sous Bortle 4,5. */
+/** §9.3 reference setup: 120 mm f/2.8, plein format, Bortle 4,5. */
 const OPTIQUE = { fovHDeg: 16.4, echApx: 10.1, capteurHMm: 24, dMm: 42.86 }
 const CIEL = { sbCiel: 21.0, mLimOeil: 6.1 }
 
-/** Catalogue réel. */
+/** Real catalogue. */
 const CATALOGUE = decodeObjets({
   enregistrements: lit('openngc-1.bin'),
   chaines: lit('openngc-noms-1.bin'),
 })
 
-// Chauffe.
+// warm-up
 const date0 = new Date('2026-08-15T22:00:00Z')
 const ciel0 = cielInstantane(SITE, date0)
 for (let i = 0; i < 10; i++) {
@@ -35,7 +30,7 @@ for (let i = 0; i < 10; i++) {
 
 console.log(`Catalogue réel : ${CATALOGUE.length.toLocaleString('fr-FR')} objets\n`)
 
-// T-0190 — avant optimisation : recalculer TOUT à chaque minute
+// T-0190 before: recompute everything each minute
 console.log('AVANT optimisation (tout recalculé par minute) :')
 const minutes = 60
 const debuts = performance.now()
@@ -47,7 +42,7 @@ for (let i = 0; i < minutes; i++) {
 const avant = (performance.now() - debuts) / minutes
 console.log(`  ${avant.toFixed(2)} ms/minute moyenne sur ${minutes} passes`)
 
-// T-0190 — après optimisation : cache invariant + passe de coordonnées
+// T-0190 after: invariant cache + coordinate pass
 console.log('\nAPRÈS optimisation (cache invariant + coordonnées) :')
 const lignesInvar = lignesInvariantes({ catalogue: CATALOGUE, ...OPTIQUE, ...CIEL })
 const debut = performance.now()

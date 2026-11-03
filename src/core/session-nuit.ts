@@ -1,14 +1,10 @@
 /**
- * §8.3 — La nuit est une ressource à allouer, pas une liste à trier.
- *
- * Ce module tient les deux comptes du temps : quel morceau de créneau reste libre pour une
- * cible donnée, et ce que le plan coûte au total une fois la calibration, la mise en station
- * et le pointage ajoutés.
- *
- * T-0322 — il ne retire plus rien. Le dépassement se CONSTATE (`tient`), il ne se résout pas :
- * la sélection vient de l'utilisateur, et supprimer sa cible la moins bien notée revenait à
- * défaire son geste sans le lui dire. Ce que la nuit ne couvre pas se lit sur l'étape, qui
- * porte son nombre de nuits.
+ * §8.3 — the nuit is a resource to allocate, not a list to sort.
+ * Two time accounts: which créneau piece stays free for a target, and total plan cost once
+ * calibration, mise en station, pointage are added.
+ * T-0322 — removes nothing. Overrun is OBSERVED (`tient`), not resolved: selection is the user's,
+ * dropping their worst-scored target silently undid their action. What the nuit doesn't cover
+ * reads on the étape, with its night count.
  */
 
 import { K } from '../registry/constants.ts'
@@ -28,7 +24,7 @@ function duree(intervalle: Intervalle): number {
   return intervalle.fin.getTime() - intervalle.debut.getTime()
 }
 
-/** Ce qui reste d'un sous-créneau une fois retiré tout ce qui est déjà alloué. */
+/** What remains of a sub-créneau once everything already allocated is removed. */
 function intervallesLibres(
   sous: Intervalle,
   occupes: readonly Intervalle[],
@@ -53,7 +49,7 @@ function intervallesLibres(
   return libres
 }
 
-/** Les minutes du créneau d'une cible que rien n'occupe encore. */
+/** Minutes of a target's créneau nothing occupies yet. */
 export function minutesLibres(
   creneau: Pick<CreneauCible, 'creneaux'>,
   occupes: readonly Intervalle[],
@@ -63,11 +59,9 @@ export function minutesLibres(
 }
 
 /**
- * Vrai quand deux cibles se disputent au moins une minute de la nuit.
- *
- * Sert à savoir avec COMBIEN de cibles une part de nuit se partage : deux cibles aux créneaux
- * disjoints ne se gênent pas, et les compter l'une contre l'autre ferait réserver du temps
- * que personne ne peut prendre.
+ * True when two targets contest ≥ 1 minute of the nuit.
+ * Tells HOW MANY targets share a night part: disjoint créneaux don't hinder each other; counting
+ * them would reserve time nobody can take.
  */
 export function creneauxSeChevauchent(
   a: Pick<CreneauCible, 'creneaux'>,
@@ -77,9 +71,8 @@ export function creneauxSeChevauchent(
 }
 
 /**
- * Le PLUS LONG morceau libre du créneau de la cible, d'au plus `dureeMaxMin` minutes. Le
- * plus long, et non le premier venu : prendre les neuf minutes qui précèdent une cible déjà
- * placée, quand quatre heures restent libres ensuite, produirait un plan absurde.
+ * LONGEST free piece of target's créneau, ≤ `dureeMaxMin` minutes. Longest, not first: taking the
+ * 9 min before an already placed target when 4 h stay free after = absurd plan.
  */
 export function alloueCreneau(
   creneau: Pick<CreneauCible, 'creneaux'>,
@@ -97,11 +90,10 @@ export function alloueCreneau(
 }
 
 /**
- * T-0271 — l'heure du retournement au méridien QUAND L'ÉTAPE LE TRAVERSE, sinon `null`.
- *
- * `creneau` décrit la cible sur toute la nuit : son retournement peut tomber quatre heures
- * après la fin de l'étape. L'alerte ne vaut que pour la capture qu'on mène, donc pour le
- * créneau alloué. Une étape qui commence pile au méridien pointe déjà du bon côté.
+ * T-0271 — meridian flip time WHEN THE ÉTAPE CROSSES IT, else `null`.
+ * `creneau` covers the whole night: flip may fall 4 h after étape end. Alert applies only to the
+ * capture being run → allocated créneau. Étape starting exactly at meridian already points the
+ * right side.
  */
 export function retournementDansEtape(etape: {
   readonly creneau: Pick<CreneauCible, 'retournementMeridien' | 'heureCulmination'>
@@ -116,13 +108,11 @@ export function retournementDansEtape(etape: {
 }
 
 /**
- * T-0271 — ce qui manque à l'étape pour atteindre son intégration, dit par la contrainte qui
- * mord vraiment, ou `null` quand l'étape est complète.
- *
- * Deux contraintes différentes : le créneau de la cible est plus court que la pose requise
- * (il faut plusieurs nuits), ou la cible tiendrait dans la nuit mais le plan lui a alloué
- * moins — partage avec d'autres cibles, frais fixes réservés. Accuser la nuit dans le second
- * cas renvoyait l'utilisateur à un problème qu'il n'a pas.
+ * T-0271 — what the étape lacks to reach its integration, named by the constraint that really
+ * bites; `null` when complete.
+ * Two constraints: target créneau shorter than required pose (several nights), or target would
+ * fit the night but plan allocated less (sharing, reserved fixed costs). Blaming the nuit in the
+ * second case sent user to a problem they don't have.
  */
 export function manqueIntegration(
   etape: Pick<EtapePlan, 'integrationComplete' | 'nNuits' | 'dureeAlloueeMin'> & {

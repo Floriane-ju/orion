@@ -1,10 +1,7 @@
 /**
- * §3.1 — Pipeline temporel à deux horloges.
- *
- * Les quatre critères du PRD tiennent à des propriétés vérifiables sans écran : une seule
- * matrice pour tout le catalogue, une précession appliquée dès qu'on sort de l'époque
- * courante, une interpolation dont l'écart reste sous le seuil annoncé, et des corps du
- * système solaire masqués — jamais extrapolés — hors du domaine des séries.
+ * §3.1 — two-clock time pipeline. PRD's 4 criteria checkable without screen: one matrix for
+ * whole catalogue, precession applied once off current epoch, interpolation gap under announced
+ * threshold, solar-system bodies masked (never extrapolated) outside series domain.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -22,16 +19,16 @@ import { applique, separationDeg, versSpherique, versVecteur } from '../src/core
 import { K } from '../src/registry/constants.ts'
 import { SITE_REFERENCE as SITE } from './fixtures.ts'
 
-/** Site de référence de l'Annexe A. */
+/** Annexe A site. */
 
 describe('rotation du ciel §3.1', () => {
   it('place le zénith et les points cardinaux dans le repère du site', () => {
-    // Une étoile au zénith : déclinaison égale à la latitude, à l'angle horaire nul.
+    // Star at zenith: declination = latitude, hour angle 0.
     const ciel = cielInstantane(SITE, new Date('2026-08-15T22:00:00Z'))
     const adZenithDeg = ciel.tslH.value * (360 / 24)
     const horizontal = applique(ciel.matrice, versVecteur(adZenithDeg, SITE.latitudeDeg))
     const { latitudeDeg: hauteur } = versSpherique(horizontal)
-    // La précession de 2026 déplace la cible de 0,4° : la hauteur reste très proche de 90°.
+    // 2026 precession shifts target 0,4°: elevation stays near 90°.
     expect(hauteur).toBeGreaterThan(89)
   })
 
@@ -45,7 +42,7 @@ describe('rotation du ciel §3.1', () => {
   it('ramène le ciel étoilé à l’identique après un jour sidéral', () => {
     const t0 = new Date('2026-08-15T22:00:00Z')
     const t1 = new Date(t0.getTime() + K('JOUR_SIDERAL_S') * 1000)
-    const etoile = versVecteur(88.79, 7.41) // Bételgeuse
+    const etoile = versVecteur(88.79, 7.41) // Betelgeuse
     const a = applique(cielInstantane(SITE, t0).matrice, etoile)
     const b = applique(cielInstantane(SITE, t1).matrice, etoile)
     expect(separationDeg(a, b)).toBeLessThan(0.01)
@@ -66,9 +63,8 @@ describe('rotation du ciel §3.1', () => {
 
 describe('précession §3.1', () => {
   it('décale le ciel d’environ 8,7° entre 2026 et 1400', () => {
-    // Le PRD annonce 8,7° pour ce saut ; l'étoile de test est sur l'écliptique, donc
-    // déplacée de la valeur pleine de la précession générale.
-    const point = versVecteur(0, 0) // point vernal J2000, sur l'écliptique
+    // PRD announces 8,7° for this jump; test star on ecliptic → full general precession.
+    const point = versVecteur(0, 0) // vernal point J2000, on ecliptic
     const versDeux = applique(matricePrecession(2026), point)
     const versMille = applique(matricePrecession(1400), point)
     expect(separationDeg(versDeux, versMille)).toBeCloseTo(8.75, 1)
@@ -97,7 +93,7 @@ describe('horloge d’éphémérides §3.1', () => {
     const base = Date.UTC(2026, 7, 15, 22, 0, 0)
     const premier = avanceEphemerides(null, SITE, base, pas)
     const suivant = avanceEphemerides(premier, SITE, base + pas, pas)
-    // p1 du pas précédent devient p0 du suivant, sans réévaluation des séries.
+    // p1 of previous step = p0 of next, no series re-evaluation.
     expect(suivant.p0).toBe(premier.p1)
     expect(avanceEphemerides(suivant, SITE, base + pas + 1, pas)).toBe(suivant)
   })

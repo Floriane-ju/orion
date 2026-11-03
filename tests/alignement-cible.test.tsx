@@ -1,9 +1,7 @@
 /**
- * T-0339 — §3.5 : la rotation suggérée revient à l'écran, et un clic l'applique.
- *
- * Elle avait disparu avec le tiroir des lectures, sans que rien ne s'en aperçoive : ce test
- * rend le bouton de la fiche. La cible est forgée au centre de la visée — ni sa position ni sa
- * taille ne sont des valeurs du ciel, seule compte l'allure allongée qui appelle un angle.
+ * T-0339 — §3.5: suggested rotation back on screen, a click applies it. Vanished with lectures
+ * tiroir, unnoticed: this test renders the fiche button. Cible forged at visée centre —
+ * position/size aren't sky values, only the elongated shape calling for an angle matters.
  */
 
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -37,10 +35,10 @@ function profil(): ProfilCadre {
   }
 }
 
-/** Un objet allongé posé exactement au centre de la visée courante. */
+/** Elongated object exactly at current visée centre. */
 function objetAuCentre(posAngDeg: number | null): ObjetCielProfond {
   const matrice = cielInstantane(SITE, new Date(minuteAffichee(etatScene()) * MS_PAR_MINUTE)).matrice
-  // La visée elle-même : la phrase de la barre haute en donne l'AD et la δ.
+  // The visée itself: top-bar sentence gives AD and δ.
   const [ad, dec] = segmentsVisee(etatScene().vue, matrice)
   return {
     designation: 'FORGE',
@@ -65,7 +63,7 @@ describe('T-0339 — la rotation suggérée se rend et s’applique', () => {
 
   it('offre le bouton quand une cible allongée est dans le cadre', () => {
     const objet = objetAuCentre(30)
-    // Le cadre vise bien l'objet : sa direction est celle de la visée.
+    // Cadre does aim at the object: its direction is the visée's.
     const { hauteurDeg } = coordonneesHorizon(
       objet,
       cielInstantane(SITE, new Date(minuteAffichee(etatScene()) * MS_PAR_MINUTE)).matrice,

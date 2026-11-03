@@ -1,9 +1,7 @@
 /**
- * §7.5 — Conseil filtre contextuel, et §10.3 — recommandation d'équipement.
- *
- * L'interdiction est aussi importante que la règle : aucun bandeau, aucune marque, aucun
- * prix, et rien du tout tant que l'explication n'est pas dépliée. Un gain non chiffrable
- * par les moteurs existants n'est jamais recommandé.
+ * §7.5 — contextual filter advice; §10.3 — equipment recommendation.
+ * The ban matters as much as the rule: no banner, brand, price, nothing until explanation
+ * unfolded. A gain engines can't quantify is never recommended.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -14,7 +12,7 @@ import {
   type EntreeConseilFiltre,
 } from '../src/core/recommandations.ts'
 
-/** Valeurs de l'Annexe A : E_ciel = 1,68 e⁻/s/px, pose 13 s, RN 1,5 e⁻. */
+/** Annexe A values: E_ciel = 1.68 e⁻/s/px, pose 13 s, RN 1.5 e⁻. */
 function entree(surcharge: Partial<EntreeConseilFiltre> = {}): EntreeConseilFiltre {
   return {
     typeObjet: 'EMISSION',

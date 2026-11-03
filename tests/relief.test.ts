@@ -1,8 +1,6 @@
 /**
- * §4.1 — le relief du terrain converti en masque d'horizon (T-0359).
- *
- * Aucun relief réel n'est recopié : le terrain est synthétique, décrit par une fonction, et
- * chaque attendu se recalcule depuis la formule et les constantes du registre.
+ * §4.1 — terrain relief → horizon mask (T-0359). Synthetic terrain by function; each expectation
+ * recomputed from registry formula + constants.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -31,7 +29,7 @@ const RAD = Math.PI / 180
 const RAYON_TERRE_M = K('RAYON_TERRE_KM') * 1000
 const SITE = { latDeg: SITE_REFERENCE.latitudeDeg, lonDeg: SITE_REFERENCE.longitudeDeg }
 
-/** La formule, réécrite ici depuis sa définition : une Terre de rayon R / (1 − k). */
+/** Formula from definition: Earth of radius R / (1 − k). */
 function attendueDeg(deniveleM: number, distanceM: number): number {
   const chute = ((1 - R('COEF_REFRACTION_TERRESTRE')) * distanceM ** 2) / (2 * RAYON_TERRE_M)
   return Math.atan((deniveleM - chute) / distanceM) / RAD
@@ -42,7 +40,7 @@ describe('élévation apparente d’un point du relief (§4.1)', () => {
     const denivele = 1500
     const distance = 20_000
     expect(elevationApparenteDeg(denivele, distance)).toBeCloseTo(attendueDeg(denivele, distance), 10)
-    // Sans courbure, le même sommet paraîtrait plus haut : la correction n'est pas nulle.
+    // Without curvature same summit looks higher: correction non-zero.
     expect(elevationApparenteDeg(denivele, distance)).toBeLessThan(
       Math.atan(denivele / distance) / RAD,
     )
@@ -82,8 +80,7 @@ describe('profil de relief sur 360 azimuts (§4.1)', () => {
   it('relève une crête au sud à l’élévation que la formule donne au premier pas qui l’atteint', () => {
     const sol = 400
     const crete = 1600
-    // La crête commence à une distance qui ne tombe pas sur un pas : le premier échantillon
-    // qui la touche est le pas suivant, et c'est le plus haut (le plus proche) des sommets.
+    // Ridge starts off step grid: first sample touching it = next step, highest (closest) summit.
     const debutM = 5_050
     const latCrete = SITE.latDeg - debutM / RAYON_TERRE_M / RAD
     const terrain: Altimetre = (lat) => (lat <= latCrete ? crete : sol)
@@ -97,7 +94,7 @@ describe('profil de relief sur 360 azimuts (§4.1)', () => {
   })
 
   it('ne lit pas le champ proche, où le bruit du modèle inventerait un horizon', () => {
-    // Une butte de 10 m à 200 m au nord : sous la résolution verticale du modèle.
+    // 10 m mound at 200 m north: below model vertical resolution.
     const latButte = SITE.latDeg + R('DISTANCE_MIN_RELIEF_M') / 2 / RAYON_TERRE_M / RAD
     const terrain: Altimetre = (lat) => (lat >= latButte && lat < latButte + 1e-4 ? 410 : 400)
     expect(profilRelief(terrain, SITE.latDeg, SITE.lonDeg)![0]).toBe(0)
@@ -125,19 +122,18 @@ describe('profil de relief sur 360 azimuts (§4.1)', () => {
 describe('courbes de niveau vues depuis le site (T-0395)', () => {
   const sol = 400
   const oeil = sol + R('HAUTEUR_OEIL_M')
-  /** Distance vers le sud, en mètres, d'un point de latitude donnée. */
+  /** Distance south (m) of a point at given latitude. */
   const versLeSud = (lat: number): number => (SITE.latDeg - lat) * RAD * RAYON_TERRE_M
   const denivele = R('EQUIDISTANCE_COURBES_M') * 12
   /**
-   * Un versant qui se redresse vers le sud jusqu'au rayon de §4.1, plat ailleurs. Concave : une
-   * pente constante vue depuis son pied garde une hauteur apparente presque constante, et la
-   * courbure de la Terre en cache le haut — ce qui est juste, mais ne montre plus rien.
+   * Slope steepening southward up to §4.1 radius, flat elsewhere. Concave: constant slope seen from
+   * its foot keeps near-constant apparent height, curvature hides its top — correct, shows nothing.
    */
   const versant = (s: number): number =>
     sol + denivele * Math.min(Math.max(s, 0) / dernierM, 1) ** 2
   const dernierM = R('RAYON_RELIEF_KM') * 1000
 
-  /** Les polylignes `[[az, h], …]` : le format sépare deux lignes par une paire de NaN. */
+  /** Polylines `[[az, h], …]`: two lines separated by a NaN pair. */
   function polylignes(courbes: Float32Array): number[][][] {
     const lignes: number[][][] = [[]]
     for (let i = 0; i < courbes.length; i += 2) {
@@ -147,7 +143,7 @@ describe('courbes de niveau vues depuis le site (T-0395)', () => {
     return lignes.filter((l) => l.length > 0)
   }
 
-  /** Les segments en `[az₀, h₀, az₁, h₁]`, ceux dont un bout tombe dans le secteur. */
+  /** Segments `[az₀, h₀, az₁, h₁]` with an end inside the sector. */
   function dansLeSecteur(courbes: Float32Array, de: number, a: number): number[][] {
     const dedans = (az: number): boolean => az >= de && az <= a
     return polylignes(courbes)
@@ -167,7 +163,7 @@ describe('courbes de niveau vues depuis le site (T-0395)', () => {
   })
 
   it('place chaque courbe à la hauteur apparente de son altitude', () => {
-    // Plein sud, la courbe d'altitude L croise l'azimut 180 à la distance où le versant vaut L.
+    // Due south, altitude curve L crosses azimuth 180 where slope = L.
     const courbes = courbesNiveau((lat) => versant(versLeSud(lat)), SITE.latDeg, SITE.lonDeg)!
     const niveau = sol + R('EQUIDISTANCE_COURBES_M') * 6
     const distance = dernierM * Math.sqrt((niveau - sol) / denivele)
@@ -177,8 +173,8 @@ describe('courbes de niveau vues depuis le site (T-0395)', () => {
   })
 
   it('retire ce qu’un relief plus proche cache dans le même azimut', () => {
-    // Un mur haut entre 1,5 et 2,5 km au sud : le versant qui suit passe derrière lui. La face
-    // du mur porte ses courbes au-dessus du seuil, le versant en dessous.
+    // High wall 1.5-2.5 km south: following slope passes behind it. Wall face carries curves above
+    // threshold, slope below.
     const mur = (s: number): number => (s >= 1500 && s <= 2500 ? sol + denivele * 3 : versant(s))
     const seuil = attendueDeg(R('EQUIDISTANCE_COURBES_M') - R('HAUTEUR_OEIL_M'), 2000)
     const basses = (courbes: Float32Array) =>
@@ -194,8 +190,8 @@ describe('courbes de niveau vues depuis le site (T-0395)', () => {
   })
 
   it('trace aussi les courbes du terrain proche, en deçà du seuil du masque', () => {
-    // Une pente qui descend vers le sud : la première courbe sous le site passe à mi-chemin
-    // du seuil où le masque cesse de lire le terrain.
+    // Slope descending southward: first curve below site passes midway to threshold where mask
+    // stops reading terrain.
     const equidistance = R('EQUIDISTANCE_COURBES_M')
     const distance = R('DISTANCE_MIN_RELIEF_M') / 2
     const pente = (s: number): number => sol - (Math.max(s, 0) * equidistance) / distance
@@ -206,7 +202,7 @@ describe('courbes de niveau vues depuis le site (T-0395)', () => {
   })
 
   describe('crête fine pour le dessin (T-0438)', () => {
-    /** Un pic étroit plein sud, décalé d'un demi-degré : il tombe entre deux azimuts entiers. */
+    /** Narrow peak due south, offset ½°: falls between two whole azimuths. */
     const pic = (lat: number, lon: number): number => {
       const sud = versLeSud(lat)
       const est = (lon - SITE.lonDeg) * RAD * RAYON_TERRE_M * Math.cos(SITE.latDeg * RAD)
@@ -224,7 +220,7 @@ describe('courbes de niveau vues depuis le site (T-0395)', () => {
     })
 
     it('dessine la rive d’en face sous l’horizontale, là où le masque reste à 0°', () => {
-      // Une plaine au niveau du sol : la courbure la fait plonger sous l'horizontale de l'œil.
+      // Plain at ground level: curvature dips it below eye horizontal.
       const plaine = (): number => sol
       const crete = creteFine(plaine, SITE.latDeg, SITE.lonDeg)!
       const masque = profilRelief(plaine, SITE.latDeg, SITE.lonDeg)!
@@ -240,7 +236,7 @@ describe('courbes de niveau vues depuis le site (T-0395)', () => {
   describe('lignes de silhouette (T-0438)', () => {
     const butteM = R('EQUIDISTANCE_COURBES_M') * 2
     const montagneM = R('EQUIDISTANCE_COURBES_M') * 40
-    /** Une butte basse et proche au sud, devant une montagne lointaine qui la dépasse. */
+    /** Low close mound south, before a distant mountain overtopping it. */
     const etage = (s: number): number => {
       if (s >= 1500 && s <= 2500) return sol + butteM
       if (s > dernierM / 3) return sol + montagneM * ((s - dernierM / 3) / (dernierM * (2 / 3)))
@@ -255,7 +251,7 @@ describe('courbes de niveau vues depuis le site (T-0395)', () => {
       const bords = silhouettes((lat) => etage(versLeSud(lat)), SITE.latDeg, SITE.lonDeg)!
       const auSud = dansLeSecteur(bords, 170, 190)
       expect(auSud.length).toBeGreaterThan(0)
-      // Vue d'en bas, une butte à sommet plat se borde de son rebord avant, au pas radial près.
+      // Seen from below, flat-topped mound bordered by its front rim, radial-step accuracy.
       const pas = R('PAS_RADIAL_RELIEF_M')
       const haut = attendueDeg(butteM - R('HAUTEUR_OEIL_M'), 1500)
       const bas = attendueDeg(butteM - R('HAUTEUR_OEIL_M'), 1500 + pas)
@@ -263,12 +259,12 @@ describe('courbes de niveau vues depuis le site (T-0395)', () => {
         expect(s[1]!).toBeGreaterThanOrEqual(bas - 1e-3)
         expect(s[1]!).toBeLessThanOrEqual(haut + 1e-3)
       }
-      // Au nord, ni butte ni montagne : rien ne se cache.
+      // North: no mound nor mountain, nothing hides.
       expect(dansLeSecteur(bords, 0, 10)).toHaveLength(0)
     })
 
     it('ne reprend pas la crête de l’horizon, que le sol trace déjà', () => {
-      // Le versant seul ne cache rien derrière lui : son sommet est la crête, pas une silhouette.
+      // Slope alone hides nothing behind it: its summit = crête, not a silhouette.
       expect(silhouettes((lat) => versant(versLeSud(lat)), SITE.latDeg, SITE.lonDeg)).toHaveLength(0)
     })
 
@@ -278,9 +274,8 @@ describe('courbes de niveau vues depuis le site (T-0395)', () => {
   })
 
   it('enchaîne chaque courbe en une seule ligne au lieu de segments épars', () => {
-    // Plein sud, le versant ne cache rien de lui-même : chaque niveau qui y passe est UNE ligne
-    // d'est en ouest, d'un seul tenant sur des dizaines de degrés. Des segments isolés coûtaient
-    // un sous-chemin chacun, à chaque image.
+    // Due south slope hides nothing itself: each level crossing it = ONE east-west line over tens
+    // of degrees. Isolated segments cost one subpath each, every frame.
     const courbes = courbesNiveau((lat) => versant(versLeSud(lat)), SITE.latDeg, SITE.lonDeg)!
     const pleinSud = polylignes(courbes).filter((l) =>
       l.some(([az], i) => i > 0 && (l[i - 1]![0]! - 180) * (az! - 180) <= 0),
@@ -295,13 +290,13 @@ describe('courbes de niveau vues depuis le site (T-0395)', () => {
   })
 
   it('ne simplifie pas au-delà de la corde maximale', () => {
-    // Le premier niveau franchi est à plus de 8 km : les segments d'origine y sont tous plus
-    // courts que la borne, seule la simplification pourrait l'enfreindre.
+    // First level crossed >8 km: original segments there all shorter than bound, only
+    // simplification could violate it.
     const courbes = courbesNiveau((lat) => versant(versLeSud(lat)), SITE.latDeg, SITE.lonDeg)!
     const cordes = polylignes(courbes).flatMap((l) =>
       l.slice(1).map((q, i) => separationDeg(versVecteur(l[i]![0]!, l[i]![1]!), versVecteur(q[0]!, q[1]!))),
     )
-    // Un peu de marge : la corde se borne en double précision, les points se rangent en simple.
+    // Small margin: chord bounded in double precision, points stored in single.
     expect(Math.max(...cordes)).toBeLessThanOrEqual(R('CORDE_MAX_COURBES_DEG') * 1.001)
   })
 
@@ -352,7 +347,7 @@ describe('avertissement d’horizon plat dans la carte Site (T-0368)', () => {
 describe('simplification d’une courbe de niveau (T-0395)', () => {
   const tolerance = R('TOLERANCE_COURBES_DEG')
   const cordeMax = R('CORDE_MAX_COURBES_DEG')
-  /** Des points sur l'horizon, d'azimut en azimut, avec une bosse optionnelle au milieu. */
+  /** Horizon points azimuth by azimuth, optional bump in middle. */
   const ligne = (n: number, pasDeg: number, bosseDeg = 0): Vec3[] =>
     Array.from({ length: n }, (_, i) =>
       versVecteur(i * pasDeg, i === Math.floor(n / 2) ? bosseDeg : 0),

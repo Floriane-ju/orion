@@ -1,9 +1,7 @@
 /**
- * T-0030 — le pincement au pavé zoome en continu, la molette garde son cran.
- *
- * Le branchement DOM (écouteur `wheel` non passif, `gesture*` de Safari) ne se teste pas hors
- * navigateur ; ce qui se teste ici, c'est la seule règle de calcul : d'où vient le facteur
- * appliqué au champ, et pourquoi il ne peut pas être le même pour un cran et pour un geste.
+ * T-0030 — touchpad pinch zooms continuously, wheel keeps its notch.
+ * DOM wiring (non-passive `wheel` listener, Safari `gesture*`) untestable outside a browser; here
+ * the one calculation rule: where the field factor comes from, why notch ≠ gesture.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -22,9 +20,9 @@ describe('facteur de zoom — un cran de molette, un geste continu', () => {
     const arriere = facteurZoom(120, false)
     expect(arriere).toBeGreaterThan(1)
     expect(avant).toBeLessThan(1)
-    // Un cran dans un sens annule un cran dans l'autre : le champ revient où il était.
+    // Opposite notches cancel.
     expect(avant * arriere).toBeCloseTo(1, 12)
-    // Le cran ne dépend pas de l'amplitude : c'est ce qui le distingue du pincement.
+    // Notch ignores amplitude (≠ pinch).
     expect(facteurZoom(4, false)).toBe(arriere)
   })
 
@@ -33,9 +31,9 @@ describe('facteur de zoom — un cran de molette, un geste continu', () => {
     const grand = facteurZoom(40, true)
     expect(grand).toBeGreaterThan(petit)
     expect(petit).toBeGreaterThan(1)
-    // Un geste lent ne saute pas : la variation de champ reste sous le pour-cent.
+    // Slow gesture: field change <1 %.
     expect(petit).toBeLessThan(1.06)
-    // Deux moitiés de geste valent le geste entier — pas de dérive selon la cadence des événements.
+    // Two half gestures = whole: no drift with event cadence.
     expect(facteurZoom(20, true) * facteurZoom(20, true)).toBeCloseTo(facteurZoom(40, true), 12)
   })
 
@@ -57,15 +55,15 @@ describe('source d’un `wheel` — pincement, molette, défilement', () => {
   it('reconnaît un cran de molette à son multiple de 120', () => {
     expect(sourceMolette(moletteChrome)).toBe('MOLETTE')
     expect(sourceMolette({ ...moletteChrome, deltaY: -100, wheelDeltaY: 120 })).toBe('MOLETTE')
-    // Firefox : la molette compte en lignes, jamais le pavé.
+    // Firefox: wheel in lines, never the pad.
     expect(sourceMolette({ ctrlKey: false, deltaMode: 1, deltaX: 0, deltaY: 3 })).toBe('MOLETTE')
   })
 
   it('range le défilement à deux doigts à part, pour qu’il promène la visée', () => {
     expect(sourceMolette(paveDefile)).toBe('DEFILEMENT')
-    // Un défilement franchement vertical reste un défilement s’il n’a pas la taille d’un cran.
+    // Vertical scroll not notch-sized stays a scroll.
     expect(sourceMolette({ ...paveDefile, deltaX: 0 })).toBe('DEFILEMENT')
-    // Firefox en pixels, sans `wheelDeltaY` : petit et fractionnaire, donc pavé.
+    // Firefox px, no `wheelDeltaY`: small + fractional → pad.
     expect(sourceMolette({ ctrlKey: false, deltaMode: 0, deltaX: 0, deltaY: 6.25 })).toBe(
       'DEFILEMENT',
     )
@@ -73,17 +71,16 @@ describe('source d’un `wheel` — pincement, molette, défilement', () => {
   })
 
   it('zoome sur une molette libre, dont les crans sont fins et hors des multiples de 120', () => {
-    // T-0124 — relevé sur le poste : −13 px par cran, `wheelDeltaY` à 39, jamais multiple de 120.
+    // T-0124 measured: −13 px per notch, `wheelDeltaY` 39, never a multiple of 120.
     const moletteLibre = { ctrlKey: false, deltaMode: 0, deltaX: 0, deltaY: -13, wheelDeltaY: 39 }
     expect(sourceMolette(moletteLibre)).toBe('MOLETTE')
-    // Un cran franc garde le zoom, même pendant qu'un pavé a la main.
+    // Firm notch zooms even while a pad has the hand.
     expect(sourceMolette(moletteChrome, true)).toBe('MOLETTE')
-    // Un `wheel` sans amplitude verticale ne zoome jamais.
     expect(sourceMolette({ ...moletteLibre, deltaY: 0, wheelDeltaY: 0 })).toBe('DEFILEMENT')
   })
 
   it('laisse la rafale du pavé défiler, y compris pendant son inertie', () => {
-    // T-0124 — la rampe relevée : le doigt dérive d'abord, puis l'inertie retombe droit et fine.
+    // T-0124 — measured ramp: finger drifts first, then inertia falls straight and fine.
     const rampe = [
       { deltaX: 0, deltaY: 1 },
       { deltaX: 2, deltaY: 3 },
@@ -93,13 +90,13 @@ describe('source d’un `wheel` — pincement, molette, défilement', () => {
     ]
     for (const { deltaX, deltaY } of rampe) {
       const e = { ctrlKey: false, deltaMode: 0, deltaX, deltaY, wheelDeltaY: -3 * deltaY }
-      // `paveRecent` vaut vrai dès le deuxième événement d'une rafale — le hook le datant.
+      // `paveRecent` true from burst's 2nd event — the hook dates it.
       expect(sourceMolette(e, true)).toBe('DEFILEMENT')
     }
   })
 
   it('rend le zoom à la souris dès que la rafale du pavé s’est tue', () => {
-    // Le même cran, selon que le pavé vient de parler ou non : c'est tout le bug de T-0124.
+    // Same notch pad or not: the T-0124 bug.
     const cran = { ctrlKey: false, deltaMode: 0, deltaX: 0, deltaY: -13, wheelDeltaY: 39 }
     expect(sourceMolette(cran, true)).toBe('DEFILEMENT')
     expect(sourceMolette(cran, false)).toBe('MOLETTE')
@@ -111,26 +108,26 @@ describe('source d’un `wheel` — pincement, molette, défilement', () => {
     expect(signaturePave({ ctrlKey: false, deltaMode: 0, deltaX: 0, deltaY: 6.25 })).toBe(true)
     expect(signaturePave(moletteChrome)).toBe(false)
     expect(signaturePave({ ctrlKey: false, deltaMode: 0, deltaX: 0, deltaY: -13 })).toBe(false)
-    // Firefox compte la molette en lignes : un delta fractionnaire n'y trahit aucun pavé.
+    // Firefox lines: fractional delta ≠ pad.
     expect(signaturePave({ ctrlKey: false, deltaMode: 1, deltaX: 0, deltaY: 0.5 })).toBe(false)
   })
 })
 
 /**
- * T-0084 — la rotation du cadre est un geste continu sur la scène, Maj enfoncée. Le
- * branchement DOM ne se teste pas hors navigateur ; la règle de calcul, si.
+ * T-0084 — frame rotation = continuous gesture on scene, Maj held. DOM wiring untestable outside
+ * a browser; calculation rule is.
  */
 describe('rotation du cadre au glisser §3.5', () => {
   const BOITE = { top: 0, left: 0, width: 800, height: 600 }
-  // Trois points sur le cercle centré, à 0°, 90° et 180° d'angle écran.
+  // Three points on centred circle, at 0°, 90°, 180° screen angle.
   const droite = { x: 700, y: 300 }
   const bas = { x: 400, y: 500 }
   const gauche = { x: 100, y: 300 }
 
   it('suit le doigt : un glisser horaire à l’écran tourne le cadre du même angle', () => {
-    // De la droite vers le bas : quart de tour horaire à l'écran, donc −90° de roulis.
+    // Right → bottom: clockwise quarter turn on screen = −90° roll.
     expect(roulisApresGlisser(180, BOITE, droite, bas)).toBeCloseTo(90, 9)
-    // Et le retour rend exactement le roulis de départ : le geste est réversible.
+    // Return gives exactly the starting roll: gesture reversible.
     expect(roulisApresGlisser(90, BOITE, bas, droite)).toBeCloseTo(180, 9)
   })
 
@@ -141,7 +138,7 @@ describe('rotation du cadre au glisser §3.5', () => {
   })
 
   it('borne le roulis à 0–360°, sans plafond sur le geste', () => {
-    // Le franchissement de zéro ne bloque pas le geste : il repasse par 360°.
+    // Crossing zero doesn't block gesture: goes back through 360°.
     const franchi = roulisApresGlisser(10, BOITE, droite, bas)
     expect(franchi).toBeGreaterThanOrEqual(0)
     expect(franchi).toBeLessThan(360)

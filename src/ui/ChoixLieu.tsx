@@ -1,13 +1,9 @@
 /**
- * §4.1 — la carte où l'on pose le site d'un clic, en tête de la carte « Site » (T-0363).
- *
- * Elle écrit dans les mêmes champs que la saisie chiffrée : le relief, la nuit, l'altitude et le
- * ciel suivent la latitude et la longitude comme si on les avait tapées. Les champs restent la vérité — la carte n'a pas d'état du lieu à elle, seulement sa vue.
- *
- * Elle s'ouvre centrée sur le site saisi, et ne le suit pas ensuite : taper une coordonnée
- * pendant qu'on regarde ailleurs ne doit pas arracher la vue sous la souris.
- *
- * §12.5 — sous les tuiles OSM, le fond embarqué ; hors réseau, il reste seul, et le dit.
+ * §4.1 — click-to-set-site map atop « Site » card (T-0363). Writes same fields as numeric input
+ * (relief, nuit, altitude, ciel follow lat/lon); fields stay truth, map holds only its vue.
+ * Opens centered on saisi site, doesn't follow it: typing a coordinate while panned elsewhere
+ * must not yank view.
+ * §12.5 — embedded fond under OSM tiles; offline it stays alone, and says so.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -29,7 +25,7 @@ export interface ChoixLieuProps {
   readonly surLieu: (latitude: string, longitude: string) => void
 }
 
-/** Le fond se décode une fois par session : replier et rouvrir la carte ne le relit pas. */
+/** Fond decoded once per session (fold/reopen: no re-read). */
 let fondEnCours: Promise<FondCarte> | null = null
 function fondPartage(): Promise<FondCarte> {
   fondEnCours ??= chargeFondCarte().catch(() => FOND_VIDE)
@@ -58,7 +54,7 @@ export function ChoixLieu(props: ChoixLieuProps) {
   )
   const [fond, surFond] = useState<FondCarte>(FOND_VIDE)
   const [taille, surTaille] = useState<Taille | null>(null)
-  // Une tuile arrivée, ou le réseau revenu : de quoi redessiner sans rien changer d'autre.
+  // Bump on tile arrival/network back: redraw only.
   const [arrivees, surArrivees] = useState(0)
   const [enLigne, surEnLigne] = useState(() => modeReseauCourant() !== 'HORS_LIGNE')
   const [tuilesPeintes, surTuilesPeintes] = useState(0)
@@ -103,7 +99,7 @@ export function ChoixLieu(props: ChoixLieuProps) {
     const densite = window.devicePixelRatio || 1
     const largeur = Math.round(taille.largeur * densite)
     const hauteur = Math.round(taille.hauteur * densite)
-    // Réaffecter la taille réalloue la toile : seulement quand elle change, pas à chaque tuile.
+    // width/height assignment reallocates canvas: only on change, not per tile.
     if (element.width !== largeur) element.width = largeur
     if (element.height !== hauteur) element.height = hauteur
     ctx.setTransform(densite, 0, 0, densite, 0, 0)

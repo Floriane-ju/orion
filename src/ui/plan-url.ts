@@ -1,17 +1,13 @@
 /**
- * T-0431 — le plan de la nuit voyage par un lien.
- *
- * IndexedDB ne quitte pas l'appareil : un plan préparé au bureau n'existait pas sur le
- * téléphone emporté au champ. Le bouton de partage copie donc un lien qui porte ce qui fait
- * le plan — la nuit, le lieu, le matériel, les poids de scoring et les cibles choisies — et
- * qui l'emporte sur la base à l'ouverture. Le masque d'horizon (360 hauteurs) n'y tiendrait
- * pas : il reste à l'appareil.
- *
- * Hors partage, l'URL reste nue : le plan vit dans le stockage local, et une adresse qui
- * changeait à chaque coche n'apportait rien qu'un bouton ne donne mieux.
- *
- * L'URL est une saisie étrangère au même titre qu'un fichier d'import : chaque champ passe
- * par `DOMAINES`, et un champ refusé est ignoré seul, sans emporter le reste du plan.
+ * T-0431 — the night plan travels by link.
+ * IndexedDB stays on-device: a plan prepared at the office did not exist on the phone taken to
+ * the field. Share button copies a link carrying what makes the plan (nuit, lieu, matériel,
+ * scoring weights, chosen cibles), overriding the DB on open. Horizon mask (360 heights) does
+ * not fit: stays on-device.
+ * Outside sharing the URL stays bare (plan lives in local storage; an address changing per
+ * tick adds nothing a button does not).
+ * URL = foreign input like an import file: each field goes through `DOMAINES`, a refused field
+ * is dropped alone, rest of the plan kept.
  */
 
 import { CRITERES_SCORING, DEFAUT, type DepartLieu } from './app-saisie.ts'
@@ -27,7 +23,7 @@ import {
   type Parametres,
 } from './plan-url-materiel.ts'
 
-/** Ce que l'écran tient du plan, tel qu'il s'écrit dans l'URL. */
+/** What the screen holds of the plan, as written in the URL. */
 export interface PlanAEcrire {
   readonly nuitIso: string
   readonly latitude: string
@@ -40,7 +36,7 @@ export interface PlanAEcrire {
   readonly poids?: PoidsScoring
 }
 
-/** Le lieu lu dans l'URL. Le ciel n'y est que s'il a été déclaré. */
+/** Lieu read from URL. Sky (bortle/sqm) present only if declared. */
 export interface LieuUrl {
   readonly latitude: string
   readonly longitude: string
@@ -49,7 +45,7 @@ export interface LieuUrl {
   readonly sqm?: string
 }
 
-/** Ce que l'URL apporte, champ par champ : un champ absent laisse la base décider. */
+/** What the URL brings, per field: absent field → DB decides. */
 export interface PlanUrl {
   readonly nuitIso?: string
   readonly lieu?: LieuUrl
@@ -58,10 +54,10 @@ export interface PlanUrl {
   readonly cibles?: readonly string[]
 }
 
-/** Un jour du calendrier, dans les années que la scène sait afficher. */
+/** A calendar day, within years the scène can display. */
 function nuitValide(texte: string | null): string | undefined {
   if (texte === null || !/^\d{4}-\d{2}-\d{2}$/.test(texte)) return undefined
-  // `new Date` déborde en silence : le 31 février devient le 3 mars.
+  // `new Date` overflows silently: 31 Feb → 3 Mar.
   if (jourLocalIso(new Date(`${texte}T00:00:00`)) !== texte) return undefined
   return dansDomaine('annee_affichee', texte.slice(0, 4)) === undefined ? undefined : texte
 }
@@ -77,7 +73,7 @@ function lieuDe(params: URLSearchParams): LieuUrl | undefined {
   return { latitude, longitude, altitude, ...ciel }
 }
 
-/** Les cinq poids C-15 dans l'ordre de `CRITERES_SCORING` ; un seul refusé les écarte tous. */
+/** The five C-15 weights in `CRITERES_SCORING` order; one refused drops all. */
 function poidsDe(texte: string | null): PoidsScoring | undefined {
   const valeurs = (texte ?? '').split(',').map((v) => dansDomaine('poids_scoring', v))
   if (valeurs.length !== CRITERES_SCORING.length || valeurs.includes(undefined)) return undefined
@@ -92,10 +88,10 @@ export function litPlanUrl(search: string): PlanUrl {
   const lieu = lieuDe(params)
   const materiel = litMateriel(params)
   const poids = poidsDe(params.get('poids'))
-  // Une URL écrite par l'application porte toujours sa nuit : sans `cible`, sa sélection est
-  // vide. Une URL nue, elle, ne dit rien de la sélection et laisse la base répondre.
-  // ponytail: la virgule sépare parce qu'aucune désignation du catalogue n'en porte
-  // (`M31`, `NGC7000`, `Sh2-155`) ; le jour où une en porte, revenir à `cible` répété.
+  // URL written by the app always carries its nuit: without `cible`, selection is empty. Bare
+  // URL says nothing of selection → DB answers.
+  // ponytail: comma separates since no catalogue designation has one (`M31`, `NGC7000`,
+  // `Sh2-155`); the day one does, go back to repeated `cible`.
   const cibles = (params.get('cible') ?? '').split(',').filter((c) => c !== '')
   const porteSelection = params.has('nuit') || cibles.length > 0
   return {
@@ -107,17 +103,14 @@ export function litPlanUrl(search: string): PlanUrl {
   }
 }
 
-/** La virgule reste en clair : encodée `%2C`, les listes deviendraient illisibles dans la barre. */
+/** Comma stays clear: encoded `%2C` would make lists unreadable in the address bar. */
 function enClair(parametres: Parametres): string {
   return parametres
     .map(([cle, valeur]) => `${cle}=${encodeURIComponent(valeur).replaceAll('%2C', ',')}`)
     .join('&')
 }
 
-/**
- * La query string du plan, `?` compris. Un champ en cours de frappe n'y entre pas : l'URL
- * garde alors le dernier lieu complet plutôt qu'une latitude à moitié tapée.
- */
+/** Plan query string, `?` included. Field being typed stays out: URL keeps last complete lieu. */
 export function ecritPlanUrl(plan: PlanAEcrire): string {
   const parametres: (readonly [string, string])[] = [['nuit', plan.nuitIso]]
   const lieu = lieuDe(
@@ -143,7 +136,7 @@ export function ecritPlanUrl(plan: PlanAEcrire): string {
   return `?${enClair(parametres)}`
 }
 
-/** Le lieu de départ de la saisie : celui de l'URL s'il y en a un, complété par la base. */
+/** Starting lieu input: URL's if any, completed by the DB. */
 export function appliqueLieuUrl(depart: DepartLieu | null, url: PlanUrl): DepartLieu | null {
   if (url.lieu === undefined) return depart
   const base = depart ?? { bortle: DEFAUT.bortle, sqm: '' }
@@ -157,7 +150,7 @@ export function appliqueLieuUrl(depart: DepartLieu | null, url: PlanUrl): Depart
   }
 }
 
-/** Le lien complet du plan, tel que le bouton de partage le copie. */
+/** Full plan link as the share button copies it. */
 export function lienDuPlan(plan: PlanAEcrire): string {
   return `${location.origin}${location.pathname}${ecritPlanUrl(plan)}`
 }

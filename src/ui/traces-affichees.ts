@@ -1,14 +1,11 @@
 /**
- * §10.2 — les valeurs tracées à l'écran, pour la rubrique « Calcul » de la modale info.
- *
- * T-0386 — la bulle d'une valeur tracée ne porte plus que la glose (et ce que le glossaire y
- * garde) : formule, entrées et constantes y faisaient un pavé illisible au survol. La chaîne
- * complète (N3) doit pourtant rester consultable : chaque `TracedValue` monté s'inscrit ici,
- * et la modale relit la liste. Elle montre donc le calcul de ce qui est affiché sous elle,
- * valeurs de l'utilisateur comprises, sans recopier une formule.
- *
- * ponytail: magasin de module sans tranches, à la `scene-etat.ts` — une vingtaine d'entrées
- * au plus, relues par la seule modale.
+ * §10.2 — traced values on screen, for info modal "Calcul" section.
+ * T-0386 — traced value's bulle = glose (+ glossaire extras) only: formula/inputs/constants made
+ * an unreadable hover block. Full chain (N3) stays consultable: each mounted `TracedValue`
+ * registers here, modal rereads list → calcul of what's displayed, user values included, no
+ * formula copied.
+ * ponytail: module store without slices, like `scene-etat.ts` — ~20 entries max, read only by
+ * modal.
  */
 
 import { useSyncExternalStore } from 'react'
@@ -19,7 +16,7 @@ export interface TraceAffichee {
   readonly terme: TermeGlossaire
   readonly suffixe: string | undefined
   readonly trace: Traced<number | null>
-  /** La valeur telle que l'écran l'écrit, unité comprise ; `null` tant qu'elle manque. */
+  /** Value as screen writes it, unit included; `null` while missing. */
   readonly valeur: string | null
 }
 

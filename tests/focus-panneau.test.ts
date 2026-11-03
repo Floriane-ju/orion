@@ -1,13 +1,8 @@
 /**
- * T-0188 — le focus suit le panneau quand son contenu change.
- *
- * Ce qui se vérifie ici est la règle, pas l'appel à `.focus()` : la liste et la fiche ne
- * coexistent jamais dans le DOM, donc c'est la DÉCISION — où aller, et vers quoi se replier
- * quand la ligne d'origine a disparu — qui porte le contrat du motif « détail puis retour »
- * de l'APG. Le branchement, lui, est un `useEffect` de six lignes dans `RegionSeance`.
- *
- * L'identifiant de ligne se teste avec : c'est lui qui fait le lien entre la fiche qu'on
- * quitte et la ligne qu'on retrouve, et une désignation porte des espaces.
+ * T-0188 — focus follows panneau when content changes.
+ * Tests the rule, not `.focus()`: list and fiche never coexist in DOM, so the DECISION (target,
+ * fallback when origin row vanished) carries APG "detail then back". Wiring = 6-line
+ * `useEffect` in `RegionSeance`. Row id tested too: links fiche → row; désignation has spaces.
  */
 
 import { afterEach, describe, expect, it } from 'vitest'
@@ -60,10 +55,8 @@ describe('T-0188 — retrouver la ligne d’une cible', () => {
 
 describe('T-0188 — la bascule de mode ne perd pas le focus de son bouton', () => {
   /**
-   * Le bouton de bascule survit au changement : il est rendu dans les deux modes, donc le
-   * navigateur lui garde le focus sans aucun code. Ce qui pourrait le lui retirer serait un
-   * démontage du panneau — c'est-à-dire un changement de `vueCibles`. Changer de mode n'en
-   * provoque pas, et c'est ce que ce test tient.
+   * Toggle button survives: rendered in both modes, browser keeps focus. Only a panneau
+   * unmount (`vueCibles` change) could remove it; mode switch causes none.
    */
   const CIBLE = {
     designation: 'M31',

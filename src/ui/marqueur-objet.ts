@@ -1,16 +1,11 @@
 /**
- * §3.3, §6.2 — le marqueur d'un objet du ciel profond : la place qu'il occupe VRAIMENT dans le
- * ciel, à l'échelle de la vue.
- *
- * Un symbole de taille fixe ment sur la seule chose qu'on vient vérifier au planétarium : est-ce
- * que cet objet tient dans mon cadre ? M31 fait trois degrés, une planétaire vingt secondes
- * d'arc ; les peindre pareil, c'est renvoyer la question au panneau de cadrage (§6.2) alors que
- * la scène a de quoi y répondre — le catalogue porte grand axe, petit axe et angle de position.
- *
- * Les demi-axes se mesurent PAR PROJECTION, pas par une dérivée de la fonction radiale : deux
- * points décalés de l'objet, projetés par le même projecteur que tout le reste de la scène.
- * L'écart en pixels donne à la fois la longueur et l'orientation à l'écran, dans les trois modes
- * de §3.3 et pour n'importe quelle rotation de vue, sans réécrire R(θ) une seconde fois.
+ * §3.3, §6.2 — ciel profond object marker: the room it REALLY takes in the sky, at view scale.
+ * A fixed-size symbol lies on what the planetarium is checked for (does it fit my cadre?):
+ * M31 is 3°, a planetary 20″. Painting alike defers to the cadrage panel (§6.2) though the
+ * scene can answer (catalogue has grand axe, petit axe, position angle).
+ * Semi-axes measured BY PROJECTION, not by radial-function derivative: two offset points of
+ * the object, projected like the rest of the scène. Pixel gap gives length + screen
+ * orientation in the three §3.3 modes and any view rotation, without rewriting R(θ).
  */
 
 import { DEG, versVecteur } from '../core/mat3.ts'
@@ -24,31 +19,26 @@ import { ARCMIN_PAR_DEG, TOUR_RAD } from '../core/unites.ts'
 export interface GeometrieMarqueur {
   readonly demiGrandPx: number
   readonly demiPetitPx: number
-  /** Rotation du grand axe à l'écran, radians, sens du canevas. */
+  /** Screen rotation of the grand axe, radians, canvas direction. */
   readonly rotationRad: number
 }
 
 /**
- * Points de travail réutilisés d'un objet à l'autre : la boucle de rendu les traverse par image
- * et pour chaque objet visible, et deux allocations par objet et par image sont exactement ce
- * que T-0065 a retiré de la passe des étoiles.
+ * Scratch points reused across objects: the render loop crosses them per frame per visible
+ * object; 2 allocations/object/frame is what T-0065 removed from the star pass.
  */
 const decaleGrand = pointEcran()
 const decalePetit = pointEcran()
 
 /**
- * Les demi-axes et l'orientation du marqueur, en pixels de la vue courante.
+ * Marker semi-axes and orientation, current-view pixels.
+ * `null` when catalogue has no grand axe (caller paints the cross, no size invented) or an
+ * offset point leaves the projection domain (near the singularity).
  *
- * `null` quand le catalogue ne donne pas de grand axe — l'appelant peint alors la croix, aucune
- * taille n'est inventée — ou quand un des points décalés sort du domaine de projection, au
- * voisinage de la singularité.
- *
- * ponytail: les deux demi-axes sont mesurés dans les directions du grand et du petit axe du
- * ciel. En projection stéréographique, conforme, c'est exact. En gnomonique et en équidistante,
- * l'échelle radiale et l'échelle tangentielle diffèrent, et l'ellipse projetée d'un objet
- * n'a rigoureusement ni ces axes ni cette orientation. L'écart est du second ordre en taille
- * angulaire : sous le degré, il reste sous le pixel. Si un jour un objet de dix degrés doit
- * être juste au bord d'un fisheye, il faudra la vraie image de l'ellipse, pas ce raccourci.
+ * ponytail: semi-axes measured along sky grand/petit axis directions. Exact in stereographic
+ * (conformal). Gnomonic/equidistant: radial ≠ tangential scale → projected ellipse has
+ * strictly neither these axes nor this orientation. Error 2nd order in angular size: < 1°
+ * → < 1 px. Upgrade to the true ellipse image for a 10° object at a fisheye edge.
  */
 export function geometrieMarqueur(
   projecteur: Projecteur,
@@ -59,7 +49,7 @@ export function geometrieMarqueur(
   const majAxArcmin = objet.majAxArcmin
   if (majAxArcmin === null || majAxArcmin <= 0) return null
 
-  // Base tangente au point de l'objet : nord = δ croissant, est = α croissant.
+  // Tangent basis at the object's point: nord = δ increasing, est = α increasing.
   const lon = objet.adDeg * DEG
   const lat = objet.decDeg * DEG
   const cosLon = Math.cos(lon)
@@ -69,8 +59,8 @@ export function geometrieMarqueur(
   const nord = { x: -sinLat * cosLon, y: -sinLat * sinLon, z: cosLat }
   const est = { x: -sinLon, y: cosLon, z: 0 }
 
-  // L'angle de position se compte du nord vers l'est. Absent, l'objet n'a pas d'orientation
-  // connue : il est posé nord-sud, ce que fait déjà `ficheCadrage` (§6.2).
+  // Position angle counts nord → est. Absent: no known orientation, nord-sud like
+  // `ficheCadrage` (§6.2).
   const pa = (objet.posAngDeg ?? 0) * DEG
   const cosPa = Math.cos(pa)
   const sinPa = Math.sin(pa)
@@ -85,7 +75,7 @@ export function geometrieMarqueur(
     z: -nord.z * sinPa + est.z * cosPa,
   }
 
-  // Sans petit axe au catalogue, l'objet est supposé circulaire — même convention que §6.2.
+  // No petit axe in catalogue: assumed circular, as §6.2.
   const minAxArcmin = objet.minAxArcmin ?? majAxArcmin
   const thetaGrand = (majAxArcmin / 2 / ARCMIN_PAR_DEG) * DEG
   const thetaPetit = (minAxArcmin / 2 / ARCMIN_PAR_DEG) * DEG
@@ -100,9 +90,8 @@ export function geometrieMarqueur(
   const mesurePetitPx = Math.hypot(decalePetit.xPx - xPx, decalePetit.yPx - yPx)
   if (mesureGrandPx <= 0) return null
 
-  // Plancher de lisibilité : sous quelques pixels, une ellipse n'a plus de forme et l'objet
-  // deviendrait invisible avant d'être petit. Les deux demi-axes montent du MÊME facteur —
-  // c'est l'aplatissement qui porte l'information, et lui reste celui du ciel.
+  // Legibility floor: under a few px an ellipse has no shape, the object would vanish before
+  // being small. Both semi-axes scale by the SAME factor: flattening (the sky's) is kept.
   const facteur = Math.max(1, MARQUEUR_OBJET_PX / mesureGrandPx)
   return {
     demiGrandPx: mesureGrandPx * facteur,
@@ -111,7 +100,7 @@ export function geometrieMarqueur(
   }
 }
 
-/** Le point à `theta` de `v` dans la direction `d`, projeté. Unitaire par construction : v ⊥ d. */
+/** Point at `theta` from `v` toward `d`, projected. Unit by construction: v ⊥ d. */
 function projetteDecalage(
   projecteur: Projecteur,
   v: { x: number; y: number; z: number },
@@ -125,12 +114,10 @@ function projetteDecalage(
 }
 
 /**
- * L'objet peint : un dégradé radial dans son ellipse, puis son contour.
- *
- * Le dégradé passe par une transformation du contexte — c'est le seul moyen d'obtenir un
- * dégradé ELLIPTIQUE, `createRadialGradient` ne sachant faire que des cercles. Le contour, lui,
- * est tracé hors transformation : la mise à l'échelle anisotrope étirerait son épaisseur, et un
- * objet aplati porterait un trait deux fois plus épais sur ses flancs que sur ses pointes.
+ * Object painted: radial gradient in its ellipse, then outline.
+ * Gradient via a context transform: only way to get an ELLIPTICAL gradient
+ * (`createRadialGradient` = circles). Outline stroked outside the transform: anisotropic
+ * scaling would stretch it (flat object: stroke 2× thicker on flanks than tips).
  */
 export function peintEllipse(
   ctx: CanvasRenderingContext2D,
@@ -159,7 +146,7 @@ export function peintEllipse(
   ctx.stroke()
 }
 
-/** L'objet dont le catalogue ignore les dimensions : une croix, à la couleur de son type. */
+/** Object lacking catalogue dimensions: a cross, in its type's colour. */
 export function peintCroix(
   ctx: CanvasRenderingContext2D,
   xPx: number,

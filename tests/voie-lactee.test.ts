@@ -1,10 +1,7 @@
 /**
- * §3.7 — la Voie lactée composée comme une brillance (T-0101, T-0102, T-0105).
- *
- * Ce que ces tests protègent n'est pas un aspect mais une PROPRIÉTÉ : la bande s'atténue vers
- * les pôles galactiques et s'efface sur un ciel pollué parce que la physique le dit, sans
- * qu'aucun seuil, aucune opacité de convention ni aucune latitude de coupure n'intervienne.
- * C'est ce qui distingue ce rendu du calque teinté qu'il remplace.
+ * §3.7 — Voie lactée composed as a brightness (T-0101, T-0102, T-0105). Protects a PROPERTY: band
+ * fades toward galactic poles, vanishes on polluted sky, by physics — no threshold, convention
+ * opacity or cutoff latitude (unlike the tinted layer it replaces).
  */
 
 import { describe, expect, it } from 'vitest'
@@ -16,10 +13,10 @@ import { K } from '../src/registry/constants.ts'
 
 const octets = (css: string): readonly number[] => css.slice(4, -1).split(' ').map(Number)
 
-/** Longitude de l'anticentre : la borne faible du profil en longitude. */
+/** Anticentre longitude: weak bound of longitude profile. */
 const ANTICENTRE_DEG = 180
 
-/** Élévation du fond de ciel, en magnitudes, apportée par la bande dans cette direction. */
+/** Sky-background elevation (mag) from the band in this direction. */
 const elevationMag = (sbCiel: number, lDeg: number, bDeg: number): number =>
   sbCiel - sbDepuisNanolamberts(nanolamberts(sbCiel) + brillanceVoieLacteeNl(lDeg, bDeg))
 
@@ -68,18 +65,15 @@ describe('modulation en longitude — le bulbe (T-0105)', () => {
   })
 
   it('sépare le bulbe de l’anticentre de plus qu’un cran de Bortle', () => {
-    // C'est la raison d'être du ticket : sous une demi-magnitude d'écart, la non-uniformité
-    // ne se verrait pas, et un modèle uniforme suffirait.
+    // Ticket: under ½ mag gap non-uniformity wouldn't show, a uniform model would do.
     const ecartBortle = K('SB_VOIE_LACTEE_PLAN_MAG') - K('SB_VOIE_LACTEE_BULBE_MAG')
     expect(ecartBortle).toBeGreaterThanOrEqual(0.5)
   })
 
   it('deux segments de longitude voisins rendent la même couleur à un 255e près', () => {
-    // C'est ce qui fixe PAS_LONGITUDE_BANDE_DEG = 12 dans `voie-lactee.ts` : la bande y est
-    // découpée en longitude, et une marche de couleur visible entre deux segments se lirait
-    // comme une couture. Le critère est celui déjà mesuré pour le pas de latitude — et il
-    // n'est PAS satisfait à 18° depuis que l'exposition a triplé (C-38), où l'écart passe à
-    // deux niveaux.
+    // Fixes PAS_LONGITUDE_BANDE_DEG = 12 in `voie-lactee.ts`: band cut in longitude, a visible
+    // colour step between segments reads as a seam. Same criterion as latitude step — NOT met at
+    // 18° since exposure tripled (C-38): gap reaches two levels.
     const PAS_SEGMENT_DEG = 12
     for (const sb of [SB_PLANCHER_NATUREL, SB_PLAFOND_TABLE]) {
       const ciel = nanolamberts(sb)
@@ -96,8 +90,8 @@ describe('modulation en longitude — le bulbe (T-0105)', () => {
   })
 
   it('le profil en longitude ne dépend pas de la latitude : il la module, il ne la remplace pas', () => {
-    // Le rapport bulbe / anticentre est le même à toute latitude. Sans cette propriété, la
-    // modulation aurait absorbé le profil en latitude de T-0102 au lieu de s'y multiplier.
+    // Bulb / anticentre ratio same at any latitude, else modulation absorbs T-0102's latitude
+    // profile instead of multiplying it.
     const rapport = (b: number): number =>
       brillanceVoieLacteeNl(0, b) / brillanceVoieLacteeNl(ANTICENTRE_DEG, b)
     for (const b of [0, 11, 35, 70]) expect(rapport(b)).toBeCloseTo(rapport(0), 9)
@@ -106,9 +100,8 @@ describe('modulation en longitude — le bulbe (T-0105)', () => {
 
 describe('composition sur le fond de ciel', () => {
   it('à brillance égale, la bande et le fond rendent la même luminance', () => {
-    // C'est le test de la normalisation de la chromaticité : sans elle, la teinte choisie pour
-    // la bande déciderait de son contraste, et l'exposition du fond cesserait de valoir pour
-    // les deux contributeurs.
+    // Chromaticity normalisation: without it band hue decides its contrast and background exposure
+    // stops applying to both contributors.
     for (const sb of [SB_PLANCHER_NATUREL, 20.5, SB_PLAFOND_TABLE]) {
       const seuleBande = luminanceRelative(
         octets(bandeRealiste(0, nanolamberts(sb), false).couleur).map((o) => o / 255) as unknown as
@@ -118,8 +111,7 @@ describe('composition sur le fond de ciel', () => {
         octets(fondRealiste(sb)).map((o) => o / 255) as unknown as
           readonly [number, number, number],
       )
-      // Comparaison en valeurs encodées : l'égalité porte sur ce qui est peint, à l'arrondi
-      // d'un canal près.
+      // Encoded values: equality on what is painted, ±1 channel rounding.
       expect(seuleBande).toBeCloseTo(seulFond, 2)
     }
   })
@@ -130,27 +122,24 @@ describe('composition sur le fond de ciel', () => {
     )
     expect(rBande!).toBeLessThanOrEqual(vBande!)
     expect(vBande!).toBeLessThanOrEqual(bBande!)
-    // Le fond penche PLUS vers le bleu que la bande : c'est l'écart de saturation qui fait lire
-    // la bande comme de la lumière d'étoiles et non comme un ciel plus clair.
+    // Background MORE blue than band: saturation gap → band reads as starlight, not brighter sky.
     const [rFond, , bFond] = octets(fondRealiste(SB_PLANCHER_NATUREL))
     expect(rBande! / bBande!).toBeGreaterThan(rFond! / bFond!)
-    // Et surtout : plus jamais la teinte d'interface, qui est du magenta. Elle ne sert plus
-    // qu'au réticule du centre galactique et aux labels (T-0101, décision 2).
+    // Never interface hue (magenta) again; only galactic-centre reticle + labels (T-0101, decision
+    // 2).
     expect(bandeRealiste(nanolamberts(20.5), brillanceVoieLacteeNl(0, 0), false).couleur).not.toBe(
       palette(false).voieLactee,
     )
   })
 
   it('s’efface en ville et s’impose sur un ciel noir, sans aucun seuil', () => {
-    // Bortle 9 : la bande ne déplace le fond nulle part de plus de 0,15 mag. Invisible PAR LE
-    // MODÈLE — il n'y a pas de branche qui l'éteigne.
+    // Bortle 9: band shifts background <0.15 mag anywhere; invisible BY THE MODEL, no branch.
     for (let b = 0; b <= 90; b += 2) {
       for (let l = 0; l < 360; l += 15) {
         expect(elevationMag(SB_PLAFOND_TABLE, l, b)).toBeLessThan(0.15)
       }
     }
-    // Le ciel le plus noir de la table : plus d'une magnitude dans le plan galactique, et
-    // davantage encore vers le bulbe.
+    // Darkest table sky: >1 mag in galactic plane, more toward bulb.
     expect(elevationMag(SB_PLANCHER_NATUREL, ANTICENTRE_DEG, 0)).toBeGreaterThan(1)
     expect(elevationMag(SB_PLANCHER_NATUREL, 0, 0)).toBeGreaterThan(
       elevationMag(SB_PLANCHER_NATUREL, ANTICENTRE_DEG, 0),

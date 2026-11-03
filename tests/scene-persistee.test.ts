@@ -1,8 +1,6 @@
 /**
- * T-0355 — la scène s'ouvre en vue réaliste et survit au rechargement.
- *
- * Le stockage est hors du périmètre de confiance : un champ abîmé retombe sur le défaut sans
- * emporter les autres.
+ * T-0355 — scene opens in vue réaliste, survives reload.
+ * Storage outside trust perimeter: a damaged field falls back to default without taking others.
  */
 
 import { afterEach, describe, expect, it } from 'vitest'
@@ -88,8 +86,8 @@ describe('T-0355 — scène persistée', () => {
     expect(litScenePersistee()).toStrictEqual({})
   })
 
-  // T-0411 — le défilement n'a plus de commande : relu, il ferait filer le ciel sans rien pour
-  // l'arrêter.
+  // T-0411 — scroll has no control anymore: read back, it would run the sky with nothing to stop
+  // it.
   it('écarte un défilement enregistré avant que ses commandes disparaissent', () => {
     const cles = stockage()
     cles.set('orion.scene', JSON.stringify({ temps: { modeTemps: 'DEFILEMENT', decalageMs: 0 } }))

@@ -1,15 +1,10 @@
 /**
- * §14 — la vérification : état du socle, données utilisateur, matrice de dégradation
- * hors-ligne, registre de constantes.
- *
- * Ces quatre écrans vérifient que l'application repose sur quelque chose de sain ; ils ne
- * préparent aucune nuit. Leur place est un tiroir fermé, ouvrable depuis la barre du haut,
- * pas trois pleines hauteurs d'écran sous le planétarium.
- *
- * T-0184 — ce n'est plus ce composant qui porte le tiroir. Vérification et Réglages
- * répondaient au même geste — « ce qui sort du chemin principal » — et deux tiroirs voisins
- * pour un seul geste encombraient la barre. Ne reste ici qu'un CONTENU ; l'enveloppe, son
- * ouverture au clavier et le signalement d'alerte sont dans `BarreHaut`.
+ * §14 — vérification: socle state, user data, offline dégradation matrix, constants registry.
+ * 4 screens checking the app rests on something sound; prepare no nuit. Closed tiroir openable
+ * from top bar, not 3 full-height screens under planétarium.
+ * T-0184 — no longer carries the tiroir: Vérification + Réglages answered the same gesture
+ * ("what leaves the main path"), two adjacent tiroirs cluttered the bar. CONTENT only here;
+ * envelope, keyboard opening, alert flag in `BarreHaut`.
  */
 
 import { MATRICE_DEGRADATION } from '../data/degradation.ts'
@@ -27,15 +22,15 @@ import {
 } from '../registry/libelles.ts'
 import { OCTETS_PAR_MO } from '../data/persistence.ts'
 
-/** T-0184 — ce que le tiroir fermé dit de lui-même quand cette section s'alerte. */
+/** T-0184 — what closed tiroir says of itself when this section alerts. */
 export const ALERTE_VERIFICATION = 'Vérification : données non enregistrées'
 
 export interface VerificationProps {
   readonly etat: EtatDemarrage | null
-  /** T-0275 — typé, pas `string` : c'est ce qui rend son libellé vérifiable par le compilateur. */
+  /** T-0275 — typed, not `string`: makes its label compiler-verifiable. */
   readonly modeReseau: ModeReseau
   readonly messagePersistance: string | null
-  /** §12.3 — une écriture perdue ne doit pas rester cachée dans un tiroir fermé. */
+  /** §12.3 — a lost write must not stay hidden in a closed tiroir. */
   readonly echecPersistance: boolean
   readonly surExport: () => void
   readonly surImport: (fichier: File) => void
@@ -47,9 +42,8 @@ export function Verification(props: VerificationProps) {
   return (
     <>
       <Accordeon titre="Vérification — état du socle" ouvert={props.echecPersistance}>
-        {/* T-0187 — l'état du socle et le mode réseau s'annoncent à leur changement seulement,
-            via une région vive. Ils n'annoncent pas le message de persistance : c'est son
-            propre changement qui doit l'annoncer. */}
+        {/* T-0187 — socle state + network mode announce only on change, via live region. They
+            don't announce the persistence message: its own change must. */}
         <div aria-live="polite" aria-atomic="true">
           {etat === null && <p>Vérification en cours…</p>}
           {etat !== null && (
@@ -94,13 +88,12 @@ export function Verification(props: VerificationProps) {
             />
           </label>
         </div>
-        {/* T-0187 — un échec porte `role="alert"`, un succès s'annonce poliment : perdre un
-            export est de l'ordre de l'erreur, réussir un import n'interrompt personne.
+        {/* T-0187 — failure carries `role="alert"`, success announces politely: losing an export
+            is error-class, a successful import interrupts nobody.
 
-            La région est TOUJOURS montée, vide quand il n'y a rien à dire. Une région vive
-            insérée en même temps que son texte n'est pas annoncée par la plupart des lecteurs
-            d'écran : ils observent les régions présentes, ils n'observent pas leur apparition.
-            C'est le seul détail qui décide si ce ticket sert à quelque chose. */}
+            Region ALWAYS mounted, empty when nothing to say. A live region inserted with its text
+            isn't announced by most screen readers: they watch present regions, not appearances.
+            Only detail deciding whether this ticket does anything. */}
         <Mention
           ton={props.echecPersistance ? 'cause' : 'etat'}
           role={props.echecPersistance ? 'alert' : 'status'}
@@ -133,10 +126,9 @@ export function Verification(props: VerificationProps) {
       </Accordeon>
 
       <Accordeon titre="Registre de constantes">
-        {/* T-0278 — surface d'audit : l'inventaire des constantes nomme des paquets que le MVP
-            ne livre pas (le paquet Gaia de §12.2), parce qu'il décrit le REGISTRE et sa
-            provenance, pas ce que l'application propose de faire. La classe porte l'exemption
-            de la liste noire des phrases fausses, comme `verbatim` porte celle de T-0275. */}
+        {/* T-0278 — audit surface: constants inventory names paquets the MVP doesn't ship (§12.2
+            Gaia paquet), as it describes the REGISTRE + provenance, not what app offers. Class
+            carries exemption from false-phrase blacklist, as `verbatim` carries T-0275's. */}
         <table className="registre">
           <thead>
             <tr>
@@ -155,9 +147,9 @@ export function Verification(props: VerificationProps) {
                 <td>
                   {c.valeur} {c.unite}
                 </td>
-                {/* T-0275 — surfaces d'audit : ces deux colonnes SEULES citent le PRD mot pour
-                    mot, formules et noms de constantes compris. L'exemption tient sur elles,
-                    pas sur la ligne : une colonne ajoutée demain resterait surveillée. */}
+                {/* T-0275 — audit surfaces: these 2 columns ONLY quote PRD word for word, formulas
+                    and constant names included. Exemption rides on them, not the row: a column
+                    added tomorrow stays watched. */}
                 <td className="verbatim">{c.source}</td>
                 <td className="verbatim">{c.deprecie ?? c.tolerance ?? 'valeur exacte'}</td>
               </tr>

@@ -1,9 +1,7 @@
 /**
- * T-0360 — l'année affichée reste entre 1900 et 2100.
- *
- * La borne vit dans `DOMAINES.annee_affichee` et passe par `borneInstant`. Chaque chemin qui
- * écrit l'instant affiché est vérifié ici : un chemin oublié rouvrirait l'an 5000, où les
- * figures seraient dessinées comme en 2000 sans que rien ne le dise.
+ * T-0360 — displayed year stays within 1900–2100. Bound = `DOMAINES.annee_affichee` via
+ * `borneInstant`. Every path writing displayed instant checked: a missed one reopens year 5000,
+ * figures silently drawn as in 2000.
  */
 
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -55,7 +53,7 @@ describe('T-0360 — la borne de l’instant affiché', () => {
     expect(instantSuivant({ ...anime, facteur: -3600 }, PREMIER_MS + 1, uneHeure, 0)).toBe(
       PREMIER_MS,
     )
-    // En `MAINTENANT`, c'est le décalage gardé qui pourrait sortir de la plage.
+    // In `MAINTENANT`, the kept offset could leave the plage.
     const maintenant = { ...anime, modeTemps: 'MAINTENANT', decalageMs: Date.UTC(3000, 0, 1) }
     expect(instantSuivant(maintenant, DEDANS_MS, 0, DEDANS_MS)).toBe(DERNIER_MS)
   })

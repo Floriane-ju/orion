@@ -1,22 +1,14 @@
 /**
- * §3.2 / T-0411 — la date, l'heure et la frise de la nuit ne font qu'un réglage, dans la barre
- * haute.
- *
- * T-0314 tenait l'instant dans un panneau en tête de la colonne de droite, et la frise en bas à
- * gauche : deux endroits pour régler la même chose, qui ne se lisaient pas comme liés. Ils
- * forment maintenant une rangée — l'horloge, la frise dont le curseur EST cet instant, le retour
- * au présent. Tirer un compteur fait défiler la frise ; cliquer la frise change l'horloge.
- *
- * Le transport est retiré (lecture, pause, quatre chevrons) : choix produit. Le temps se règle
- * en tirant les compteurs, sur la frise, ou en revenant au présent — qui rend aussi l'écoulement
- * réel. Le défilement accéléré n'a plus de commande.
- *
- * T-0412 — la rangée devient un bloc posé sur le ciel, au centre du haut de l'écran : l'horloge
- * et sa lecture (phase, Lune), la frise sur toute la hauteur, le retour au présent en carré.
- *
- * Aucun `useScene()` ici. Le magasin publie l'instant rendu deux fois par seconde ; s'y
- * abonner en entier ferait rendre la barre au même rythme (T-0056). Seuls les deux morceaux
- * d'horloge s'abonnent à la MINUTE — pas aux millisecondes.
+ * §3.2 / T-0411 — date, time and night frise are one setting, in the top bar.
+ * T-0314 held the instant in a right-column panel, frise bottom-left (two places, not read as
+ * linked). Now one row: clock, frise whose cursor IS that instant, return to present.
+ * Dragging a counter scrolls the frise; clicking the frise changes the clock.
+ * Transport removed (play, pause, 4 chevrons): product choice. Time set by dragging counters,
+ * on the frise, or returning to present (also restores real flow). No fast-forward control.
+ * T-0412 — row became a block over the sky, top-centre: clock + reading (phase, Lune), frise
+ * full height, return to present as a square.
+ * No `useScene()` here. Store publishes rendered instant 2×/s; subscribing whole would
+ * re-render the bar at that rate (T-0056). Only the two clock pieces subscribe, per MINUTE.
  */
 
 import { useRef, type ReactNode } from 'react'
@@ -37,22 +29,22 @@ import { destinationTrajet, traverse } from './trajet-scene.ts'
 
 export interface PanneauTempsProps {
   /**
-   * La nuit sur laquelle porte le plan suit l'instant choisi : une seule date à l'écran.
-   * T-0267 — celle du SOIR de la nuit, pas le jour civil : reculer l'horloge à 00:30 reste
-   * dans la nuit qu'on observe au lieu d'annoncer la suivante.
+   * The plan's night follows the chosen instant: one date on screen.
+   * T-0267 — the night's EVENING date, not the civil day: clock back to 00:30 stays in the
+   * observed night instead of announcing the next.
    */
   readonly surNuitIso: (v: string) => void
-  /** La frise de la nuit, après l'horloge, le retour au présent et l'astre ; absente sans ciel. */
+  /** Night frise, after clock, return-to-present and astre; absent without sky. */
   readonly frise?: ReactNode
-  /** L'astre de l'instant — Soleil ou Lune —, dans sa case avant la frise ; absent sans ciel. */
+  /** Astre of the instant (Soleil or Lune), in its box before the frise; absent without sky. */
   readonly lecture?: ReactNode
 }
 
 export function PanneauTemps(props: PanneauTempsProps) {
   return (
     <section className="panneau-temps" role="region" aria-label="Temps de la scène">
-      {/* L'heure au-dessus de la date, le retour au présent, l'astre de l'instant, puis la frise
-          qui les prolonge : quatre cases qui se touchent. */}
+      {/* Time above date, return to present, astre of the instant, then the frise extending
+          them: four touching boxes. */}
       <div className="panneau-temps-date">
         <Heure surNuitIso={props.surNuitIso} />
         <Jour surNuitIso={props.surNuitIso} />
@@ -64,10 +56,10 @@ export function PanneauTemps(props: PanneauTempsProps) {
   )
 }
 
-/** Un cran de glisser vaut une unité du champ : un jour, un mois, une seconde. */
+/** One drag notch = one field unit: a day, a month, a second. */
 const PAS_INSTANT = 1
 
-/** T-0162 — les morceaux de l'instant que le glisser règle, et le nom qu'ils annoncent. */
+/** T-0162 — instant pieces the drag sets, and the name they announce. */
 const CHAMPS_INSTANT: Partial<
   Record<Intl.DateTimeFormatPartTypes, { readonly champ: ChampInstant; readonly libelle: string }>
 > = {
@@ -79,7 +71,7 @@ const CHAMPS_INSTANT: Partial<
   second: { champ: 'seconde', libelle: 'Seconde' },
 }
 
-/** Le mois est rendu humain — 1 à 12 — parce que c'est ce que le compteur annonce. */
+/** Month made human (1-12): that is what the counter announces. */
 function valeurChamp(date: Date, champ: ChampInstant): number {
   if (champ === 'annee') return date.getFullYear()
   if (champ === 'mois') return date.getMonth() + 1
@@ -90,16 +82,13 @@ function valeurChamp(date: Date, champ: ChampInstant): number {
 }
 
 /**
- * Les compteurs d'un morceau d'instant — le même geste pour la date et pour l'heure.
- *
- * T-0162 — chaque morceau se tire à l'horizontale (§11.2) : avancer d'un jour ne demande plus
- * d'ouvrir un champ, de viser son sous-champ et de le refermer.
- *
- * `depart` gèle l'instant AU DÉBUT du geste. Sans lui, tirer les mois depuis un 31 relirait à
- * chaque mouvement une date déjà déplacée, et le jour dériverait avec elle.
- *
- * L'abonnement à la minute vit ici, dans le morceau qui l'affiche, et non dans le panneau :
- * la frise et le retour au présent n’ont rien à redessiner à chaque battement (T-0056).
+ * Counters of an instant piece — same gesture for date and time.
+ * T-0162 — each piece dragged horizontally (§11.2): advancing a day no longer means opening a
+ * field, aiming its sub-field, closing it.
+ * `depart` freezes the instant AT GESTURE START, else dragging months from a 31st re-reads an
+ * already-shifted date each move and the day drifts.
+ * Minute subscription lives in the piece showing it, not the panel: frise and return-to-present
+ * need no redraw per beat (T-0056).
  */
 function useCompteurs(props: PanneauTempsProps): {
   readonly date: Date
@@ -107,20 +96,18 @@ function useCompteurs(props: PanneauTempsProps): {
 } {
   const minute = useTrancheScene(minuteAffichee)
   const depart = useRef<Date | null>(null)
-  // T-0394 — pendant un trajet, l'instant demandé, pas celui que le ciel traverse.
+  // T-0394 — during a trajet, the requested instant, not the one the sky is crossing.
   const date = new Date(destinationTrajet() ?? minute * MS_PAR_MINUTE)
 
   /**
-   * T-0292 — la nuit suit l'instant, mais pas à chaque cran d'un glisser : changer de nuit
-   * recalcule le ciel de la séance, et tirer les jours en enchaînait un par cran. Le ciel et
-   * l'horloge suivent le geste ; la nuit se règle au relâchement (`soldeNuit`).
-   *
-   * T-0394 — une saisie ou une flèche TRAVERSE le temps jusqu'à l'instant demandé, en trajet
-   * FORCÉ, plafond de §3.2 ignoré : changer de jour doit se voir (choix produit). La nuit se
-   * règle sur la DESTINATION, pas sur l'instant que le trajet traverse.
-   *
-   * Le glisser, lui, saute : le ciel suit le doigt, instantanément. Un trajet relancé à chaque
-   * cran repeignait et recalculait la scène sans fin, et le geste ramait.
+   * T-0292 — night follows the instant, but not each drag notch: changing night recomputes the
+   * séance sky, and days chain one per notch. Sky + clock follow the gesture; night is set on
+   * release (`soldeNuit`).
+   * T-0394 — typed input or arrow CROSSES time to the requested instant in a FORCED trajet,
+   * §3.2 cap ignored: a day change must be seen (product choice). Night set on the
+   * DESTINATION, not the instant the trajet crosses.
+   * Drag jumps: sky follows the finger instantly. A trajet restarted per notch repainted and
+   * recomputed the scène endlessly, gesture lagged.
    */
   function va(champ: ChampInstant, valeur: number, enGlisse = false): void {
     const cible = dateAvec(depart.current ?? date, champ, valeur).getTime()
@@ -134,7 +121,7 @@ function useCompteurs(props: PanneauTempsProps): {
     props.surNuitIso(nuitDeLInstant(new Date(ms)))
   }
 
-  /** Les littéraux de la locale restent du texte : seuls les nombres deviennent des compteurs. */
+  /** Locale literals stay text: only numbers become counters. */
   function compteurs(parties: readonly Intl.DateTimeFormatPart[]): readonly ReactNode[] {
     return parties.map((partie, place) => {
       const reglage = CHAMPS_INSTANT[partie.type]
@@ -166,33 +153,28 @@ function useCompteurs(props: PanneauTempsProps): {
   return { date, compteurs }
 }
 
-/**
- * Le jour en chiffres, sous l'heure. Le jour de la semaine n'y est plus (T-0327) : voir
- * `partiesJour`.
- */
+/** Day in digits, under the time. Weekday gone (T-0327): see `partiesJour`. */
 function Jour(props: PanneauTempsProps) {
   const { date, compteurs } = useCompteurs(props)
   return <span className="panneau-temps-jour">{compteurs(partiesJour(date))}</span>
 }
 
-/** L'heure à la minute, en champs du même corps que ceux de la date (T-0327). */
+/** Time to the minute, fields same size as the date's (T-0327). */
 function Heure(props: PanneauTempsProps) {
   const { date, compteurs } = useCompteurs(props)
   return <span className="panneau-temps-heure">{compteurs(partiesHeure(date))}</span>
 }
 
 /**
- * §3.2 — revenir à l'instant présent, et rendre le temps à son écoulement, en un geste.
- *
- * Sans lui, retrouver ce soir depuis une date choisie demandait de tirer six compteurs jusqu'à
- * l'heure qu'il est — un réglage à viser là où il n'y a qu'une destination.
+ * §3.2 — back to present instant, time restored to real flow, one gesture.
+ * Without it, finding tonight from a chosen date meant dragging six counters to the current
+ * time — a setting to aim where there is only a destination.
  */
 function BoutonMaintenant(props: PanneauTempsProps) {
   function maintenant(): void {
     const present = new Date()
-    // T-0394 — le retour se traverse, puis le temps repart sur l'horloge système, décalage nul :
-    // le trajet a pris une seconde ou deux, la lecture reprend à l'instant présent, pas à
-    // celui du clic.
+    // T-0394 — return is crossed, then time resumes on system clock, zero offset: trajet took
+    // 1-2 s, playback resumes at the present instant, not the click's.
     traverse(present.getTime(), () => majTemps({ modeTemps: 'MAINTENANT', decalageMs: 0 }), {
       force: true,
     })

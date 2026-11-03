@@ -1,10 +1,7 @@
 /**
- * Ce que plusieurs tests construisent à l'identique : le site de l'annexe A, la lecture d'un
- * paquet de `public/data/`, deux gabarits d'objet du ciel profond.
- *
- * Vingt-six copies du même site finissaient par ne plus dire s'il s'agissait du même lieu.
- * Pas de rendu d'`App` ici : l'importer chargerait l'application dans chaque test qui ne
- * veut qu'un site.
+ * Shared test builders: Annexe A site, `public/data/` packet read, 2 deep-sky templates.
+ * Why: 26 copies of the same site lost track of being one place.
+ * No `App` render: importing it loads the app in every test that needs only a site.
  */
 
 import { readFileSync } from 'node:fs'
@@ -18,7 +15,7 @@ export const SITE_REFERENCE: Site = Object.freeze({
   altitudeM: 500,
 })
 
-/** Un paquet binaire réel, découpé à ses propres octets : `Buffer` partage un tampon plus grand. */
+/** Real packet sliced to its own bytes: `Buffer` shares a larger pool. */
 export function paquet(nom: string): ArrayBuffer {
   const octets = readFileSync(join(import.meta.dirname, '..', 'public', 'data', nom))
   return octets.buffer.slice(
@@ -27,7 +24,7 @@ export function paquet(nom: string): ArrayBuffer {
   ) as ArrayBuffer
 }
 
-/** Une petite galaxie à l'origine des coordonnées : le gabarit des tests de liste et de recherche. */
+/** Small galaxy at coordinate origin: list/search template. */
 export function objetGalaxie(
   partiel: Partial<ObjetCielProfond> & { designation: string },
 ): ObjetCielProfond {
@@ -46,7 +43,7 @@ export function objetGalaxie(
   }
 }
 
-/** Une grande nébuleuse d'émission dans le Cygne : le gabarit des tests de plan et de scoring. */
+/** Large emission nebula in Cygnus: plan/scoring template. */
 export function objetNebuleuse(surcharge: Partial<ObjetCielProfond>): ObjetCielProfond {
   return {
     designation: 'TEST',

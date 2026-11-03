@@ -1,15 +1,13 @@
 /**
- * §4.1 — la projection Web Mercator (EPSG:3857) des tuiles, dans les deux sens.
- *
- * T-0363 — le relief allait du lieu au pixel ; la carte de choix du lieu revient du pixel au
- * lieu. Les deux sens vivent ensemble pour que l'aller-retour ne dépende pas de deux écritures
- * de la même formule. La projection est une définition, pas une grandeur : rien ne s'y règle.
+ * §4.1 — Web Mercator tile (EPSG:3857), both directions.
+ * T-0363 — relief went place → pixel; location-picker map goes pixel → place. Same module so
+ * round trip never depends on two writings of one formula. Definition, nothing tunable.
  */
 
 import { DEG } from './mat3.ts'
 import { DEMI_TOUR_DEG, TOUR_DEG, encadre, ramene } from './unites.ts'
 
-/** Au-delà, le carré Mercator s'arrête : y = 0 en haut du monde. */
+/** Beyond: Mercator square ends, y = 0 at top of world. */
 export const LATITUDE_MAX_MERCATOR_DEG = Math.atan(Math.sinh(Math.PI)) / DEG
 
 export interface PointMonde {
@@ -22,12 +20,12 @@ export interface Lieu {
   readonly longitudeDeg: number
 }
 
-/** Côté du monde, en pixels, au zoom `z` pour des tuiles de `cote` pixels. */
+/** World side, pixels, at zoom `z` for `cote`-pixel tiles. */
 export function cotePixelsMonde(z: number, cote: number): number {
   return cote * 2 ** z
 }
 
-/** Position en pixels mondiaux au zoom `z` : la tuile est ce nombre divisé par `cote`. */
+/** World-pixel position at zoom `z`; tile = this / `cote`. */
 export function pixelMonde(latDeg: number, lonDeg: number, z: number, cote: number): PointMonde {
   const monde = cotePixelsMonde(z, cote)
   const phi = latDeg * DEG
@@ -37,10 +35,7 @@ export function pixelMonde(latDeg: number, lonDeg: number, z: number, cote: numb
   }
 }
 
-/**
- * Le lieu sous un pixel mondial. La longitude se referme à l'antiméridien — la carte se
- * répète en largeur — ; la latitude, elle, s'arrête au bord du carré Mercator.
- */
+/** Place under a world pixel: longitude wraps at antimeridian, latitude stops at square edge. */
 export function lieuDePixel(x: number, y: number, z: number, cote: number): Lieu {
   const monde = cotePixelsMonde(z, cote)
   const lon = ramene((x / monde) * TOUR_DEG, TOUR_DEG) - DEMI_TOUR_DEG

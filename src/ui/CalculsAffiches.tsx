@@ -1,10 +1,7 @@
 /**
- * §10.2 N3, T-0386 — la rubrique « Calcul » de la modale info : la chaîne complète de chaque
- * valeur tracée affichée sous la modale.
- *
- * La bulle du libellé ne garde que la glose ; ce qui en est sorti — valeur, formule, entrées,
- * constantes et leur source — se lit ici, dans l'ordre où les valeurs se sont montées. Une
- * fiche fermée retire ses valeurs : la rubrique ne parle que de ce qu'on a sous les yeux.
+ * §10.2 N3, T-0386 — "Calcul" section of info modal: full chain of each traced value displayed.
+ * Label bulle keeps only the gloss; value, formula, inputs, constants, source read here, in mount
+ * order. Closed fiche removes its values: section covers only what's on screen.
  */
 
 import { GLOSSAIRE } from '../registry/glossaire.ts'
@@ -25,7 +22,7 @@ export function CalculsAffiches() {
         [...traces].map(([id, { terme, suffixe, trace, valeur }]) => (
           <div key={id}>
             <h3>
-              {/* La glose seule : explication et conséquence suivent en clair dessous. */}
+              {/* Gloss alone: explanation and consequence follow in clear below. */}
               <Etiquette cle={terme} bulle={GLOSSAIRE[terme].glose} />
               {suffixe !== undefined && <> — {suffixe}</>}
             </h3>

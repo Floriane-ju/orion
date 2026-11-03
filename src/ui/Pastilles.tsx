@@ -1,19 +1,12 @@
 /**
- * §6.4 — la note de facilité, lue d'un coup d'œil : autant de pastilles que l'échelle porte.
- *
- * Le glyphe passe par `Icone` et la police Material Symbols, jamais par « ● » : un caractère
- * Unicode décoratif ne suit pas le style commun des icônes, et c'est `.icone` qui décide de
- * leur épaisseur et de leur taille pour toute l'application.
- *
- * Le nom accessible vit sur l'ENVELOPPE, et les glyphes restent `aria-hidden` — c'est le
- * défaut d'`Icone`. Les nommer un par un ferait annoncer cinq fois « circle » en anglais au
- * milieu d'une phrase française.
- *
- * Une seule ligature pour les deux états, et un seul axe de la police pour les distinguer :
- * `FILL`, plein contre cerclé. Deux ligatures différentes changeaient la GÉOMÉTRIE en même
- * temps que le remplissage, et à cette taille les deux cercles se lisaient pareil — c'est
- * exactement le défaut que ce composant doit éviter, puisqu'il n'existe que pour se compter
- * d'un coup d'œil.
+ * §6.4 — facilité note at a glance: as many pastilles as the scale holds.
+ * Glyph via `Icone` + Material Symbols, never "●": decorative Unicode ignores the common icon
+ * style (`.icone` sets thickness/size app-wide).
+ * Accessible name on the WRAPPER, glyphs `aria-hidden` (Icone default); naming each would say
+ * "circle" five times in English mid French sentence.
+ * One ligature for both states, one font axis tells them apart: `FILL`, full vs ringed. Two
+ * ligatures changed GEOMETRY too, and at this size both circles read alike — the very defect
+ * this component avoids (counted at a glance).
  */
 
 import { K } from '../registry/constants.ts'
@@ -21,11 +14,11 @@ import { Icone } from './Icone.tsx'
 
 export interface PastillesProps {
   readonly note: number
-  /** Le libellé de l'échelle : il entre dans le nom accessible, jamais dans un glyphe. */
+  /** Scale label: in the accessible name, never in a glyph. */
   readonly libelle: string
   /**
-   * §8.3 — la cause d'écart, sur une note 0 seulement. Un zéro muet est le pire des deux :
-   * l'utilisateur voit que c'est refusé sans savoir quel levier tirer.
+   * §8.3 — gap cause, note 0 only. A mute zero is worst of both: refusal seen without knowing
+   * which lever to pull.
    */
   readonly cause?: string | null
 }
