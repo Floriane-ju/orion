@@ -4370,6 +4370,16 @@ button:not(:disabled):active,
   cursor: help;
 }
 
+/* T-0310 — une région éteinte à sa place, sur le voile : le reste de la coque tient. */
+.garde-region {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pas-2);
+  align-items: flex-start;
+  padding: var(--pas-4);
+  background: var(--voile);
+}
+
 /* L'écran que l'on voit quand plus rien ne se rend. Il vit HORS de la coque : celle-ci
    est justement ce qui vient d'être démonté, et il ne reste que le fond et une phrase. */
 .garde-erreur {

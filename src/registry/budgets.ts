@@ -109,6 +109,18 @@ export const BUDGETS = Object.freeze({
     source: 'convention d’interaction — durée de lecture d’un compte rendu bref',
     tolerance: 'sans objet — budget d’interface, pas une grandeur mesurée',
   }),
+
+  /**
+   * T-0310 — frames retried after a throw in the canvas draw before the loop stops and the
+   * scène says so. One: a transient fault (catalog swapped mid-frame) heals; a lasting one must
+   * not repeat at the frame rate.
+   */
+  REPRISES_RENDU: valeur({
+    valeur: 1,
+    unite: 'image',
+    source: 'convention d’interaction — une seconde chance, puis arrêt annoncé',
+    tolerance: 'sans objet — budget d’interface, pas une grandeur mesurée',
+  }),
 } satisfies Record<string, ValeurBudget>)
 
 export type IdBudget = keyof typeof BUDGETS

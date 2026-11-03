@@ -7,6 +7,8 @@
  * T-0279 — cause no longer displayed: English library sentence (`astronomy-engine` throws
  * STRINGS), unreadable to observers. To console with component stack; screen says what remains
  * true and what can be done.
+ * T-0310 — one boundary per coque region (`region`): a throw in a panel no longer unmounts the
+ * scène and the saisie that still worked. The root one stays, for what lives outside the coque.
  */
 
 import { Component, type ErrorInfo, type ReactNode } from 'react'
@@ -16,7 +18,13 @@ interface EtatGarde {
   readonly interrompu: boolean
 }
 
-export class GardeErreur extends Component<{ readonly children: ReactNode }, EtatGarde> {
+interface GardeErreurProps {
+  readonly children: ReactNode
+  /** Region named in the fallback, with a determiner (« le ciel »); absent = whole app. */
+  readonly region?: string
+}
+
+export class GardeErreur extends Component<GardeErreurProps, EtatGarde> {
   override state: EtatGarde = { interrompu: false }
 
   static getDerivedStateFromError(): EtatGarde {
@@ -28,12 +36,38 @@ export class GardeErreur extends Component<{ readonly children: ReactNode }, Eta
    * console not screen — debug data, not a sentence to read (§12.4: no telemetry, nothing sent).
    */
   override componentDidCatch(erreur: unknown, info: ErrorInfo): void {
-    console.error('Orion — rendu interrompu', erreur, info.componentStack)
+    console.error('Orion — rendu interrompu', this.props.region ?? '', erreur, info.componentStack)
   }
 
   override render(): ReactNode {
-    return this.state.interrompu ? <EcranInterrompu /> : this.props.children
+    if (!this.state.interrompu) return this.props.children
+    const { region } = this.props
+    return region === undefined ? (
+      <EcranInterrompu />
+    ) : (
+      // Remount = the retry: the scène restarts its loop, a panel recomputes.
+      <RegionInterrompue region={region} reprend={() => this.setState({ interrompu: false })} />
+    )
   }
+}
+
+/** T-0310 — fallback in place of ONE region: names it, says the rest holds, offers a way out. */
+export function RegionInterrompue(props: { readonly region: string; readonly reprend: () => void }) {
+  const { region } = props
+  const titre = `${region.charAt(0).toUpperCase()}${region.slice(1)}`
+  return (
+    <div className="garde-region" role="alert">
+      <Mention ton="erreur">
+        {`${titre} ne s’affiche plus : une valeur sort de ce que l’application sait traiter.`}
+      </Mention>
+      <p className="etat">
+        Le reste de l’application fonctionne. Réessayez ; si l’arrêt revient, rechargez la page.
+      </p>
+      <button type="button" onClick={props.reprend}>
+        Réessayer
+      </button>
+    </div>
+  )
 }
 
 /**

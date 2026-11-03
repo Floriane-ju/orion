@@ -15,6 +15,7 @@
 
 import { useEffect, type ReactNode } from 'react'
 
+import { GardeErreur } from './GardeErreur.tsx'
 import { ancreTiroirs } from './tiroir-ancrage.ts'
 
 export interface CoqueProps {
@@ -40,13 +41,24 @@ export function Coque(props: CoqueProps) {
 
   return (
     <div className="coque">
-      <header className="coque-topbar">{props.topbar}</header>
-      <main className="coque-scene">{props.scene}</main>
-      <div className="coque-cartes">{props.cartes}</div>
-      <div className="coque-droite">{props.lateral}</div>
-      {props.visee}
-      <div className="coque-temps">{props.temps}</div>
-      {props.page}
+      {/* T-0310 — one boundary per region: a throw switches off that region only. */}
+      <header className="coque-topbar">
+        <GardeErreur region="la barre haute">{props.topbar}</GardeErreur>
+      </header>
+      <main className="coque-scene">
+        <GardeErreur region="le ciel">{props.scene}</GardeErreur>
+      </main>
+      <div className="coque-cartes">
+        <GardeErreur region="le plan de nuit">{props.cartes}</GardeErreur>
+      </div>
+      <div className="coque-droite">
+        <GardeErreur region="le panneau de séance">{props.lateral}</GardeErreur>
+      </div>
+      <GardeErreur region="la visée">{props.visee}</GardeErreur>
+      <div className="coque-temps">
+        <GardeErreur region="le temps">{props.temps}</GardeErreur>
+      </div>
+      <GardeErreur region="la page d’information">{props.page}</GardeErreur>
     </div>
   )
 }

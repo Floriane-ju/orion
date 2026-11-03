@@ -6,7 +6,7 @@
  * per 25 s at 200° champ: repainting 30×/s = a CPU core reproducing the same image.
  */
 
-import { useEffect, useRef, type RefObject } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { pxParDegre, vitesseEcran } from '../core/curseur-temps.ts'
 import type { Etoile } from '../data/catalog.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
@@ -38,6 +38,7 @@ import {
 } from './scene-etat.ts'
 import { poseRenduFile, publicateurRenduFile } from './seance-etat.ts'
 import { enTrajet } from './trajet-scene.ts'
+import { gardeImage } from './garde-image.ts'
 import type { CouchesActives } from './dessine-ciel.ts'
 import { dessineChamp, type ParametresFile, type SortieDessinChamp } from './dessine-champ.ts'
 import { clientFile, creePortFile, type ClientFile } from './file-hors-fil.ts'
@@ -218,6 +219,7 @@ export function useBoucleRendu(entree: {
   const { canevas, etat, instant, parametresFile, survol } = entree
   const cibles = useRef<readonly CibleEcran[]>([])
   const ephemerides = useRef<EtatEphemerides | null>(null)
+  const [, rejette] = useState<null>(null)
 
   useEffect(() => {
     // T-0248 — opaque: `passeFond` covers the whole canvas before any layer, compositor need
@@ -253,9 +255,7 @@ export function useBoucleRendu(entree: {
     // T-0399 — Moon positions already computed: a pan recomputes none.
     const cacheLune = cacheTrajetLune()
 
-    const image = (ts: number): void => {
-      if (!actif) return
-      requestAnimationFrame(image)
+    const peinsImage = (ts: number): void => {
       // Rate cap: skip this tick, next frame re-evaluates.
       if (dernierTs !== null && ts - dernierTs < INTERVALLE_MIN_MS) return
       const courant = etat.current
@@ -298,6 +298,20 @@ export function useBoucleRendu(entree: {
         publieFile(rendu === null ? null : { reelles: rendu.etoilesReelles })
         dernierePublication = ts
       }
+    }
+
+    // T-0310 — re-armed BEFORE painting, so the throw is caught here, not replayed at 30 Hz.
+    // Rethrown through a state setter: the scène's error boundary then names the stop.
+    const gardee = gardeImage(peinsImage, B('REPRISES_RENDU'), (erreur) => {
+      actif = false
+      rejette(() => {
+        throw erreur
+      })
+    })
+    const image = (ts: number): void => {
+      if (!actif) return
+      requestAnimationFrame(image)
+      gardee(ts)
     }
 
     /**
