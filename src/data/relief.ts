@@ -220,19 +220,22 @@ function dansLeDomaine(profil: readonly number[]): boolean {
  * T-0395 — contour-computation version; bump when `courbesNiveau` changes. Not in cache key:
  * offline, a visited site keeps its mask.
  */
-const VERSION_COURBES = 10
+const VERSION_COURBES = 12
 
 export function signatureCourbes(): string {
   return [
     `v${VERSION_COURBES}`,
     R('EQUIDISTANCE_COURBES_M'),
     R('PAS_AZIMUT_COURBES_DEG'),
+    R('PAS_RADIAL_MASQUE_COURBES_M'),
     R('TOLERANCE_COURBES_DEG'),
     R('CORDE_MAX_COURBES_DEG'),
     R('PROFONDEUR_MIN_SILHOUETTE_M'),
     R('ECART_RACCORD_SILHOUETTE'),
     R('ETENDUE_MIN_SILHOUETTE_DEG'),
     R('PAS_AZIMUT_CRETE_DEG'),
+    R('PAS_FIN_CRETE_M'),
+    R('MARGE_SOMMET_CRETE_DEG'),
   ].join(':')
 }
 

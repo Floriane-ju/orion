@@ -123,6 +123,18 @@ const RELIEF = Object.freeze({
   }),
 
   /**
+   * T-0445 — radial step of table deciding if a contour point is hidden. Lookup skips the step
+   * under the point (its own slope): at PAS_RADIAL_RELIEF_M a ridge ≤ 200 m ahead hid nothing,
+   * contours crossed behind near spurs. Half step: ≤ 100 m skipped, < 1 grid cell.
+   */
+  PAS_RADIAL_MASQUE_COURBES_M: valeur({
+    valeur: 50,
+    unite: 'm',
+    source: 'convention de dessin — moitié de PAS_RADIAL_RELIEF_M, maille des courbes',
+    tolerance: 'sans objet — aucun calcul de visibilité n’en dépend',
+  }),
+
+  /**
    * T-0397 — max angular deviation of simplified contour. Sub-pixel up to 30° field over 1 920 px;
    * drops thousands of near-collinear points drawn each frame.
    */
@@ -174,6 +186,28 @@ const RELIEF = Object.freeze({
     valeur: 0.1,
     unite: '°',
     source: 'convention de dessin — 35 m à 20 km, sous le pas radial des tuiles',
+    tolerance: 'sans objet — aucun calcul de visibilité n’en dépend',
+  }),
+
+  /**
+   * T-0445 — radial step re-reading DRAWN ridge around its top. At PAS_RADIAL_RELIEF_M a top
+   * between two samples is missed: crest up to 0.39° low (flat steps), contours rose above sol.
+   */
+  PAS_FIN_CRETE_M: valeur({
+    valeur: 10,
+    unite: 'm',
+    source: 'convention de dessin — écart à un pas de 5 m ≤ 0,05° (Chablais, Chamonix, T-0445)',
+    tolerance: 'sans objet — aucun calcul de visibilité n’en dépend',
+  }),
+
+  /**
+   * T-0445 — sampled local maxima this far below the ray's highest are re-read finely: the true
+   * top may hide under any of them. Max gap measured at 100 m step: 0.39°.
+   */
+  MARGE_SOMMET_CRETE_DEG: valeur({
+    valeur: 0.5,
+    unite: '°',
+    source: 'convention de dessin — écart max mesuré pas 100 m / 5 m : 0,39° (Chablais, T-0445)',
     tolerance: 'sans objet — aucun calcul de visibilité n’en dépend',
   }),
 

@@ -77,16 +77,22 @@ export function profilRelief(
  */
 export function creteFine(altitude: Altimetre, latDeg: number, lonDeg: number): Float32Array | null {
   const nbAz = Math.round(NB_AZIMUTS / R('PAS_AZIMUT_CRETE_DEG'))
-  const profil = profilSurAzimuts(altitude, latDeg, lonDeg, nbAz, -Infinity)
+  const profil = profilSurAzimuts(altitude, latDeg, lonDeg, nbAz, -Infinity, true)
   return profil === null ? null : Float32Array.from(profil)
 }
 
+/**
+ * T-0445 — `affine`: re-read ±1 step at `PAS_FIN_CRETE_M` around sampled local maxima within
+ * `MARGE_SOMMET_CRETE_DEG` of the ray's top. Drawing only: masque stays at radial step (§4.1).
+ * Uniform 25 m step cost +1.2 s per site; local re-read ~+10 %.
+ */
 function profilSurAzimuts(
   altitude: Altimetre,
   latDeg: number,
   lonDeg: number,
   nbAz: number,
   plancherDeg: number,
+  affine = false,
 ): Float64Array | null {
   const sol = altitude(latDeg, lonDeg)
   if (sol === null) return null
@@ -97,20 +103,54 @@ function profilSurAzimuts(
   const premierPas = Math.max(1, Math.ceil(R('DISTANCE_MIN_RELIEF_M') / pas))
   const { min, max } = DOMAINES.masque_horizon_deg
   const profil = new Float64Array(nbAz)
+  // Model hole = -Infinity: hides nothing, never a top.
+  const elevation = (azimut: number, d: number): number => {
+    const point = pointA(latDeg, lonDeg, azimut, d)
+    const h = altitude(point.latDeg, point.lonDeg)
+    return h === null ? -Infinity : elevationApparenteDeg(h - oeilM, d)
+  }
+  const rayon = new Float64Array(nbPas + 1)
   for (let a = 0; a < nbAz; a++) {
     const azimut = (a * TOUR_DEG) / nbAz
     let haut = plancherDeg
     for (let rang = premierPas; rang <= nbPas; rang++) {
-      const d = rang * pas
-      const point = pointA(latDeg, lonDeg, azimut, d)
-      const h = altitude(point.latDeg, point.lonDeg)
-      if (h === null) continue
-      haut = Math.max(haut, elevationApparenteDeg(h - oeilM, d))
+      rayon[rang] = elevation(azimut, rang * pas)
+      haut = Math.max(haut, rayon[rang]!)
+    }
+    if (affine) {
+      haut = Math.max(haut, relitSommets(rayon, premierPas, pas, haut, (d) => elevation(azimut, d)))
     }
     // Azimuth without altitude read: nothing to draw below horizontal.
     profil[a] = Math.min(haut === -Infinity ? min : haut, max)
   }
   return profil
+}
+
+/**
+ * T-0445 — highest elevation re-read at `PAS_FIN_CRETE_M` within ±1 step of each sampled local
+ * maximum near the top: a top between two samples sits next to one of them.
+ */
+function relitSommets(
+  rayon: Float64Array,
+  premierPas: number,
+  pas: number,
+  haut: number,
+  elevation: (distanceM: number) => number,
+): number {
+  const seuil = haut - R('MARGE_SOMMET_CRETE_DEG')
+  const fin = R('PAS_FIN_CRETE_M')
+  const dernier = rayon.length - 1
+  let sommet = haut
+  for (let rang = premierPas; rang <= dernier; rang++) {
+    const e = rayon[rang]!
+    if (e < seuil) continue
+    if (rang > premierPas && rayon[rang - 1]! > e) continue
+    if (rang < dernier && rayon[rang + 1]! > e) continue
+    const de = Math.max(premierPas, rang - 1) * pas
+    const a = Math.min(dernier, rang + 1) * pas
+    for (let d = de + fin; d < a; d += fin) sommet = Math.max(sommet, elevation(d))
+  }
+  return sommet
 }
 
 /**
@@ -139,7 +179,7 @@ export function courbesNiveau(
   // none. Stopping at 500 m left plateau flat black. Under one cell the grid resolves nothing.
   const minM = pas
   const equidistance = R('EQUIDISTANCE_COURBES_M')
-  const devant = horizonDevant(altitude, latDeg, lonDeg, oeilM)
+  const devant = horizonDevant(altitude, latDeg, lonDeg, oeilM, minM)
 
   // East-north grid around site. Model hole takes eye altitude: contour closes on a flat at worst.
   const demi = Math.ceil(rayonM / pas)
@@ -478,17 +518,19 @@ function corde(u: Vec3, v: Vec3): number {
 }
 /**
  * Highest apparent terrain height BEFORE a distance, in an azimuth: what a contour point must
- * exceed to be seen. Step next to the point excluded (it is the point, within a cell).
+ * exceed to be seen. Step under the point excluded (it is the point's own slope).
+ * T-0445 — reads from `minM`, where contours start: terrain they are drawn on also hides.
  */
 function horizonDevant(
   altitude: Altimetre,
   latDeg: number,
   lonDeg: number,
   oeilM: number,
+  minM: number,
 ): (azDeg: number, distanceM: number) => number {
-  const pas = R('PAS_RADIAL_RELIEF_M')
+  const pas = R('PAS_RADIAL_MASQUE_COURBES_M')
   const nbRangs = Math.floor((R('RAYON_RELIEF_KM') * M_PAR_KM) / pas) + 1
-  const premier = Math.max(1, Math.ceil(R('DISTANCE_MIN_RELIEF_M') / pas))
+  const premier = Math.max(1, Math.ceil(minM / pas))
   const parDeg = 1 / R('PAS_AZIMUT_COURBES_DEG')
   const nbAz = Math.round(NB_AZIMUTS * parDeg)
   const table = new Float64Array(nbAz * nbRangs).fill(-Infinity)
@@ -505,7 +547,8 @@ function horizonDevant(
   // ridge the horizon ahead shifts 0.5° per 0.5° azimuth; a contour behind the ridge stayed
   // visible on its first segment (short stroke hanging off the crest).
   return (azDeg, distanceM) => {
-    const r = Math.min(nbRangs - 1, Math.floor(distanceM / pas) - 1)
+    // table[r] = max over ranks < r: terrain up to 1-2 steps before the point.
+    const r = Math.min(nbRangs - 1, Math.floor(distanceM / pas))
     if (r < 0) return -Infinity
     const x = ramene(azDeg, TOUR_DEG) * parDeg
     const a = Math.floor(x)

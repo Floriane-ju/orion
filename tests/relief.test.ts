@@ -185,6 +185,25 @@ describe('courbes de niveau vues depuis le site (T-0395)', () => {
     expect(basses(avecMur)).toHaveLength(0)
   })
 
+  it('retire ce qu’une croupe étroite cache juste derrière elle', () => {
+    // T-0445 — narrow ridge between two contour-grid nodes, then gentle slope behind: its first
+    // curve lies ~1 grid step behind the ridge top, under it in apparent height.
+    const pas = R('PAS_RADIAL_RELIEF_M')
+    const equidistance = R('EQUIDISTANCE_COURBES_M')
+    const sommet = 11 * pas
+    const plaine = (s: number): number => sol + Math.max(0, s - sommet) / 2
+    const croupe = (s: number): number =>
+      Math.abs(s - sommet) < pas / 2 ? sol + equidistance * 2.4 : plaine(s)
+    // Under the curve the ridge's front face carries: what the ridge hides.
+    const seuil = attendueDeg(equidistance - R('HAUTEUR_OEIL_M'), sommet)
+    const basses = (courbes: Float32Array) =>
+      dansLeSecteur(courbes, 175, 185).filter((s) => Math.min(s[1]!, s[3]!) < seuil)
+    const sansCroupe = courbesNiveau((lat) => plaine(versLeSud(lat)), SITE.latDeg, SITE.lonDeg)!
+    const avecCroupe = courbesNiveau((lat) => croupe(versLeSud(lat)), SITE.latDeg, SITE.lonDeg)!
+    expect(basses(sansCroupe).length).toBeGreaterThan(0)
+    expect(basses(avecCroupe)).toHaveLength(0)
+  })
+
   it('rend null sans altitude au site', () => {
     expect(courbesNiveau(() => null, SITE.latDeg, SITE.lonDeg)).toBeNull()
   })
@@ -217,6 +236,21 @@ describe('courbes de niveau vues depuis le site (T-0395)', () => {
       const masque = profilRelief(pic, SITE.latDeg, SITE.lonDeg)!
       expect(crete).toHaveLength(360 * parDeg)
       expect(Math.max(...crete)).toBeGreaterThan(Math.max(...masque) + 1)
+    })
+
+    it('atteint le sommet d’une arête tombé entre deux pas radiaux', () => {
+      // T-0445 — rounded ridge due south, top between two PAS_RADIAL_RELIEF_M samples: crest
+      // stopped below it, contours rose into the sky above drawn sol.
+      const pas = R('PAS_RADIAL_RELIEF_M')
+      const sommetM = 50.5 * pas
+      const demiLargeurM = 2 * pas
+      const arete = (lat: number): number => {
+        const x = (versLeSud(lat) - sommetM) / demiLargeurM
+        return Math.abs(x) < 1 ? sol + denivele * (1 - x * x) : sol
+      }
+      const parDeg = 1 / R('PAS_AZIMUT_CRETE_DEG')
+      const sud = creteFine(arete, SITE.latDeg, SITE.lonDeg)![180 * parDeg]!
+      expect(sud).toBeCloseTo(attendueDeg(denivele - R('HAUTEUR_OEIL_M'), sommetM), 1)
     })
 
     it('dessine la rive d’en face sous l’horizontale, là où le masque reste à 0°', () => {
