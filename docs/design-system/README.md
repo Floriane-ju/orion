@@ -356,6 +356,11 @@ par défaut), `flottant` (seul sur le ciel — le rail), `nu` (dans une rangée 
 transport du temps, le retour de fiche). Enfoncé (`presse`), son glyphe se remplit dans toutes.
 La nuit, le `flottant` enfoncé perd son aplat `--texte` (une lampe sur l'œil adapté) : filet
 doublé et glyphe rempli suffisent (T-0375).
+**Une seule grammaire d'état pour toutes les bascules** (T-0303) : glyphe REMPLI = l'effet est
+actif ; glyphe CREUX = il ne l'est pas — bascule relâchée, ou enfoncée mais `eteinte` (effet
+suspendu). L'enfoncé se lit en plus au fond ou au filet, jamais à la seule teinte : en mode nuit
+toute la palette est rouge. Une bascule tient `aria-pressed` avec un nom stable ; un bouton dont
+le nom change selon l'état ne porte pas `aria-pressed`.
 La bulle nomme le bouton ; `libelle` ne se passe que si elle dit autre chose que le geste.
 
 ```tsx

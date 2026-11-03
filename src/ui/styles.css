@@ -1439,6 +1439,14 @@ body {
   color: var(--bordure-controle);
 }
 
+/* T-0303 — §11.1: hue alone vanishes in mode nuit (all red). Filled glyph = effect ON, so a
+   toggle whose effect is suspended goes HOLLOW even when pressed; the pressed state stays
+   readable by its fond/filet. Selector outranks `[aria-pressed='true'] > .icone`. */
+.bouton-glyphe.eteinte[aria-pressed='true'] > .icone {
+  --icone-remplissage: 0;
+  --icone-graisse: 300;
+}
+
 /* Allumée mais sans effet : l'aplat s'efface à la surface haute, pour ne pas promettre une
    couche qu'on ne verra pas. */
 .bouton-glyphe.eteinte[aria-pressed='true'] {
