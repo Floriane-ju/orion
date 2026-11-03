@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest'
 import { planCalibration } from '../src/core/calibration.ts'
 import { S_PAR_MIN } from '../src/core/unites.ts'
 
-const SESSION = { tPosesS: [13], iso: 640, nPoses: 252 }
+const SESSION = { tPosesS: [13], iso: 640, nPoses: 261 }
 
 describe('plan de calibration §7.4', () => {
   const plan = planCalibration(SESSION)

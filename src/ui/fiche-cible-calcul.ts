@@ -281,7 +281,7 @@ export function evalue(
   // not fitting one night, where plan said it.
   const integrationCommune = {
     eCiel: eCiel.value,
-    tPoseS: pose.tRecommandeS.value,
+    tPoseS: pose.tAfficheeS,
     readNoiseE: pose.readNoiseUtiliseE,
     snrCible,
     tailleRawMo: contexte.boitier.tailleRawMo,
@@ -397,7 +397,7 @@ function expliqueVerdict(
   const point: PointExplicationFiche = {
     sb_obj: r.sbObj,
     sb_ciel: r.sbCiel,
-    t_pose_s: r.pose.tRecommandeS.value,
+    t_pose_s: r.pose.tAfficheeS,
     read_noise_e: r.pose.readNoiseUtiliseE,
     snr_cible: snrCible,
     ...(masseAirValeur === null ? {} : { masse_air: masseAirValeur }),
@@ -477,7 +477,7 @@ export function conseilsCible(
     explicationDepliee: entree.explicationDepliee,
     eObj: r.eObj.value,
     eCiel: r.eCiel.value,
-    tPoseS: r.pose.tRecommandeS.value,
+    tPoseS: r.pose.tAfficheeS,
     readNoiseE: r.pose.readNoiseUtiliseE,
     snrCible: entree.snrCible,
     tailleRawMo: contexte.boitier.tailleRawMo,

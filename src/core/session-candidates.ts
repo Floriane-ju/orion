@@ -277,7 +277,7 @@ function evalue(
   const integration = planIntegration({
     eObj: eObjReel,
     eCiel: eCiel.value,
-    tPoseS: pose.tRecommandeS.value,
+    tPoseS: pose.tAfficheeS,
     readNoiseE: pose.readNoiseUtiliseE,
     snrCible: contexte.snrCible,
     tailleRawMo: contexte.tailleRawMo,

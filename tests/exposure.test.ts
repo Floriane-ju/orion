@@ -141,16 +141,17 @@ describe('nombre de poses et intégration §7.3', () => {
   const BASE = {
     eObj: E_OBJ,
     eCiel: E_CIEL,
-    tPoseS: 13.426,
+    // Pose affichée, not t_opt 13,4 s (T-0269).
+    tPoseS: 13,
     readNoiseE: 1.5,
     tailleRawMo: 33,
   }
 
-  it('chiffre M33 à environ 56 min, 250 poses et 8 Go pour un SNR de 10', () => {
+  it('chiffre M33 à environ 56 min, 260 poses et 8,3 Go pour un SNR de 10', () => {
     const plan = planIntegration({ ...BASE, snrCible: 10 })
     expect(plan.tRequisS.value / 60).toBeCloseTo(56, 0)
-    expect(plan.nPoses.value).toBeCloseTo(250, -1)
-    expect(plan.volumeGo.value).toBeCloseTo(8.1, 1)
+    expect(plan.nPoses.value).toBeCloseTo(260, -1)
+    expect(plan.volumeGo.value).toBeCloseTo(8.3, 1)
     expect(plan.horsDePortee).toBe(false)
   })
 

@@ -2270,6 +2270,9 @@ RÉSOLUTION INVERSE
   T_requis = SNR_cible² × ( E_obj + E_ciel + RN² / t_pose ) / E_obj²
   N_poses  = ceil( T_requis / t_pose )
 
+  t_pose est la pose AFFICHÉE (arrondie à l'obturateur, §7.2), pas l'optimum t_opt :
+  qui suit la consigne à la lettre doit atteindre T_requis, soit N_poses × t_pose ≥ T_requis.
+
 LOI FONDAMENTALE, affichée en permanence
   SNR ∝ √T  →  DOUBLER LA QUALITÉ = QUADRUPLER LE TEMPS.
 
@@ -2282,16 +2285,16 @@ BUDGET MATÉRIEL
   n_nuits   = ceil( T_requis / duree_creneau_disponible )        §8.2
 ```
 
-**Application au setup de référence** — SB_ciel 20,95 · pose 13,4 s à ISO 640 · E_ciel 1,68 · RN 1,5 · taille RAW 33 Mo `[À VÉRIFIER]` :
+**Application au setup de référence** — SB_ciel 20,95 · pose affichée 13 s (optimum 13,4 s) à ISO 640 · E_ciel 1,68 · RN 1,5 · taille RAW 33 Mo `[À VÉRIFIER]` :
 
 | Cible | SB_obj | E_obj (e⁻/s/px) | T pour SNR 10 | T pour SNR 20 | N poses (SNR 10) | Volume |
 |---|---|---|---|---|---|---|
-| M31 | 22,17 | 0,545 | **13,4 min** | 53,7 min | 60 | 2,0 Go |
-| M33 | 23,02 | 0,249 | **56,3 min** | 3 h 45 | 252 | 8,3 Go |
+| M31 | 22,17 | 0,545 | **13,5 min** | 53,8 min | 63 | 2,0 Go |
+| M33 | 23,02 | 0,249 | **56,5 min** | 3 h 46 | 261 | 8,4 Go |
 
 M33 demande quatre fois le temps de M31 pour la même qualité, alors que sa magnitude intégrée la dit plus faible de seulement 2,3 mag. Toute la valeur du moteur tient dans cet écart.
 
-**Le budget stockage est bloquant en pratique** : 252 poses sur une seule cible représentent 8,3 Go. Une session de trois cibles sature une carte de 32 Go. L'application l'annonce avant la sortie, pas pendant.
+**Le budget stockage est bloquant en pratique** : 261 poses sur une seule cible représentent 8,4 Go. Une session de trois cibles sature une carte de 32 Go. L'application l'annonce avant la sortie, pas pendant.
 
 ### Entrées / Sorties
 
@@ -2309,10 +2312,11 @@ M33 demande quatre fois le temps de M31 pour la même qualité, alors que sa mag
 ### Critères d'acceptation
 
 ```gherkin
-Étant donné M33 ; E_obj = 0,249 ; E_ciel = 1,68 ; t_pose = 13,4 s ; RN = 1,5 ; SNR cible 10
+Étant donné M33 ; E_obj = 0,249 ; E_ciel = 1,68 ; t_pose affichée = 13 s ; RN = 1,5 ; SNR cible 10
 Quand je calcule le plan de capture
-Alors T_requis vaut 56 min, N = 252 poses, volume ≈ 8,3 Go
-Et l'app affiche que passer à SNR 20 exige 3 h 45, soit quatre fois plus
+Alors T_requis vaut 56 min, N = 261 poses, volume ≈ 8,4 Go
+Et N × t_pose affichée couvre T_requis
+Et l'app affiche que passer à SNR 20 exige 3 h 46, soit quatre fois plus
 
 Étant donné une cible dont T_requis dépasse le créneau disponible   # cas limite
 Quand je calcule le plan
@@ -2380,7 +2384,7 @@ HIÉRARCHIE POUR LE GRAND CHAMP RAPIDE
 ### Critères d'acceptation
 
 ```gherkin
-Étant donné une session de 252 poses de 13 s à ISO 640
+Étant donné une session de 261 poses de 13 s à ISO 640
 Quand j'ouvre le plan de calibration
 Alors l'app prescrit 30 darks de 13 s à ISO 640, 25 flats et 50 offsets
 Et ajoute environ 7 min au budget de session pour les darks
@@ -4774,12 +4778,12 @@ Valeurs de travail : RN ≈ 1,5 e⁻ au-delà du seuil de double gain (≈ ISO 6
 
 **Cadrage** : un objet de 6,5' y occupe 0,95 % du champ, soit 44 px — il faudrait 5 300 mm de focale pour le cadrer au remplissage visé de 42 %, et de 4 230 à 6 340 mm aux deux bornes de C-05.
 
-**Intégrations calculées** (SNR cible 10, pose 13,4 s) :
+**Intégrations calculées** (SNR cible 10, pose affichée 13 s) :
 
 | Cible | SB_obj | E_obj | T requis | N poses | Volume |
 |---|---|---|---|---|---|
-| M31 | 22,17 | 0,545 e⁻/s/px | 13,4 min | 60 | 2,0 Go |
-| M33 | 23,02 | 0,249 e⁻/s/px | 56,3 min | 252 | 8,3 Go |
+| M31 | 22,17 | 0,545 e⁻/s/px | 13,5 min | 63 | 2,0 Go |
+| M33 | 23,02 | 0,249 e⁻/s/px | 56,5 min | 261 | 8,4 Go |
 
 ## Configuration grand champ — 10 mm f/2,8
 

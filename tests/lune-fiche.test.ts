@@ -169,6 +169,19 @@ describe('T-0268 — la liste, la fiche et le plan annoncent le même dosage', (
     expect(liste?.pose?.tPoseS).toBe(fiche.pose?.tAfficheeS)
   })
 
+  // T-0269 — consigne followed to the letter (pose affichée × N) must reach T_requis.
+  it('pose affichée × nombre de poses couvre l’intégration, dans la fiche comme dans le plan', () => {
+    const { pose, integration } = fiche
+    expect(pose).toBeDefined()
+    expect(integration).toBeDefined()
+    expect(integration!.nPoses.value * pose!.tAfficheeS).toBeGreaterThanOrEqual(
+      integration!.tRequisS.value,
+    )
+    expect(etape.integration.nPoses.value * etape.tPoseS).toBeGreaterThanOrEqual(
+      etape.integration.tRequisS.value,
+    )
+  })
+
   it('éteint la cible à la MÊME masse d’air : celle du créneau, pas la culmination', () => {
     expect(fiche.extinction?.masseAir.value).toBe(etape.extinction.masseAir.value)
     expect(fiche.extinction?.masseAir.value).toBe(etape.creneau.masseAirMoyenne.value)
