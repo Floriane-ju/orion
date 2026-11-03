@@ -64,6 +64,8 @@ import { ouvreReglage } from './TiroirRail.tsx'
 import { majCatalogue, useCatalogue } from './catalogue-etat.ts'
 import { minuteAffichee, useTrancheScene } from './scene-etat.ts'
 import { compte } from './horaire.ts'
+import { phraseNuitListe } from './nuit-liste.ts'
+import { MS_PAR_MINUTE } from '../core/unites.ts'
 import type { Objectif } from '../core/objectif.ts'
 import { champsExtremes, type Zoom } from './zoom-calcul.ts'
 
@@ -253,6 +255,9 @@ export function PanneauCibles(props: PanneauCiblesProps) {
           onClick={() => majCatalogue({ filtresOuverts: !filtresOuverts })}
         />
       </div>
+
+      {/* T-0284 — which night the list judges, and where the scène stands against it. */}
+      <p className="etat">{phraseNuitListe(contexteSession.nuit, new Date(minute * MS_PAR_MINUTE))}</p>
 
       {/* Pane unfolds IN the flow, not overlaid: nothing masks the rows the filter changes. */}
       {/* Always mounted, inert once folded: lets the fold animate, like an absent layer on the

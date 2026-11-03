@@ -22,12 +22,8 @@ import type { ContexteSession } from '../core/session.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { nombre } from '../registry/ecriture.ts'
 import { BoutonGlyphe } from './BoutonGlyphe.tsx'
-import { vaA } from './scene-etat.ts'
-import { cadreScene } from './BoutonCadrer.tsx'
+import { cadreA } from './BoutonCadrer.tsx'
 import type { ProfilCadre } from '../core/cadre.ts'
-import { coordonneesHorizon } from '../core/cibles-liste.ts'
-import { matriceALaMinute } from '../core/horloges.ts'
-import { MS_PAR_MINUTE } from '../core/unites.ts'
 
 export const HORS_SAISON = 'Invisible aujourd’hui'
 /** Too low / never risen: same card answer (neither focale nor date helps); hauteur on fiche. */
@@ -169,11 +165,7 @@ export function BoutonProchainCreneau({
           setIntrouvable(true)
           return
         }
-        vaA(instant.getTime())
-        // Direction AT that instant, not the one left (cible highest there).
-        const matrice = matriceALaMinute(contexte.site, Math.floor(instant.getTime() / MS_PAR_MINUTE))
-        const { azimutDeg, hauteurDeg } = coordonneesHorizon(objet, matrice)
-        cadreScene(objet, azimutDeg, hauteurDeg, profil, gaiaCharge)
+        cadreA(objet, contexte.site, profil, gaiaCharge, instant)
       }}
     />
   )

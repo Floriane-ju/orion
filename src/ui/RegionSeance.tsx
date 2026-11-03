@@ -22,7 +22,7 @@ import { PanneauFile } from './PanneauFile.tsx'
 import { FicheSousZoom } from './FicheZoom.tsx'
 import { Pastilles } from './Pastilles.tsx'
 import { Bulle } from './Bulle.tsx'
-import { AlignementCible, CadrerCible } from './BoutonCadrer.tsx'
+import { AlignementCible, cadreA, CadrerCible } from './BoutonCadrer.tsx'
 import { BoutonChoixCible } from './BoutonChoixCible.tsx'
 import { PlanSessionVue } from './PlanSession.tsx'
 import { RegionNuit } from './RegionNuit.tsx'
@@ -303,6 +303,15 @@ export function LateralSeance(props: RegionSeanceProps) {
               ecarteePlan={ecarteePlan}
               etapePlan={etapePlan}
               facilite={facilite}
+              vaAInstant={(instant) =>
+                cadreA(
+                  props.cibleDuCiel!,
+                  chaine.site,
+                  chaine.profilsCadre[0],
+                  props.gaiaCharge,
+                  instant,
+                )
+              }
             />
           )
         ) : mode === 'PANORAMA' ? (

@@ -58,6 +58,36 @@ export interface FicheCibleProps extends ContexteFiche {
    * could diverge.
    */
   readonly reglageZoom?: (remplissage: number | null) => ReactNode
+  /**
+   * T-0284 — jump the scène to an instant, cible centred and followed. Absent: créneau and
+   * culmination stay plain readings (no matériel cadre to aim with).
+   */
+  readonly vaAInstant?: (instant: Date) => void
+}
+
+/** T-0284 — a time of the fiche that leads to its instant: reading kept, gesture added. */
+function LectureSaut(props: {
+  readonly libelle: ReactNode
+  readonly valeur: string
+  readonly instant: Date
+  readonly aide: string
+  readonly vaAInstant: ((instant: Date) => void) | undefined
+}) {
+  const { vaAInstant, instant } = props
+  if (vaAInstant === undefined) return <Lecture libelle={props.libelle} valeur={props.valeur} />
+  return (
+    <p className="tracee tracee-vide">
+      <span>{props.libelle}</span>
+      <button
+        type="button"
+        className="tracee-valeur tracee-saut"
+        aria-label={`${props.aide}, ${heure(instant)}`}
+        onClick={() => vaAInstant(instant)}
+      >
+        {props.valeur}
+      </button>
+    </p>
+  )
 }
 
 const NON_CHIFFRE = '—'
@@ -72,7 +102,9 @@ function Resume({
   s,
   culmination,
   extinction,
+  vaAInstant,
 }: {
+  readonly vaAInstant: ((instant: Date) => void) | undefined
   readonly objet: ObjetCielProfond
   readonly s: SyntheseFiche | null
   /** Time of night's highest point, `null` without priced night: line doesn't pad. */
@@ -91,12 +123,25 @@ function Resume({
         </p>
         <p className="fiche-resume-type">{LIBELLE_TYPE_OBJET[objet.type]}</p>
       </div>
-      <Lecture
-        libelle="Créneau d’observation"
-        valeur={creneau === null ? NON_CHIFFRE : `${heure(creneau.debut)} → ${heure(creneau.fin)}`}
-      />
+      {creneau === null ? (
+        <Lecture libelle="Créneau d’observation" valeur={NON_CHIFFRE} />
+      ) : (
+        <LectureSaut
+          libelle="Créneau d’observation"
+          valeur={`${heure(creneau.debut)} → ${heure(creneau.fin)}`}
+          instant={creneau.debut}
+          aide={`Aller au début du créneau de ${objet.designation}`}
+          vaAInstant={vaAInstant}
+        />
+      )}
       {culmination !== null && (
-        <Lecture libelle={<Etiquette cle="culmination" />} valeur={heure(culmination)} />
+        <LectureSaut
+          libelle={<Etiquette cle="culmination" />}
+          valeur={heure(culmination)}
+          instant={culmination}
+          aide={`Aller à la culmination de ${objet.designation}`}
+          vaAInstant={vaAInstant}
+        />
       )}
       {/* T-0385 — air loss is a property of the night, like créneau. */}
       {extinction !== null && extinction.attenuation.value !== null && (
@@ -156,6 +201,7 @@ export function FicheCible(props: FicheCibleProps) {
         s={synthese}
         culmination={nuit.creneau.chiffre ? nuit.creneau.creneau.heureCulmination : null}
         extinction={calcul.ok ? calcul.r.extinction : null}
+        vaAInstant={props.vaAInstant}
       />
       <ChampsCible objet={objet} />
       {calcul.ok && synthese !== null && (

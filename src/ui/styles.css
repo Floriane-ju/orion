@@ -2962,6 +2962,23 @@ th {
   color: var(--texte);
 }
 
+/* T-0284 — une heure de la fiche qui mène à son instant : elle reste une valeur à lire, le
+   soulignement dit le geste, puisque la couleur ne le peut pas (même raison que `.etape-lien`). */
+.tracee-saut {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  text-decoration: underline var(--bordure-controle);
+}
+
+.tracee-saut:not(:disabled):hover,
+.tracee-saut:focus-visible {
+  background: transparent;
+  text-decoration-color: var(--texte);
+}
+
 .depreciee td {
   text-decoration: line-through;
   color: var(--attenue);

@@ -13,6 +13,7 @@ import { cibleDominante, rotationSuggeree, type ProfilCadre } from '../core/cadr
 import { coordonneesHorizon } from '../core/cibles-liste.ts'
 import type { Site } from '../core/ephem.ts'
 import { matriceALaMinute } from '../core/horloges.ts'
+import { MS_PAR_MINUTE } from '../core/unites.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { bornesZoom } from '../core/projection.ts'
 import { BoutonGlyphe, type VarianteGlyphe } from './BoutonGlyphe.tsx'
@@ -23,6 +24,7 @@ import {
   minuteAffichee,
   suisCible,
   useTrancheScene,
+  vaA,
   vueScene,
 } from './scene-etat.ts'
 
@@ -114,6 +116,24 @@ export function cadreScene(
   }
   const fovDeg = champPourCadrer(profil.fovLDeg, bornesZoom(gaiaCharge, etatScene().vue.mode))
   suisCible(suivi, { azimutDeg, hauteurDeg, fovDeg })
+}
+
+/**
+ * T-0284 — go to an instant AND turn toward the cible there: the fiche's créneau and culmination,
+ * the prochain créneau. Direction AT that instant, not the one left (a daytime « Cadrer » could
+ * aim under the horizon). Suivi then holds it while time moves.
+ */
+export function cadreA(
+  objet: ObjetCielProfond,
+  site: Site,
+  profil: ProfilCadre | undefined,
+  gaiaCharge: boolean,
+  instant: Date,
+): void {
+  vaA(instant.getTime())
+  const matrice = matriceALaMinute(site, Math.floor(instant.getTime() / MS_PAR_MINUTE))
+  const { azimutDeg, hauteurDeg } = coordonneesHorizon(objet, matrice)
+  cadreScene(objet, azimutDeg, hauteurDeg, profil, gaiaCharge)
 }
 
 /**
