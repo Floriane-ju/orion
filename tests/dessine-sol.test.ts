@@ -45,6 +45,10 @@ function contexte(teinte = 'courbes'): {
     lineTo: () => {
       courant.lineTo++
     },
+    // Une courbe de niveau lissée joint ses points par des arcs : chacun compte comme un trait.
+    quadraticCurveTo: () => {
+      courant.lineTo++
+    },
     closePath: rien,
     fill: rien,
     stroke: () => {

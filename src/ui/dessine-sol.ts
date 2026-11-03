@@ -105,6 +105,7 @@ function traceCourbes(
   matriceCiel: Mat3,
   courbes: Float32Array,
   couleur: string,
+  lisse = false,
 ): void {
   const [m11, m12, m13, m21, m22, m23, m31, m32, m33] = matriceCiel
   const { directions, lignes } = courbesPretes(courbes)
@@ -126,6 +127,16 @@ function traceCourbes(
   for (const { debut, fin, englobe } of lignes) {
     if (englobe !== null && horsDuChamp(champ, englobe.centre, englobe.rayonDeg)) continue
     let enchaine = false
+    // T-0441 — lissé, chaque point devient le point de contrôle d'un arc qui va d'un milieu de
+    // segment au suivant : les coudes que la grille de 100 m laisse aux courbes proches, où une
+    // maille couvre plusieurs degrés, s'arrondissent. Le dernier point attend le suivant.
+    let attente = false
+    let ax = 0
+    let ay = 0
+    const acheve = (): void => {
+      if (attente) ctx.lineTo(ax, ay)
+      attente = false
+    }
     for (let j = 3 * debut; j < 3 * fin; j += 3) {
       const n = directions[j]!
       const e = directions[j + 1]!
@@ -138,13 +149,21 @@ function traceCourbes(
         point,
       )
       if (!projete) {
+        acheve()
         enchaine = false
         continue
       }
-      if (enchaine) ctx.lineTo(point.xPx, point.yPx)
-      else ctx.moveTo(point.xPx, point.yPx)
+      if (!enchaine) ctx.moveTo(point.xPx, point.yPx)
+      else if (!lisse) ctx.lineTo(point.xPx, point.yPx)
+      else {
+        if (attente) ctx.quadraticCurveTo(ax, ay, (ax + point.xPx) / 2, (ay + point.yPx) / 2)
+        ax = point.xPx
+        ay = point.yPx
+        attente = true
+      }
       enchaine = true
     }
+    acheve()
   }
   ctx.stroke()
 }
@@ -206,7 +225,9 @@ export function dessineSol(
   }
   remplitRegion(ctx, dernier.frontiere, couleurs.sol)
   if (masque.courbesDeg !== undefined && masque.courbesDeg.length > 0) {
-    traceCourbes(ctx, projecteur, matriceCiel, masque.courbesDeg, couleurs.courbes)
+    // Seules les courbes se lissent : la crête doit suivre le bord du sol rempli, segment à
+    // segment, et une silhouette marque une arête.
+    traceCourbes(ctx, projecteur, matriceCiel, masque.courbesDeg, couleurs.courbes, true)
   }
   if (masque.silhouettesDeg !== undefined && masque.silhouettesDeg.length > 0) {
     traceCourbes(ctx, projecteur, matriceCiel, masque.silhouettesDeg, couleurs.bords)

@@ -193,6 +193,18 @@ describe('courbes de niveau vues depuis le site (T-0395)', () => {
     expect(courbesNiveau(() => null, SITE.latDeg, SITE.lonDeg)).toBeNull()
   })
 
+  it('trace aussi les courbes du terrain proche, en deçà du seuil du masque', () => {
+    // Une pente qui descend vers le sud : la première courbe sous le site passe à mi-chemin
+    // du seuil où le masque cesse de lire le terrain.
+    const equidistance = R('EQUIDISTANCE_COURBES_M')
+    const distance = R('DISTANCE_MIN_RELIEF_M') / 2
+    const pente = (s: number): number => sol - (Math.max(s, 0) * equidistance) / distance
+    const courbes = courbesNiveau((lat) => pente(versLeSud(lat)), SITE.latDeg, SITE.lonDeg)!
+    const attendue = attendueDeg(-equidistance - R('HAUTEUR_OEIL_M'), distance)
+    const proches = dansLeSecteur(courbes, 179.5, 180.5).flatMap((s) => [s[1]!, s[3]!])
+    expect(proches.some((h) => Math.abs(h - attendue) < 0.05)).toBe(true)
+  })
+
   describe('crête fine pour le dessin (T-0438)', () => {
     /** Un pic étroit plein sud, décalé d'un demi-degré : il tombe entre deux azimuts entiers. */
     const pic = (lat: number, lon: number): number => {

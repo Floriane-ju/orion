@@ -152,7 +152,10 @@ export function courbesNiveau(
   const oeilM = sol + R('HAUTEUR_OEIL_M')
   const pas = R('PAS_RADIAL_RELIEF_M')
   const rayonM = R('RAYON_RELIEF_KM') * M_PAR_KM
-  const minM = R('DISTANCE_MIN_RELIEF_M')
+  // T-0441 — le seuil du masque protège un HORIZON du bruit du modèle ; une courbe dessinée
+  // sous le site n'en invente aucun. S'arrêter à 500 m laissait le plateau en aplat noir. En
+  // deçà d'une maille, la grille ne résout plus rien.
+  const minM = pas
   const equidistance = R('EQUIDISTANCE_COURBES_M')
   const devant = horizonDevant(altitude, latDeg, lonDeg, oeilM)
 
