@@ -4408,3 +4408,38 @@ button:not(:disabled):active,
   margin: var(--pas-6) auto;
   padding: var(--pas-5);
 }
+
+/* T-0448 — L'ONBOARDING : une colonne seule sur le fond, avant la coque. Le corps de page ne
+   défile pas sous la scène : la colonne porte son propre défilement, sinon le dernier bouton
+   d'une étape longue sort de l'écran. */
+.accueil {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pas-4);
+  block-size: 100vh;
+  block-size: 100dvh;
+  overflow-y: auto;
+  padding: var(--pas-6) var(--pas-4);
+}
+
+.accueil > * {
+  inline-size: 100%;
+  max-inline-size: var(--carte-large);
+  margin-inline: auto;
+}
+
+.accueil > h1 {
+  color: var(--texte);
+}
+
+.accueil-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--pas-2);
+}
+
+.accueil-retour {
+  margin-inline-end: auto;
+}

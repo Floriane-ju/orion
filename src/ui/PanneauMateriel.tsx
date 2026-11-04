@@ -153,7 +153,7 @@ export interface PanneauMaterielProps {
  * the first was ticked, for five really distinct answers. Engine and stored profile keep three
  * fields (§5.2 contract, §12.3 export format); input shows one.
  */
-function ChampsSuivi(props: PanneauMaterielProps) {
+export function ChampsSuivi(props: PanneauMaterielProps) {
   const lectures = props.lectures
 
   function surMonture(choix: ChoixMonture) {

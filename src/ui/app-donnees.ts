@@ -118,8 +118,8 @@ export interface SaisieRestauree {
   readonly poids: PoidsScoring | null
   /** Set when reread failed: writes then stay suspended. */
   readonly erreur: string | null
-  /** T-0431 — input comes from the URL: saved on open, without waiting for a gesture. */
-  readonly planDeLUrl: boolean
+  /** T-0431, T-0448 — input from the URL or onboarding: saved on open, without a gesture. */
+  readonly ecritAuDepart: boolean
 }
 
 const RIEN_A_RESTAURER: SaisieRestauree = Object.freeze({
@@ -127,7 +127,7 @@ const RIEN_A_RESTAURER: SaisieRestauree = Object.freeze({
   materiel: null,
   poids: null,
   erreur: null,
-  planDeLUrl: false,
+  ecritAuDepart: false,
 })
 
 /**
@@ -167,7 +167,7 @@ export function avecPlanUrl(
   if (ouvreEcritures && typeof history !== 'undefined' && location.search !== '') {
     history.replaceState(history.state, '', `${location.pathname}${location.hash}`)
   }
-  return { ...suivante, planDeLUrl: ouvreEcritures && change }
+  return { ...suivante, ecritAuDepart: ouvreEcritures && change }
 }
 
 /**
@@ -200,7 +200,7 @@ export function useSaisieRestauree(): SaisieRestauree | null {
               materiel: departMateriel(profil),
               poids,
               erreur: null,
-              planDeLUrl: false,
+              ecritAuDepart: false,
             },
             choisies,
             true,

@@ -249,6 +249,11 @@ export interface PanneauBoitierProps {
   readonly lectureIso?: IsoRetenu | undefined
   /** §5.2 — suivi, mounted by `PanneauMateriel` which holds its state. */
   readonly suivi?: ReactNode
+  /**
+   * T-0448 — onboarding: which camera only. No calcul runs yet, ISO would read « — »; weight,
+   * crop and advanced quantities wait for the Boîtier card.
+   */
+  readonly essentiel?: boolean
 }
 
 export function PanneauBoitier(props: PanneauBoitierProps) {
@@ -291,29 +296,33 @@ export function PanneauBoitier(props: PanneauBoitierProps) {
             />
           </>
         )}
-        {/* T-0155 — §7.3 deems the storage budget "blocking in practice". A figure deciding the
-            outcome does not hide under a disclosure: varies per boîtier, only advanced quantity
-            whose absence skews a displayed volume.
-            T-0205 — survives choosing a DB boîtier (prefilled): RAW setting changes weight
-            without changing camera. */}
-        <ChampDomaine
-          domaine="taille_raw_mo"
-          cle="poids_image"
-          unite
-          valeur={props.boitier.tailleRawMo}
-          surValeur={surChamp('tailleRawMo')}
-          note={notes.tailleRawMo}
-        />
-        {/* T-0234 — survives choosing a DB boîtier, like weight: crop is a shooting MODE, not a
-            characteristic of the chosen row. */}
-        <ChampChoix
-          cle="recadrage_capteur"
-          valeur={props.capteurMode}
-          surChangement={props.surCapteurMode}
-        >
-          <option value="FULL_FRAME">{LIBELLE_RECADRAGE.FULL_FRAME}</option>
-          <option value="APSC_CROP">{LIBELLE_RECADRAGE.APSC_CROP}</option>
-        </ChampChoix>
+        {props.essentiel !== true && (
+          <>
+            {/* T-0155 — §7.3 deems the storage budget "blocking in practice". A figure deciding the
+                outcome does not hide under a disclosure: varies per boîtier, only advanced quantity
+                whose absence skews a displayed volume.
+                T-0205 — survives choosing a DB boîtier (prefilled): RAW setting changes weight
+                without changing camera. */}
+            <ChampDomaine
+              domaine="taille_raw_mo"
+              cle="poids_image"
+              unite
+              valeur={props.boitier.tailleRawMo}
+              surValeur={surChamp('tailleRawMo')}
+              note={notes.tailleRawMo}
+            />
+            {/* T-0234 — survives choosing a DB boîtier, like weight: crop is a shooting MODE, not a
+                characteristic of the chosen row. */}
+            <ChampChoix
+              cle="recadrage_capteur"
+              valeur={props.capteurMode}
+              surChangement={props.surCapteurMode}
+            >
+              <option value="FULL_FRAME">{LIBELLE_RECADRAGE.FULL_FRAME}</option>
+              <option value="APSC_CROP">{LIBELLE_RECADRAGE.APSC_CROP}</option>
+            </ChampChoix>
+          </>
+        )}
       </div>
       {props.noteRecadrage !== undefined && <Mention ton="cause">{props.noteRecadrage}</Mention>}
       {ligne === null ? (
@@ -326,28 +335,32 @@ export function PanneauBoitier(props: PanneauBoitierProps) {
               block under the section: an alert far from its cause designates nothing. The
               `zp_source` line leaves too — §7.1 requires it wherever a pose is displayed, this
               panel displays none; it lives in verdicts, filé and séance. */}
-          <details className="avancees">
-            <summary>
-              <Bulle texte={AIDE_AVANCEES} place="bas">
-                <span className="aide">Grandeurs du capteur — mode avancé</span>
-              </Bulle>
-              {resumeAvancees !== undefined && <AlerteChamp note={resumeAvancees} />}
-              {/* Chevron replaces the native marker (left of text; a wrapping label left it
-                  alone on its line). */}
-              <Icone nom="expand_more" classe="chevron" />
-            </summary>
-            <ChampsAvances boitier={props.boitier} surChamp={surChamp} notes={notes} />
-          </details>
+          {props.essentiel !== true && (
+            <details className="avancees">
+              <summary>
+                <Bulle texte={AIDE_AVANCEES} place="bas">
+                  <span className="aide">Grandeurs du capteur — mode avancé</span>
+                </Bulle>
+                {resumeAvancees !== undefined && <AlerteChamp note={resumeAvancees} />}
+                {/* Chevron replaces the native marker (left of text; a wrapping label left it
+                    alone on its line). */}
+                <Icone nom="expand_more" classe="chevron" />
+              </summary>
+              <ChampsAvances boitier={props.boitier} surChamp={surChamp} notes={notes} />
+            </details>
+          )}
         </>
       ) : (
         <ManquesDeLaBase ligne={ligne} />
       )}
-      <LigneIso
-        iso={props.iso}
-        surIso={props.surIso}
-        lecture={props.lectureIso}
-        fige={ligne !== null}
-      />
+      {props.essentiel !== true && (
+        <LigneIso
+          iso={props.iso}
+          surIso={props.surIso}
+          lecture={props.lectureIso}
+          fige={ligne !== null}
+        />
+      )}
     </>
   )
 }

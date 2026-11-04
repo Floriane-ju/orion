@@ -42,6 +42,8 @@ import { litEtatPersiste, type EtatModeNuit } from './data/mode-nuit.ts'
 import { JourClair } from './ui/jour-clair.ts'
 import { installeEchap, installeFermetureDehors } from './ui/gere-echap.ts'
 import { Mention } from './ui/Mention.tsx'
+import { Accueil } from './ui/Accueil.tsx'
+import { accueilAProposer } from './ui/accueil-calcul.ts'
 
 
 /**
@@ -85,13 +87,26 @@ export function App() {
   // T-0296 — catalogues load HERE, above the wait: requests start with the saved-input read.
   // In `AppPrete` they started only after DB read + first frame.
   const catalogues = useCatalogues()
+  const [apresAccueil, setApresAccueil] = useState<SaisieRestauree | null>(null)
+
+  // T-0189 — single app-wide Échap listener: bubbles open without JS can't carry their own
+  // (§1.4.13, see `gere-echap.ts`). Above the wait: onboarding fields carry bubbles too.
+  useEffect(() => installeEchap(document), [])
+  useEffect(() => installeFermetureDehors(document), [])
+
   if (restauree === null)
     return (
       <p className="etat" role="status" aria-live="polite">
         Lecture des données enregistrées…
       </p>
     )
-  return <AppPrete restauree={restauree} catalogues={catalogues} />
+  if (apresAccueil === null && accueilAProposer(restauree, typeof indexedDB !== 'undefined'))
+    return (
+      <Accueil
+        surFin={(saisie) => setApresAccueil({ ...restauree, ...saisie, ecritAuDepart: true })}
+      />
+    )
+  return <AppPrete restauree={apresAccueil ?? restauree} catalogues={catalogues} />
 }
 
 function AppPrete({
@@ -107,10 +122,6 @@ function AppPrete({
   // §12.5 — displayed state follows toggles, not frozen at startup.
   const modeReseau = useSyncExternalStore<ModeReseau>(abonneModeReseau, modeReseauCourant, () => 'EN_LIGNE')
 
-  // T-0189 — single app-wide Échap listener: bubbles open without JS can't carry their own
-  // (§1.4.13, see `gere-echap.ts`).
-  useEffect(() => installeEchap(document), [])
-  useEffect(() => installeFermetureDehors(document), [])
   // T-0362 — a fiche left open reopens once the catalogue is there.
   useEffect(() => relieCible(catalogues.objets), [catalogues.objets])
 
@@ -142,7 +153,7 @@ function AppPrete({
     profil: profilAEnregistrer(materiel),
     poids,
     erreurRestauration: restauree.erreur,
-    ecritAuDepart: restauree.planDeLUrl,
+    ecritAuDepart: restauree.ecritAuDepart,
   })
 
   const gaia = catalogues.etat === null ? false : gaiaCharge(catalogues.etat.catalogues)

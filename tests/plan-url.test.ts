@@ -105,7 +105,7 @@ describe('T-0431 — ouvrir le lien sur un autre appareil', () => {
     materiel: null,
     poids: null,
     erreur: null,
-    planDeLUrl: false,
+    ecritAuDepart: false,
   })
   const NUIT_LOINTAINE = `${DOMAINES.annee_affichee.min + 1}-06-15`
 
@@ -155,7 +155,7 @@ describe('T-0431 — ouvrir le lien sur un autre appareil', () => {
       bortle: '4',
       sqm: '',
     })
-    expect(restauree.planDeLUrl).toBe(true)
+    expect(restauree.ecritAuDepart).toBe(true)
     expect(nuitDeLaScene()).toBe(NUIT_LOINTAINE)
     await vi.waitFor(async () => expect(await litCiblesChoisies()).toEqual(['M31']))
   })
@@ -169,7 +169,7 @@ describe('T-0431 — ouvrir le lien sur un autre appareil', () => {
   it('une base illisible affiche l’URL sans rien y écrire', async () => {
     const restauree = ouvre('?nuit=2026-10-24&lat=45.76&lon=4.84&alt=170&cible=M31', false)
     expect([...ciblesChoisies()]).toEqual(['M31'])
-    expect(restauree.planDeLUrl).toBe(false)
+    expect(restauree.ecritAuDepart).toBe(false)
     expect(await litCiblesChoisies()).toEqual(['M42'])
   })
 })
