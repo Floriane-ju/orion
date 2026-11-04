@@ -53,6 +53,8 @@ import { cacheTrajetLune, instantsTrajetLune, trajetLune } from '../core/trajet-
 import { luneFile, type LuneFile } from '../core/fond-lune-file.ts'
 import { R } from '../registry/relief.ts'
 import { HORIZON_PLAT, horizonA, versHorizon, type TransitionHorizon } from './horizon-transition.ts'
+import { K } from '../registry/constants.ts'
+import { viseeA, type DirectionVisee, type TransitionVisee } from './visee-transition.ts'
 
 /** French names of §3.1 moving bodies. */
 const NOMS_CORPS: Readonly<Record<string, string>> = Object.freeze({
@@ -241,10 +243,15 @@ export function useBoucleRendu(entree: {
     // nothing survives the call, no new allocation justified.
     const instantDate = new Date(0)
     // T-0369 — Sol layer glides between reliefs; without requested motion it jumps.
-    const dureeHorizonMs = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      ? 0
-      : R('DUREE_TRANSITION_RELIEF_MS')
+    const mouvementReduit = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const dureeHorizonMs = mouvementReduit ? 0 : R('DUREE_TRANSITION_RELIEF_MS')
     let transitionHorizon: TransitionHorizon | null = null
+    // T-0447 — new `suivi` identity = a « Cadrer »: display glides from the aim last shown.
+    // Suivi broken (drag) cancels it: the hand wins over the glide.
+    const dureeViseeMs = mouvementReduit ? 0 : K('DUREE_TRANSITION_CADRER_MS')
+    let suiviConnu = etatScene().suivi
+    let transitionVisee: TransitionVisee | null = null
+    let viseeAffichee: DirectionVisee | null = null
     // T-0398 — filé pass painted in a worker when the platform allows.
     const port = creePortFile()
     const horsFil: ClientFile | null = port === null ? null : clientFile(port)
@@ -264,7 +271,18 @@ export function useBoucleRendu(entree: {
 
       instant.ms = instantSuivant(courant, instant.ms, dt, Date.now())
       instantDate.setTime(instant.ms)
-      const visee = suitCible(courant.site, instantDate)
+      const cibleVisee = suitCible(courant.site, instantDate)
+      const { suivi } = etatScene()
+      if (suivi !== suiviConnu) {
+        suiviConnu = suivi
+        transitionVisee =
+          suivi === null || viseeAffichee === null ? null : { depart: viseeAffichee, debutMs: ts }
+      }
+      const visee =
+        transitionVisee === null || cibleVisee === null
+          ? cibleVisee
+          : viseeA(transitionVisee, cibleVisee, ts, dureeViseeMs)
+      viseeAffichee = visee ?? courant.vue
 
       const courante: ImageLue = {
         etat: courant,
@@ -276,7 +294,7 @@ export function useBoucleRendu(entree: {
       const cibleHorizon = courant.horizonEnAttente ? HORIZON_PLAT : courant.masque.altitudesDeg
       transitionHorizon = versHorizon(transitionHorizon, cibleHorizon, ts, dureeHorizonMs)
       const horizon = horizonA(transitionHorizon, ts, dureeHorizonMs)
-      const enTransition = horizon !== transitionHorizon.cible
+      const enTransition = horizon !== transitionHorizon.cible || visee !== cibleVisee
       // T-0398 — filé frame received from the worker is set without awaiting another change.
       const recue = horsFil !== null && horsFil.version() !== versionPeinte
       if (enTransition || recue || doitDessiner(peinte, courante)) {

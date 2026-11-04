@@ -72,7 +72,6 @@ function liste(): string {
       contexteSession={CONTEXTE}
       etats={ETATS}
       profil={undefined}
-      gaiaCharge={false}
       recalcul={false}
     />,
   )

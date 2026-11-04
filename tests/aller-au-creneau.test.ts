@@ -23,7 +23,7 @@ describe('T-0284 — aller au créneau depuis la fiche', () => {
   const objet = objetGalaxie({ designation: 'CIBLE' })
 
   it('place l’instant au créneau, fige le temps et centre la cible à cet instant', () => {
-    cadreA(objet, SITE, undefined, false, DEBUT)
+    cadreA(objet, SITE, DEBUT)
     const etat = etatScene()
     const minute = Math.floor(DEBUT.getTime() / MS_PAR_MINUTE)
     expect(minuteAffichee(etat)).toBe(minute)
@@ -33,8 +33,14 @@ describe('T-0284 — aller au créneau depuis la fiche', () => {
     expect(etat.vue.hauteurDeg).toBeCloseTo(attendu.hauteurDeg, 9)
   })
 
+  it('garde le champ choisi — T-0447', () => {
+    const { fovDeg } = etatScene().vue
+    cadreA(objet, SITE, DEBUT)
+    expect(etatScene().vue.fovDeg).toBe(fovDeg)
+  })
+
   it('pose le suivi : la cible reste centrée quand le temps bouge', () => {
-    cadreA(objet, SITE, undefined, false, DEBUT)
+    cadreA(objet, SITE, DEBUT)
     expect(etatScene().suivi?.designation).toBe(objet.designation)
   })
 })

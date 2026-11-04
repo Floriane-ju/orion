@@ -1,5 +1,6 @@
 /**
- * T-0046, T-0221, T-0283 — "Cadrer" centres scène on a cible AND sets field to the matériel cadre.
+ * T-0046, T-0221, T-0283 — "Cadrer" centres scène on a cible, matériel cadre then drawn on it.
+ * T-0447 — field stays the user's: zoom chosen by hand survives the gesture.
  * List and fiche share the button (two drawings would announce two things). No chiffrable
  * matériel → no cadre → no button.
  * Below horizon the direction still exists (view to −90°) and tells where to wait for rise: button
@@ -15,11 +16,8 @@ import type { Site } from '../core/ephem.ts'
 import { matriceALaMinute } from '../core/horloges.ts'
 import { MS_PAR_MINUTE } from '../core/unites.ts'
 import type { ObjetCielProfond } from '../data/deepsky.ts'
-import { bornesZoom } from '../core/projection.ts'
 import { BoutonGlyphe, type VarianteGlyphe } from './BoutonGlyphe.tsx'
-import { champPourCadrer } from './planetarium-gestes.ts'
 import {
-  etatScene,
   majVue,
   minuteAffichee,
   suisCible,
@@ -66,11 +64,10 @@ export interface CadrerCibleProps {
   readonly site: Site
   /** Declared matériel cadre; absent if not chiffrable. */
   readonly profil: ProfilCadre | undefined
-  readonly gaiaCharge: boolean
 }
 
-/** §6.4 — one gesture shows the cible with the cadre on a readable part of the scène. */
-export function CadrerCible({ objet, site, profil, gaiaCharge }: CadrerCibleProps) {
+/** §6.4 — one gesture shows the cible with the cadre on it. */
+export function CadrerCible({ objet, site, profil }: CadrerCibleProps) {
   const minute = useTrancheScene(minuteAffichee)
   const { azimutDeg, hauteurDeg } = coordonneesHorizon(objet, matriceALaMinute(site, minute))
   return (
@@ -79,7 +76,6 @@ export function CadrerCible({ objet, site, profil, gaiaCharge }: CadrerCibleProp
       azimutDeg={azimutDeg}
       hauteurDeg={hauteurDeg}
       profil={profil}
-      gaiaCharge={gaiaCharge}
     />
   )
 }
@@ -90,7 +86,6 @@ export interface BoutonCadrerProps {
   readonly hauteurDeg: number
   /** Declared matériel cadre; absent if not chiffrable. */
   readonly profil: ProfilCadre | undefined
-  readonly gaiaCharge: boolean
   readonly variante?: VarianteGlyphe
   /** List card foot spells the gesture out. */
   readonly avecLibelle?: boolean
@@ -98,24 +93,13 @@ export interface BoutonCadrerProps {
 
 /**
  * The "Cadrer" gesture, shared with "Prochain créneau" (T-0380): jumping to a night without
- * turning toward the cible would leave searching a new sky. No matériel cadre: view centres, field
- * unchanged. Visée then follows the cible through sky rotation until first gesture moving it (a
- * cadre losing its cible in minutes framed only an instant).
+ * turning toward the cible would leave searching a new sky. Visée then follows the cible through
+ * sky rotation until first gesture moving it (a cadre losing its cible in minutes framed only an
+ * instant). T-0447 — render loop glides the display there: `viseeA`.
  */
-export function cadreScene(
-  objet: ObjetCielProfond,
-  azimutDeg: number,
-  hauteurDeg: number,
-  profil: ProfilCadre | undefined,
-  gaiaCharge: boolean,
-): void {
+export function cadreScene(objet: ObjetCielProfond, azimutDeg: number, hauteurDeg: number): void {
   const suivi = { designation: objet.designation, adDeg: objet.adDeg, decDeg: objet.decDeg }
-  if (profil === undefined) {
-    suisCible(suivi, { azimutDeg, hauteurDeg })
-    return
-  }
-  const fovDeg = champPourCadrer(profil.fovLDeg, bornesZoom(gaiaCharge, etatScene().vue.mode))
-  suisCible(suivi, { azimutDeg, hauteurDeg, fovDeg })
+  suisCible(suivi, { azimutDeg, hauteurDeg })
 }
 
 /**
@@ -126,26 +110,20 @@ export function cadreScene(
 export function cadreA(
   objet: ObjetCielProfond,
   site: Site,
-  profil: ProfilCadre | undefined,
-  gaiaCharge: boolean,
   instant: Date,
 ): void {
   vaA(instant.getTime())
   const matrice = matriceALaMinute(site, Math.floor(instant.getTime() / MS_PAR_MINUTE))
   const { azimutDeg, hauteurDeg } = coordonneesHorizon(objet, matrice)
-  cadreScene(objet, azimutDeg, hauteurDeg, profil, gaiaCharge)
+  cadreScene(objet, azimutDeg, hauteurDeg)
 }
 
-/**
- * List row already supplies the direction. View mode read at click only: subscribing would redraw
- * every row on each scène drag.
- */
+/** List row already supplies the direction. */
 export function BoutonCadrer({
   objet,
   azimutDeg,
   hauteurDeg,
   profil,
-  gaiaCharge,
   variante,
   avecLibelle = false,
 }: BoutonCadrerProps) {
@@ -158,7 +136,7 @@ export function BoutonCadrer({
       place="gauche"
       {...(variante === undefined ? {} : { variante })}
       {...(avecLibelle ? { texte: 'Cadrer' } : {})}
-      onClick={() => cadreScene(objet, azimutDeg, hauteurDeg, profil, gaiaCharge)}
+      onClick={() => cadreScene(objet, azimutDeg, hauteurDeg)}
     />
   )
 }

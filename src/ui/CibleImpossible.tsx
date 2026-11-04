@@ -23,7 +23,6 @@ import type { ObjetCielProfond } from '../data/deepsky.ts'
 import { nombre } from '../registry/ecriture.ts'
 import { BoutonGlyphe } from './BoutonGlyphe.tsx'
 import { cadreA } from './BoutonCadrer.tsx'
-import type { ProfilCadre } from '../core/cadre.ts'
 
 export const HORS_SAISON = 'Invisible aujourd’hui'
 /** Too low / never risen: same card answer (neither focale nor date helps); hauteur on fiche. */
@@ -132,9 +131,6 @@ export function CibleImpossible({ phrases }: { readonly phrases: readonly string
 export interface BoutonProchainCreneauProps {
   readonly objet: ObjetCielProfond
   readonly contexte: ContexteSession
-  /** To cadrer cible on arrival, like « Cadrer ». */
-  readonly profil: ProfilCadre | undefined
-  readonly gaiaCharge: boolean
   /** What écarte tonight: saison (default) or Lune. */
   readonly attendre?: keyof typeof RECHERCHES
   /** List-card pied spells gesture out: the bulle phrase. */
@@ -144,8 +140,6 @@ export interface BoutonProchainCreneauProps {
 export function BoutonProchainCreneau({
   objet,
   contexte,
-  profil,
-  gaiaCharge,
   attendre = 'SAISON',
   avecLibelle = false,
 }: BoutonProchainCreneauProps) {
@@ -165,7 +159,7 @@ export function BoutonProchainCreneau({
           setIntrouvable(true)
           return
         }
-        cadreA(objet, contexte.site, profil, gaiaCharge, instant)
+        cadreA(objet, contexte.site, instant)
       }}
     />
   )

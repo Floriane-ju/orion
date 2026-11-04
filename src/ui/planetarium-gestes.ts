@@ -56,14 +56,6 @@ export function fovBorne(fovDeg: number, bornes: BornesZoom): number {
   return encadre(fovDeg, bornes.fovMinDeg, bornes.fovMaxDeg)
 }
 
-/**
- * §6.4, T-0283 — champ where the matériel cadre is judged: a few cadres wide, within zoom
- * bounds. 8 wheel notches reached 93°, ~20 reached 30°: "Cadrer" jumps there at once.
- */
-export function champPourCadrer(fovLDeg: number, bornes: BornesZoom): number {
-  return fovBorne(fovLDeg * K('CHAMP_CADRER_FACTEUR'), bornes)
-}
-
 /** What a `wheel` must trigger on the scène. */
 export type SourceGeste = 'PINCEMENT' | 'MOLETTE' | 'DEFILEMENT'
 

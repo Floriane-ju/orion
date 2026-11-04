@@ -125,7 +125,6 @@ export interface PanneauCiblesProps {
   readonly etats: ReadonlyMap<string, EtatCible>
   /** T-0283 — matériel cadre, so "Cadrer" does here what it does in the fiche. */
   readonly profil: ProfilCadre | undefined
-  readonly gaiaCharge: boolean
   /** T-0404 — §6.1: a target discarded for size names the parc objectif that would frame it. */
   readonly parc?: readonly Objectif[]
   /** T-0407 — under a zoom, each row is read at its optimal focale. */
@@ -363,7 +362,6 @@ export function PanneauCibles(props: PanneauCiblesProps) {
             etat={etats.get(ligne.objet.designation) ?? null}
             contexte={contexteDe?.(ligne.objet) ?? contexteSession}
             profil={props.profil}
-            gaiaCharge={props.gaiaCharge}
             parc={props.parc ?? PARC_VIDE}
           />
         ))}
@@ -412,11 +410,10 @@ interface LigneListeProps {
   readonly etat: EtatCible | null
   readonly contexte: ContexteSession
   readonly profil: ProfilCadre | undefined
-  readonly gaiaCharge: boolean
   readonly parc: readonly Objectif[]
 }
 
-function LigneListe({ ligne, etat, contexte, profil, gaiaCharge, parc }: LigneListeProps) {
+function LigneListe({ ligne, etat, contexte, profil, parc }: LigneListeProps) {
   const { objet } = ligne
   const nom = nomCommun(objet)
   const pose = etat?.pose ?? null
@@ -486,7 +483,6 @@ function LigneListe({ ligne, etat, contexte, profil, gaiaCharge, parc }: LigneLi
           azimutDeg={ligne.azimutDeg}
           hauteurDeg={ligne.hauteurDeg}
           profil={profil}
-          gaiaCharge={gaiaCharge}
           variante="nu"
           avecLibelle
         />
@@ -499,8 +495,6 @@ function LigneListe({ ligne, etat, contexte, profil, gaiaCharge, parc }: LigneLi
           <BoutonProchainCreneau
             objet={objet}
             contexte={contexte}
-            profil={profil}
-            gaiaCharge={gaiaCharge}
             avecLibelle
           />
         )}
@@ -509,8 +503,6 @@ function LigneListe({ ligne, etat, contexte, profil, gaiaCharge, parc }: LigneLi
           <BoutonProchainCreneau
             objet={objet}
             contexte={contexte}
-            profil={profil}
-            gaiaCharge={gaiaCharge}
             attendre="LUNE"
             avecLibelle
           />

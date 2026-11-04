@@ -1583,14 +1583,14 @@ const RENDU = {
     ordreDeGrandeur: false,
     sections: ['8.1'],
   }),
-  CHAMP_CADRER_FACTEUR: entree({
+  DUREE_TRANSITION_CADRER_MS: entree({
     ref: 'C-26',
-    libelle: 'Champ de la scène après « Cadrer », en multiple de la grande dimension du cadre',
-    valeur: 3,
-    unite: '—',
+    libelle: 'Durée du glissement de la vue vers la cible après « Cadrer »',
+    valeur: 600,
+    unite: 'ms',
     source:
-      '§6.4 — convention produit (T-0283) : le cadre occupe un tiers de la largeur, assez ' +
-      'pour juger le cadrage, et il reste deux cadres de ciel pour se repérer autour',
+      '§6.4 — convention produit (T-0447) : assez long pour voir d’où l’on vient dans le ' +
+      'ciel, assez court pour ne pas retarder le geste',
     tolerance: 'convention produit — pilote le confort du geste, jamais un verdict',
     ordreDeGrandeur: false,
     sections: ['6.4', '3.3'],

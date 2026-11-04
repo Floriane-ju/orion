@@ -269,7 +269,6 @@ export function LateralSeance(props: RegionSeanceProps) {
                     objet={props.cibleDuCiel}
                     site={chaine.site}
                     profil={chaine.profilsCadre[0]}
-                    gaiaCharge={props.gaiaCharge}
                   />
                   <AlignementCible
                     objet={props.cibleDuCiel}
@@ -304,13 +303,7 @@ export function LateralSeance(props: RegionSeanceProps) {
               etapePlan={etapePlan}
               facilite={facilite}
               vaAInstant={(instant) =>
-                cadreA(
-                  props.cibleDuCiel!,
-                  chaine.site,
-                  chaine.profilsCadre[0],
-                  props.gaiaCharge,
-                  instant,
-                )
+                cadreA(props.cibleDuCiel!, chaine.site, instant)
               }
             />
           )
@@ -330,7 +323,6 @@ export function LateralSeance(props: RegionSeanceProps) {
             contexteSession={chaine.contexteSession}
             etats={chaine.etatsCibles}
             profil={chaine.profilsCadre[0]}
-            gaiaCharge={props.gaiaCharge}
             parc={props.materiel.objectifs}
             zoom={chaine.zoom}
             recalcul={chaine.recalculEnCours}
