@@ -7,7 +7,9 @@
 import { describe, expect, it } from 'vitest'
 import { pointEcran, projecteur, type Vue } from '../src/core/projection.ts'
 import { IDENTITE, versVecteur } from '../src/core/mat3.ts'
-import { margeFigurePx, traceSegments } from '../src/ui/traces-ciel.ts'
+import { margeFigurePx, traceLignes, traceSegments } from '../src/ui/traces-ciel.ts'
+import { projecteurSansSol } from '../src/core/sol.ts'
+import { masquePlat } from '../src/core/site.ts'
 import { rayonEtoileCielPx } from '../src/ui/apparence-objets.ts'
 import { K } from '../src/registry/constants.ts'
 import type { CoucheTraces } from '../src/core/constellations.ts'
@@ -114,5 +116,28 @@ describe('T-0376 — le trait s’arrête avant l’étoile', () => {
 
   it('donne la marge du plancher à une étoile que le paquet ne nomme pas', () => {
     expect(margeFigurePx(null)).toBeCloseTo(K('RAYON_MIN_ETOILE_PX') * K('MARGE_FIGURE_RAYONS'), 9)
+  })
+})
+
+describe('T-0450 — une ligne du ciel descend jusqu’au sol', () => {
+  // Flat sol, sky matrix = identity: site frame and J2000 coincide, below ground ⟺ h < 0.
+  const proj = projecteurSansSol(projecteur(VUE, IDENTITE), masquePlat(), IDENTITE)
+  // Galactic plane sampled every few degrees: vertices straddle the horizon, none on it.
+  const ligne = [4.5, 1.5, -1.5, -4.5].map((h) => versVecteur(10, h))
+  const auSol = pointEcran()
+  const surHorizon = versVecteur(10, 0)
+  proj.projetteEn(surHorizon.x, surHorizon.y, surHorizon.z + 1e-9, auSol)
+  const ecartAuSol = ([x, y]: [number, number]): number => Math.hypot(x - auSol.xPx, y - auSol.yPx)
+
+  it('prolonge le trait qui plonge jusqu’au bord du sol', () => {
+    const { ctx, bouts } = ctxEspion()
+    traceLignes(ctx, proj, [ligne])
+    expect(ecartAuSol(bouts.at(-1)!)).toBeLessThan(1 / 2)
+  })
+
+  it('fait partir du bord du sol le trait qui en sort', () => {
+    const { ctx, bouts } = ctxEspion()
+    traceLignes(ctx, proj, [[...ligne].reverse()])
+    expect(ecartAuSol(bouts[0]!)).toBeLessThan(1 / 2)
   })
 })

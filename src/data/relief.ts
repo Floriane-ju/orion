@@ -185,9 +185,9 @@ async function depuisReseau(
   if (profil === null || solM === null || !dansLeDomaine(profil)) {
     return { etat: 'INDISPONIBLE', cause: CAUSE_INVALIDE }
   }
-  const courbes = courbesNiveau(altitude, latDeg, lonDeg)
-  const bords = silhouettes(altitude, latDeg, lonDeg)
   const crete = creteFine(altitude, latDeg, lonDeg)
+  const courbes = crete === null ? null : courbesNiveau(altitude, latDeg, lonDeg, crete)
+  const bords = silhouettes(altitude, latDeg, lonDeg)
   return {
     etat: 'RELIEF',
     altitudesDeg: profil,
@@ -220,7 +220,7 @@ function dansLeDomaine(profil: readonly number[]): boolean {
  * T-0395 — contour-computation version; bump when `courbesNiveau` changes. Not in cache key:
  * offline, a visited site keeps its mask.
  */
-const VERSION_COURBES = 12
+const VERSION_COURBES = 13
 
 export function signatureCourbes(): string {
   return [

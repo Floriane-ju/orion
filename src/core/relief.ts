@@ -13,7 +13,7 @@ import { K } from '../registry/constants.ts'
 import { DOMAINES } from '../registry/domains.ts'
 import { R } from '../registry/relief.ts'
 import { DEG, versVecteur, type Vec3 } from './mat3.ts'
-import { NB_AZIMUTS } from './site.ts'
+import { creteEnAzimutDeg, NB_AZIMUTS } from './site.ts'
 import { ecartCourt, ramene, TOUR_DEG } from './unites.ts'
 
 const M_PAR_KM = 1000
@@ -164,11 +164,15 @@ function relitSommets(
  * not a distance: draws slopes, where distance circles drew only curvature.
  * Masking decided at each segment's middle azimuth: hidden when nearer terrain (≥ 1 step) rises
  * above it. Per-endpoint decision dashed grazing curves (every other end grazes terrain ahead).
+ * T-0450 — `crete` = ridge the sol paints (`creteFine`): a piece above it is cut. Ridge reads
+ * terrain only from `DISTANCE_MIN_RELIEF_M`, contours from one step: a near rise behind the site
+ * carried its curves into the sky.
  */
 export function courbesNiveau(
   altitude: Altimetre,
   latDeg: number,
   lonDeg: number,
+  crete?: ArrayLike<number>,
 ): Float32Array | null {
   const sol = altitude(latDeg, lonDeg)
   if (sol === null) return null
@@ -227,7 +231,7 @@ export function courbesNiveau(
       vers(p.est + t * (q.est - p.est), p.nord + t * (q.nord - p.nord), niveau)
     const visible = (k: number): boolean => {
       const [az, e, d] = en((2 * k + 1) / (2 * n))
-      return e >= devant(az, d)
+      return e >= devant(az, d) && (crete === undefined || e <= creteEnAzimutDeg(crete, az))
     }
     // All split points, not just ends: near site a cell spans several degrees, chord cut the arc.
     // `simplifieLigne` then drops aligned ones.

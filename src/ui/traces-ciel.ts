@@ -61,6 +61,42 @@ function calottesDe<T>(
   return calculees
 }
 
+/**
+ * T-0450 — halvings of the arc between a projectable vertex and the next unprojectable one.
+ * Galactic plane sampled every 3°: 3° / 2¹⁰ ≈ 0.003°, under a pixel at the narrowest field.
+ */
+const DICHOTOMIES_BORD = 10
+
+/**
+ * T-0450 — last projectable point on the arc `dedans → dehors`, written to `out` (left as is when
+ * none nearer `dehors`). Without it a line stopped at its last vertex above the sol, up to a
+ * sampling step short of the edge.
+ */
+function bordProjetable(
+  projecteur: Projecteur,
+  dedans: Vec3,
+  dehors: Vec3,
+  out: PointEcranMut,
+  essai: PointEcranMut,
+): void {
+  let t0 = 0
+  let t1 = 1
+  for (let d = 0; d < DICHOTOMIES_BORD; d++) {
+    const t = (t0 + t1) / 2
+    const x = dedans.x + (dehors.x - dedans.x) * t
+    const y = dedans.y + (dehors.y - dedans.y) * t
+    const z = dedans.z + (dehors.z - dedans.z) * t
+    const norme = Math.sqrt(x * x + y * y + z * z)
+    if (norme > Number.EPSILON && projecteur.projetteEn(x / norme, y / norme, z / norme, essai)) {
+      t0 = t
+      out.xPx = essai.xPx
+      out.yPx = essai.yPx
+    } else {
+      t1 = t
+    }
+  }
+}
+
 /** Composes path without painting: sky trace fills it, cadre clips with it. */
 function cheminLignes(
   ctx: CanvasRenderingContext2D,
@@ -69,6 +105,8 @@ function cheminLignes(
   champ?: ChampVisible | null,
 ): void {
   const p = pointEcran()
+  const bord = pointEcran()
+  const essai = pointEcran()
   // Cap only if caller asks for gap: cadre outline rebuilt per frame, memoized cap would fill
   // table for nothing.
   const calottes = champ == null ? null : calottesDe(polylignes, (ligne) => ligne)
@@ -80,14 +118,32 @@ function cheminLignes(
       continue
     }
     let enchaine = false
+    let precedent: Vec3 | null = null
     for (const point of ligne) {
       if (!projecteur.projetteEn(point.x, point.y, point.z, p)) {
+        // Line leaves the projectable region: stroke on to its edge.
+        if (enchaine && precedent !== null) {
+          bord.xPx = Number.NaN
+          bordProjetable(projecteur, precedent, point, bord, essai)
+          if (!Number.isNaN(bord.xPx)) ctx.lineTo(bord.xPx, bord.yPx)
+        }
         enchaine = false
+        precedent = point
         continue
       }
       if (enchaine) ctx.lineTo(p.xPx, p.yPx)
-      else ctx.moveTo(p.xPx, p.yPx)
+      else {
+        // Line enters it: start from its edge.
+        bord.xPx = Number.NaN
+        if (precedent !== null) bordProjetable(projecteur, point, precedent, bord, essai)
+        if (Number.isNaN(bord.xPx)) ctx.moveTo(p.xPx, p.yPx)
+        else {
+          ctx.moveTo(bord.xPx, bord.yPx)
+          ctx.lineTo(p.xPx, p.yPx)
+        }
+      }
       enchaine = true
+      precedent = point
     }
   }
 }

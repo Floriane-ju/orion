@@ -220,6 +220,27 @@ describe('courbes de niveau vues depuis le site (T-0395)', () => {
     expect(proches.some((h) => Math.abs(h - attendue) < 0.05)).toBe(true)
   })
 
+  it('ne trace aucune courbe proche au-dessus de la crête que le sol peint', () => {
+    // T-0450 — near rise south, flat beyond: its curves under the mask threshold climb higher
+    // than the crest, read only from that threshold on — they hung in the sky.
+    const finM = (R('DISTANCE_MIN_RELIEF_M') * 4) / 5
+    const butte = (s: number): number => sol + denivele * (Math.min(Math.max(s, 0), finM) / finM)
+    const altimetre: Altimetre = (lat) => butte(versLeSud(lat))
+    const crete = creteFine(altimetre, SITE.latDeg, SITE.lonDeg)!
+    const creteA = (az: number): number => {
+      const x = (az * crete.length) / 360
+      const i = Math.floor(x)
+      const avant = crete[i % crete.length]!
+      return avant + (crete[(i + 1) % crete.length]! - avant) * (x - i)
+    }
+    const auDessus = (courbes: Float32Array) =>
+      polylignes(courbes)
+        .flat()
+        .filter(([az, h]) => az! >= 175 && az! <= 185 && h! > creteA(az!))
+    expect(auDessus(courbesNiveau(altimetre, SITE.latDeg, SITE.lonDeg)!).length).toBeGreaterThan(0)
+    expect(auDessus(courbesNiveau(altimetre, SITE.latDeg, SITE.lonDeg, crete)!)).toHaveLength(0)
+  })
+
   describe('crête fine pour le dessin (T-0438)', () => {
     /** Narrow peak due south, offset ½°: falls between two whole azimuths. */
     const pic = (lat: number, lon: number): number => {

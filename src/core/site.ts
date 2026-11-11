@@ -157,6 +157,11 @@ export function obstructionDeg(masque: MasqueHorizon, azimutDeg: number): number
 export function obstructionDessinDeg(masque: MasqueHorizon, azimutDeg: number): number {
   const crete = masque.creteDeg
   if (crete === undefined || crete.length === 0) return obstructionDeg(masque, azimutDeg)
+  return creteEnAzimutDeg(crete, azimutDeg)
+}
+
+/** Ridge sampled evenly over the circle, linear between samples (wraps). */
+export function creteEnAzimutDeg(crete: ArrayLike<number>, azimutDeg: number): number {
   const n = crete.length
   const a = ramene(azimutDeg, TOUR_DEG) * (n / TOUR_DEG)
   const i = Math.floor(a)
